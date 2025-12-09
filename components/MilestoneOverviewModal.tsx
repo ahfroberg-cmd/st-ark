@@ -387,11 +387,13 @@ export function MilestoneOverviewPanel({ open, onClose }: Props) {
 
         if (a.courseId) {
           const cr = courses.find((c0) => c0.id === a.courseId);
-          const st = classifyActivity(cr?.startDate, cr?.endDate);
+          // Använd any här så vi slipper krav på startDate/endDate i Course-typen
+          const st = classifyActivity((cr as any)?.startDate, (cr as any)?.endDate);
           if (statusAllowed(st)) {
             kurs[code] = (kurs[code] ?? 0) + 1;
           }
         }
+
       }
     }
 

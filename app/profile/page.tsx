@@ -1,7 +1,7 @@
 // ============================ app/profile/page.tsx ============================
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 
 
@@ -129,7 +129,7 @@ function Input({
   );
 }
 
-export default function ProfilePage() {
+function ProfilePageInner() {
 
   const router = useRouter();
   const params = useSearchParams();
@@ -737,5 +737,13 @@ export default function ProfilePage() {
         </button>
       </footer>
     </main>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageInner />
+    </Suspense>
   );
 }

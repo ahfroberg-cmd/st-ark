@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import PusslaDinST from "@/components/PusslaDinST";
 
-export default function PlaneraSTPage() {
+function PlaneraSTPageInner() {
   const params = useSearchParams();
   const startParam = params.get("start");
   const startYear = startParam ? Number(startParam) : undefined;
@@ -17,5 +17,13 @@ export default function PlaneraSTPage() {
     <main className="p-4 md:p-6">
       <PusslaDinST initialStartYear={initialStartYear} />
     </main>
+  );
+}
+
+export default function PlaneraSTPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlaneraSTPageInner />
+    </Suspense>
   );
 }
