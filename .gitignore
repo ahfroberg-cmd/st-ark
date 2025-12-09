@@ -1,0 +1,25 @@
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Tesseract cache
+tesseract-cache/
+*.traineddata.gz
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+

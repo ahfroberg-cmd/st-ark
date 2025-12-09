@@ -1,0 +1,366 @@
+{
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STa1",
+      "code": "STa1",
+      "group": "STa",
+      "title": "Hälso- och sjukvårdens förutsättningar",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "uppvisa kunskap om hälso- och sjukvårdens olika ekonomiska styrningssystem och deras betydelse för prioriteringar och avvägningar i det dagliga arbetet",
+            "uppvisa kunskap om hur förändringar av medicinska, tekniska eller organisatoriska förutsättningar kan få betydelse för var, när och hur hälso- och sjukvård kan bedrivas"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "text": "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        }
+      ]
+    },
+    {
+      "id": "STa2",
+      "code": "STa2",
+      "group": "STa",
+      "title": "Systematiskt kvalitets- och patientsäkerhetsarbete",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna identifiera risker och vårdskador och andra kvalitetsbrister och kunna vidta adekvata åtgärder",
+            "kunna utvärdera processer och resultat och kunna ta ett ansvar för att förbättrande åtgärder genomförs"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Deltagande i utvecklingsarbete",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "text": "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i en eller flera kurser",
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STa3",
+      "code": "STa3",
+      "group": "STa",
+      "title": "Medicinsk vetenskap",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna tillämpa medicinskt vetenskapliga metoder och forskningsetiska principer",
+            "kunna kritiskt granska och värdera medicinsk vetenskaplig information",
+            "kunna ta ett ansvar för att medicinsk vetenskaplig kunskap omsätts och tillämpas i hälso- och sjukvården"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "text": "Intyg om uppfyllda kompetenskrav utfärdat av handledare"
+        }
+      ]
+    },
+    {
+      "id": "STa4",
+      "code": "STa4",
+      "group": "STa",
+      "title": "Etik",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna analysera etiska problem med utgångspunkt i medicinsk-etiska principer"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i utvecklingsarbete",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i reflektion i grupp"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i reflektion i grupp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STa5",
+      "code": "STa5",
+      "group": "STa",
+      "title": "Ledarskap",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna leda medicinskt arbete på arbetsplatsen",
+            "kunna utveckla det multiprofessionella samarbetet på arbetsplatsen"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i reflektion i grupp"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i reflektion i grupp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STa6",
+      "code": "STa6",
+      "group": "STa",
+      "title": "Lärande",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna ta ett ansvar för det kontinuerliga lärandet på arbetsplatsen",
+            "kunna förmedla kunskaper inom den egna specialitetens ämnesområde till olika målgrupper",
+            "kunna planera och genomföra undervisning",
+            "kunna handleda medarbetare och studenter"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser",
+            "Handleda under handledning",
+            "Undervisa under handledning"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Handleda under handledning",
+            "Undervisa under handledning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STa7",
+      "code": "STa7",
+      "group": "STa",
+      "title": "Vårdhygien och smittskydd",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna ta ett ansvar för arbetsplatsens systematiska arbete med att förebygga vårdrelaterade infektioner och smittspridning"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i utvecklingsarbete"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "text": "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        }
+      ]
+    },
+    {
+      "id": "STb1",
+      "code": "STb1",
+      "group": "STb",
+      "title": "Kommunikation med patienter och närstående",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna göra patienter och närstående delaktiga i vård och behandling med utgångspunkt i individuella förutsättningar och behov",
+            "kunna ge patienter och närstående svåra besked respektfullt, empatiskt och med lyhördhet",
+            "kunna stödja patienter i att hantera en förändrad livssituation till följd av sjukdom eller funktionsnedsättning"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i reflektion i grupp",
+            "Medsittning"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i reflektion i grupp",
+            "Medsittning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STb2",
+      "code": "STb2",
+      "group": "STb",
+      "title": "Sjukdomsförebyggande och hälsofrämjande arbete",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna vägleda patienter i frågor om levnadsvanor i syfte att förbättra hälsa och förebygga sjukdomar",
+            "kunna stödja patienter i att upprätthålla friska funktioner i samband med sjukdom och behandling"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i reflektion i grupp"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i reflektion i grupp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STb3",
+      "code": "STb3",
+      "group": "STb",
+      "title": "Försäkringsmedicin",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna tillämpa metoder inom försäkringsmedicin som en del av behandlingen av den enskilda patienten",
+            "kunna samverka i försäkringsmedicinska frågor som rör den enskilda patienten med aktörer inom och utanför hälso- och sjukvården"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "STb4",
+      "code": "STb4",
+      "group": "STb",
+      "title": "Palliativ vård",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna tillämpa principer för palliativ vård med beaktande av fysiska, psykiska, sociala och existentiella behov",
+            "kunna genomföra brytpunktsamtal med patienter och närstående"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Auskultation",
+            "Deltagande i en eller flera kurser",
+            "Deltagande i seminarium",
+            "Medsittning",
+            "Träning i simulerad miljö"
+          ]
+        },
+        {
+          "title": "Intyg",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i seminarium",
+            "Medsittning",
+            "Träning i simulerad miljö"
+          ]
+        }
+      ]
+    }
+  ]
+}

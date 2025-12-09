@@ -1,0 +1,325 @@
+{
+  "specialty": "Psykiatri",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Vanliga och viktiga psykiska sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med betoning på de stora folksjukdomarna, såsom affektiva sjukdomar, ångestsyndrom, psykossjukdomar och personlighetsstörningar",
+          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar och om deras behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Övriga psykiska sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga övriga psykiska sjukdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Akutpsykiatriska tillstånd och katastrofpsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga akutpsykiatriska tillstånd samt kunna initialt handlägga katastrofpsykiatriska situationer"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Psykofarmakologisk och elektrokonvulsiv behandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska psykofarmakologisk och elektrokonvulsiv behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Somatiska tillstånd och differentialdiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om differentialdiagnostik mellan internmedicinska och neurologiska sjukdomar respektive psykiska sjukdomar",
+          "kunna upptäcka och initialt handlägga somatiska tillstånd hos patienter med psykisk sjukdom"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Substansberoende och samsjuklighet",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga vanliga substansberoendetillstånd samt ha kunskap om deras samsjuklighet med internmedicinska tillstånd och övriga psykiska sjukdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "Neurodegenerativa sjukdomar och kognitiv svikt",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om neurodegenerativa sjukdomar med tonvikt på viktiga demenstillstånd",
+          "kunna diagnostisera och handlägga patienter med psykisk sjukdom och samtidig kognitiv störning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Utvecklingsrelaterade psykiska tillstånd och barnpsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om utvecklingsrelaterade psykiska sjukdomar",
+          "ha kännedom om barnpsykiatriskt arbetssätt och om avvikande kontra normal psykologisk och neurologisk utveckling i barn- och ungdomsåren"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg utfärdat av handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg utfärdat av kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Psykologiska behandlingsmetoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om de teoretiska grunderna för olika psykologiska behandlingsmetoder",
+          "kunna bedöma vilken psykologisk metod som är lämplig för behandling av olika psykiska tillstånd",
+          "kunna handlägga patienter med psykologiska behandlingsmetoder"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid enheter som bedriver eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Rättspsykiatri och lagstiftning",
+      "sections": {
+        "kompetenskrav": [
+          "tillämpa lagar och andra författningar som reglerar psykiatrisk tvångsvård",
+          "uppvisa kunskap om rättspsykiatrisk vård och dess juridiska ramar",
+          "ha kunskap om andra lagar och föreskrifter som är relevanta för psykiatrin",
+          "ha kännedom om rättspsykiatrins organisation och ansvarsfördelning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som bedriver eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Kognitiva funktionshinder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om kognitiva funktionshinder och hur de påverkar patientens vård, behandling och funktion i vardagen",
+          "ha kunskap om testmetoder som används för att utreda sådana funktionshinder"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid enheter som handlägger relevanta ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Samordning, uppföljning och brukarorganisationer",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur patienter med långvariga psykiska tillstånd behöver samordnad och kontinuerlig uppföljning",
+          "förstå hur psykosociala och psykofarmakologiska insatser kombineras i nära samarbete med andra yrkesgrupper",
+          "ha kännedom om brukarorganisationers roll som resurs i vård och rehabilitering"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Socialtjänst och andra myndigheter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om socialtjänstens organisation och regelverk",
+          "ha kunskap om andra för området relevanta myndigheters organisation, uppdrag och förutsättningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc14",
+      "code": "STc14",
+      "title": "Läkemedelsbehandling inom specialiteten",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens totala läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten efter individuella faktorer: ålder, kön, vikt, njur- och leverfunktion, annan medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning"
+        ],
+        "allmannaRad": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav, utfärdat av handledare"
+        ]
+      }
+    }
+  ]
+}

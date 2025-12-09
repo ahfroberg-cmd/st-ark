@@ -1,0 +1,741 @@
+// ============================ app/profile/page.tsx ============================
+"use client";
+
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+
+
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { db } from "@/lib/db";
+import type { Profile } from "@/lib/types";
+import CalendarDatePicker from "@/components/CalendarDatePicker";
+
+/** Platt lista över specialiteter – sorteras i UI med svensk locale */
+const SPECIALTIES: string[] = [
+  "Akutsjukvård",
+  "Allergologi",
+  "Allmänmedicin",
+  "Anestesi och intensivvård",
+  "Arbets- och miljömedicin",
+  "Arbetsmedicin",
+  "Barn- och ungdomsallergologi",
+  "Barn- och ungdomshematologi och onkologi",
+  "Barn- och ungdoms-kardiologi",
+  "Barn- och ungdomskirurgi",
+  "Barn- och ungdomsmedicin",
+  "Barn- och ungdomsneurologi med habilitering",
+  "Barn- och ungdomspsykiatri",
+  "Endokrinologi och diabetologi",
+  "Geriatrik",
+  "Gynekologisk onkologi",
+  "Handkirurgi",
+  "Hematologi",
+  "Hud- och könssjukdomar",
+  "Hörsel- och balansrubbningar",
+  "Infektionssjukdomar",
+  "Internmedicin",
+  "Kardiologi",
+  "Kärlkirurgi",
+  "Klinisk farmakologi",
+  "Klinisk fysiologi",
+  "Klinisk genetik",
+  "Klinisk immunologi och transfusionsmedicin",
+  "Klinisk kemi",
+  "Klinisk mikrobiologi",
+  "Klinisk neurofysiologi",
+  "Klinisk patologi",
+  "Kirurgi",
+  "Lungsjukdomar",
+  "Medicinsk gastroenterologi och hepatologi",
+  "Neonatologi",
+  "Neurokirurgi",
+  "Neurologi",
+  "Neuroradiologi",
+  "Njurmedicin",
+  "Nuklearmedicin",
+  "Obstetrik och gynekologi",
+  "Onkologi",
+  "Ortopedi",
+  "Palliativ medicin",
+  "Plastikkirurgi",
+  "Psykiatri",
+  "Radiologi",
+  "Rehabiliteringsmedicin",
+  "Reumatologi",
+  "Rättsmedicin",
+  "Rättspsykiatri",
+  "Röst- och talrubbningar",
+  "Skolhälsovård (medicinska insatser i elevhälsan)",
+  "Smärtlindring",
+  "Socialmedicin",
+  "Thoraxkirurgi",
+  "Urologi",
+  "Vårdhygien",
+  "Äldrepsykiatri",
+  "Ögonsjukdomar",
+  "Öron-, näs- och halssjukdomar",
+];
+
+function Labeled({ children }: { children: React.ReactNode }) {
+  return <label className="mb-1 block text-sm text-slate-700">{children}</label>;
+}
+
+/** Fokus-säker textinput (buffrar lokalt, commit direkt vid input) */
+function Input({
+  value,
+  onChange, // commit direkt (på input)
+  type = "text",
+  placeholder,
+  inputMode,
+}: {
+  value: any;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+}) {
+  const [local, setLocal] = useState<string>(value ?? "");
+
+  // Prop -> lokal endast när prop ändras utifrån (t.ex. vid laddning)
+  useEffect(() => {
+    const next = String(value ?? "");
+    if (next !== local) setLocal(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const commit = useCallback(
+    (val?: string) => {
+      const v = val ?? local;
+      if (String(value ?? "") !== v) onChange(v);
+    },
+    [local, value, onChange]
+  );
+
+  return (
+    <input
+      type={type as any}
+      value={local}
+      onInput={(e) => {
+        const v = (e.target as HTMLInputElement).value;
+        setLocal(v);
+        commit(v); // uppdatera form direkt -> dirty tänds direkt
+      }}
+      placeholder={placeholder}
+      inputMode={inputMode}
+      autoComplete="off"
+      spellCheck={false}
+      className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+    />
+  );
+}
+
+export default function ProfilePage() {
+
+  const router = useRouter();
+  const params = useSearchParams();
+  const isSetupMode = params.get("setup") === "1";
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  const [form, setForm] = useState<any>({
+
+
+    id: "default",
+    // Personuppgifter
+    name: "",
+    personalNumber: "",
+    address: "",
+    postalCode: "",
+    city: "",
+    email: "",
+    mobile: "",
+    phoneHome: "",
+    phoneWork: "",
+    // ST
+    homeClinic: "",
+    supervisor: "",
+    supervisorWorkplace: "",
+    studyDirector: "",
+    studyDirectorWorkplace: "",
+    manager: "",
+    verksamhetschef: "",
+    specialty: "",
+    goalsVersion: "2021",
+    stStartDate: "",
+  stTotalMonths: 66,
+
+    medDegreeCountry: "",
+    medDegreeDate: "",
+    // Nytt: legitimation (land + datum)
+    licenseCountry: "",
+    licenseDate: "",
+    // Flyttade centrala datapunkter (samma som i ProfileModal)
+
+    hasForeignLicense: false,
+    foreignLicenses: [] as { country: string; date: string }[],
+    hasPriorSpecialist: false,
+    priorSpecialties: [] as { speciality: string; country: string; date: string }[],
+    // BT (2021)
+    btMode: "fristående", // "fristående" | "integrerad"
+    btStartDate: "",
+
+    locked: false,
+  });
+
+
+
+  const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
+  const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const p = await db.profile.get("default");
+      if (p) {
+        setProfile(p as any);
+        setForm((prev: any) => ({ ...prev, ...(p as any) }));
+        setSupervisorHasOtherSite(Boolean((p as any)?.supervisorWorkplace));
+        setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
+      }
+    })();
+  }, []);
+
+    // (Input och Labeled definieras på toppnivå, utanför komponenten)
+
+
+
+
+
+  const specialtiesSorted = useMemo(
+    () => [...SPECIALTIES].sort((a, b) => a.localeCompare(b, "sv")),
+    []
+  );
+
+  // --- Hjälpare för datum → ISO (YYYY-MM-DD) och "måndag på/efter" ---
+  function toISO(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function mondayOnOrAfter(date: Date) {
+    const d = new Date(date.getTime());
+    const day = d.getDay(); // 0=Sun ... 1=Mon
+    const add = (8 - day) % 7; // 0 om måndag redan, annars fram till nästa måndag
+    d.setDate(d.getDate() + add);
+    return d;
+  }
+
+  // --- Auto: ST-start = måndagen på/efter ett år efter BT-start (gäller 2021) ---
+  useEffect(() => {
+    if (form.goalsVersion !== "2021") return;
+    if (!form.btStartDate) return;
+    const bt = new Date(form.btStartDate);
+    if (isNaN(+bt)) return;
+    const oneYearLater = new Date(bt.getFullYear() + 1, bt.getMonth(), bt.getDate());
+    const stAuto = mondayOnOrAfter(oneYearLater);
+    const iso = toISO(stAuto);
+    if (form.stStartDate !== iso) {
+      setForm((prev: any) => ({ ...prev, stStartDate: iso }));
+    }
+  }, [form.goalsVersion, form.btStartDate]);
+
+
+  async function saveProfile() {
+    if (!form.name.trim() || !form.specialty.trim()) {
+      alert("Fyll i minst Namn och Specialitet.");
+      return;
+    }
+    if (!form.stStartDate) {
+      alert("Fyll i startdatum för ST.");
+      return;
+    }
+    // BT: enkel validering (endast om målversion 2021)
+    if (form.goalsVersion === "2021") {
+      if (form.btStatus !== "ej" && !form.btStartDate) {
+        alert("Fyll i BT start.");
+        return;
+      }
+      if (form.btStatus === "klar" && !form.btEndDate) {
+        alert("Fyll i BT slut.");
+        return;
+      }
+    }
+
+
+    const parts = (form.name ?? "").trim().split(/\s+/);
+    const firstName = parts[0] ?? "";
+    const lastName = parts.slice(1).join(" ") ?? "";
+    const newProfile = { ...form, firstName, lastName, locked: true } as any;
+
+    await db.profile.put(newProfile);
+    if (isSetupMode) router.replace("/planera-st");
+    else router.push("/");
+  }
+
+  return (
+    <main className="mx-auto max-w-[1100px] px-6 py-6 text-slate-900">
+      <header className="mb-5">
+        <h1 className="text-2xl font-extrabold tracking-tight">Profil</h1>
+        <p className="mt-1 text-slate-600">Fyll i personuppgifter och uppgifter om ST.</p>
+      </header>
+
+      <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        {/* Vänster: Personuppgifter */}
+        <article className="md:order-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 text-lg font-extrabold">Personuppgifter</h2>
+          <div className="grid grid-cols-1 gap-3">
+
+
+            <div>
+              <Labeled>Namn</Labeled>
+              <Input value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+            </div>
+            <div>
+              <Labeled>Personnummer</Labeled>
+              <Input value={form.personalNumber} onChange={(v) => setForm({ ...form, personalNumber: v })} inputMode="numeric" />
+            </div>
+            <div>
+              <Labeled>Utdelningsadress</Labeled>
+              <Input value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Labeled>Postnummer</Labeled>
+                <Input value={form.postalCode} onChange={(v) => setForm({ ...form, postalCode: v })} inputMode="numeric" />
+              </div>
+              <div className="col-span-2">
+                <Labeled>Postort</Labeled>
+                <Input value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
+              </div>
+            </div>
+            <div>
+              <Labeled>E-postadress</Labeled>
+              <Input value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div>
+                <Labeled>Mobiltelefon</Labeled>
+                <Input value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} inputMode="tel" />
+              </div>
+              <div>
+                <Labeled>Telefon (bostad)</Labeled>
+                <Input value={form.phoneHome} onChange={(v) => setForm({ ...form, phoneHome: v })} inputMode="tel" />
+              </div>
+              <div>
+                <Labeled>Telefon (arbete)</Labeled>
+                <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" />
+              </div>
+            </div>
+          </div>
+
+          {/* Enkel info om lagring */}
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            <strong>Lagring:</strong> Allt sparas endast lokalt i din webbläsare. Ingen inloggning, ingen server.
+            För att flytta eller säkerhetskopiera: Exportera/Importera som JSON-fil.
+          </p>
+        </article>
+
+        {/* Höger: Uppgifter om ST */}
+        <article className="md:order-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 className="mb-3 text-lg font-extrabold">Uppgifter om ST</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {/* Rad 1: Specialitet (vänster) + Målversion (höger) */}
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+  <div>
+    <Labeled>Specialitet</Labeled>
+    <select
+      value={form.specialty}
+      onChange={(e) =>
+        setForm({ ...form, specialty: (e.target as HTMLSelectElement).value })
+      }
+      className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+    >
+      <option value="">— Välj —</option>
+      {specialtiesSorted.map((s) => (
+        <option key={s} value={s}>
+          {s}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <Labeled>Målversion</Labeled>
+    <select
+      value={form.goalsVersion}
+      onChange={(e) => {
+        const gv = (e.target as HTMLSelectElement).value as any;
+        setForm({
+          ...form,
+          goalsVersion: gv,
+          // sätt default för längd när målversion byts
+          stTotalMonths: gv === "2021" ? 66 : 60,
+        });
+      }}
+      className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+    >
+      <option value="2015">SOSFS 2015:8</option>
+      <option value="2021">HSLF-FS 2021:8</option>
+    </select>
+  </div>
+</div>
+
+{/* Rad 2: BT-fält – endast 2021 */}
+{form.goalsVersion === "2021" && (
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div>
+      <Labeled>Startdatum för BT</Labeled>
+      <CalendarDatePicker
+        value={form.btStartDate || ""}
+        onChange={(v: string) => setForm({ ...form, btStartDate: v })}
+      />
+    </div>
+    <div>
+      <Labeled>BT-läge</Labeled>
+      <select
+        value={form.btMode}
+        onChange={(e) =>
+          setForm({ ...form, btMode: (e.target as HTMLSelectElement).value })
+        }
+        className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+      >
+        <option value="fristående">Fristående</option>
+        <option value="integrerad">Integrerad i ST</option>
+      </select>
+    </div>
+  </div>
+)}
+
+{/* Rad 3: Startdatum ST + ST-längd */}
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+  <div>
+    <Labeled>Startdatum för ST</Labeled>
+    <CalendarDatePicker
+      value={form.stStartDate || ""}
+      onChange={(v: string) => setForm({ ...form, stStartDate: v })}
+    />
+  </div>
+
+  <div>
+    <Labeled>
+      {form.goalsVersion === "2021"
+        ? "ST-längd i månader (inklusive BT)"
+        : "ST-längd i månader"}
+    </Labeled>
+    <select
+      value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
+      onChange={(e) =>
+        setForm({
+          ...form,
+          stTotalMonths: Number((e.target as HTMLSelectElement).value),
+        })
+      }
+      className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+      title="Planerad total tid i månader"
+    >
+      {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
+        const isSix = m % 6 === 0;
+        const label = (() => {
+          if (!isSix) return `${m}`;
+          if (m % 12 === 0) return `${m} (${m / 12} år)`;
+          return `${m} (${Math.floor(m / 12)},5 år)`;
+        })();
+        return (
+          <option key={m} value={m}>
+            {label}
+          </option>
+        );
+      })}
+    </select>
+
+  </div>
+
+</div>
+
+{/* Hemklinik */}
+
+            <div>
+              <Labeled>Hemklinik</Labeled>
+              <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} />
+            </div>
+
+            {/* Huvudhandledare & Studierektor bredvid varandra */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Huvudhandledare */}
+              <div>
+                <Labeled>Huvudhandledare</Labeled>
+                <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} />
+                <label className="mt-2 inline-flex items-center gap-2 text-sm select-none">
+                  <input
+                    type="checkbox"
+                    checked={supervisorHasOtherSite}
+                    onChange={(e) => setSupervisorHasOtherSite(e.currentTarget.checked)}
+                  />
+                  Har annat tjänsteställe
+                </label>
+                {supervisorHasOtherSite && (
+                  <div className="mt-3">
+                    <Input
+                      value={form.supervisorWorkplace}
+                      onChange={(v) => setForm({ ...form, supervisorWorkplace: v })}
+                      placeholder="Tjänsteställe"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Studierektor */}
+              <div>
+                <Labeled>Studierektor</Labeled>
+                <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} />
+                <label className="mt-2 inline-flex items-center gap-2 text-sm select-none">
+                  <input
+                    type="checkbox"
+                    checked={studyDirectorHasOtherSite}
+                    onChange={(e) => setStudyDirectorHasOtherSite(e.currentTarget.checked)}
+                  />
+                  Har annat tjänsteställe
+                </label>
+                {studyDirectorHasOtherSite && (
+                  <div className="mt-3">
+                    <Input
+                      value={form.studyDirectorWorkplace}
+                      onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })}
+                      placeholder="Tjänsteställe"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chef + Verksamhetschef på samma rad */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <Labeled>Chef</Labeled>
+                <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} />
+              </div>
+              <div>
+                <Labeled>Verksamhetschef</Labeled>
+                <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} />
+              </div>
+            </div>
+
+            {/* Land + Datum för läkarexamen på samma rad */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <Labeled>Land för läkarexamen</Labeled>
+                <Input value={form.medDegreeCountry} onChange={(v) => setForm({ ...form, medDegreeCountry: v })} />
+              </div>
+              <div>
+                <Labeled>Datum för läkarexamen</Labeled>
+                <CalendarDatePicker value={form.medDegreeDate || ""} onChange={(v: string) => setForm({ ...form, medDegreeDate: v })} />
+              </div>
+            </div>
+
+            {/* Land + Datum för legitimation (placeras direkt under läkarexamen) */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <Labeled>Land för legitimation</Labeled>
+                <Input value={form.licenseCountry} onChange={(v) => setForm({ ...form, licenseCountry: v })} />
+              </div>
+              <div>
+                <Labeled>Datum för legitimation</Labeled>
+                <CalendarDatePicker value={form.licenseDate || ""} onChange={(v: string) => setForm({ ...form, licenseDate: v })} />
+              </div>
+            </div>
+
+            {/* ===== Längst ned: Legitimation i annat land ===== */}
+            <div className="rounded-2xl border border-slate-200 p-3">
+              <label className="inline-flex items-center gap-2 text-[13px] select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.hasForeignLicense}
+                  onChange={(e) => {
+                    const on = e.currentTarget.checked;
+                    setForm({
+                      ...form,
+                      hasForeignLicense: on,
+                      foreignLicenses: on
+                        ? ((form.foreignLicenses && form.foreignLicenses.length) ? form.foreignLicenses.slice(0, 3) : [{ country: "", date: "" }])
+                        : [],
+                    });
+                  }}
+                />
+                <span className="font">Har legitimation från annat land</span>
+              </label>
+
+              {form.hasForeignLicense && (
+                <div className="mt-2 space-y-2">
+                  {(form.foreignLicenses || []).slice(0, 2).map((row: { country: string; date: string }, idx: number) => (
+
+                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_220px]">
+                      <div>
+                        <Labeled>Land</Labeled>
+                        <Input
+                          value={row?.country || ""}
+                          onChange={(v) => {
+                            const next = [...(form.foreignLicenses || [])];
+                            next[idx] = { ...(row || { country: "", date: "" }), country: v };
+                            setForm({ ...form, foreignLicenses: next });
+                          }}
+                        />
+                      </div>
+
+                      {/* Datumkolumn + ev. minusknapp inom samma 220px-bredd */}
+                      <div className={idx === 0 ? "self-end w-[220px]" : "self-end w-[220px] grid grid-cols-[1fr_40px] items-end gap-2"}>
+                        <div>
+                          <Labeled>Datum</Labeled>
+                          <CalendarDatePicker
+                            value={row?.date || ""}
+                            onChange={(v: string) => {
+                              const next = [...(form.foreignLicenses || [])];
+                              next[idx] = { ...(row || { country: "", date: "" }), date: v };
+                              setForm({ ...form, foreignLicenses: next });
+                            }}
+                          />
+                        </div>
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = (form.foreignLicenses || []).filter((_: any, i: number) => i !== idx);
+                              setForm({ ...form, foreignLicenses: next });
+                            }}
+                            className="h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
+                            title="Ta bort"
+                          >
+                            –
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {(form.foreignLicenses || []).length < 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = [...(form.foreignLicenses || [])];
+                  if (next.length >= 2) return;
+                  next.push({ country: "", date: "" });
+                  setForm({ ...form, foreignLicenses: next });
+                }}
+                className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+              >
+                + Lägg till land
+              </button>
+            )}
+
+                </div>
+              )}
+            </div>
+
+            {/* ===== Längst ned: Bevis om specialistkompetens sedan tidigare ===== */}
+            <div className="rounded-2xl border border-slate-200 p-3">
+              <label className="inline-flex items-center gap-2 text-[13px] select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.hasPriorSpecialist}
+                  onChange={(e) => {
+                    const on = e.currentTarget.checked;
+                    setForm({
+                      ...form,
+                      hasPriorSpecialist: on,
+                      priorSpecialties: on
+                        ? ((form.priorSpecialties && form.priorSpecialties.length) ? form.priorSpecialties.slice(0, 3) : [{ speciality: "", country: "", date: "" }])
+                        : [],
+                    });
+                  }}
+                />
+                <span className="font">Har sedan tidigare bevis om specialistkompetens</span>
+              </label>
+
+              {form.hasPriorSpecialist && (
+                <div className="mt-2 space-y-2">
+                  {(form.priorSpecialties || []).slice(0, 3).map((row: { speciality: string; country: string; date: string }, idx: number) => (
+                    <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_220px]">
+                      <div>
+                        <Labeled>Specialitet</Labeled>
+                        <Input
+                          value={row?.speciality || ""}
+                          onChange={(v) => {
+                            const next = [...(form.priorSpecialties || [])];
+                            next[idx] = { ...(row || { speciality: "", country: "", date: "" }), speciality: v };
+                            setForm({ ...form, priorSpecialties: next });
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Labeled>Land</Labeled>
+                        <Input
+                          value={row?.country || ""}
+                          onChange={(v) => {
+                            const next = [...(form.priorSpecialties || [])];
+                            next[idx] = { ...(row || { speciality: "", country: "", date: "" }), country: v };
+                            setForm({ ...form, priorSpecialties: next });
+                          }}
+                        />
+                      </div>
+
+                      {/* Datumkolumn + ev. minusknapp inom samma 220px-bredd */}
+                      <div className={idx === 0 ? "self-end w-[220px]" : "self-end w-[220px] grid grid-cols-[1fr_40px] items-end gap-2"}>
+                        <div>
+                          <Labeled>Datum</Labeled>
+                          <CalendarDatePicker
+                            value={row?.date || ""}
+                            onChange={(v: string) => {
+                              const next = [...(form.priorSpecialties || [])];
+                              next[idx] = { ...(row || { speciality: "", country: "", date: "" }), date: v };
+                              setForm({ ...form, priorSpecialties: next });
+                            }}
+                          />
+                        </div>
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = (form.priorSpecialties || []).filter((_: any, i: number) => i !== idx);
+                              setForm({ ...form, priorSpecialties: next });
+                            }}
+                            className="h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
+                            title="Ta bort"
+                          >
+                            –
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {(form.priorSpecialties || []).length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = [...(form.priorSpecialties || [])];
+                        next.push({ speciality: "", country: "", date: "" });
+                        setForm({ ...form, priorSpecialties: next });
+                      }}
+                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    >
+                      + Lägg till specialitet
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+        </article>
+      </section>
+
+      <footer className="mt-6 flex justify-end gap-2">
+        <button onClick={() => router.push("/")} className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold hover:bg-slate-50">
+          Avbryt
+        </button>
+        <button onClick={saveProfile} className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white shadow hover:bg-sky-700">
+          Spara
+        </button>
+      </footer>
+    </main>
+  );
+}

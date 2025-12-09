@@ -1,0 +1,408 @@
+{
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "A1",
+      "code": "A1",
+      "group": "A",
+      "title": "Medarbetarskap, ledarskap och pedagogik",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna ta ett ansvar för det kontinuerliga lärandet på arbetsplatsen",
+            "kunna utöva ledarskap i det dagliga arbetet, inklusive leda ett vårdteam",
+            "kunna ta ett ansvar för utvecklingen av det multiprofessionella samarbetet",
+            "kunna ta ett ansvar för samarbetet med patienter och närstående",
+            "kunna samarbeta i nätverk kring patienten",
+            "kunna samverka med aktörer utanför hälso- och sjukvården, till exempel socialnämnder, verksamheter inom socialtjänsten, skola och Försäkringskassan",
+            "kunna presentera och förklara medicinsk information på ett sätt som är förståeligt för mottagaren, såväl muntligt som skriftligt",
+            "kunna planera och genomföra undervisning",
+            "kunna handleda och instruera medarbetare och studenter"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+            "Handleda under handledning",
+            "Undervisa under handledning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "code": "A2",
+      "group": "A",
+      "title": "Etik, mångfald och jämlikhet",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "uppvisa kunskap om innebörden av medicinsk-etiska principer samt kunna identifiera etiska problem och analysera dessa på ett strukturerat sätt",
+            "kunna hantera värdekonflikter i det dagliga arbetet",
+            "kunna bemöta människor som individer och med respekt oberoende av kön, könsöverskridande identitet eller uttryck, etnisk tillhörighet, religion eller annan trosuppfattning, funktionsnedsättning, sexuell läggning och ålder"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i inom- eller mellanprofessionell reflektion i grupp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "code": "A3",
+      "group": "A",
+      "title": "Vårdhygien och smittskydd",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna ta ett ansvar för att vårdrelaterade infektioner och smittspridning förebyggs"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "code": "A4",
+      "group": "A",
+      "title": "Systematiskt kvalitets- och patientsäkerhetsarbete",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna kritiskt granska den egna verksamheten och kunna genomföra en risk- och händelseanalys",
+            "kunna ta ett ansvar för att förbättrande åtgärder, processer och rutiner för patientnytta genomförs systematiskt",
+            "kunna ta ett ansvar för integreringen av nya tekniker och metoder i det dagliga hälso- och sjukvårdsarbetet"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Kvalitets- och utvecklingsarbete"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i seminarium",
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A5",
+      "code": "A5",
+      "group": "A",
+      "title": "Medicinsk vetenskap",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "uppvisa fördjupade kunskaper om medicinskt vetenskapliga metoder och etiska principer",
+            "kunna kritiskt granska och värdera medicinsk vetenskaplig information",
+            "uppvisa ett medicinskt vetenskapligt förhållningssätt till rutiner och arbetssätt i det dagliga arbetet"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Självständigt skriftligt arbete enligt vetenskapliga principer",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i seminarium",
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "code": "A6",
+      "group": "A",
+      "title": "Lagar och andra föreskrifter samt hälso- och sjukvårdens organisation",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "uppvisa kunskap om lagar och andra föreskrifter som gäller inom hälso- och sjukvården och för dess personal",
+            "uppvisa kunskap om hälso- och sjukvårdens organisation och administration",
+            "uppvisa kunskap om hälso- och sjukvårdens olika ekonomiska styrsystem och deras betydelse för prioriteringar och avvägningar i det dagliga arbetet"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "code": "B1",
+      "group": "B",
+      "title": "Kommunikation med patienter och närstående",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna anpassa sättet att kommunicera utifrån patienters och närståendes individuella behov och kommunikativa förmåga"
+            ,
+            "kunna ge patienter och närstående svåra besked med respekt, empati och lyhördhet",
+            "kunna stärka patientens förmåga att hantera en förändrad livssituation till följd av sjukdom eller funktionsnedsättning",
+            "kunna samråda med patienter och närstående om patientens egenvård"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+            "Medsittning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "code": "B2",
+      "group": "B",
+      "title": "Sjukdomsförebyggande arbete",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna vägleda patienter i frågor om levnadsvanor i syfte att förebygga uppkomsten av sjukdomar som grundar sig i en eller flera levnadsvanor",
+            "kunna förbättra prognosen hos patienter med sjukdom som grundar sig i en eller flera levnadsvanor"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "code": "B3",
+      "group": "B",
+      "title": "Läkemedel",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna anpassa läkemedelsbehandlingen efter patientens ålder, kön, vikt, njur- och leverfunktion samt eventuell samsjuklighet och övrig medicinering",
+            "kunna bedöma risker för interaktioner och biverkningar vid läkemedelsbehandling",
+            "kunna samarbeta med patienter och närstående för att uppnå följsamhet till läkemedelsbehandlingen",
+            "kunna samverka med andra aktörer i vårdkedjan om patientens läkemedelsbehandling",
+            "kunna kritiskt granska och värdera information om läkemedel",
+            "uppvisa kunskap om läkemedels inverkan på miljön",
+            "uppvisa kunskap om hälsoekonomiska aspekter av läkemedelsbehandling"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "id": "B4",
+      "code": "B4",
+      "group": "B",
+      "title": "Försäkringsmedicin",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna tillämpa metoder inom försäkringsmedicin som en del av behandlingen av den enskilda patienten",
+            "kunna samverka i försäkringsmedicinska frågor som rör den enskilda patienten med aktörer inom och utanför hälso- och sjukvården"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i större yrkesrelaterad sammankomst"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B5",
+      "code": "B5",
+      "group": "B",
+      "title": "Palliativ vård i livets slutskede",
+      "sections": [
+        {
+          "title": "Kompetenskrav",
+          "items": [
+            "kunna identifiera behov av och initiera palliativ vård i livets slutskede",
+            "kunna genomföra brytpunktssamtal med patienter och närstående",
+            "kunna tillämpa grundläggande principer för palliativ symtomlindring med beaktande av fysiska, psykiska, sociala och existentiella behov"
+          ]
+        },
+        {
+          "title": "Utbildningsaktiviteter",
+          "items": [
+            "Klinisk tjänstgöring under handledning alternativt auskultation",
+            "Deltagande i en eller flera kurser"
+          ]
+        },
+        {
+          "title": "Uppföljning",
+          "items": [
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+            "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          ]
+        },
+        {
+          "title": "Allmänna råd",
+          "items": [
+            "Deltagande i seminarium",
+            "Deltagande i större yrkesrelaterad sammankomst",
+            "Medsittning",
+            "Träning i simulerad miljö"
+          ]
+        }
+      ]
+    }
+  ]
+}
+
