@@ -4,9 +4,9 @@ import "./globals.css";
 import SWRegister from "./sw-register";
 
 export const metadata: Metadata = {
-  title: "ST-intyg",
+  title: "ST-ARK",
   description: "PWA för ST-intyg – placeringar, delmål och kurser.",
-  applicationName: "ST-intyg",
+  applicationName: "ST-ARK",
   manifest: "/manifest.webmanifest", // byt till .webmanifest
   icons: {
     icon: [
