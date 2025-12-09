@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SWRegister from "./sw-register";
+import { TitleOverride } from "./TitleOverride";
 
 export const metadata: Metadata = {
   title: {
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="sv">
       <body>
         <SWRegister />
+        <TitleOverride />
         {children}
       </body>
     </html>
