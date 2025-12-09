@@ -4,18 +4,19 @@ import "./globals.css";
 import SWRegister from "./sw-register";
 
 export const metadata: Metadata = {
-  title: "ST-ARK",
-  description: "PWA för ST-intyg – placeringar, delmål och kurser.",
+  title: {
+    default: "ST-ARK",
+    template: "%s | ST-ARK",
+  },
+  description: "PWA för ST-ARK – placeringar, delmål och kurser.",
   applicationName: "ST-ARK",
-  manifest: "/manifest.webmanifest", // byt till .webmanifest
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [
-      { url: "/icons/icon-192.png" }
-    ]
+    apple: [{ url: "/icons/icon-192.png" }],
   },
   themeColor: "#0ea5e9",
   other: {
