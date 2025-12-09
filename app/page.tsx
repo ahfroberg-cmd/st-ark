@@ -63,7 +63,7 @@ export default function HomePage() {
       </p>
 
       <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-2">
-        {/* 1) Ny arbetsyta (tidigare “session”) */}
+        {/* 1) Ny arbetsyta 1 (tidigare “session”) */}
         <button
           onClick={() => router.push("/profile?setup=1")}
           className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
