@@ -27,13 +27,14 @@ export async function exportAll(): Promise<ExportBundle> {
 
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    app: { name: "st-intyg", version: "1.0.0" },
+    app: { name: "ST-ARK", version: "1.0.0" },
     exportedAt: new Date().toISOString(),
     profile: profile ?? null,
     placements,
     courses,
     achievements,
   };
+
 }
 
 /** Ladda ner JSON som fil (ren klientfunktion) */

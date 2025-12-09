@@ -15,7 +15,10 @@ export class AppDB extends Dexie {
   iupMilestonePlans!: Table<any, string>;
 
   constructor() {
-    super("st-intyg");
+    // OBS: Namnbytet från "st-intyg" till "st-ark" innebär ny IndexedDB-databas
+    // och därmed tom lokal data första gången i varje webbläsare.
+    super("st-ark");
+
 
     this.version(1).stores({
       profile: "id",
