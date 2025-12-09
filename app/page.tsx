@@ -63,13 +63,13 @@ export default function HomePage() {
       </p>
 
       <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-2">
-        {/* 1) Ny arbetsyta 1 (tidigare “session”) */}
+        {/* 1) Ny arbetsyta (tidigare “session”) */}
         <button
           onClick={() => router.push("/profile?setup=1")}
           className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
         >
           <div className="text-lg font-extrabold">Ny arbetsyta</div>
-          <p className="mt-1 text-slate-600">Fyll i profil och börja planera din ST.</p>
+          <p className="mt-1 text-slate-600">Fyll i profil och börja planera din roliga ST.</p>
         </button>
 
         {/* 2) Fortsätt tidigare arbete */}
