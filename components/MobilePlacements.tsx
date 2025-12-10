@@ -452,7 +452,7 @@ function PlacementEditPopup({
         }}
       >
         <div
-          className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+          className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">

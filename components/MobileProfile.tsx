@@ -244,29 +244,31 @@ export default function MobileProfile({ open, onClose }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-base font-semibold text-slate-900">Profil</h1>
-        <div className="flex items-center gap-2">
-          <button
-            disabled={!dirty || saving}
-            onClick={handleSave}
-            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {saving ? "Sparar..." : "Spara"}
-          </button>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          requestClose();
+        }
+      }}
+    >
+      <div
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
+          <h1 className="text-xl font-extrabold text-sky-900">Profil</h1>
           <button
             onClick={requestClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
           >
             ✕
           </button>
-        </div>
-      </header>
+        </header>
 
-      {/* Tabs */}
-      <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
+        {/* Tabs */}
+        <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
         {[
           { id: "person", label: "Personuppgifter" },
           { id: "st", label: "Uppgifter om ST" },
@@ -286,8 +288,8 @@ export default function MobileProfile({ open, onClose }: Props) {
         ))}
       </nav>
 
-      {/* Innehåll */}
-      <main className="flex-1 overflow-y-auto px-4 py-4">
+        {/* Innehåll */}
+        <main className="flex-1 overflow-y-auto px-5 py-5">
         {tab === "person" ? (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -691,7 +693,27 @@ export default function MobileProfile({ open, onClose }: Props) {
             </div>
           </div>
         )}
-      </main>
+        </main>
+
+        {/* Footer */}
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <button
+            type="button"
+            onClick={requestClose}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+          >
+            Avbryt
+          </button>
+          <button
+            type="button"
+            disabled={!dirty || saving}
+            onClick={handleSave}
+            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Sparar..." : "Spara"}
+          </button>
+        </footer>
+      </div>
     </div>
   );
 }

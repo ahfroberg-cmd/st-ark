@@ -65,6 +65,7 @@ function normalizeGoalsVersion(v: any): "2015" | "2021" {
 export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomeProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [placements, setPlacements] = useState<Placement[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -83,11 +84,14 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
         const pls =
           ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
+        const crs =
+          ((await (db as any).courses?.toArray?.()) ?? []) as any[];
 
         if (!live) return;
 
         setProfile(prof ?? null);
         setPlacements(pls);
+        setCourses(crs);
 
         // Planerad total tid
         const gv = normalizeGoalsVersion((prof as any)?.goalsVersion);
@@ -166,9 +170,11 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       const profArr = await (db as any).profile?.toArray?.();
       const prof = (Array.isArray(profArr) ? profArr[0] : null) as Profile | null;
       const pls = ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
+      const crs = ((await (db as any).courses?.toArray?.()) ?? []) as any[];
       
       setProfile(prof ?? null);
       setPlacements(pls);
+      setCourses(crs);
 
       // Meddela föräldern om profilstatus
       if (onProfileLoaded) {
@@ -264,9 +270,9 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                   {progressPct.toFixed(0)} %
                 </span>
               </div>
-              <div className="mt-1 h-2 rounded-full bg-slate-200">
+              <div className="mt-1 h-4 rounded-full bg-slate-200">
                 <div
-                  className="h-2 rounded-full bg-emerald-500 transition-[width] duration-300"
+                  className="h-4 rounded-full bg-emerald-500 transition-[width] duration-300"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -336,14 +342,14 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                   {ongoing.length > 0 && (
                     <div>
                       <div className="font-medium">Pågående:</div>
-                      <div className="mt-0.5 break-words">{ongoing[0].clinic || "Klinik saknas"}</div>
+                      <div className="mt-0.5 break-words font-semibold">{ongoing[0].clinic || "Klinik saknas"}</div>
                       <div className="text-slate-600">{ongoing[0].startDate || ""} – {ongoing[0].endDate || ""}</div>
                     </div>
                   )}
                   {upcoming.length > 0 && (
                     <div>
                       <div className="font-medium">Nästa:</div>
-                      <div className="mt-0.5 break-words">{upcoming[0].clinic || "Klinik saknas"}</div>
+                      <div className="mt-0.5 break-words font-semibold">{upcoming[0].clinic || "Klinik saknas"}</div>
                       <div className="text-slate-600">{upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}</div>
                     </div>
                   )}
@@ -352,13 +358,45 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             })()}
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-sm font-medium text-slate-900">Profil</div>
-            <div className="mt-2 space-y-1 text-xs text-slate-900">
-              <div className="break-words">{profile?.name || "—"}</div>
-              <div><strong>Huvudhandledare:</strong> {(profile as any)?.supervisor || "—"}</div>
-              <div><strong>Studierektor:</strong> {(profile as any)?.studyDirector || "—"}</div>
-              <div><strong>Chef:</strong> {(profile as any)?.manager || "—"}</div>
-            </div>
+            <div className="text-sm font-medium text-slate-900">Kurser</div>
+            {(() => {
+              const today = todayISO();
+              const completed = courses.filter((c: any) => {
+                const cert = c.certificateDate || "";
+                const end = c.endDate || "";
+                const date = cert || end;
+                return date && date <= today;
+              }).sort((a: any, b: any) => {
+                const dateA = a.certificateDate || a.endDate || "";
+                const dateB = b.certificateDate || b.endDate || "";
+                return dateB.localeCompare(dateA);
+              });
+              const upcoming = courses.filter((c: any) => {
+                const start = c.startDate || "";
+                return start && start > today;
+              }).sort((a: any, b: any) => (a.startDate || "").localeCompare(b.startDate || ""));
+              
+              return (
+                <div className="mt-2 space-y-2 text-xs text-slate-900">
+                  {completed.length > 0 && (
+                    <div>
+                      <div className="font-medium">Senast genomförda:</div>
+                      <div className="mt-0.5 break-words font-semibold">{completed[0].title || completed[0].courseName || "Kurs"}</div>
+                      <div className="text-slate-600">
+                        {completed[0].certificateDate || (completed[0].startDate && completed[0].endDate ? `${completed[0].startDate} – ${completed[0].endDate}` : completed[0].endDate || completed[0].startDate || "")}
+                      </div>
+                    </div>
+                  )}
+                  {upcoming.length > 0 && (
+                    <div>
+                      <div className="font-medium">Nästa:</div>
+                      <div className="mt-0.5 break-words font-semibold">{upcoming[0].title || upcoming[0].courseName || "Kurs"}</div>
+                      <div className="text-slate-600">{upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>

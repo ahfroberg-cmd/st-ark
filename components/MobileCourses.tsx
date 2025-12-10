@@ -256,7 +256,7 @@ export default function MobileCourses() {
           isDirty={isDirty}
         />
       )}
-    </div>
+            </div>
   );
 }
 
@@ -341,7 +341,7 @@ function CourseEditPopup({
         }}
       >
         <div
-          className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+          className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
@@ -391,9 +391,9 @@ function CourseEditPopup({
                 <div className="space-y-2">
                   <label className="block text-xs font-medium text-slate-900">
                     Ort
-                  </label>
-                  <input
-                    type="text"
+                </label>
+                <input
+                  type="text"
                     value={course.city ?? ""}
                     onChange={(e) =>
                       onUpdate({ ...course, city: e.target.value })
@@ -461,7 +461,7 @@ function CourseEditPopup({
                 />
               </div>
             </div>
-          </div>
+            </div>
 
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
             <button
@@ -471,17 +471,17 @@ function CourseEditPopup({
             >
               Avbryt
             </button>
-            <button
-              type="button"
+              <button
+                type="button"
               onClick={onSave}
               disabled={saving || !isDirty}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Spara
-            </button>
+              </button>
           </footer>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {milestonePickerOpen && goals && (
         <MilestonePicker
