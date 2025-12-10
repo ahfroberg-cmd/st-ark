@@ -611,7 +611,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                 <div className="mt-2 space-y-2 text-xs text-slate-900">
                   {completed.length > 0 && (
                     <div>
-                      <div className="font-medium">Senast genomförd:</div>
+                      <div className="font-medium">Senaste:</div>
                       <div className="mt-0.5 break-words font-semibold">{completed[0].title || completed[0].courseName || "Kurs"}</div>
                       <div className="text-slate-600">
                         {completed[0].certificateDate || (completed[0].startDate && completed[0].endDate ? `${completed[0].startDate} – ${completed[0].endDate}` : completed[0].endDate || completed[0].startDate || "")}

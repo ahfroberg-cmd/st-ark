@@ -1395,7 +1395,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Pro
 }
 
 export default function MilestoneOverviewModal({ open, onClose }: Props) {
-  const [tab, setTab] = React.useState<"st" | "bt">("st");
+  const [tab, setTab] = useState<"st" | "bt">("st");
 
   if (!open) return null;
 
