@@ -82,7 +82,13 @@ export default function MeetingEditModal({ open, meeting, onSave, onClose }: Pro
 
   const hasNextPlanned = !!draft?.nextDateISO;
 
-  if (!open || !meeting || !draft) return null;
+  if (!open || !meeting) return null;
+  if (!draft) {
+    // Initialize draft if not set
+    const initialDraft = cloneMeeting(meeting);
+    setDraft(initialDraft);
+    return null;
+  }
 
   return (
     <div

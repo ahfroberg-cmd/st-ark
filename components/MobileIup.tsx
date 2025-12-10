@@ -121,16 +121,43 @@ export default function MobileIup() {
       summary: "",
       actions: "",
     };
-    setMeetings((prev) => [...prev, newMeeting]);
+    // Don't add to list yet - only open modal
     setEditingMeetingId(newId);
-    setDirty(true);
   }, []);
 
   const updateMeeting = useCallback((updated: IupMeeting) => {
-    setMeetings((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    // Check if this is a new meeting (not in list yet)
+    const existing = meetings.find((m) => m.id === updated.id);
+    let nextMeetings: IupMeeting[];
+    
+    if (existing) {
+      // Update existing
+      nextMeetings = meetings.map((m) => (m.id === updated.id ? updated : m));
+    } else {
+      // Add new meeting to list
+      nextMeetings = [...meetings, updated];
+    }
+
+    // Create new meeting for nextDateISO if it exists and is in the future
+    const nextDate = updated.nextDateISO;
+    if (nextDate && nextDate > new Date().toISOString().slice(0, 10)) {
+      const alreadyExists = nextMeetings.some((m) => m.dateISO === nextDate);
+      if (!alreadyExists) {
+        nextMeetings.push({
+          id: String(Date.now() + 1),
+          dateISO: nextDate,
+          focus: "",
+          summary: "",
+          actions: "",
+          nextDateISO: "",
+        });
+      }
+    }
+
+    setMeetings(nextMeetings);
     setEditingMeetingId(null);
     setDirty(true);
-  }, []);
+  }, [meetings]);
 
   const removeMeeting = useCallback((id: string) => {
     if (!confirm("Vill du ta bort detta handledarsamtal?")) return;
@@ -152,16 +179,23 @@ export default function MobileIup() {
       strengths: "",
       development: "",
     };
-    setAssessments((prev) => [...prev, newAssessment]);
+    // Don't add to list yet - only open modal
     setEditingAssessmentId(newId);
-    setDirty(true);
   }, []);
 
   const updateAssessment = useCallback((updated: IupAssessment) => {
-    setAssessments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    // Check if this is a new assessment (not in list yet)
+    const existing = assessments.find((a) => a.id === updated.id);
+    if (existing) {
+      // Update existing
+      setAssessments((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    } else {
+      // Add new assessment to list
+      setAssessments((prev) => [...prev, updated]);
+    }
     setEditingAssessmentId(null);
     setDirty(true);
-  }, []);
+  }, [assessments]);
 
   const removeAssessment = useCallback((id: string) => {
     if (!confirm("Vill du ta bort denna progressionsbedömning?")) return;
@@ -297,7 +331,13 @@ export default function MobileIup() {
       {editingMeetingId && (
         <MeetingEditModal
           open={true}
-          meeting={meetings.find((m) => m.id === editingMeetingId) || null}
+          meeting={meetings.find((m) => m.id === editingMeetingId) || {
+            id: editingMeetingId,
+            dateISO: "",
+            focus: "",
+            summary: "",
+            actions: "",
+          }}
           onSave={updateMeeting}
           onClose={() => setEditingMeetingId(null)}
         />
@@ -306,7 +346,16 @@ export default function MobileIup() {
       {editingAssessmentId && (
         <AssessmentEditModal
           open={true}
-          assessment={assessments.find((a) => a.id === editingAssessmentId) || null}
+          assessment={assessments.find((a) => a.id === editingAssessmentId) || {
+            id: editingAssessmentId,
+            dateISO: "",
+            phase: "ST",
+            level: "",
+            instrument: "",
+            summary: "",
+            strengths: "",
+            development: "",
+          }}
           instruments={instruments}
           profile={profile}
           onSave={updateAssessment}

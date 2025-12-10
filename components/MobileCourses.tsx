@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestonePicker from "@/components/MilestonePicker";
+import BtMilestonePicker from "@/components/BtMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import type { Profile } from "@/lib/types";
 
@@ -19,6 +20,9 @@ type CourseRow = {
   certificateDate?: string;
   note?: string;
   milestones?: string[];
+  phase?: "BT" | "ST";
+  btMilestones?: string[];
+  fulfillsStGoals?: boolean;
 };
 
 function fmtDate(iso?: string): string {
@@ -278,6 +282,7 @@ function CourseEditPopup({
 }) {
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
+  const [btMilestonePickerOpen, setBtMilestonePickerOpen] = useState(false);
 
   // Förhindra scroll på body när popup är öppen
   React.useEffect(() => {
@@ -291,6 +296,47 @@ function CourseEditPopup({
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const milestonesSet = new Set(course.milestones || []);
+  const btMilestonesSet = new Set(course.btMilestones || []);
+  
+  // Calculate phase for 2021 (courses use end date or certificate date)
+  const is2021 = String(profile?.goalsVersion || "").trim() === "2021";
+  const calculatedPhase = useMemo(() => {
+    if (!is2021) return "ST";
+    const refDate = course.certificateDate || course.endDate || course.startDate;
+    if (!refDate) return "ST";
+    
+    const btStart = (profile as any)?.btStartDate;
+    const btEndManual = (profile as any)?.btEndDate;
+    if (!btStart) return "ST";
+    
+    // Calculate BT end (manual or 24 months after BT start)
+    let btEnd: string;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      btEnd = btEndManual;
+    } else {
+      try {
+        const btDate = new Date(btStart + "T00:00:00");
+        btDate.setMonth(btDate.getMonth() + 24);
+        const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(btDate.getDate()).padStart(2, "0");
+        btEnd = `${btDate.getFullYear()}-${mm}-${dd}`;
+      } catch {
+        return "ST";
+      }
+    }
+    
+    const refMs = new Date(refDate + "T00:00:00").getTime();
+    const btStartMs = new Date(btStart + "T00:00:00").getTime();
+    const btEndMs = new Date(btEnd + "T00:00:00").getTime();
+    
+    if (!Number.isFinite(refMs) || !Number.isFinite(btStartMs) || !Number.isFinite(btEndMs)) {
+      return "ST";
+    }
+    
+    return refMs >= btStartMs && refMs < btEndMs ? "BT" : "ST";
+  }, [is2021, course.certificateDate, course.endDate, course.startDate, profile]);
+  
+  const currentPhase = course.phase || calculatedPhase;
 
   useEffect(() => {
     (async () => {
@@ -423,31 +469,126 @@ function CourseEditPopup({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMilestonePickerOpen(true)}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+              {/* Fas (endast för 2021) */}
+              {is2021 && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Fas
+                  </label>
+                  <select
+                    value={currentPhase}
+                    onChange={(e) => {
+                      const phaseValue = e.target.value as "BT" | "ST";
+                      onUpdate({ ...course, phase: phaseValue });
+                    }}
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                   >
-                    Delmål
-                  </button>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {course.milestones && course.milestones.length > 0 ? (
-                      sortMilestoneIds(course.milestones).map((m: string) => (
-                        <span
-                          key={m}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                    <option value="BT">BT</option>
+                    <option value="ST">ST</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Delmål - olika layout beroende på fas */}
+              {is2021 && currentPhase === "BT" ? (
+                <div className="space-y-3">
+                  {/* Kryssruta "Uppfyller ST-delmål" */}
+                  <label className="flex items-center gap-2 text-sm text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={!!course.fulfillsStGoals}
+                      onChange={(e) =>
+                        onUpdate({ ...course, fulfillsStGoals: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    <span>Uppfyller ST-delmål</span>
+                  </label>
+
+                  {/* BT-delmål */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBtMilestonePickerOpen(true)}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                      >
+                        BT-delmål
+                      </button>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {course.btMilestones && course.btMilestones.length > 0 ? (
+                          course.btMilestones.map((m: string) => (
+                            <span
+                              key={m}
+                              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                            >
+                              {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-900 text-sm">—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ST-delmål (visas bara om "Uppfyller ST-delmål" är ikryssad) */}
+                  {course.fulfillsStGoals && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMilestonePickerOpen(true)}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                         >
-                          {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-900 text-sm">—</span>
-                    )}
+                          ST-delmål
+                        </button>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {course.milestones && course.milestones.length > 0 ? (
+                            sortMilestoneIds(course.milestones).map((m: string) => (
+                              <span
+                                key={m}
+                                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                              >
+                                {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-900 text-sm">—</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ST-fas eller 2015: vanlig delmål-knapp */
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMilestonePickerOpen(true)}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                    >
+                      Delmål
+                    </button>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {course.milestones && course.milestones.length > 0 ? (
+                        sortMilestoneIds(course.milestones).map((m: string) => (
+                          <span
+                            key={m}
+                            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                          >
+                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-900 text-sm">—</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
@@ -486,6 +627,25 @@ function CourseEditPopup({
           checked={milestonesSet}
           onToggle={handleToggleMilestone}
           onClose={() => setMilestonePickerOpen(false)}
+        />
+      )}
+
+      {btMilestonePickerOpen && (
+        <BtMilestonePicker
+          open={true}
+          title="Välj BT-delmål"
+          checked={btMilestonesSet}
+          onToggle={(btCode: string) => {
+            const current = course.btMilestones || [];
+            const set = new Set(current);
+            if (set.has(btCode)) {
+              set.delete(btCode);
+            } else {
+              set.add(btCode);
+            }
+            onUpdate({ ...course, btMilestones: Array.from(set) });
+          }}
+          onClose={() => setBtMilestonePickerOpen(false)}
         />
       )}
     </>

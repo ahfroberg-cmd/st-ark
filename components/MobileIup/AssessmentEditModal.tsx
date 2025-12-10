@@ -40,7 +40,10 @@ export default function AssessmentEditModal({
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    if (!open || !assessment) return;
+    if (!open || !assessment) {
+      setDraft(null);
+      return;
+    }
     setDraft(cloneAssessment(assessment));
     setDirty(false);
   }, [open, assessment]);

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestonePicker from "@/components/MilestonePicker";
+import BtMilestonePicker from "@/components/BtMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import type { Profile } from "@/lib/types";
 
@@ -18,11 +19,13 @@ type PlacementRow = {
   ftePercent?: number;
   scopePercent?: number;
   omfattning?: number;
-  phase?: string;
+  phase?: "BT" | "ST";
   type?: string;
   kind?: string;
   category?: string;
   milestones?: string[];
+  btMilestones?: string[];
+  fulfillsStGoals?: boolean;
 };
 
 function fmtDate(iso?: string): string {
@@ -226,7 +229,7 @@ export default function MobilePlacements() {
       startDate: "",
       endDate: "",
       attendance: 100,
-      phase: "",
+      phase: undefined,
       type: "Klinisk tjänstgöring",
       kind: "Klinisk tjänstgöring",
       category: "Klinisk tjänstgöring",
@@ -258,7 +261,7 @@ export default function MobilePlacements() {
         startDate: fmtDate(editing.startDate),
         endDate: fmtDate(editing.endDate),
         attendance,
-        phase: editing.phase ?? "",
+        phase: editing.phase || undefined,
         type: editing.type ?? editing.kind ?? editing.category ?? "",
         kind: editing.type ?? editing.kind ?? editing.category ?? "",
         category: editing.type ?? editing.kind ?? editing.category ?? "",
@@ -389,6 +392,7 @@ function PlacementEditPopup({
 }) {
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
+  const [btMilestonePickerOpen, setBtMilestonePickerOpen] = useState(false);
 
   // Förhindra scroll på body när popup är öppen
   React.useEffect(() => {
@@ -402,6 +406,28 @@ function PlacementEditPopup({
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const milestonesSet = new Set(placement.milestones || []);
+  const btMilestonesSet = new Set(placement.btMilestones || []);
+  
+  // Calculate phase for 2021
+  const is2021 = String(profile?.goalsVersion || "").trim() === "2021";
+  const calculatedPhase = useMemo(() => {
+    if (!is2021 || !placement.startDate) return "ST";
+    const btStart = (profile as any)?.btStartDate;
+    const stStart = (profile as any)?.stStartDate;
+    if (!btStart || !stStart) return "ST";
+    
+    const startMs = new Date(placement.startDate + "T00:00:00").getTime();
+    const btMs = new Date(btStart + "T00:00:00").getTime();
+    const stMs = new Date(stStart + "T00:00:00").getTime();
+    
+    if (!Number.isFinite(startMs) || !Number.isFinite(btMs) || !Number.isFinite(stMs)) {
+      return "ST";
+    }
+    
+    return startMs >= btMs && startMs < stMs ? "BT" : "ST";
+  }, [is2021, placement.startDate, profile]);
+  
+  const currentPhase = placement.phase || calculatedPhase;
 
   useEffect(() => {
     (async () => {
@@ -475,7 +501,7 @@ function PlacementEditPopup({
                   Typ
                 </label>
                 <select
-                  value={placement.type || placement.kind || placement.category || placement.phase || "Klinisk tjänstgöring"}
+                  value={placement.type || placement.kind || placement.category || (placement.phase && placement.phase !== "" ? placement.phase : undefined) || "Klinisk tjänstgöring"}
                   onChange={(e) => {
                     const typeValue = e.target.value;
                     onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
@@ -562,31 +588,126 @@ function PlacementEditPopup({
               </div>
             </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMilestonePickerOpen(true)}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+              {/* Fas (endast för 2021) */}
+              {is2021 && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Fas
+                  </label>
+                  <select
+                    value={currentPhase}
+                    onChange={(e) => {
+                      const phaseValue = e.target.value as "BT" | "ST";
+                      onUpdate({ ...placement, phase: phaseValue });
+                    }}
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                   >
-                    Delmål
-                  </button>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {placement.milestones && placement.milestones.length > 0 ? (
-                      sortMilestoneIds(placement.milestones).map((m: string) => (
-                        <span
-                          key={m}
-                          className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                    <option value="BT">BT</option>
+                    <option value="ST">ST</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Delmål - olika layout beroende på fas */}
+              {is2021 && currentPhase === "BT" ? (
+                <div className="space-y-3">
+                  {/* Kryssruta "Uppfyller ST-delmål" */}
+                  <label className="flex items-center gap-2 text-sm text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={!!placement.fulfillsStGoals}
+                      onChange={(e) =>
+                        onUpdate({ ...placement, fulfillsStGoals: e.target.checked })
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    />
+                    <span>Uppfyller ST-delmål</span>
+                  </label>
+
+                  {/* BT-delmål */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBtMilestonePickerOpen(true)}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                      >
+                        BT-delmål
+                      </button>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {placement.btMilestones && placement.btMilestones.length > 0 ? (
+                          placement.btMilestones.map((m: string) => (
+                            <span
+                              key={m}
+                              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                            >
+                              {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-900 text-sm">—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ST-delmål (visas bara om "Uppfyller ST-delmål" är ikryssad) */}
+                  {placement.fulfillsStGoals && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMilestonePickerOpen(true)}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                         >
-                          {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-900 text-sm">—</span>
-                    )}
+                          ST-delmål
+                        </button>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {placement.milestones && placement.milestones.length > 0 ? (
+                            sortMilestoneIds(placement.milestones).map((m: string) => (
+                              <span
+                                key={m}
+                                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                              >
+                                {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-slate-900 text-sm">—</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ST-fas eller 2015: vanlig delmål-knapp */
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMilestonePickerOpen(true)}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                    >
+                      Delmål
+                    </button>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {placement.milestones && placement.milestones.length > 0 ? (
+                        sortMilestoneIds(placement.milestones).map((m: string) => (
+                          <span
+                            key={m}
+                            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                          >
+                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-900 text-sm">—</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-            </div>
+              )}
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
@@ -625,6 +746,25 @@ function PlacementEditPopup({
           checked={milestonesSet}
           onToggle={handleToggleMilestone}
           onClose={() => setMilestonePickerOpen(false)}
+        />
+      )}
+
+      {btMilestonePickerOpen && (
+        <BtMilestonePicker
+          open={true}
+          title="Välj BT-delmål"
+          checked={btMilestonesSet}
+          onToggle={(btCode: string) => {
+            const current = placement.btMilestones || [];
+            const set = new Set(current);
+            if (set.has(btCode)) {
+              set.delete(btCode);
+            } else {
+              set.add(btCode);
+            }
+            onUpdate({ ...placement, btMilestones: Array.from(set) });
+          }}
+          onClose={() => setBtMilestonePickerOpen(false)}
         />
       )}
     </>
