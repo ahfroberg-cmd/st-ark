@@ -14,7 +14,7 @@ const DEFAULT_INSTRUMENTS = [
   "Case-based discussion (CBD)",
 ];
 
-type TabKey = "planering" | "handledarsamtal" | "progressionsbedömningar" | "delmål";
+type TabKey = "planering" | "handledarsamtal" | "progressionsbedömningar";
 
 export default function MobileIup() {
   const [openTab, setOpenTab] = useState<TabKey | null>(null);
@@ -31,6 +31,8 @@ export default function MobileIup() {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);
   const [instrumentsModalOpen, setInstrumentsModalOpen] = useState(false);
+  const [btMilestonesModalOpen, setBtMilestonesModalOpen] = useState(false);
+  const [stMilestonesModalOpen, setStMilestonesModalOpen] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -217,10 +219,17 @@ export default function MobileIup() {
           </button>
           <button
             type="button"
-            onClick={() => setOpenTab("delmål")}
+            onClick={() => setBtMilestonesModalOpen(true)}
+            className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-4 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
+          >
+            BT-delmål
+          </button>
+          <button
+            type="button"
+            onClick={() => setStMilestonesModalOpen(true)}
             className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-4 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
           >
-            Delmål
+            ST-delmål
           </button>
         </div>
       </div>
@@ -267,13 +276,6 @@ export default function MobileIup() {
         />
       )}
 
-      {openTab === "delmål" && (
-        <MilestonesPopup
-          open={true}
-          onClose={() => setOpenTab(null)}
-          onOpenModal={() => {}}
-        />
-      )}
 
       {/* Modals */}
       {editingMeetingId && (
@@ -308,6 +310,18 @@ export default function MobileIup() {
           onClose={() => setInstrumentsModalOpen(false)}
         />
       )}
+
+      {/* BT-delmål modal - öppnas direkt från knappen, ingen mellanfil */}
+      <BtMilestonesModal
+        open={btMilestonesModalOpen}
+        onClose={() => setBtMilestonesModalOpen(false)}
+      />
+
+      {/* ST-delmål modal - öppnas direkt från knappen, ingen mellanfil */}
+      <StMilestonesModal
+        open={stMilestonesModalOpen}
+        onClose={() => setStMilestonesModalOpen(false)}
+      />
     </>
   );
 }
@@ -360,7 +374,8 @@ function cloneAssessment(a: IupAssessment): IupAssessment {
 import PlanningPopup from "./MobileIup/PlanningPopup";
 import MeetingsPopup from "./MobileIup/MeetingsPopup";
 import AssessmentsPopup from "./MobileIup/AssessmentsPopup";
-import MilestonesPopup from "./MobileIup/MilestonesPopup";
+import BtMilestonesModal from "./MobileIup/BtMilestonesModal";
+import StMilestonesModal from "./MobileIup/StMilestonesModal";
 import MeetingEditModal from "./MobileIup/MeetingEditModal";
 import AssessmentEditModal from "./MobileIup/AssessmentEditModal";
 import InstrumentsModal from "./MobileIup/InstrumentsModal";
