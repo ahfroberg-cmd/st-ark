@@ -157,7 +157,10 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
 
     const sortNum = (code: string) => Number(code.replace(/[^\d]/g, "")) || 0;
 
-    return btMilestones
+    console.log("[BtMilestonesModal] btMilestones length:", btMilestones?.length ?? 0);
+    console.log("[BtMilestonesModal] btMilestones:", btMilestones);
+
+    const result = btMilestones
       .map((m) => {
         const code = m.id.toUpperCase().replace(/\s|_|-/g, "");
         return {
@@ -167,6 +170,9 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
         };
       })
       .sort((a, b) => sortNum(a.code) - sortNum(b.code));
+
+    console.log("[BtMilestonesModal] btRows result:", result);
+    return result;
   }, [achAll, placements, courses, showDone, showOngoing, showPlanned]);
 
   // Visa alla BT-delmål, även om de inte har kopplingar ännu
