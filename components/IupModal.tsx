@@ -2243,6 +2243,7 @@ export default function IupModal({
                 <MilestoneOverviewPanel
                   open={open}
                   onClose={handleRequestClose}
+                  initialTab="st"
                 />
               </div>
             )}

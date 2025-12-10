@@ -20,11 +20,11 @@ function TitleTrimmer({ text, className }: { text: string; className?: string })
   );
 }
 
-type Props = { open: boolean; onClose: () => void; initialTab?: "st" | "bt" };
+type Props = { open: boolean; onClose: () => void; initialTab: "st" | "bt" };
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab }: Props) {
   console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -1403,7 +1403,7 @@ export default function MilestoneOverviewModal({ open, onClose }: Props) {
     >
 
 
-        <MilestoneOverviewPanel open={open} onClose={onClose} />
+        <MilestoneOverviewPanel open={open} onClose={onClose} initialTab="st" />
       </div>
   );
 }

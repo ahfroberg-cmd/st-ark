@@ -44,6 +44,7 @@ export default function MilestonesView() {
       <MilestoneOverviewPanel
         open={modalOpen}
         onClose={() => setModalOpen(false)}
+        initialTab={initialTab}
       />
     </div>
   );
