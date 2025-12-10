@@ -217,13 +217,13 @@ export default function MobilePlacements() {
     <div className="space-y-3">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-base font-semibold text-slate-900">
             Kliniska tjänstgöringar, auskultationer, arbeten
           </h2>
           <button
             type="button"
             onClick={handleNew}
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-sm active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-6 py-3 text-base font-semibold text-white shadow-sm active:translate-y-px whitespace-nowrap"
           >
             + Lägg till
           </button>
@@ -490,7 +490,7 @@ function PlacementEditPopup({
               disabled={saving || !isDirty}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? "Sparar..." : "Spara"}
+              Spara
             </button>
           </footer>
         </div>

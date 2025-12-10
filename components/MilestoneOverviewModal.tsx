@@ -897,12 +897,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
   return (
-      <div className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-[980px] max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
 
         {/* Header */}
-        <header className="border-b px-4 py-3">
+        <header className="border-b border-slate-200 bg-emerald-50 px-5 py-4 flex items-center justify-between">
+          <div className="flex-1 flex items-center gap-4">
   {is2021 ? (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center gap-4 flex-wrap">
       
       {/* 2021 - Vänster: BT/ST-val */}
       <div className="flex items-center gap-6">
@@ -1009,13 +1010,22 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
 
     </div>
   )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+            title="Stäng"
+          >
+            ✕
+          </button>
 </header>
 
 
 
 
         {/* Body */}
-        <section className="p-4">
+        <section className="flex-1 overflow-y-auto p-5">
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}

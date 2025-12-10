@@ -37,7 +37,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
             >
               ✕
             </button>
@@ -45,7 +45,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
 
           <div className="flex-1 overflow-y-auto p-5">
             <div className="space-y-5">
-              <p className="text-base text-slate-600">
+              <p className="text-base text-slate-900">
                 Här kan du se alla delmål och vilka kliniska placeringar och kurser som uppfyller dem.
               </p>
               
@@ -55,7 +55,6 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                   onClick={() => {
                     setInitialTab("bt");
                     setMilestoneModalOpen(true);
-                    onClose();
                   }}
                   className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-5 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
                 >
@@ -66,7 +65,6 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                   onClick={() => {
                     setInitialTab("st");
                     setMilestoneModalOpen(true);
-                    onClose();
                   }}
                   className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-5 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
                 >
@@ -84,12 +82,11 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setMilestoneModalOpen(false);
-              onClose();
             }
           }}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <MilestoneOverviewPanel
@@ -97,7 +94,6 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
               initialTab={initialTab}
               onClose={() => {
                 setMilestoneModalOpen(false);
-                onClose();
               }}
             />
           </div>

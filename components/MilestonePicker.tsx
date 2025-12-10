@@ -31,9 +31,9 @@ type Props = {
 };
 
 export default function MilestonePicker({ open, title, goals, checked, onToggle, onClose }: Props) {
-  const [q, setQ] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
+  const q = ""; // Sökfunktionalitet borttagen för mobil
 
   // Normalisera koder så att "a1", "A1", "STa1" etc hamnar på samma nyckel ("A1")
   const normalizeCode = (raw: string): string => {
@@ -85,17 +85,8 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
       C: new Set<string>(),
     };
 
-    const qlc = q.trim().toLowerCase();
     const match = (m: GoalsMilestone) => {
-      if (!qlc) return true;
-      const hay =
-        ((m.title ?? "") +
-          " " +
-          (m.code ?? "") +
-          " " +
-          (typeof (m as any).description === "string" ? (m as any).description : "") +
-          ((m as any).sections ? JSON.stringify((m as any).sections) : "")).toLowerCase();
-      return hay.includes(qlc);
+      return true; // Ingen filtrering - visa alla delmål
     };
 
     const codeNum = (code: string) => {
@@ -280,31 +271,20 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
         className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header – samma stil som i övriga modaler */}
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="m-0 text-lg font-extrabold text-slate-900">{title}</h2>
-            
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Sök i delmål…"
-              className="h-[40px] w-52 rounded-lg border border-slate-300 bg-white px-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
-            />
-            <button
-              onClick={onClose}
-              className="inline-flex h-[40px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              title="Stäng"
-            >
-              Stäng
-            </button>
-          </div>
+        {/* Header – samma stil som i övriga mobilpopups */}
+        <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
+          <h2 className="text-xl font-extrabold text-emerald-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+            title="Stäng"
+          >
+            ✕
+          </button>
         </header>
 
         {/* Body – två kolumner: A+B vänster, C höger; grå rutor; ingen "Klin/Kurs" här */}
-        <section className="max-h-[75vh] overflow-auto p-4">
+        <section className="max-h-[75vh] overflow-auto p-5">
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
               Laddar mål…
@@ -400,23 +380,23 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
 
           return (
             <div
-              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-3"
+              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setDetailId(null);
               }}
             >
               <div
-                className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b px-4 py-3">
-                  {/* Vänster: chip + rubrik i headern (som i BT) */}
-                  <div className="min-w-0">
-                    <div className="mb-1 inline-flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800">
+                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
+                  {/* Vänster: chip + rubrik i headern */}
+                  <div className="min-w-0 flex-1">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900">
                         {String((m as any)?.code ?? mid).toLowerCase()}
                       </span>
-                      <h3 className="m-0 truncate text-[15px] font-extrabold text-slate-900">
+                      <h3 className="truncate text-lg font-extrabold text-emerald-900">
                         <TitleTrimmer text={String((m as any)?.title ?? "Delmål")} />
                       </h3>
                     </div>
@@ -429,27 +409,37 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                       type="button"
                       onClick={() => onToggle(mid)}
                       className={
-                        "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-white " +
+                        "inline-flex h-10 w-10 items-center justify-center rounded-full border-2 transition " +
                         (isMarked
-                          ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
-                          : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
+                          ? "border-emerald-500 bg-emerald-500 hover:bg-emerald-600 active:translate-y-px"
+                          : "border-slate-300 bg-white hover:bg-slate-100 active:translate-y-px")
                       }
+                      title={isMarked ? "Avmarkera delmål" : "Markera delmål"}
                     >
-                      {isMarked ? "Avmarkera delmål" : "Markera delmål"}
+                      {isMarked && (
+                        <svg
+                          viewBox="0 0 20 20"
+                          className="h-5 w-5 text-white"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path d="M5 10.5l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
                     </button>
                     <button
                       onClick={() => setDetailId(null)}
-                      className="inline-flex h-[36px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
                       title="Stäng"
                     >
-                      Stäng
+                      ✕
                     </button>
                   </div>
                 </header>
 
 
 
-                <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
+                <div className="flex-1 overflow-y-auto px-5 py-5">
                   {/* Rubriken är flyttad till headern */}
 
 
