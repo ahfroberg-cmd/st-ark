@@ -25,6 +25,7 @@ type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
 export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Props) {
+  console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
