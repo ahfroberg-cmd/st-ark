@@ -30,12 +30,20 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   // Open popup when pendingTab is set
   React.useEffect(() => {
     if (pendingTab !== null) {
-      setSelectedTab(pendingTab);
+      const tabToOpen = pendingTab;
+      console.log("[MilestonesPopup] useEffect triggered with pendingTab:", tabToOpen);
+      // Close first
       setMilestoneModalOpen(false);
+      // Update selectedTab
+      setSelectedTab(tabToOpen);
+      // Wait then open
       const timer = setTimeout(() => {
-        console.log("[MilestonesPopup] Opening with pendingTab:", pendingTab);
+        console.log("[MilestonesPopup] Opening with tabToOpen:", tabToOpen);
         setMilestoneModalOpen(true);
-        setPendingTab(null);
+        // Clear pendingTab after opening
+        setTimeout(() => {
+          setPendingTab(null);
+        }, 100);
       }, 200);
       return () => clearTimeout(timer);
     }
@@ -115,16 +123,21 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             className="w-full max-w-[980px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {milestoneModalOpen && (
-              <MilestoneOverviewPanel
-                key={`milestone-${selectedTab}-${milestoneModalOpen}`}
-                open={milestoneModalOpen}
-                initialTab={selectedTab}
-                onClose={() => {
-                  setMilestoneModalOpen(false);
-                }}
-              />
-            )}
+            {milestoneModalOpen && (() => {
+              // Use pendingTab if set, otherwise use selectedTab
+              const tabToUse = pendingTab !== null ? pendingTab : selectedTab;
+              console.log("[MilestonesPopup] Rendering with tabToUse:", tabToUse, "pendingTab:", pendingTab, "selectedTab:", selectedTab);
+              return (
+                <MilestoneOverviewPanel
+                  key={`milestone-${tabToUse}-${milestoneModalOpen}-${Date.now()}`}
+                  open={milestoneModalOpen}
+                  initialTab={tabToUse}
+                  onClose={() => {
+                    setMilestoneModalOpen(false);
+                  }}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
