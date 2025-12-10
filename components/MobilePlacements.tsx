@@ -520,7 +520,7 @@ function PlacementEditPopup({
                     }}
                     className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                   >
-                    {[0, 25, 50, 75, 100].map((p) => (
+                    {Array.from({ length: 21 }, (_, i) => i * 5).map((p) => (
                       <option key={p} value={p}>
                         {p}%
                       </option>

@@ -93,6 +93,8 @@ export default function AssessmentEditModal({
     onClose();
   }, [dirty, onClose]);
 
+  if (!open || !assessment || !draft) return null;
+
   const handleSave = useCallback(() => {
     if (!draft) return;
     onSave(draft);
@@ -113,6 +115,8 @@ export default function AssessmentEditModal({
 
   const isGoals2021 = String(profile?.goalsVersion || "").trim() === "2021";
 
+  if (!open || !assessment || !draft) return null;
+
   return (
     <div
       ref={overlayRef}
@@ -124,136 +128,140 @@ export default function AssessmentEditModal({
       }}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="text-lg font-extrabold">Progressionsbedömning</h2>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={!dirty}
-              onClick={handleSave}
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-5 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-            >
-              Spara
-            </button>
-            <button
-              type="button"
-              onClick={handleRequestClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-            >
-              Stäng
-            </button>
-          </div>
+        <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
+          <h2 className="text-xl font-extrabold text-emerald-900">Progressionsbedömning</h2>
+          <button
+            type="button"
+            onClick={handleRequestClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+            title="Stäng"
+          >
+            ✕
+          </button>
         </header>
 
-        <section className="max-h-[80vh] overflow-auto p-5 space-y-5">
-          <div>
-            <CalendarDatePicker
-              value={draft.dateISO || isoToday()}
-              onChange={(iso) => updateDraft({ dateISO: iso })}
-              label="Datum för bedömningen"
-              weekStartsOn={1}
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <CalendarDatePicker
+                value={draft.dateISO || isoToday()}
+                onChange={(iso) => updateDraft({ dateISO: iso })}
+                label="Datum för bedömningen"
+                weekStartsOn={1}
+              />
+            </div>
 
-          {isGoals2021 ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="mb-2 block text-base font-semibold text-slate-800">Fas</label>
-                <select
-                  value={draft.phase}
-                  onChange={(e) =>
-                    updateDraft({ phase: e.target.value as IupAssessmentPhase })
-                  }
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                >
-                  <option value="BT">BT</option>
-                  <option value="ST">ST</option>
-                </select>
+            {isGoals2021 ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">Fas</label>
+                  <select
+                    value={draft.phase}
+                    onChange={(e) =>
+                      updateDraft({ phase: e.target.value as IupAssessmentPhase })
+                    }
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  >
+                    <option value="BT">BT</option>
+                    <option value="ST">ST</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Klinisk tjänstgöring
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.level}
+                    onChange={(e) => updateDraft({ level: e.target.value })}
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-2 block text-base font-semibold text-slate-800">
+            ) : (
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
                   Klinisk tjänstgöring
                 </label>
                 <input
                   type="text"
                   value={draft.level}
                   onChange={(e) => updateDraft({ level: e.target.value })}
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-900">
+                Bedömningsinstrument
+              </label>
+              <select
+                value={draft.instrument}
+                onChange={(e) => updateDraft({ instrument: e.target.value })}
+                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              >
+                <option value="">Välj bedömningsinstrument…</option>
+                {instruments.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-900">
+                Övergripande bedömning
+              </label>
+              <textarea
+                rows={4}
+                value={draft.summary}
+                onChange={(e) => updateDraft({ summary: e.target.value })}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
+                  Styrkor
+                </label>
+                <textarea
+                  rows={5}
+                  value={draft.strengths}
+                  onChange={(e) => updateDraft({ strengths: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
+                  Utvecklingsområden
+                </label>
+                <textarea
+                  rows={5}
+                  value={draft.development}
+                  onChange={(e) => updateDraft({ development: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 />
               </div>
             </div>
-          ) : (
-            <div>
-              <label className="mb-2 block text-base font-semibold text-slate-800">
-                Klinisk tjänstgöring
-              </label>
-              <input
-                type="text"
-                value={draft.level}
-                onChange={(e) => updateDraft({ level: e.target.value })}
-                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="mb-2 block text-base font-semibold text-slate-800">
-              Bedömningsinstrument
-            </label>
-            <select
-              value={draft.instrument}
-              onChange={(e) => updateDraft({ instrument: e.target.value })}
-              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            >
-              <option value="">Välj bedömningsinstrument…</option>
-              {instruments.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
           </div>
+        </div>
 
-          <div>
-            <label className="mb-2 block text-base font-semibold text-slate-800">
-              Övergripande bedömning
-            </label>
-            <textarea
-              rows={4}
-              value={draft.summary}
-              onChange={(e) => updateDraft({ summary: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="mb-2 block text-base font-semibold text-slate-800">
-                Styrkor
-              </label>
-              <textarea
-                rows={5}
-                value={draft.strengths}
-                onChange={(e) => updateDraft({ strengths: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-base font-semibold text-slate-800">
-                Utvecklingsområden
-              </label>
-              <textarea
-                rows={5}
-                value={draft.development}
-                onChange={(e) => updateDraft({ development: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
-            </div>
-          </div>
-        </section>
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!dirty}
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Spara
+          </button>
+        </footer>
       </div>
     </div>
   );

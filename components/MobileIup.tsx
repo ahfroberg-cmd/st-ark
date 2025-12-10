@@ -207,7 +207,7 @@ export default function MobileIup() {
     <>
       {/* IUP-ruta med knappar */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">IUP & bedömningar</h2>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Individuell utbildningsplan (IUP)</h2>
         <div className="space-y-3">
           <button
             type="button"

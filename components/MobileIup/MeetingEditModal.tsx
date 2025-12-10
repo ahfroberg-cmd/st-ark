@@ -95,120 +95,124 @@ export default function MeetingEditModal({ open, meeting, onSave, onClose }: Pro
       }}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="text-lg font-extrabold">Handledarsamtal</h2>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={!dirty}
-              onClick={handleSave}
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-5 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-            >
-              Spara
-            </button>
-            <button
-              type="button"
-              onClick={handleRequestClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-            >
-              Stäng
-            </button>
-          </div>
+        <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
+          <h2 className="text-xl font-extrabold text-emerald-900">Handledarsamtal</h2>
+          <button
+            type="button"
+            onClick={handleRequestClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+            title="Stäng"
+          >
+            ✕
+          </button>
         </header>
 
-        <section className="max-h-[80vh] overflow-auto p-5 space-y-5">
-          <div>
-            <CalendarDatePicker
-              value={draft.dateISO || isoToday()}
-              onChange={(iso) => updateDraft({ dateISO: iso })}
-              label="Datum för handledarsamtalet"
-              weekStartsOn={1}
-            />
-            {isFutureDate(draft.dateISO) && (
-              <p className="mt-2 text-sm italic text-sky-700">Planerat</p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-base font-semibold text-slate-800">
-              Rubrik / fokus
-            </label>
-            <input
-              type="text"
-              value={draft.focus}
-              onChange={(e) => updateDraft({ focus: e.target.value })}
-              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="mb-2 block text-base font-semibold text-slate-800">
-                Sammanfattning
-              </label>
-              <textarea
-                rows={5}
-                value={draft.summary}
-                onChange={(e) => updateDraft({ summary: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-base font-semibold text-slate-800">
-                Överenskomna åtgärder
-              </label>
-              <textarea
-                rows={5}
-                value={draft.actions}
-                onChange={(e) => updateDraft({ actions: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-3 inline-flex items-center gap-3 text-base font-semibold text-slate-800">
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded border-slate-300"
-                checked={hasNextPlanned}
-                onChange={(e) => {
-                  const enable = e.target.checked;
-                  if (enable) {
-                    const baseIso = draft.dateISO && /^\d{4}-\d{2}-\d{2}$/.test(draft.dateISO)
-                      ? draft.dateISO
-                      : isoToday();
-                    updateDraft({
-                      nextDateISO:
-                        draft.nextDateISO && isFutureDate(draft.nextDateISO)
-                          ? draft.nextDateISO
-                          : isoFourWeeksFrom(baseIso),
-                    });
-                  } else {
-                    updateDraft({ nextDateISO: "" });
-                  }
-                }}
-              />
-              <span>Nästa planerade handledarsamtal</span>
-            </label>
-            <div className={hasNextPlanned ? "mt-3" : "mt-3 opacity-60 pointer-events-none"}>
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="space-y-4">
+            <div className="space-y-2">
               <CalendarDatePicker
-                value={
-                  draft.nextDateISO ||
-                  isoFourWeeksFrom(draft.dateISO || isoToday())
-                }
-                onChange={(iso) => updateDraft({ nextDateISO: iso })}
+                value={draft.dateISO || isoToday()}
+                onChange={(iso) => updateDraft({ dateISO: iso })}
+                label="Datum för handledarsamtalet"
                 weekStartsOn={1}
               />
-              {isFutureDate(draft.nextDateISO || undefined) && (
+              {isFutureDate(draft.dateISO) && (
                 <p className="mt-2 text-sm italic text-sky-700">Planerat</p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-900">
+                Rubrik / fokus
+              </label>
+              <input
+                type="text"
+                value={draft.focus}
+                onChange={(e) => updateDraft({ focus: e.target.value })}
+                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
+                  Sammanfattning
+                </label>
+                <textarea
+                  rows={5}
+                  value={draft.summary}
+                  onChange={(e) => updateDraft({ summary: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
+                  Överenskomna åtgärder
+                </label>
+                <textarea
+                  rows={5}
+                  value={draft.actions}
+                  onChange={(e) => updateDraft({ actions: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="inline-flex items-center gap-3 text-xs font-medium text-slate-900">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                  checked={hasNextPlanned}
+                  onChange={(e) => {
+                    const enable = e.target.checked;
+                    if (enable) {
+                      const baseIso = draft.dateISO && /^\d{4}-\d{2}-\d{2}$/.test(draft.dateISO)
+                        ? draft.dateISO
+                        : isoToday();
+                      updateDraft({
+                        nextDateISO:
+                          draft.nextDateISO && isFutureDate(draft.nextDateISO)
+                            ? draft.nextDateISO
+                            : isoFourWeeksFrom(baseIso),
+                      });
+                    } else {
+                      updateDraft({ nextDateISO: "" });
+                    }
+                  }}
+                />
+                <span>Nästa planerade handledarsamtal</span>
+              </label>
+              <div className={hasNextPlanned ? "mt-3" : "mt-3 opacity-60 pointer-events-none"}>
+                <CalendarDatePicker
+                  value={
+                    draft.nextDateISO ||
+                    isoFourWeeksFrom(draft.dateISO || isoToday())
+                  }
+                  onChange={(iso) => updateDraft({ nextDateISO: iso })}
+                  weekStartsOn={1}
+                />
+                {isFutureDate(draft.nextDateISO || undefined) && (
+                  <p className="mt-2 text-sm italic text-sky-700">Planerat</p>
+                )}
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
+
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!dirty}
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Spara
+          </button>
+        </footer>
       </div>
     </div>
   );
