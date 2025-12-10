@@ -59,13 +59,6 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
       setTab(initialTab);
     }
   }, [open, initialTab]);
-  
-  // Force update tab when initialTab changes while open (for mobile popup switching)
-  useEffect(() => {
-    if (open) {
-      setTab(initialTab);
-    }
-  }, [initialTab, open]);
 
   // Förhindra scroll på body när popup är öppen
   useEffect(() => {
@@ -914,7 +907,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const hasAnySt = !!goals && (groups.A.length + groups.B.length + groups.C.length > 0);
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
-  const isBtTab = is2021 && tab === "bt";
+  // Use tab directly for BT check - if user selected BT, show BT regardless of is2021
+  const isBtTab = tab === "bt";
 
   return (
       <div className="w-full max-w-[980px] max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
@@ -983,21 +977,27 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
             </div>
-          ) : is2021 ? (
-            tab === "st" ? (
-              !(hasAnySt) ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
-                  Inga delmål matchar sökningen.
-                </div>
-              ) : (
-                <StGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
-              )
+          ) : tab === "bt" ? (
+            // BT-delmål tab
+            !is2021 ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
+                BT-delmål är endast tillgängliga för målversion 2021.
+              </div>
             ) : !hasAnyBt ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                 Inga BT-delmål hittades i data ännu.
               </div>
             ) : (
               <BtList btRows={btRows} openDetail={openDetail} openList={openList} />
+            )
+          ) : is2021 ? (
+            // ST-delmål tab for 2021
+            !(hasAnySt) ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
+                Inga delmål matchar sökningen.
+              </div>
+            ) : (
+              <StGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
             )
           ) : !hasAnySt ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
