@@ -53,7 +53,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   // Popup "Inget kopplat"
   const [notMetOpen, setNotMetOpen] = useState(false);
 
-  // Set initial tab when opening
+  // Set initial tab when opening or when initialTab changes
   useEffect(() => {
     if (open) {
       setTab(initialTab);
@@ -907,13 +907,15 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const hasAnySt = !!goals && (groups.A.length + groups.B.length + groups.C.length > 0);
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
+  const isBtTab = is2021 && tab === "bt";
+
   return (
-      <div className="w-full max-w-[980px] rounded-2xl bg-white shadow-2xl flex flex-col my-4">
+      <div className="w-full max-w-[980px] max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="border-b border-slate-200 bg-emerald-50 px-5 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-extrabold text-emerald-900">
-            {is2021 && tab === "bt" ? "BT-delmål" : "ST-delmål"}
+        <header className={`border-b border-slate-200 px-5 py-4 flex items-center justify-between ${isBtTab ? "bg-sky-50" : "bg-emerald-50"}`}>
+          <h2 className={`text-xl font-extrabold ${isBtTab ? "text-sky-900" : "text-emerald-900"}`}>
+            {isBtTab ? "BT-delmål" : "ST-delmål"}
           </h2>
           <button
             type="button"
@@ -969,7 +971,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
 
 
         {/* Body */}
-        <section className="p-5">
+        <section className="flex-1 overflow-y-auto p-5">
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
@@ -1109,7 +1111,10 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                 onClick={(e) => e.stopPropagation()}
               >
                 <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+                      {String((m as any)?.code ?? detailId).toLowerCase()}
+                    </span>
                     <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
                     </h3>
@@ -1252,9 +1257,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                 className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
+                <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4 gap-4">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+                      {id.toLowerCase()}
+                    </span>
+                    <h3 className="text-base sm:text-lg font-extrabold text-sky-900 break-words">
                       {m?.title ?? "BT-delmål"}
                     </h3>
                   </div>
@@ -1407,6 +1415,13 @@ function StGrid({
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
+                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
+                    {(
+                      (m.code ?? "").includes("-")
+                        ? (m.code ?? "").split("-")[0]
+                        : (m.code ?? "")
+                    ).toLowerCase()}
+                  </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
@@ -1460,6 +1475,13 @@ function StGrid({
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
+                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
+                    {(
+                      (m.code ?? "").includes("-")
+                        ? (m.code ?? "").split("-")[0]
+                        : (m.code ?? "")
+                    ).toLowerCase()}
+                  </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
@@ -1516,6 +1538,13 @@ function StGrid({
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
+                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
+                    {(
+                      (m.code ?? "").includes("-")
+                        ? (m.code ?? "").split("-")[0]
+                        : (m.code ?? "")
+                    ).toLowerCase()}
+                  </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
@@ -1584,6 +1613,9 @@ function BtList({
               className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
               title="Visa information om delmålet"
             >
+              <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
+                {row.code.toLowerCase()}
+              </span>
               <span className="truncate text-[12px] text-slate-900">
                 {(m?.title ?? "BT-delmål").length > 50 ? (m?.title ?? "BT-delmål").slice(0, 50) + "..." : (m?.title ?? "BT-delmål")}
               </span>
