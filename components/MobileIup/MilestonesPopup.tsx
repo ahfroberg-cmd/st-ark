@@ -14,6 +14,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<"bt" | "st">("st");
+  const [selectedTab, setSelectedTab] = useState<"bt" | "st">("st");
 
   React.useEffect(() => {
     if (open || milestoneModalOpen) {
@@ -64,6 +65,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
+                    setSelectedTab("bt");
                     setInitialTab("bt");
                     setMilestoneModalOpen(true);
                   }}
@@ -74,6 +76,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
+                    setSelectedTab("st");
                     setInitialTab("st");
                     setMilestoneModalOpen(true);
                   }}
@@ -102,7 +105,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
           >
             <MilestoneOverviewPanel
               open={milestoneModalOpen}
-              initialTab={initialTab}
+              initialTab={selectedTab}
               onClose={() => {
                 setMilestoneModalOpen(false);
               }}

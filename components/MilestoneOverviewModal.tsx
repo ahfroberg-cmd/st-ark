@@ -59,6 +59,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
       setTab(initialTab);
     }
   }, [open, initialTab]);
+  
+  // Force update tab when initialTab changes while open (for mobile popup switching)
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+    }
+  }, [initialTab, open]);
 
   // Förhindra scroll på body när popup är öppen
   useEffect(() => {
