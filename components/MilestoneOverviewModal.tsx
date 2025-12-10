@@ -20,11 +20,17 @@ function TitleTrimmer({ text, className }: { text: string; className?: string })
   );
 }
 
-type Props = { open: boolean; onClose: () => void; initialTab: "st" | "bt"; title?: string };
+type Props = { 
+  open: boolean; 
+  onClose: () => void; 
+  initialTab: "st" | "bt"; 
+  title?: string;
+  hideHeader?: boolean; // Hide the colored header (for laptop version)
+};
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideHeader }: Props) {
   console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -928,23 +934,25 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Pro
     }
   }, [open, tab, initialTab, isBtTab]);
 
-  return (
-      <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      return (
+        <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
 
-        {/* Header */}
-        <header className={`border-b border-slate-200 px-5 py-4 flex items-center justify-between ${isBtTab ? "bg-sky-50" : "bg-emerald-50"}`}>
-          <h2 className={`text-xl font-extrabold ${isBtTab ? "text-sky-900" : "text-emerald-900"}`}>
-            {title ?? (isBtTab ? "BT-delmål" : "ST-delmål")}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
-            title="Stäng"
-          >
-            ✕
-          </button>
-        </header>
+          {/* Header - only show if not hidden (for laptop version) */}
+          {!hideHeader && (
+            <header className={`border-b border-slate-200 px-5 py-4 flex items-center justify-between ${isBtTab ? "bg-sky-50" : "bg-emerald-50"}`}>
+              <h2 className={`text-xl font-extrabold ${isBtTab ? "text-sky-900" : "text-emerald-900"}`}>
+                {title ?? (isBtTab ? "BT-delmål" : "ST-delmål")}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+                title="Stäng"
+              >
+                ✕
+              </button>
+            </header>
+          )}
 
         {/* Utbildningsaktiviteter - under header */}
         <div className="border-b border-slate-200 px-5 py-3">
@@ -1394,50 +1402,58 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Pro
   );
 }
 
-export default function MilestoneOverviewModal({ open, onClose }: Props) {
+type ModalProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+export default function MilestoneOverviewModal({ open, onClose }: ModalProps) {
   const [tab, setTab] = useState<"st" | "bt">("st");
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const p = await db.profile.get("default");
+      setProfile(p ?? null);
+    })();
+  }, [open]);
+
+  const is2021 = (profile?.goalsVersion ?? "") === "2021";
 
   if (!open) return null;
 
   return (
     <div className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
-      {/* Radio buttons for BT/ST selection */}
-      <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-3">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="milestone-tab"
-            value="st"
-            checked={tab === "st"}
-            onChange={() => setTab("st")}
-            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
-          />
-          <span className="text-sm font-semibold text-slate-900">ST-delmål</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="milestone-tab"
-            value="bt"
-            checked={tab === "bt"}
-            onChange={() => setTab("bt")}
-            className="h-4 w-4 text-sky-600 focus:ring-sky-500"
-          />
-          <span className="text-sm font-semibold text-slate-900">BT-delmål</span>
-        </label>
-        <div className="ml-auto">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
-            title="Stäng"
-          >
-            ✕
-          </button>
+      {/* Radio buttons for BT/ST selection - only for 2021 */}
+      {is2021 && (
+        <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="milestone-tab"
+              value="st"
+              checked={tab === "st"}
+              onChange={() => setTab("st")}
+              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className="text-sm font-semibold text-slate-900">ST-delmål</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="milestone-tab"
+              value="bt"
+              checked={tab === "bt"}
+              onChange={() => setTab("bt")}
+              className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+            />
+            <span className="text-sm font-semibold text-slate-900">BT-delmål</span>
+          </label>
         </div>
-      </div>
+      )}
 
-      <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={tab} />
+      <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={is2021 ? tab : "st"} hideHeader={true} />
     </div>
   );
 }
