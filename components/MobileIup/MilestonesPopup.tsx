@@ -12,13 +12,11 @@ type Props = {
 
 export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
-  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<"bt" | "st">("st");
-  const [pendingTab, setPendingTab] = useState<"bt" | "st" | null>(null);
-  const [renderKey, setRenderKey] = useState(0);
+  const [btModalOpen, setBtModalOpen] = useState(false);
+  const [stModalOpen, setStModalOpen] = useState(false);
 
   React.useEffect(() => {
-    if (open || milestoneModalOpen) {
+    if (open || btModalOpen || stModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -26,34 +24,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open, milestoneModalOpen]);
-
-  // Open popup when pendingTab is set
-  React.useEffect(() => {
-    if (pendingTab !== null) {
-      const tabToOpen = pendingTab;
-      console.log("[MilestonesPopup] useEffect triggered with pendingTab:", tabToOpen);
-      // Close first
-      setMilestoneModalOpen(false);
-      // Update selectedTab and force remount with new key
-      setSelectedTab(tabToOpen);
-      setRenderKey(prev => {
-        const newKey = prev + 1;
-        console.log("[MilestonesPopup] New renderKey:", newKey);
-        return newKey;
-      });
-      // Wait then open
-      const timer = setTimeout(() => {
-        console.log("[MilestonesPopup] Opening with tabToOpen:", tabToOpen);
-        setMilestoneModalOpen(true);
-        // Clear pendingTab after opening
-        setTimeout(() => {
-          setPendingTab(null);
-        }, 100);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [pendingTab]);
+  }, [open, btModalOpen, stModalOpen]);
 
   if (!open) return null;
 
@@ -93,8 +64,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    console.log("[MilestonesPopup] BT button clicked");
-                    setPendingTab("bt");
+                    setBtModalOpen(true);
                   }}
                   className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-5 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
                 >
@@ -103,8 +73,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    console.log("[MilestonesPopup] ST button clicked");
-                    setPendingTab("st");
+                    setStModalOpen(true);
                   }}
                   className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-5 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
                 >
@@ -116,12 +85,13 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
         </div>
       </div>
 
-      {milestoneModalOpen && (
+      {/* BT-delmål modal */}
+      {btModalOpen && (
         <div
           className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setMilestoneModalOpen(false);
+              setBtModalOpen(false);
             }
           }}
         >
@@ -129,21 +99,38 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             className="w-full max-w-[980px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {milestoneModalOpen && (() => {
-              // Use pendingTab if set (it will be cleared after render), otherwise use selectedTab
-              const tabToUse = pendingTab !== null ? pendingTab : selectedTab;
-              console.log("[MilestonesPopup] Rendering MilestoneOverviewPanel with tabToUse:", tabToUse, "pendingTab:", pendingTab, "selectedTab:", selectedTab, "renderKey:", renderKey);
-              return (
-                <MilestoneOverviewPanel
-                  key={`milestone-${tabToUse}-${renderKey}`}
-                  open={milestoneModalOpen}
-                  initialTab={tabToUse}
-                  onClose={() => {
-                    setMilestoneModalOpen(false);
-                  }}
-                />
-              );
-            })()}
+            <MilestoneOverviewPanel
+              open={btModalOpen}
+              initialTab="bt"
+              onClose={() => {
+                setBtModalOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ST-delmål modal */}
+      {stModalOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setStModalOpen(false);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-[980px] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MilestoneOverviewPanel
+              open={stModalOpen}
+              initialTab="st"
+              onClose={() => {
+                setStModalOpen(false);
+              }}
+            />
           </div>
         </div>
       )}
