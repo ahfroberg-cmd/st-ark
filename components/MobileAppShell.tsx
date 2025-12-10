@@ -47,7 +47,11 @@ export default function MobileAppShell() {
 
   return (
     <div className="flex h-screen flex-col bg-slate-100">
-      <header className="flex items-center justify-end border-b border-slate-200 bg-white px-4 py-3">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+        <h1 className="text-xl font-extrabold tracking-tight">
+          <span className="text-sky-700">ST</span>
+          <span className="text-emerald-700">ARK</span>
+        </h1>
         <div className="flex items-center gap-2">
           <button
             type="button"

@@ -20,11 +20,11 @@ function TitleTrimmer({ text, className }: { text: string; className?: string })
   );
 }
 
-type Props = { open: boolean; onClose: () => void };
+type Props = { open: boolean; onClose: () => void; initialTab?: "st" | "bt" };
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Props) {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
@@ -32,11 +32,17 @@ export function MilestoneOverviewPanel({ open, onClose }: Props) {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [q, setQ] = useState("");
-  const [tab, setTab] = useState<TabKey>("st");
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [showDone, setShowDone] = useState(true);
   const [showOngoing, setShowOngoing] = useState(true);
   const [showPlanned, setShowPlanned] = useState(true);
 
+  // Set initial tab when opening
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailPlanText, setDetailPlanText] = useState<string>("");

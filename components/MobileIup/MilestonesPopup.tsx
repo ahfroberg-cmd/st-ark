@@ -78,13 +78,31 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
         </div>
       </div>
 
-      <MilestoneOverviewPanel
-        open={milestoneModalOpen}
-        onClose={() => {
-          setMilestoneModalOpen(false);
-          onClose();
-        }}
-      />
+      {milestoneModalOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setMilestoneModalOpen(false);
+              onClose();
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MilestoneOverviewPanel
+              open={milestoneModalOpen}
+              initialTab={initialTab}
+              onClose={() => {
+                setMilestoneModalOpen(false);
+                onClose();
+              }}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }
