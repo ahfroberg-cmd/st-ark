@@ -160,7 +160,10 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
     console.log("[BtMilestonesModal] btMilestones length:", btMilestones?.length ?? 0);
     console.log("[BtMilestonesModal] btMilestones:", btMilestones);
 
-    const result = btMilestones
+    // Ensure btMilestones is an array
+    const milestonesArray = Array.isArray(btMilestones) ? btMilestones : [];
+    
+    const result = milestonesArray
       .map((m) => {
         const code = m.id.toUpperCase().replace(/\s|_|-/g, "");
         return {
