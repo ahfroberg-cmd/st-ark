@@ -36,6 +36,22 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const [showDone, setShowDone] = useState(true);
   const [showOngoing, setShowOngoing] = useState(true);
   const [showPlanned, setShowPlanned] = useState(true);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailPlanText, setDetailPlanText] = useState<string>("");
+  const [detailDirty, setDetailDirty] = useState(false);
+  const [detailSaving, setDetailSaving] = useState(false);
+  const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
+  const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
+
+  // Lista (Klin/Kurs/Intyg)
+  const [listOpen, setListOpen] = useState(false);
+
+  const [listTitle, setListTitle] = useState("");
+  const [listItems, setListItems] = useState<{ id: string; line1: string; line2?: string }[]>([]);
+  const [listKind, setListKind] = useState<"klin" | "kurs" | "intyg">("intyg");
+
+  // Popup "Inget kopplat"
+  const [notMetOpen, setNotMetOpen] = useState(false);
 
   // Set initial tab when opening
   useEffect(() => {
@@ -55,23 +71,6 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
       document.body.style.overflow = "";
     };
   }, [open, detailId]);
-
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [detailPlanText, setDetailPlanText] = useState<string>("");
-  const [detailDirty, setDetailDirty] = useState(false);
-  const [detailSaving, setDetailSaving] = useState(false);
-  const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
-  const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
-
-  // Lista (Klin/Kurs/Intyg)
-  const [listOpen, setListOpen] = useState(false);
-
-  const [listTitle, setListTitle] = useState("");
-  const [listItems, setListItems] = useState<{ id: string; line1: string; line2?: string }[]>([]);
-  const [listKind, setListKind] = useState<"klin" | "kurs" | "intyg">("intyg");
-
-  // Popup ”Inget kopplat”
-  const [notMetOpen, setNotMetOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
