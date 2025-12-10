@@ -31,6 +31,7 @@ export default function CalendarDatePicker({
   const [viewYear, setViewYear] = useState(init.getFullYear());
   const [viewMonth, setViewMonth] = useState(init.getMonth()); // 0..11
   const rootRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<"down" | "up">("down");
 
 
@@ -150,16 +151,47 @@ export default function CalendarDatePicker({
           <div
             className="fixed inset-0 z-[998]"
             onMouseDown={(e) => {
-              e.stopPropagation();
-              setOpen(false);
+              // Stäng bara om klicket är på backdropen själv, inte på kalendern eller trigger-knappen
+              const target = e.target as HTMLElement;
+              if (
+                target === e.currentTarget &&
+                calendarRef.current &&
+                !calendarRef.current.contains(target) &&
+                rootRef.current &&
+                !rootRef.current.contains(target)
+              ) {
+                e.stopPropagation();
+                setOpen(false);
+              }
+            }}
+            onClick={(e) => {
+              // Stäng när man klickar på backdropen (men inte på kalendern eller trigger)
+              const target = e.target as HTMLElement;
+              if (
+                target === e.currentTarget &&
+                calendarRef.current &&
+                !calendarRef.current.contains(target) &&
+                rootRef.current &&
+                !rootRef.current.querySelector('button')?.contains(target)
+              ) {
+                setOpen(false);
+              }
             }}
           />
 
           {/* Själva kalendern (ligger ovanför backdropen) */}
           <div
+            ref={calendarRef}
             role="dialog"
             aria-modal="true"
-            onMouseDownCapture={(e) => e.stopPropagation()}
+            onMouseDownCapture={(e) => {
+              e.stopPropagation();
+              // Förhindra att backdrop stänger kalendern när man klickar på kalendern
+            }}
+            onClick={(e) => {
+              // Förhindra att klicket bubblar upp till backdrop
+              e.stopPropagation();
+            }}
             style={
               direction === "up" && rootRef.current
                 ? {
