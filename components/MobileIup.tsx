@@ -182,13 +182,13 @@ export default function MobileIup() {
   }, [assessments]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Tab navigation */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
           onClick={() => setTab("planering")}
-          className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition ${
+          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
             tab === "planering"
               ? "border-sky-600 bg-sky-50 text-sky-900"
               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -199,7 +199,7 @@ export default function MobileIup() {
         <button
           type="button"
           onClick={() => setTab("handledarsamtal")}
-          className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition ${
+          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
             tab === "handledarsamtal"
               ? "border-sky-600 bg-sky-50 text-sky-900"
               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -210,7 +210,7 @@ export default function MobileIup() {
         <button
           type="button"
           onClick={() => setTab("progressionsbedömningar")}
-          className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition ${
+          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
             tab === "progressionsbedömningar"
               ? "border-sky-600 bg-sky-50 text-sky-900"
               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -221,7 +221,7 @@ export default function MobileIup() {
         <button
           type="button"
           onClick={() => setTab("delmål")}
-          className={`rounded-xl border-2 px-4 py-3 text-sm font-semibold transition ${
+          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
             tab === "delmål"
               ? "border-sky-600 bg-sky-50 text-sky-900"
               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"

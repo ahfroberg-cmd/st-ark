@@ -65,23 +65,23 @@ export default function InstrumentsModal({
         className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-base font-extrabold">Bedömningsinstrument</h2>
+        <header className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-lg font-extrabold">Bedömningsinstrument</h2>
           <button
             type="button"
             onClick={handleRequestClose}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
           >
             Stäng
           </button>
         </header>
 
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-4 px-5 py-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-800">
+            <label className="mb-2 block text-base font-semibold text-slate-800">
               Lägg till bedömningsinstrument
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={input}
@@ -92,13 +92,13 @@ export default function InstrumentsModal({
                     handleAdd();
                   }
                 }}
-                className="h-10 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="h-12 flex-1 rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 placeholder="Instrumentnamn..."
               />
               <button
                 type="button"
                 onClick={handleAdd}
-                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px"
+                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-5 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px"
               >
                 Lägg till
               </button>
@@ -107,20 +107,20 @@ export default function InstrumentsModal({
 
           <div className="max-h-[260px] overflow-auto rounded-xl border border-slate-200 bg-white">
             {instruments.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500">
+              <div className="px-4 py-4 text-base text-slate-500">
                 Inga bedömningsinstrument tillagda ännu.
               </div>
             ) : (
               instruments.map((name) => (
                 <div
                   key={name}
-                  className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 last:border-b-0"
+                  className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
                 >
-                  <span className="text-sm text-slate-800">{name}</span>
+                  <span className="text-base text-slate-800">{name}</span>
                   <button
                     type="button"
                     onClick={() => handleRemove(name)}
-                    className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
+                    className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
                   >
                     Ta bort
                   </button>

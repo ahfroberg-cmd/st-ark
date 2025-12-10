@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import { exportAll, downloadJson } from "@/lib/backup";
 import MobileHome from "./MobileHome";
 import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
@@ -28,6 +29,21 @@ export default function MobileAppShell() {
   const [scanOpen, setScanOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const bundle = await exportAll();
+      const d = new Date().toISOString().slice(0, 10);
+      await downloadJson(bundle, `st-intyg-backup-${d}.json`);
+    } catch (e) {
+      console.error(e);
+      alert("Kunde inte spara filen.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const title =
     tab === "home"
@@ -55,8 +71,16 @@ export default function MobileAppShell() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={handleExport}
+            disabled={exporting}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px disabled:opacity-50"
+          >
+            {exporting ? "Sparar..." : "Spara"}
+          </button>
+          <button
+            type="button"
             onClick={() => setProfileOpen(true)}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
             Profil
           </button>

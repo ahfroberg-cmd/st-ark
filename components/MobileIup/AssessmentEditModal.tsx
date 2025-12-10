@@ -127,28 +127,28 @@ export default function AssessmentEditModal({
         className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-base font-extrabold">Progressionsbedömning</h2>
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-lg font-extrabold">Progressionsbedömning</h2>
+          <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={!dirty}
               onClick={handleSave}
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+              className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-5 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
             >
               Spara
             </button>
             <button
               type="button"
               onClick={handleRequestClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
             >
               Stäng
             </button>
           </div>
         </header>
 
-        <section className="max-h-[80vh] overflow-auto p-4 space-y-4">
+        <section className="max-h-[80vh] overflow-auto p-5 space-y-5">
           <div>
             <CalendarDatePicker
               value={draft.dateISO || isoToday()}
@@ -159,54 +159,54 @@ export default function AssessmentEditModal({
           </div>
 
           {isGoals2021 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-800">Fas</label>
+                <label className="mb-2 block text-base font-semibold text-slate-800">Fas</label>
                 <select
                   value={draft.phase}
                   onChange={(e) =>
                     updateDraft({ phase: e.target.value as IupAssessmentPhase })
                   }
-                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 >
                   <option value="BT">BT</option>
                   <option value="ST">ST</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-slate-800">
+                <label className="mb-2 block text-base font-semibold text-slate-800">
                   Klinisk tjänstgöring
                 </label>
                 <input
                   type="text"
                   value={draft.level}
                   onChange={(e) => updateDraft({ level: e.target.value })}
-                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 />
               </div>
             </div>
           ) : (
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-800">
+              <label className="mb-2 block text-base font-semibold text-slate-800">
                 Klinisk tjänstgöring
               </label>
               <input
                 type="text"
                 value={draft.level}
                 onChange={(e) => updateDraft({ level: e.target.value })}
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-800">
+            <label className="mb-2 block text-base font-semibold text-slate-800">
               Bedömningsinstrument
             </label>
             <select
               value={draft.instrument}
               onChange={(e) => updateDraft({ instrument: e.target.value })}
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
             >
               <option value="">Välj bedömningsinstrument…</option>
               {instruments.map((name) => (
@@ -218,38 +218,38 @@ export default function AssessmentEditModal({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-800">
+            <label className="mb-2 block text-base font-semibold text-slate-800">
               Övergripande bedömning
             </label>
             <textarea
-              rows={3}
+              rows={4}
               value={draft.summary}
               onChange={(e) => updateDraft({ summary: e.target.value })}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-800">
+              <label className="mb-2 block text-base font-semibold text-slate-800">
                 Styrkor
               </label>
               <textarea
-                rows={4}
+                rows={5}
                 value={draft.strengths}
                 onChange={(e) => updateDraft({ strengths: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-800">
+              <label className="mb-2 block text-base font-semibold text-slate-800">
                 Utvecklingsområden
               </label>
               <textarea
-                rows={4}
+                rows={5}
                 value={draft.development}
                 onChange={(e) => updateDraft({ development: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
           </div>

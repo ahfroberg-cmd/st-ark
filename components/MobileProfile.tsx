@@ -5,7 +5,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
-import { exportAll, downloadJson } from "@/lib/backup";
 
 type Props = {
   open: boolean;
@@ -107,7 +106,6 @@ export default function MobileProfile({ open, onClose }: Props) {
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const lockedCore = !!orig.locked;
 
   const specialtiesSorted = useMemo(
@@ -187,20 +185,6 @@ export default function MobileProfile({ open, onClose }: Props) {
     onClose();
   }
 
-  async function handleExport() {
-    setExporting(true);
-    try {
-      const bundle = await exportAll();
-      const d = new Date().toISOString().slice(0, 10);
-      await downloadJson(bundle, `st-intyg-backup-${d}.json`);
-    } catch (e) {
-      console.error(e);
-      alert("Kunde inte spara filen.");
-    } finally {
-      setExporting(false);
-    }
-  }
-
   async function handleReset() {
     if (
       !confirm(
@@ -241,22 +225,15 @@ export default function MobileProfile({ open, onClose }: Props) {
         <h1 className="text-base font-semibold text-slate-900">Profil</h1>
         <div className="flex items-center gap-2">
           <button
-            disabled={exporting}
-            onClick={handleExport}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px disabled:opacity-50"
-          >
-            {exporting ? "Sparar..." : "Spara"}
-          </button>
-          <button
             disabled={!dirty || saving}
             onClick={handleSave}
-            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
           >
-            {saving ? "Sparar..." : "Uppdatera"}
+            {saving ? "Sparar..." : "Spara"}
           </button>
           <button
             onClick={requestClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 active:translate-y-px"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
           >
             ✕
           </button>
