@@ -832,29 +832,31 @@ export default function ScanIntygModal({
   const previewTitle =
     isCourseKind ? "Kurs" : titleLabel || "";
 
-  return (
+  if (!open) return null;
 
+  return (
     <div
-      className={`fixed inset-0 z-50 ${visible}`}
-      aria-hidden={!open}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="absolute inset-0 grid place-items-center p-4">
-        <div className="w-full max-w-[880px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-          <header className="flex items-center justify-between border-b px-4 py-2">
-            <div className="font-semibold">Skanna intyg</div>
-            <button
-              onClick={handleClose}
-              className="h-9 w-9 rounded-md border border-slate-300 bg-white transition hover:bg-slate-100"
-            >
-              ×
-            </button>
-          </header>
+      <div
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
+          <h2 className="text-xl font-extrabold text-emerald-900">Scanna intyg</h2>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+          >
+            ✕
+          </button>
+        </header>
 
-          <div className="max-h-[70vh] overflow-auto p-4">
+        <div className="flex-1 overflow-y-auto p-5">
             {warning && (
               <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
                 {warning}
@@ -863,7 +865,19 @@ export default function ScanIntygModal({
 
             {/* --- UPLOAD --- */}
             {step === "upload" && (
-              <div className="grid gap-3">
+              <div className="space-y-4">
+                {/* Tips för bästa resultat */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
+                  <div className="font-semibold mb-2">Tips för bästa resultat:</div>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning</li>
+                    <li>Håll kameran rakt ovanför dokumentet, undvik vinkling</li>
+                    <li>Se till att hela dokumentet syns i bilden</li>
+                    <li>Undvik skuggor och reflektioner</li>
+                    <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
+                  </ul>
+                </div>
+
                 {/* Input */}
                 <input
                   ref={cameraInputRef}
@@ -878,7 +892,7 @@ export default function ScanIntygModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*" // rollback: ENDAST BILD
+                  accept="image/*"
                   className="hidden"
                   onChange={(e) =>
                     onSelectFile(e.target.files?.[0] ?? null)
@@ -887,15 +901,17 @@ export default function ScanIntygModal({
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => cameraInputRef.current?.click()}
-                    className="inline-flex h-[38px] items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-200 md:hidden"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px md:hidden"
                   >
                     Fota intyg
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex h-[38px] items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-200"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                   >
                     Ladda upp bild
                   </button>
@@ -917,9 +933,10 @@ export default function ScanIntygModal({
 
                   {file && (
                     <button
+                      type="button"
                       onClick={removeFile}
                       title="Ta bort"
-                      className="ml-1 inline-flex h-[34px] w-[34px] items-center justify-center rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 active:translate-y-px"
                     >
                       🗑️
                     </button>
@@ -927,9 +944,10 @@ export default function ScanIntygModal({
 
                   <div className="ml-auto">
                     <button
+                      type="button"
                       onClick={handleScan}
                       disabled={!canScan}
-                      className="inline-flex h-[38px] items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 disabled:opacity-60"
+                      className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {busy ? "Skannar…" : "Skanna"}
                     </button>
@@ -940,17 +958,17 @@ export default function ScanIntygModal({
 
             {/* --- REVIEW --- */}
             {step === "review" && (
-              <div className="grid gap-3">
-                <div className="text-sm font-semibold">
+              <div className="space-y-4">
+                <div className="text-base font-semibold text-slate-900">
                   Förhandsgranskning
                   {titleLabel ? ` – ${titleLabel}` : ""}
                 </div>
 
-                <div className="grid gap-2 rounded-lg border p-3 text-sm">
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
                   {/* Rad 1: Namn | Personnummer */}
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div>
-                      <label className="block text-slate-700">Namn</label>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-900">Namn</label>
                       <input
                         value={parsed?.fullName ?? ""}
                         onChange={(e) =>
@@ -960,11 +978,11 @@ export default function ScanIntygModal({
                           }))
                         }
                         placeholder="Efternamn Förnamn"
-                        className="w-full rounded-md border border-slate-300 px-2 py-1"
+                        className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
-                    <div>
-                      <label className="block text-slate-700">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-900">
                         Personnummer
                       </label>
                       <input
@@ -976,15 +994,15 @@ export default function ScanIntygModal({
                           }))
                         }
                         placeholder="ÅÅMMDD-XXXX"
-                        className="w-full rounded-md border border-slate-300 px-2 py-1"
+                        className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
                   </div>
 
                   {/* Rad 2: Specialitet + Tjänstgöringsställe */}
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div>
-                      <label className="block text-slate-700">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-900">
                         Specialitet som ansökan avser
                       </label>
                       <input
@@ -996,11 +1014,11 @@ export default function ScanIntygModal({
                           }))
                         }
                         placeholder="Psykiatri"
-                        className="w-full rounded-md border border-slate-300 px-2 py-1"
+                        className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
-                    <div>
-                      <label className="block text-slate-700">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-slate-900">
                         {clinicLabel}
                       </label>
                       <input
@@ -1011,14 +1029,14 @@ export default function ScanIntygModal({
                             clinic: e.target.value,
                           }))
                         }
-                        className="w-full rounded-md border border-slate-300 px-2 py-1"
+                        className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
                   </div>
 
                   {/* Rad 3: Delmål */}
-                  <div>
-                    <label className="block text-slate-700">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
                       Delmål (komma-separerade)
                     </label>
                     <input
@@ -1033,13 +1051,13 @@ export default function ScanIntygModal({
                         }))
                       }
                       placeholder="t.ex. a1, a2, STa1"
-                      className="w-full rounded-md border border-slate-300 px-2 py-1"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                     />
                   </div>
 
                   {/* Rad 4: Start / Slut */}
                   {!isNoDates && (
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div>
                         <CalendarDatePicker
                           label="Start"
@@ -1076,8 +1094,8 @@ export default function ScanIntygModal({
                   )}
 
                   {/* Rad 5: Beskrivning */}
-                  <div>
-                    <label className="block text-slate-700">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
                       {descriptionLabel}
                     </label>
                     <textarea
@@ -1088,15 +1106,16 @@ export default function ScanIntygModal({
                           description: e.target.value,
                         }))
                       }
-                      className="min-h-[120px] w-full rounded-md border border-slate-300 px-2 py-1 whitespace-pre-wrap"
+                      rows={4}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300 whitespace-pre-wrap"
                     />
                   </div>
 
                   {/* Rad 6: Handledare / Kursledare mm */}
                   {isCourseKind ? (
-                    <div className="grid grid-cols-1 gap-2">
-                      <div>
-                        <label className="block text-slate-700">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Intygande
                         </label>
                         <div className="mt-1 flex flex-wrap gap-4">
@@ -1136,8 +1155,8 @@ export default function ScanIntygModal({
                           </label>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Intygandes namn
                         </label>
                         <input
@@ -1148,11 +1167,11 @@ export default function ScanIntygModal({
                               supervisorName: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
-                      <div>
-                        <label className="block text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Intygandes specialitet
                         </label>
                         <input
@@ -1163,11 +1182,11 @@ export default function ScanIntygModal({
                               supervisorSpeciality: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
-                      <div>
-                        <label className="block text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Intygandes tjänsteställe
                         </label>
                         <input
@@ -1178,14 +1197,14 @@ export default function ScanIntygModal({
                               supervisorSite: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                      <div>
-                        <label className="block text-slate-700">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Handledare
                         </label>
                         <input
@@ -1196,11 +1215,11 @@ export default function ScanIntygModal({
                               supervisorName: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
-                      <div>
-                        <label className="block text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Handledares specialitet
                         </label>
                         <input
@@ -1211,11 +1230,11 @@ export default function ScanIntygModal({
                               supervisorSpeciality: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
-                      <div>
-                        <label className="block text-slate-700">
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
                           Handledares tjänsteställe
                         </label>
                         <input
@@ -1226,7 +1245,7 @@ export default function ScanIntygModal({
                               supervisorSite: e.target.value,
                             }))
                           }
-                          className="w-full rounded-md border border-slate-300 px-2 py-1"
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
                     </div>
@@ -1234,38 +1253,32 @@ export default function ScanIntygModal({
 
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleSave}
-                    disabled={busy || !parsed}
-                    className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 font-semibold text-white hover:border-sky-700 hover:bg-sky-700 disabled:opacity-60"
-                  >
-                    {busy ? "Sparar…" : "Spara"}
-                  </button>
-                  <button
-                    onClick={handleClose}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100"
-                  >
-                    Avbryt
-                  </button>
-
-                  {previewUrl && (
-                    <a
-                      href={previewUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="ml-auto text-sm text-sky-700 underline hover:text-sky-800"
-                    >
-                      {file?.name ?? "Visa bild"}
-                    </a>
-                  )}
-                </div>
               </div>
             )}
-          </div>
-
-          <footer className="border-t px-4 py-2 text-xs text-slate-500"></footer>
         </div>
+
+        {step === "review" && (
+          <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-sky-700 underline hover:text-sky-800"
+              >
+                {file?.name ?? "Visa bild"}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={busy || !parsed}
+              className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {busy ? "Sparar…" : "Spara"}
+            </button>
+          </footer>
+        )}
       </div>
     </div>
   );

@@ -451,7 +451,7 @@ function CourseEditPopup({
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
-                  Kommentar / notering
+                  Beskrivning
                 </label>
                 <textarea
                   rows={4}
@@ -466,13 +466,6 @@ function CourseEditPopup({
           </div>
 
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-            >
-              Avbryt
-            </button>
             <button
               type="button"
               onClick={onSave}

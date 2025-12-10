@@ -497,7 +497,7 @@ function PlacementEditPopup({
               <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
                 <div className="space-y-2">
                   <label className="block text-xs font-medium text-slate-900">
-                    {placement.type === "Vetenskapligt arbete" || placement.type === "Förbättringsarbete" ? "Titel" : "Klinik / enhet"}
+                    {placement.type === "Vetenskapligt arbete" || placement.type === "Förbättringsarbete" ? "Titel" : placement.type === "Klinisk tjänstgöring" || placement.type === "Auskultation" ? "Placering" : "Klinik / enhet"}
                   </label>
                   <input
                     type="text"
@@ -590,7 +590,7 @@ function PlacementEditPopup({
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
-                Kommentar / notering
+                Beskrivning
               </label>
               <textarea
                   rows={4}
@@ -607,19 +607,12 @@ function PlacementEditPopup({
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
             <button
               type="button"
-              onClick={onClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-            >
-              Avbryt
-            </button>
-              <button
-                type="button"
               onClick={onSave}
               disabled={saving || !isDirty}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Spara
-              </button>
+            </button>
           </footer>
             </div>
           </div>
