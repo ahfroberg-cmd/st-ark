@@ -494,18 +494,39 @@ function PlacementEditPopup({
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-900">
-                  Klinik / enhet
-                </label>
-                <input
-                  type="text"
-                  value={placement.clinic ?? ""}
-                  onChange={(e) =>
-                    onUpdate({ ...placement, clinic: e.target.value })
-                  }
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                />
+              <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    {placement.type === "Vetenskapligt arbete" || placement.type === "Förbättringsarbete" ? "Titel" : "Klinik / enhet"}
+                  </label>
+                  <input
+                    type="text"
+                    value={placement.clinic ?? ""}
+                    onChange={(e) =>
+                      onUpdate({ ...placement, clinic: e.target.value })
+                    }
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Tjänstgöringsgrad (%)
+                  </label>
+                  <select
+                    value={pickPercent(placement)}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      onUpdate({ ...placement, attendance: v });
+                    }}
+                    className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  >
+                    {[0, 25, 50, 75, 100].map((p) => (
+                      <option key={p} value={p}>
+                        {p}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -540,26 +561,6 @@ function PlacementEditPopup({
                 />
               </div>
             </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-900">
-                Tjänstgöringsgrad (%)
-              </label>
-                <select
-                  value={pickPercent(placement)}
-                onChange={(e) => {
-                  const v = Number(e.target.value) || 0;
-                    onUpdate({ ...placement, attendance: v });
-                }}
-                  className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                >
-                  {Array.from({ length: 21 }, (_, i) => i * 5).map((val) => (
-                    <option key={val} value={val}>
-                      {val}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">

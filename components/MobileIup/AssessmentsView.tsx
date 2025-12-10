@@ -110,11 +110,6 @@ export default function AssessmentsView({
                       <h3 className="text-base font-semibold text-slate-900">
                         {a.instrument || "Progressionsbedömning"}
                       </h3>
-                      {isGoals2021 && (
-                        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                          {a.phase}
-                        </span>
-                      )}
                       {planned && (
                         <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
                           Planerat

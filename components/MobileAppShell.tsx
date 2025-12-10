@@ -48,7 +48,7 @@ export default function MobileAppShell() {
   return (
     <div className="flex h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-2xl font-extrabold tracking-tight">
+        <h1 className="text-3xl font-extrabold tracking-tight">
           <span className="text-sky-700">ST</span>
           <span className="text-emerald-700">ARK</span>
         </h1>
@@ -57,17 +57,30 @@ export default function MobileAppShell() {
             type="button"
             onClick={handleExport}
             disabled={exporting}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px disabled:opacity-50"
+            title="Spara (JSON-backup)"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2Zm0 2v3H7V5h10ZM7 10h10v9H7v-9Z"/>
+            </svg>
             {exporting ? "Sparar..." : "Spara"}
           </button>
-        <button
-          type="button"
+          <button
+            type="button"
             onClick={() => setProfileOpen(true)}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
-        >
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+          >
             Profil
-        </button>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // TODO: Implementera Om-modal
+            }}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+          >
+            Om
+          </button>
         </div>
       </header>
 

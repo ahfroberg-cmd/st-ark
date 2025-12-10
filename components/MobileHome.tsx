@@ -481,29 +481,17 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     <div className="space-y-4">
       {/* Översikt */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">Översikt</h2>
-          {profile && (
-            <span className="text-xs text-slate-900">
-              {profile.specialty || (profile as any).speciality || "Specialitet ej angiven"}
-              {profile.goalsVersion && (
-                <span className="ml-1">
-                  , {profile.goalsVersion === "2021" ? "HSLF-FS 2021:8" : "SOSFS 2015:8"}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Översikt</h2>
 
         {loading ? (
           <div className="py-4 text-sm text-slate-900">Laddar …</div>
         ) : (
           <>
-            {/* Progressbar - Andel av planerad tid */}
+            {/* Progressbar - Genomförd tid */}
             <div className="mb-3">
               <div className="flex items-baseline justify-between text-xs">
                 <span className="text-slate-900">
-                  Andel av planerad tid
+                  Genomförd tid
                 </span>
                 <span className="font-semibold text-slate-900">
                   {progressPct.toFixed(0)} %
@@ -623,7 +611,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                 <div className="mt-2 space-y-2 text-xs text-slate-900">
                   {completed.length > 0 && (
                     <div>
-                      <div className="font-medium">Senast genomförda:</div>
+                      <div className="font-medium">Senast genomförd:</div>
                       <div className="mt-0.5 break-words font-semibold">{completed[0].title || completed[0].courseName || "Kurs"}</div>
                       <div className="text-slate-600">
                         {completed[0].certificateDate || (completed[0].startDate && completed[0].endDate ? `${completed[0].startDate} – ${completed[0].endDate}` : completed[0].endDate || completed[0].startDate || "")}

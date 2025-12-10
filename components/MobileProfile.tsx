@@ -459,7 +459,7 @@ export default function MobileProfile({ open, onClose }: Props) {
             <div className="space-y-2">
               <Labeled>Huvudhandledare</Labeled>
               <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} />
-              <label className="mt-2 inline-flex items-center gap-2 text-xs select-none">
+              <label className="mt-2 inline-flex items-center gap-2 text-xs select-none text-slate-900">
                 <input
                   type="checkbox"
                   checked={supervisorHasOtherSite}
@@ -471,7 +471,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                     }
                   }}
                 />
-                Har annat tjänsteställe
+                <span className="text-slate-900">Har annat tjänsteställe</span>
               </label>
               {supervisorHasOtherSite && (
                 <div className="mt-2">
@@ -484,13 +484,13 @@ export default function MobileProfile({ open, onClose }: Props) {
             <div className="space-y-2">
               <Labeled>Studierektor</Labeled>
               <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} />
-              <label className="mt-2 inline-flex items-center gap-2 text-xs select-none">
+              <label className="mt-2 inline-flex items-center gap-2 text-xs select-none text-slate-900">
                 <input
                   type="checkbox"
                   checked={studyDirectorHasOtherSite}
                   onChange={(e) => setStudyDirectorHasOtherSite(e.currentTarget.checked)}
                 />
-                Har annat tjänsteställe
+                <span className="text-slate-900">Har annat tjänsteställe</span>
               </label>
               {studyDirectorHasOtherSite && (
                 <div className="mt-2">
@@ -535,7 +535,7 @@ export default function MobileProfile({ open, onClose }: Props) {
 
             {/* Legitimation i annat land */}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <label className="inline-flex items-center gap-2 text-xs select-none">
+              <label className="inline-flex items-center gap-2 text-xs select-none text-slate-900">
                 <input
                   type="checkbox"
                   checked={!!form.hasForeignLicense}
@@ -550,7 +550,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                     });
                   }}
                 />
-                <span className="font-medium">Har legitimation från annat land</span>
+                <span className="font-medium text-slate-900">Har legitimation från annat land</span>
               </label>
 
               {form.hasForeignLicense && (
@@ -591,7 +591,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                         next.push({ country: "", date: "" });
                         setForm({ ...form, foreignLicenses: next });
                       }}
-                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-100"
+                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                     >
                       + Lägg till land
                     </button>
@@ -617,7 +617,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                     });
                   }}
                 />
-                <span className="font-medium">Har sedan tidigare bevis om specialistkompetens</span>
+                <span className="font-medium text-slate-900">Har sedan tidigare bevis om specialistkompetens</span>
               </label>
 
               {form.hasPriorSpecialist && (
@@ -668,7 +668,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                         next.push({ speciality: "", country: "", date: "" });
                         setForm({ ...form, priorSpecialties: next });
                       }}
-                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-100"
+                      className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-100"
                     >
                       + Lägg till specialitet
                     </button>
