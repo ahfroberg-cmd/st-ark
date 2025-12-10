@@ -65,9 +65,18 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedTab("bt");
-                    setInitialTab("bt");
-                    setMilestoneModalOpen(true);
+                    if (milestoneModalOpen) {
+                      setMilestoneModalOpen(false);
+                      setTimeout(() => {
+                        setSelectedTab("bt");
+                        setInitialTab("bt");
+                        setMilestoneModalOpen(true);
+                      }, 50);
+                    } else {
+                      setSelectedTab("bt");
+                      setInitialTab("bt");
+                      setMilestoneModalOpen(true);
+                    }
                   }}
                   className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-5 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
                 >
@@ -76,9 +85,18 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedTab("st");
-                    setInitialTab("st");
-                    setMilestoneModalOpen(true);
+                    if (milestoneModalOpen) {
+                      setMilestoneModalOpen(false);
+                      setTimeout(() => {
+                        setSelectedTab("st");
+                        setInitialTab("st");
+                        setMilestoneModalOpen(true);
+                      }, 50);
+                    } else {
+                      setSelectedTab("st");
+                      setInitialTab("st");
+                      setMilestoneModalOpen(true);
+                    }
                   }}
                   className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-5 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
                 >
@@ -104,7 +122,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <MilestoneOverviewPanel
-              key={`milestone-${selectedTab}-${milestoneModalOpen}`}
+              key={`milestone-${selectedTab}`}
               open={milestoneModalOpen}
               initialTab={selectedTab}
               onClose={() => {
