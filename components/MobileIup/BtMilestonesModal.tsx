@@ -169,7 +169,8 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
       .sort((a, b) => sortNum(a.code) - sortNum(b.code));
   }, [achAll, placements, courses, showDone, showOngoing, showPlanned]);
 
-  const hasAnyBt = btRows.some((r) => (r.klinCount ?? 0) + (r.kursCount ?? 0) > 0);
+  // Visa alla BT-delmål, även om de inte har kopplingar ännu
+  const hasAnyBt = btRows.length > 0;
 
   // UI actions
   const openDetail = (id: string) => {
@@ -360,9 +361,9 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                 BT-delmål är endast tillgängliga för målversion 2021.
               </div>
-            ) : !hasAnyBt ? (
+            ) : btRows.length === 0 ? (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
-                Inga BT-delmål hittades i data ännu.
+                Inga BT-delmål hittades.
               </div>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">
