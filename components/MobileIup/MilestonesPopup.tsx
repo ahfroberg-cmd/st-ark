@@ -15,6 +15,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<"bt" | "st">("st");
   const [pendingTab, setPendingTab] = useState<"bt" | "st" | null>(null);
+  const [renderKey, setRenderKey] = useState(0);
 
   React.useEffect(() => {
     if (open || milestoneModalOpen) {
@@ -34,8 +35,13 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
       console.log("[MilestonesPopup] useEffect triggered with pendingTab:", tabToOpen);
       // Close first
       setMilestoneModalOpen(false);
-      // Update selectedTab
+      // Update selectedTab and force remount with new key
       setSelectedTab(tabToOpen);
+      setRenderKey(prev => {
+        const newKey = prev + 1;
+        console.log("[MilestonesPopup] New renderKey:", newKey);
+        return newKey;
+      });
       // Wait then open
       const timer = setTimeout(() => {
         console.log("[MilestonesPopup] Opening with tabToOpen:", tabToOpen);
@@ -124,12 +130,12 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             {milestoneModalOpen && (() => {
-              // Use pendingTab if set, otherwise use selectedTab
+              // Use pendingTab if set (it will be cleared after render), otherwise use selectedTab
               const tabToUse = pendingTab !== null ? pendingTab : selectedTab;
-              console.log("[MilestonesPopup] Rendering with tabToUse:", tabToUse, "pendingTab:", pendingTab, "selectedTab:", selectedTab);
+              console.log("[MilestonesPopup] Rendering MilestoneOverviewPanel with tabToUse:", tabToUse, "pendingTab:", pendingTab, "selectedTab:", selectedTab, "renderKey:", renderKey);
               return (
                 <MilestoneOverviewPanel
-                  key={`milestone-${tabToUse}-${milestoneModalOpen}-${Date.now()}`}
+                  key={`milestone-${tabToUse}-${renderKey}`}
                   open={milestoneModalOpen}
                   initialTab={tabToUse}
                   onClose={() => {
