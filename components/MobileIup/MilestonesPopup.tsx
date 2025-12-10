@@ -10,13 +10,10 @@ type Props = {
   onOpenModal: () => void;
 };
 
-export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const [btModalOpen, setBtModalOpen] = useState(false);
-  const [stModalOpen, setStModalOpen] = useState(false);
-
+// BT-delmål modal - helt separat komponent, ingen koppling till ST
+function BtMilestonesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   React.useEffect(() => {
-    if (open || btModalOpen || stModalOpen) {
+    if (open) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -24,7 +21,88 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open, btModalOpen, stModalOpen]);
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="w-full max-w-[980px] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MilestoneOverviewPanel
+          key="bt-only-modal"
+          open={true}
+          initialTab="bt"
+          onClose={onClose}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ST-delmål modal - helt separat komponent, ingen koppling till BT
+function StMilestonesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className="w-full max-w-[980px] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <MilestoneOverviewPanel
+          key="st-only-modal"
+          open={true}
+          initialTab="st"
+          onClose={onClose}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [btModalOpen, setBtModalOpen] = useState(false);
+  const [stModalOpen, setStModalOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -85,56 +163,17 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
         </div>
       </div>
 
-      {/* BT-delmål modal */}
-      {btModalOpen && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setBtModalOpen(false);
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-[980px] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MilestoneOverviewPanel
-              open={btModalOpen}
-              initialTab="bt"
-              onClose={() => {
-                setBtModalOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* BT-delmål modal - helt separat, ingen koppling till ST */}
+      <BtMilestonesModal
+        open={btModalOpen}
+        onClose={() => setBtModalOpen(false)}
+      />
 
-      {/* ST-delmål modal */}
-      {stModalOpen && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setStModalOpen(false);
-            }
-          }}
-        >
-          <div
-            className="w-full max-w-[980px] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MilestoneOverviewPanel
-              open={stModalOpen}
-              initialTab="st"
-              onClose={() => {
-                setStModalOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* ST-delmål modal - helt separat, ingen koppling till BT */}
+      <StMilestonesModal
+        open={stModalOpen}
+        onClose={() => setStModalOpen(false)}
+      />
     </>
   );
 }
-
