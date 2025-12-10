@@ -501,7 +501,7 @@ function PlacementEditPopup({
                   Typ
                 </label>
                 <select
-                  value={placement.type || placement.kind || placement.category || (placement.phase && placement.phase !== "" ? placement.phase : undefined) || "Klinisk tjänstgöring"}
+                  value={placement.type || placement.kind || placement.category || "Klinisk tjänstgöring"}
                   onChange={(e) => {
                     const typeValue = e.target.value;
                     onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
