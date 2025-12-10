@@ -14,6 +14,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<"bt" | "st">("st");
+  const [pendingTab, setPendingTab] = useState<"bt" | "st" | null>(null);
 
   React.useEffect(() => {
     if (open || milestoneModalOpen) {
@@ -25,6 +26,20 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
       document.body.style.overflow = "";
     };
   }, [open, milestoneModalOpen]);
+
+  // Open popup when pendingTab is set
+  React.useEffect(() => {
+    if (pendingTab !== null) {
+      setSelectedTab(pendingTab);
+      setMilestoneModalOpen(false);
+      const timer = setTimeout(() => {
+        console.log("[MilestonesPopup] Opening with pendingTab:", pendingTab);
+        setMilestoneModalOpen(true);
+        setPendingTab(null);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingTab]);
 
   if (!open) return null;
 
@@ -65,17 +80,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                   type="button"
                   onClick={() => {
                     console.log("[MilestonesPopup] BT button clicked");
-                    const newTab: "bt" | "st" = "bt";
-                    // Always close first to ensure clean state
-                    setMilestoneModalOpen(false);
-                    // Update state first
-                    setSelectedTab(newTab);
-                    console.log("[MilestonesPopup] Set selectedTab to:", newTab);
-                    // Wait for state to update, then open
-                    setTimeout(() => {
-                      console.log("[MilestonesPopup] Opening with selectedTab:", newTab);
-                      setMilestoneModalOpen(true);
-                    }, 200);
+                    setPendingTab("bt");
                   }}
                   className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-5 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
                 >
@@ -85,17 +90,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                   type="button"
                   onClick={() => {
                     console.log("[MilestonesPopup] ST button clicked");
-                    const newTab: "bt" | "st" = "st";
-                    // Always close first to ensure clean state
-                    setMilestoneModalOpen(false);
-                    // Update state first
-                    setSelectedTab(newTab);
-                    console.log("[MilestonesPopup] Set selectedTab to:", newTab);
-                    // Wait for state to update, then open
-                    setTimeout(() => {
-                      console.log("[MilestonesPopup] Opening with selectedTab:", newTab);
-                      setMilestoneModalOpen(true);
-                    }, 200);
+                    setPendingTab("st");
                   }}
                   className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-5 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
                 >
