@@ -219,14 +219,20 @@ export default function MobileIup() {
           </button>
           <button
             type="button"
-            onClick={() => setBtMilestonesModalOpen(true)}
+            onClick={() => {
+              setStMilestonesModalOpen(false); // Stäng ST om den är öppen
+              setBtMilestonesModalOpen(true);
+            }}
             className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-4 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
           >
             BT-delmål
           </button>
           <button
             type="button"
-            onClick={() => setStMilestonesModalOpen(true)}
+            onClick={() => {
+              setBtMilestonesModalOpen(false); // Stäng BT om den är öppen
+              setStMilestonesModalOpen(true);
+            }}
             className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-4 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
           >
             ST-delmål
