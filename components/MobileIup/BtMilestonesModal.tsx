@@ -14,7 +14,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
 
   React.useEffect(() => {
     if (open) {
-      console.log("[BtMilestonesModal] Opening BT modal, mountKey:", mountKey);
+      console.log("[BtMilestonesModal] Opening BT modal");
       document.body.style.overflow = "hidden";
       // Force remount when opening
       setMountKey(prev => prev + 1);
@@ -24,7 +24,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open, mountKey]);
+  }, [open]);
 
   if (!open) return null;
 
