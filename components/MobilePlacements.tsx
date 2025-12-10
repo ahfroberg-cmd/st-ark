@@ -16,6 +16,9 @@ type PlacementRow = {
   scopePercent?: number;
   omfattning?: number;
   phase?: string;
+  type?: string;
+  kind?: string;
+  category?: string;
 };
 
 function fmtDate(iso?: string): string {
@@ -30,6 +33,29 @@ function fmtPeriod(p: PlacementRow): string {
   if (a && !b) return a;
   if (!a && b) return b;
   return "Okänd period";
+}
+
+function getPlacementTypeLabel(p: PlacementRow): string | null {
+  // Kolla type, kind, category först, sedan phase
+  const typeStr = (p.type || p.kind || p.category || p.phase || "").toLowerCase();
+  const clinicStr = (p.clinic || "").toLowerCase();
+  const noteStr = (p.note || "").toLowerCase();
+  const combinedStr = `${typeStr} ${clinicStr} ${noteStr}`;
+  
+  if (combinedStr.includes("auskult")) return "Auskultation";
+  if (combinedStr.includes("vetenskap") || combinedStr.includes("forskning") || combinedStr.includes("skriftlig")) return "Vetenskapligt arbete";
+  if (combinedStr.includes("förbättring") || combinedStr.includes("kvalitet") || combinedStr.includes("utveckling")) return "Förbättringsarbete";
+  
+  return null;
+}
+
+function formatClinicName(p: PlacementRow): string {
+  const typeLabel = getPlacementTypeLabel(p);
+  const clinicName = p.clinic || "Klinik saknas";
+  if (typeLabel) {
+    return `${typeLabel}: ${clinicName}`;
+  }
+  return clinicName;
 }
 
 function pickPercent(p: PlacementRow): number {
@@ -173,15 +199,15 @@ export default function MobilePlacements() {
     <div className="space-y-3">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Kliniska tjänstgöringar
+          <h2 className="text-lg font-semibold text-slate-900">
+            Kliniska tjänstgöringar, auskultationer, arbeten
           </h2>
           <button
             type="button"
             onClick={handleNew}
-            className="inline-flex items-center rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white shadow-sm active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white shadow-sm active:translate-y-px"
           >
-            Ny tjänstgöring
+            Lägg till
           </button>
         </div>
 
@@ -209,9 +235,9 @@ export default function MobilePlacements() {
                   >
                     <div className="flex w-full items-center justify-between gap-2">
                       <div className="font-medium text-slate-900">
-                        {p.clinic || "Klinik saknas"}
+                        {formatClinicName(p)}
                       </div>
-                      {p.phase && (
+                      {p.phase && !getPlacementTypeLabel(p) && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
                           {p.phase}
                         </span>
@@ -220,11 +246,6 @@ export default function MobilePlacements() {
                     <div className="mt-0.5 text-xs text-slate-600">
                       {fmtPeriod(p)} · {pickPercent(p)} %
                     </div>
-                    {p.note && (
-                      <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">
-                        {p.note}
-                      </div>
-                    )}
                   </button>
                 </li>
               );
@@ -294,8 +315,8 @@ function PlacementEditPopup({
 
         <div className="flex-1 overflow-y-auto p-5">
           <div className="space-y-4 text-sm">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-600">
                 Klinik / enhet
               </label>
               <input
@@ -309,7 +330,7 @@ function PlacementEditPopup({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <CalendarDatePicker
                   value={placement.startDate ?? ""}
                   onChange={(v) =>
@@ -318,7 +339,7 @@ function PlacementEditPopup({
                   label="Startdatum"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <CalendarDatePicker
                   value={placement.endDate ?? ""}
                   onChange={(v) =>
@@ -329,26 +350,28 @@ function PlacementEditPopup({
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-600">
                 Tjänstgöringsgrad (%)
               </label>
-              <input
-                type="number"
-                min={0}
-                max={200}
-                step={5}
+              <select
                 value={pickPercent(placement)}
                 onChange={(e) => {
                   const v = Number(e.target.value) || 0;
                   onUpdate({ ...placement, attendance: v });
                 }}
-                className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-right text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              />
+                className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              >
+                {Array.from({ length: 21 }, (_, i) => i * 5).map((val) => (
+                  <option key={val} value={val}>
+                    {val}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-600">
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-slate-600">
                 Kommentar / notering
               </label>
               <textarea
