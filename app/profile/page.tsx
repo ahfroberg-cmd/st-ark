@@ -1,7 +1,7 @@
 // ============================ app/profile/page.tsx ============================
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 
 
 
@@ -135,7 +135,7 @@ function ProfilePageInner() {
   const params = useSearchParams();
   const isSetupMode = params.get("setup") === "1";
 
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [, setProfile] = useState<Profile | null>(null);
 
   const [form, setForm] = useState<any>({
 
@@ -210,34 +210,6 @@ function ProfilePageInner() {
     []
   );
 
-  // --- Hjälpare för datum → ISO (YYYY-MM-DD) och "måndag på/efter" ---
-  function toISO(d: Date) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-  function mondayOnOrAfter(date: Date) {
-    const d = new Date(date.getTime());
-    const day = d.getDay(); // 0=Sun ... 1=Mon
-    const add = (8 - day) % 7; // 0 om måndag redan, annars fram till nästa måndag
-    d.setDate(d.getDate() + add);
-    return d;
-  }
-
-  // --- Auto: ST-start = måndagen på/efter ett år efter BT-start (gäller 2021) ---
-  useEffect(() => {
-    if (form.goalsVersion !== "2021") return;
-    if (!form.btStartDate) return;
-    const bt = new Date(form.btStartDate);
-    if (isNaN(+bt)) return;
-    const oneYearLater = new Date(bt.getFullYear() + 1, bt.getMonth(), bt.getDate());
-    const stAuto = mondayOnOrAfter(oneYearLater);
-    const iso = toISO(stAuto);
-    if (form.stStartDate !== iso) {
-      setForm((prev: any) => ({ ...prev, stStartDate: iso }));
-    }
-  }, [form.goalsVersion, form.btStartDate]);
 
 
   async function saveProfile() {
@@ -245,18 +217,16 @@ function ProfilePageInner() {
       alert("Fyll i minst Namn och Specialitet.");
       return;
     }
-    if (!form.stStartDate) {
-      alert("Fyll i startdatum för ST.");
-      return;
-    }
-    // BT: enkel validering (endast om målversion 2021)
+    // Validering beroende på målversion
     if (form.goalsVersion === "2021") {
-      if (form.btStatus !== "ej" && !form.btStartDate) {
-        alert("Fyll i BT start.");
+      if (!form.btStartDate) {
+        alert("Fyll i startdatum för BT/ST.");
         return;
       }
-      if (form.btStatus === "klar" && !form.btEndDate) {
-        alert("Fyll i BT slut.");
+    } else {
+      // 2015: kräver stStartDate
+      if (!form.stStartDate) {
+        alert("Fyll i startdatum för ST.");
         return;
       }
     }
@@ -337,10 +307,10 @@ function ProfilePageInner() {
 
         {/* Höger: Uppgifter om ST */}
         <article className="md:order-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h2 className="mb-3 text-lg font-extrabold">Uppgifter om ST</h2>
+          <h2 className="mb-3 text-lg font-extrabold">Uppgifter om ST</h2>
           <div className="grid grid-cols-1 gap-3">
             {/* Rad 1: Specialitet (vänster) + Målversion (höger) */}
-<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
   <div>
     <Labeled>Specialitet</Labeled>
     <select
@@ -378,51 +348,21 @@ function ProfilePageInner() {
       <option value="2021">HSLF-FS 2021:8</option>
     </select>
   </div>
-</div>
+            </div>
 
-{/* Rad 2: BT-fält – endast 2021 */}
-{form.goalsVersion === "2021" && (
+            {/* Rad 2: BT/ST-startdatum + ST-längd (endast 2021) */}
+            {form.goalsVersion === "2021" && (
   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
     <div>
-      <Labeled>Startdatum för BT</Labeled>
+      <Labeled>Startdatum för BT/ST</Labeled>
       <CalendarDatePicker
         value={form.btStartDate || ""}
         onChange={(v: string) => setForm({ ...form, btStartDate: v })}
       />
     </div>
     <div>
-      <Labeled>BT-läge</Labeled>
+      <Labeled>ST-längd i månader (inklusive BT)</Labeled>
       <select
-        value={form.btMode}
-        onChange={(e) =>
-          setForm({ ...form, btMode: (e.target as HTMLSelectElement).value })
-        }
-        className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
-      >
-        <option value="fristående">Fristående</option>
-        <option value="integrerad">Integrerad i ST</option>
-      </select>
-    </div>
-  </div>
-)}
-
-{/* Rad 3: Startdatum ST + ST-längd */}
-<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-  <div>
-    <Labeled>Startdatum för ST</Labeled>
-    <CalendarDatePicker
-      value={form.stStartDate || ""}
-      onChange={(v: string) => setForm({ ...form, stStartDate: v })}
-    />
-  </div>
-
-  <div>
-    <Labeled>
-      {form.goalsVersion === "2021"
-        ? "ST-längd i månader (inklusive BT)"
-        : "ST-längd i månader"}
-    </Labeled>
-    <select
       value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
       onChange={(e) =>
         setForm({
@@ -447,13 +387,52 @@ function ProfilePageInner() {
         );
       })}
     </select>
+    </div>
+            </div>
+            )}
 
-  </div>
+            {/* Rad 3: Startdatum ST (endast 2015) */}
+            {form.goalsVersion === "2015" && (
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div>
+      <Labeled>Startdatum för ST</Labeled>
+      <CalendarDatePicker
+        value={form.stStartDate || ""}
+        onChange={(v: string) => setForm({ ...form, stStartDate: v })}
+      />
+    </div>
+    <div>
+      <Labeled>ST-längd i månader</Labeled>
+      <select
+        value={String(form.stTotalMonths ?? 60)}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            stTotalMonths: Number((e.target as HTMLSelectElement).value),
+          })
+        }
+        className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+        title="Planerad total tid i månader"
+      >
+        {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
+          const isSix = m % 6 === 0;
+          const label = (() => {
+            if (!isSix) return `${m}`;
+            if (m % 12 === 0) return `${m} (${m / 12} år)`;
+            return `${m} (${Math.floor(m / 12)},5 år)`;
+          })();
+          return (
+            <option key={m} value={m}>
+              {label}
+            </option>
+          );
+        })}
+      </select>
+    </div>
+            </div>
+            )}
 
-</div>
-
-{/* Hemklinik */}
-
+            {/* Hemklinik */}
             <div>
               <Labeled>Hemklinik</Labeled>
               <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} />

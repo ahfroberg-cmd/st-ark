@@ -172,9 +172,18 @@ export default function ProfileModal({ open, onClose }: Props) {
       alert("Fyll i minst Namn och Specialitet.");
       return;
     }
-    if (!form.stStartDate) {
-      alert("Fyll i startdatum för ST.");
-      return;
+    // Validering beroende på målversion
+    if (form.goalsVersion === "2021") {
+      if (!form.btStartDate) {
+        alert("Fyll i startdatum för BT/ST.");
+        return;
+      }
+    } else {
+      // 2015: kräver stStartDate
+      if (!form.stStartDate) {
+        alert("Fyll i startdatum för ST.");
+        return;
+      }
     }
 
     const parts = (form.name ?? "").trim().split(/\s+/);
@@ -332,49 +341,19 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
       </div>
 
-      {/* Rad 2: BT-fält – endast 2021 */}
+      {/* Rad 2: BT/ST-startdatum + ST-längd (endast 2021) */}
       {form.goalsVersion === "2021" && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <Labeled>Startdatum för BT</Labeled>
+            <Labeled>Startdatum för BT/ST</Labeled>
             <CalendarDatePicker
               value={form.btStartDate || ""}
               onChange={(v: string) => setForm({ ...form, btStartDate: v })}
             />
           </div>
           <div>
-            <Labeled>BT-läge</Labeled>
+            <Labeled>ST-längd i månader (inklusive BT)</Labeled>
             <select
-              value={form.btMode}
-              onChange={(e) =>
-                setForm({ ...form, btMode: (e.target as HTMLSelectElement).value })
-              }
-              className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
-            >
-              <option value="fristående">Fristående</option>
-              <option value="integrerad">Integrerad i ST</option>
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Rad 3: Startdatum ST + ST-längd */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div>
-          <Labeled>Startdatum för ST</Labeled>
-          <CalendarDatePicker
-            value={form.stStartDate || ""}
-            onChange={(v: string) => setForm({ ...form, stStartDate: v })}
-          />
-        </div>
-
-        <div>
-          <Labeled>
-            {form.goalsVersion === "2021"
-              ? "ST-längd i månader (inklusive BT)"
-              : "ST-längd i månader"}
-          </Labeled>
-          <select
             value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
             onChange={(e) =>
               setForm({
@@ -401,7 +380,48 @@ export default function ProfileModal({ open, onClose }: Props) {
           </select>
         </div>
       </div>
+      )}
 
+      {/* Rad 3: Startdatum ST (endast 2015) */}
+      {form.goalsVersion === "2015" && (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <Labeled>Startdatum för ST</Labeled>
+            <CalendarDatePicker
+              value={form.stStartDate || ""}
+              onChange={(v: string) => setForm({ ...form, stStartDate: v })}
+            />
+          </div>
+          <div>
+            <Labeled>ST-längd i månader</Labeled>
+            <select
+              value={String(form.stTotalMonths ?? 60)}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  stTotalMonths: Number((e.target as HTMLSelectElement).value),
+                })
+              }
+              className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+              title="Planerad total tid i månader"
+            >
+              {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
+                const isSix = m % 6 === 0;
+                const label = (() => {
+                  if (!isSix) return `${m}`;
+                  if (m % 12 === 0) return `${m} (${m / 12} år)`;
+                  return `${m} (${Math.floor(m / 12)},5 år)`;
+                })();
+                return (
+                  <option key={m} value={m}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Hemklinik */}
       <div>

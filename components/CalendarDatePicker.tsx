@@ -160,8 +160,18 @@ export default function CalendarDatePicker({
             role="dialog"
             aria-modal="true"
             onMouseDownCapture={(e) => e.stopPropagation()}
+            style={
+              direction === "up" && rootRef.current
+                ? {
+                    // Fixera övre kanten: använd top med negativ offset istället för bottom
+                    // Övre kanten ska vara 4px ovanför trigger-knappens övre kant
+                    // Så top ska vara -(trigger-höjd + 4px)
+                    top: `-${(rootRef.current.offsetHeight || 38) + 4}px`,
+                  }
+                : undefined
+            }
             className={`absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl ${
-              direction === "up" ? "bottom-0 mb-1" : "mt-1"
+              direction === "up" ? "" : "top-full mt-1"
             } ${align === "right" ? "right-0" : "left-0"}`}
           >
 

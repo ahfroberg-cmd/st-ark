@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import MobileHome from "./MobileHome";
 import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
+import MobileProfile from "./MobileProfile";
 
 const ScanIntygModal = dynamic(
   () => import("@/components/ScanIntygModal"),
@@ -29,6 +30,7 @@ export default function MobileAppShell() {
   const [tab, setTab] = useState<TabKey>("home");
   const [scanOpen, setScanOpen] = useState(false);
   const [iupOpen, setIupOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   const title =
@@ -48,6 +50,7 @@ export default function MobileAppShell() {
         <h1 className="text-base font-semibold text-slate-900">{title}</h1>
         <button
           type="button"
+          onClick={() => setProfileOpen(true)}
           className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 active:translate-y-px"
           title="Profil"
         >
@@ -126,6 +129,11 @@ export default function MobileAppShell() {
       <IupModal
         open={iupOpen}
         onClose={() => setIupOpen(false)}
+      />
+
+      <MobileProfile
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
       />
     </div>
   );
