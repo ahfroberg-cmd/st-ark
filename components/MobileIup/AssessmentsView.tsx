@@ -40,9 +40,7 @@ export default function AssessmentsView({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900">Progressionsbedömningar</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onOpenInstruments}

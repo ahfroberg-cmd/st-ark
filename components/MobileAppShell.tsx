@@ -45,29 +45,9 @@ export default function MobileAppShell() {
     }
   }
 
-  const title =
-    tab === "home"
-      ? hasProfile === false
-        ? "Ladda upp fil"
-        : "ST-översikt"
-      : tab === "placements"
-      ? "Kliniska tjänstgöringar"
-      : tab === "courses"
-      ? "Kurser"
-      : "IUP & bedömningar";
-
   return (
     <div className="flex h-screen flex-col bg-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-extrabold tracking-tight">
-            <span className="text-sky-700">ST</span>
-            <span className="text-emerald-700">ARK</span>
-          </h1>
-          {title !== "ST-översikt" && (
-            <span className="text-sm font-semibold text-slate-900">{title}</span>
-          )}
-        </div>
+      <header className="flex items-center justify-end border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
           <button
             type="button"

@@ -31,8 +31,7 @@ export default function MeetingsView({
 }: Props) {
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900">Handledarsamtal</h2>
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={onAdd}

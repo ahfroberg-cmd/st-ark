@@ -65,7 +65,6 @@ export default function PlanningView({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-slate-900">Planering</h2>
 
       {/* Övergripande mål */}
       <div>

@@ -4,7 +4,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
-import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
 import type { Profile } from "@/lib/types";
 import type { IupMeeting, IupAssessment, IupPlanning, ExtraPlanningSection } from "@/components/IupModal";
 
@@ -18,7 +17,7 @@ const DEFAULT_INSTRUMENTS = [
 type TabKey = "planering" | "handledarsamtal" | "progressionsbedömningar" | "delmål";
 
 export default function MobileIup() {
-  const [tab, setTab] = useState<TabKey>("planering");
+  const [openTab, setOpenTab] = useState<TabKey | null>(null);
   const [meetings, setMeetings] = useState<IupMeeting[]>([]);
   const [assessments, setAssessments] = useState<IupAssessment[]>([]);
   const [planning, setPlanning] = useState<IupPlanning>(defaultPlanning());
@@ -181,81 +180,80 @@ export default function MobileIup() {
     });
   }, [assessments]);
 
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-base text-slate-500">
+        Laddar...
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">
-      {/* Tab navigation */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => setTab("planering")}
-          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
-            tab === "planering"
-              ? "border-sky-600 bg-sky-50 text-sky-900"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Planering
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("handledarsamtal")}
-          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
-            tab === "handledarsamtal"
-              ? "border-sky-600 bg-sky-50 text-sky-900"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Handledarsamtal
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("progressionsbedömningar")}
-          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
-            tab === "progressionsbedömningar"
-              ? "border-sky-600 bg-sky-50 text-sky-900"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Progressionsbedömningar
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("delmål")}
-          className={`rounded-xl border-2 px-4 py-4 text-base font-semibold transition ${
-            tab === "delmål"
-              ? "border-sky-600 bg-sky-50 text-sky-900"
-              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          Delmål
-        </button>
+    <>
+      {/* IUP-ruta med knappar */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">IUP & bedömningar</h2>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setOpenTab("planering")}
+            className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-4 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
+          >
+            Planering
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenTab("handledarsamtal")}
+            className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-4 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
+          >
+            Handledarsamtal
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenTab("progressionsbedömningar")}
+            className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-4 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
+          >
+            Progressionsbedömningar
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenTab("delmål")}
+            className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-4 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
+          >
+            Delmål
+          </button>
+        </div>
       </div>
 
-      {/* Content */}
-      {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-          Laddar...
-        </div>
-      ) : tab === "planering" ? (
-        <PlanningView
+      {/* Popups */}
+      {openTab === "planering" && (
+        <PlanningPopup
+          open={true}
           planning={planning}
           setPlanning={setPlanning}
           planningExtra={planningExtra}
           setPlanningExtra={setPlanningExtra}
           setDirty={setDirty}
+          onClose={() => setOpenTab(null)}
         />
-      ) : tab === "handledarsamtal" ? (
-        <MeetingsView
+      )}
+
+      {openTab === "handledarsamtal" && (
+        <MeetingsPopup
+          open={true}
           meetings={sortedMeetings}
           editingId={editingMeetingId}
           onAdd={addMeeting}
           onEdit={setEditingMeetingId}
           onUpdate={updateMeeting}
           onRemove={removeMeeting}
-          onCloseEdit={() => setEditingMeetingId(null)}
+          onClose={() => setOpenTab(null)}
         />
-      ) : tab === "progressionsbedömningar" ? (
-        <AssessmentsView
+      )}
+
+      {openTab === "progressionsbedömningar" && (
+        <AssessmentsPopup
+          open={true}
           assessments={sortedAssessments}
           editingId={editingAssessmentId}
           instruments={instruments}
@@ -264,11 +262,17 @@ export default function MobileIup() {
           onEdit={setEditingAssessmentId}
           onUpdate={updateAssessment}
           onRemove={removeAssessment}
-          onCloseEdit={() => setEditingAssessmentId(null)}
+          onClose={() => setOpenTab(null)}
           onOpenInstruments={() => setInstrumentsModalOpen(true)}
         />
-      ) : (
-        <MilestonesView />
+      )}
+
+      {openTab === "delmål" && (
+        <MilestonesPopup
+          open={true}
+          onClose={() => setOpenTab(null)}
+          onOpenModal={() => {}}
+        />
       )}
 
       {/* Modals */}
@@ -304,8 +308,7 @@ export default function MobileIup() {
           onClose={() => setInstrumentsModalOpen(false)}
         />
       )}
-
-    </div>
+    </>
   );
 }
 
@@ -354,10 +357,10 @@ function cloneAssessment(a: IupAssessment): IupAssessment {
 }
 
 // Import sub-components
-import PlanningView from "./MobileIup/PlanningView";
-import MeetingsView from "./MobileIup/MeetingsView";
-import AssessmentsView from "./MobileIup/AssessmentsView";
-import MilestonesView from "./MobileIup/MilestonesView";
+import PlanningPopup from "./MobileIup/PlanningPopup";
+import MeetingsPopup from "./MobileIup/MeetingsPopup";
+import AssessmentsPopup from "./MobileIup/AssessmentsPopup";
+import MilestonesPopup from "./MobileIup/MilestonesPopup";
 import MeetingEditModal from "./MobileIup/MeetingEditModal";
 import AssessmentEditModal from "./MobileIup/AssessmentEditModal";
 import InstrumentsModal from "./MobileIup/InstrumentsModal";
