@@ -29,10 +29,13 @@ export default function MobileAppShell() {
   const [tab, setTab] = useState<TabKey>("home");
   const [scanOpen, setScanOpen] = useState(false);
   const [iupOpen, setIupOpen] = useState(false);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   const title =
     tab === "home"
-      ? "ST-översikt"
+      ? hasProfile === false
+        ? "Ladda upp fil"
+        : "ST-översikt"
       : tab === "placements"
       ? "Kliniska tjänstgöringar"
       : tab === "courses"
@@ -54,7 +57,10 @@ export default function MobileAppShell() {
 
       <main className="flex-1 overflow-y-auto px-4 pt-3 pb-16">
         {tab === "home" && (
-          <MobileHome onOpenScan={() => setScanOpen(true)} />
+          <MobileHome
+            onOpenScan={() => setScanOpen(true)}
+            onProfileLoaded={setHasProfile}
+          />
         )}
 
         {tab === "placements" && <MobilePlacements />}

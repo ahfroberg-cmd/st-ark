@@ -1,12 +1,13 @@
 // components/MobileHome.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import type { Profile, Placement } from "@/lib/types";
 
 type MobileHomeProps = {
   onOpenScan?: () => void;
+  onProfileLoaded?: (hasProfile: boolean) => void;
 };
 
 /** Approximativ månadsdiff i månader (kan vara decimal) mellan två ISO-datum */
@@ -61,10 +62,12 @@ function normalizeGoalsVersion(v: any): "2015" | "2021" {
   return "2021";
 }
 
-export default function MobileHome({ onOpenScan }: MobileHomeProps) {
+export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomeProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   // Planerad total tid (BT+ST eller ST) – samma logik som i PusslaDinST
   const [planMonths, setPlanMonths] = useState<number>(60);
@@ -94,6 +97,11 @@ export default function MobileHome({ onOpenScan }: MobileHomeProps) {
           setPlanMonths(fromProfile);
         } else {
           setPlanMonths(gv === "2021" ? 66 : 60);
+        }
+
+        // Meddela föräldern om profilstatus
+        if (onProfileLoaded) {
+          onProfileLoaded(!!prof);
         }
       } catch {
         // ignore
@@ -152,8 +160,94 @@ export default function MobileHome({ onOpenScan }: MobileHomeProps) {
     setStEndISO(fmtISO(endDate));
   }, [profile, planMonths, workedFteMonths, restAttendance]);
 
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setImporting(true);
+    try {
+      const txt = await f.text();
+      const data = JSON.parse(txt);
+
+      const p = data.profile ?? data?.Profile ?? data?.prof ?? null;
+      const placementsData = data.placements ?? data?.Placements ?? [];
+      const courses = data.courses ?? data?.Courses ?? [];
+      const achievements = data.achievements ?? data?.Achievements ?? [];
+
+      if (p) await (db as any).profile?.put?.({ id: "default", ...(p.id ? p : { ...p, id: "default" }) });
+      if (Array.isArray(placementsData)) for (const pl of placementsData) { try { await (db as any).placements?.put?.(pl); } catch {} }
+      if (Array.isArray(courses))    for (const c of courses)    { try { await (db as any).courses?.put?.(c); } catch {} }
+      if (Array.isArray(achievements))for (const a of achievements){ try { await (db as any).achievements?.put?.(a); } catch {} }
+
+      // Ladda om data
+      const profArr = await (db as any).profile?.toArray?.();
+      const prof = (Array.isArray(profArr) ? profArr[0] : null) as Profile | null;
+      const pls = ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
+      
+      setProfile(prof ?? null);
+      setPlacements(pls);
+
+      // Meddela föräldern om profilstatus
+      if (onProfileLoaded) {
+        onProfileLoaded(!!prof);
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Kunde inte läsa JSON-filen.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function pickFile() {
+    fileRef.current?.click();
+  }
+
   const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
   const totalLabel = gv === "2021" ? "Total tid för BT + ST" : "Total tid för ST";
+
+  // Om ingen profil finns, visa filuppladdningssidan
+  if (!loading && !profile) {
+    return (
+      <div className="space-y-4">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="mb-2 text-center text-3xl font-extrabold tracking-tight">
+            <span className="text-sky-700">ST</span>
+            <span className="text-emerald-700">ARK</span>
+          </h1>
+          <p className="mb-6 text-center text-sm text-slate-600">
+            Ladda upp din JSON-fil med sparad data för att komma igång.
+          </p>
+
+          <button
+            type="button"
+            onClick={pickFile}
+            disabled={importing}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-emerald-500 bg-emerald-50 px-4 py-6 text-sm font-semibold text-emerald-900 shadow-sm active:translate-y-px disabled:opacity-60"
+          >
+            <span className="text-lg">📁</span>
+            <span>{importing ? "Laddar fil…" : "Ladda upp JSON-fil"}</span>
+          </button>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={onFile}
+          />
+
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+            <div className="mb-2 font-semibold text-slate-700">💡 Tips</div>
+            <p>
+              För att skapa en ny profil och börja från början, använd laptopversionen av ST-ARK. 
+              På mobilen kan du sedan ladda upp din JSON-fil för att fortsätta arbeta.
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
