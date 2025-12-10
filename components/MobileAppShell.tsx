@@ -57,7 +57,7 @@ export default function MobileAppShell() {
             type="button"
             onClick={handleExport}
             disabled={exporting}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px disabled:opacity-50"
             title="Spara (JSON-backup)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -68,7 +68,7 @@ export default function MobileAppShell() {
           <button
             type="button"
             onClick={() => setProfileOpen(true)}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
             Profil
           </button>
@@ -77,7 +77,7 @@ export default function MobileAppShell() {
             onClick={() => {
               // TODO: Implementera Om-modal
             }}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
             Om
           </button>
