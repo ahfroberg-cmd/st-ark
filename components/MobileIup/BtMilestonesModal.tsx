@@ -308,7 +308,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
         }}
       >
         <div
-          className="w-full max-w-[980px] max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden"
+          className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -375,7 +375,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
                 Inga BT-delmål hittades.
               </div>
             ) : (
-              <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2 md:grid-cols-3">
                 {btRows.map((row) => {
                   const m = btMilestones.find((x) => x.id.toUpperCase() === row.code.toUpperCase());
                   const total = (row.klinCount ?? 0) + (row.kursCount ?? 0);
@@ -386,26 +386,24 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
                         type="button"
                         onClick={() => openDetail(row.code)}
                         className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
-                        title="Visa information om delmålet"
+                        title={m?.title ?? "BT-delmål"}
                       >
                         <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                           {row.code.toLowerCase()}
                         </span>
-                        <span className="truncate text-[12px] text-slate-900">
-                          {(m?.title ?? "BT-delmål").length > 50
-                            ? (m?.title ?? "BT-delmål").slice(0, 50) + "..."
-                            : m?.title ?? "BT-delmål"}
+                        <span className="min-w-0 flex-1 text-[12px] text-slate-900 line-clamp-2">
+                          {m?.title ?? "BT-delmål"}
                         </span>
                       </button>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => openList(row.code)}
                           className={
                             total > 0
-                              ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                              : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                              ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300 shrink-0"
+                              : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200 shrink-0"
                           }
                           title={total > 0 ? "Visa intyg (alla kopplingar)" : "Inga kopplade intyg ännu"}
                         >
@@ -434,7 +432,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
             }}
           >
             <div
-              className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4 gap-4">
