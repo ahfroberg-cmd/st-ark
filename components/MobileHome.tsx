@@ -3,7 +3,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
-import type { Profile, Placement } from "@/lib/types";
+import type { Profile, Placement, Achievement } from "@/lib/types";
+import { loadGoals, type GoalsCatalog } from "@/lib/goals";
+import { btMilestones } from "@/lib/goals-bt";
+import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 
 type MobileHomeProps = {
   onOpenScan?: () => void;
@@ -66,6 +69,8 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
   const [profile, setProfile] = useState<Profile | null>(null);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [goals, setGoals] = useState<GoalsCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -86,12 +91,28 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
           ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
         const crs =
           ((await (db as any).courses?.toArray?.()) ?? []) as any[];
+        const ach =
+          ((await (db as any).achievements?.toArray?.()) ?? []) as Achievement[];
 
         if (!live) return;
 
         setProfile(prof ?? null);
         setPlacements(pls);
         setCourses(crs);
+        setAchievements(ach);
+
+        // Ladda goals-katalog för att räkna ST-delmål
+        if (prof?.goalsVersion && (prof.specialty || (prof as any).speciality)) {
+          try {
+            const g = await loadGoals(
+              prof.goalsVersion,
+              prof.specialty || (prof as any).speciality || ""
+            );
+            if (live) setGoals(g);
+          } catch {
+            // ignore
+          }
+        }
 
         // Planerad total tid
         const gv = normalizeGoalsVersion((prof as any)?.goalsVersion);
@@ -140,6 +161,195 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     return Math.max(0, Math.min(100, raw));
   }, [workedFteMonths, planMonths]);
 
+  // Beräkna totala antalet delmål som ska uppfyllas
+  const totalMilestones = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv === "2021") {
+      // 18 BT-delmål + 2x7 a-delmål + 2x4 b-delmål + 2x12 c-delmål = 18+14+8+24 = 64
+      return 64;
+    } else {
+      // 2015: 50 delmål
+      return 50;
+    }
+  }, [profile]);
+
+  // Beräkna uppfyllda delmål
+  const fulfilledMilestones = useMemo(() => {
+    const fulfilled = new Set<string>();
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const is2021 = gv === "2021";
+
+    // Normalisera BT-kod
+    const normalizeBtCode = (x: unknown) => {
+      const s = String(x ?? "").trim();
+      const m = s.match(/^BT[\s\-_]*([0-9]+)/i);
+      return m ? "BT" + m[1] : null;
+    };
+
+    // Normalisera ST-milestone ID
+    const normalizeStId = (x: unknown): string | null => {
+      const s = String(x ?? "").trim();
+      if (!s) return null;
+      return s.toUpperCase().replace(/\s+/g, "");
+    };
+
+    // 1) BT-delmål (endast för 2021)
+    if (is2021) {
+      // Från achievements
+      for (const a of achievements) {
+        const cand = [a.goalId, a.milestoneId, a.id, (a as any).code, (a as any).milestone].filter(Boolean);
+        for (const c of cand) {
+          const code = normalizeBtCode(c);
+          if (code) fulfilled.add(code);
+        }
+      }
+
+      // Från placements och courses
+      for (const p of placements as any[]) {
+        const arrs = [
+          p?.btMilestones,
+          p?.btGoals,
+          p?.milestones,
+          p?.goals,
+          p?.goalIds,
+          p?.milestoneIds,
+        ];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) fulfilled.add(code);
+          }
+        }
+      }
+
+      for (const c of courses as any[]) {
+        const arrs = [
+          c?.btMilestones,
+          c?.btGoals,
+          c?.milestones,
+          c?.goals,
+          c?.goalIds,
+          c?.milestoneIds,
+        ];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) fulfilled.add(code);
+          }
+        }
+      }
+    }
+
+    // 2) ST-delmål
+    // För 2021: Varje ST-delmål kan uppfyllas av både kurs och klinisk tjänstgöring (2 uppfyllelser)
+    // För 2015: Varje ST-delmål räknas bara en gång
+    const stMilestoneIdsFromPlacements = new Set<string>();
+    const stMilestoneIdsFromCourses = new Set<string>();
+    const stMilestoneIdsFromAchievements = new Set<string>();
+
+    // Från achievements
+    for (const a of achievements) {
+      const id = normalizeStId(a.milestoneId);
+      if (id && !normalizeBtCode(id)) {
+        stMilestoneIdsFromAchievements.add(id);
+      }
+    }
+
+    // Från placements
+    for (const p of placements as any[]) {
+      const arr = p?.milestones || p?.goals || p?.goalIds || p?.milestoneIds || [];
+      for (const v of arr as any[]) {
+        const id = normalizeStId(v);
+        if (id && !normalizeBtCode(id)) {
+          stMilestoneIdsFromPlacements.add(id);
+        }
+      }
+    }
+
+    // Från courses
+    for (const c of courses as any[]) {
+      const arr = c?.milestones || c?.goals || c?.goalIds || c?.milestoneIds || [];
+      for (const v of arr as any[]) {
+        const id = normalizeStId(v);
+        if (id && !normalizeBtCode(id)) {
+          stMilestoneIdsFromCourses.add(id);
+        }
+      }
+    }
+
+    // Kombinera alla ST-delmål
+    const allStMilestoneIds = new Set<string>();
+    for (const id of stMilestoneIdsFromAchievements) allStMilestoneIds.add(id);
+    for (const id of stMilestoneIdsFromPlacements) allStMilestoneIds.add(id);
+    for (const id of stMilestoneIdsFromCourses) allStMilestoneIds.add(id);
+
+    if (is2021 && goals && Array.isArray((goals as any).milestones)) {
+      // För 2021: Räkna ST-delmål från goals-katalogen
+      const allSt = (goals as any).milestones as any[];
+      const hasStc = allSt.some((m: any) =>
+        /^STc\d+$/i.test(String((m as any).code ?? (m as any).id ?? ""))
+      );
+
+      if (hasStc) {
+        // Hämta alla ST-delmål (STa, STb, STc)
+        const stMilestones = allSt.filter((m: any) => {
+          const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
+          return /^ST[ABC]\d+$/i.test(code);
+        });
+
+        // Lägg till gemensamma STa/STb om de saknas
+        const existingKeys = new Set(
+          stMilestones.map((m: any) =>
+            String((m as any).code ?? (m as any).id ?? "")
+              .toUpperCase()
+              .replace(/\s+/g, "")
+          )
+        );
+
+        Object.values(COMMON_AB_MILESTONES).forEach((cm: any) => {
+          const codeRaw = String(cm.code ?? cm.id ?? "");
+          if (/^ST[AB]\d+$/i.test(codeRaw)) {
+            const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
+            if (!existingKeys.has(codeKey)) {
+              stMilestones.push(cm);
+            }
+          }
+        });
+
+        // För varje ST-delmål: räkna om det är uppfyllt av klinisk tjänstgöring (1) och/eller kurs (1)
+        for (const m of stMilestones) {
+          const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
+          const hasPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
+          const hasCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+          
+          if (hasPlacement) fulfilled.add(`${code}-klin`);
+          if (hasCourse) fulfilled.add(`${code}-kurs`);
+        }
+      } else {
+        // Fallback: räkna bara en gång per delmål
+        for (const id of allStMilestoneIds) {
+          fulfilled.add(id);
+        }
+      }
+    } else {
+      // För 2015: räkna bara en gång per delmål
+      for (const id of allStMilestoneIds) {
+        fulfilled.add(id);
+      }
+    }
+
+    return fulfilled.size;
+  }, [profile, achievements, placements, courses, goals]);
+
+  const milestoneProgressPct = useMemo(() => {
+    if (!totalMilestones || totalMilestones <= 0) return 0;
+    const raw = (fulfilledMilestones / totalMilestones) * 100;
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, raw));
+  }, [fulfilledMilestones, totalMilestones]);
+
   // Ladda ST-slutdatum från profil (används som fallback om stEndDate inte finns)
   useEffect(() => {
     if (profile && (profile as any)?.stEndDate) {
@@ -171,10 +381,25 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       const prof = (Array.isArray(profArr) ? profArr[0] : null) as Profile | null;
       const pls = ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
       const crs = ((await (db as any).courses?.toArray?.()) ?? []) as any[];
+      const ach = ((await (db as any).achievements?.toArray?.()) ?? []) as Achievement[];
       
       setProfile(prof ?? null);
       setPlacements(pls);
       setCourses(crs);
+      setAchievements(ach);
+
+      // Ladda goals-katalog för att räkna ST-delmål
+      if (prof?.goalsVersion && (prof.specialty || (prof as any).speciality)) {
+        try {
+          const g = await loadGoals(
+            prof.goalsVersion,
+            prof.specialty || (prof as any).speciality || ""
+          );
+          setGoals(g);
+        } catch {
+          // ignore
+        }
+      }
 
       // Meddela föräldern om profilstatus
       if (onProfileLoaded) {
@@ -260,7 +485,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
           <div className="py-4 text-sm text-slate-900">Laddar …</div>
         ) : (
           <>
-            {/* Progressbar */}
+            {/* Progressbar - Andel av planerad tid */}
             <div className="mb-3">
               <div className="flex items-baseline justify-between text-xs">
                 <span className="text-slate-900">
@@ -274,6 +499,24 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                 <div
                   className="h-4 rounded-full bg-emerald-500 transition-[width] duration-300"
                   style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Progressbar - Delmålsuppfyllelse */}
+            <div className="mb-3">
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="text-slate-900">
+                  Delmålsuppfyllelse
+                </span>
+                <span className="font-semibold text-slate-900">
+                  {milestoneProgressPct.toFixed(0)} %
+                </span>
+              </div>
+              <div className="mt-1 h-4 rounded-full bg-slate-200">
+                <div
+                  className="h-4 rounded-full bg-emerald-500 transition-[width] duration-300"
+                  style={{ width: `${milestoneProgressPct}%` }}
                 />
               </div>
             </div>
