@@ -53,7 +53,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   // Popup "Inget kopplat"
   const [notMetOpen, setNotMetOpen] = useState(false);
 
-  // Set initial tab when opening or when initialTab changes
+  // Set initial tab when opening
   useEffect(() => {
     if (open) {
       setTab(initialTab);

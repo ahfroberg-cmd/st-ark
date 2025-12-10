@@ -104,6 +104,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <MilestoneOverviewPanel
+              key={`milestone-${selectedTab}-${milestoneModalOpen}`}
               open={milestoneModalOpen}
               initialTab={selectedTab}
               onClose={() => {
