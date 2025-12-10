@@ -10,9 +10,13 @@ type Props = {
 };
 
 export default function BtMilestonesModal({ open, onClose }: Props) {
+  const [mountKey, setMountKey] = React.useState(0);
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
+      // Force remount when opening
+      setMountKey(prev => prev + 1);
     } else {
       document.body.style.overflow = "";
     }
@@ -37,7 +41,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <MilestoneOverviewPanel
-          key="bt-milestones"
+          key={`bt-milestones-${mountKey}`}
           open={true}
           initialTab="bt"
           onClose={onClose}
