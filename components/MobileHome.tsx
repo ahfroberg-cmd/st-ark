@@ -215,7 +215,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             <span className="text-sky-700">ST</span>
             <span className="text-emerald-700">ARK</span>
           </h1>
-          <p className="mb-6 text-center text-sm text-slate-600">
+          <p className="mb-6 text-center text-sm text-slate-900">
             Ladda upp din JSON-fil med sparad data för att komma igång.
           </p>
 
@@ -237,7 +237,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             onChange={onFile}
           />
 
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-900">
             <div className="mb-2 font-semibold text-slate-700">💡 Tips</div>
             <p>
               För att skapa en ny profil och börja från början, använd laptopversionen av ST-ARK. 
@@ -256,14 +256,14 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-slate-900">ST-översikt</h2>
           {profile && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-900">
               {profile.specialty || (profile as any).speciality || "Specialitet ej angiven"}
             </span>
           )}
         </div>
 
         {loading ? (
-          <div className="py-4 text-sm text-slate-500">Laddar …</div>
+          <div className="py-4 text-sm text-slate-900">Laddar …</div>
         ) : (
           <>
             {/* Progressbar */}
@@ -345,14 +345,14 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-slate-500">Kliniska tjänstgöringar</div>
+            <div className="text-slate-900">Kliniska tjänstgöringar</div>
             <div className="mt-1 text-lg font-semibold text-slate-900">
               {placements.length}
             </div>
           </div>
           {/* Här kan du senare lägga motsv. för kurser, handledning osv */}
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-slate-500">Profil</div>
+            <div className="text-slate-900">Profil</div>
             <div className="mt-1 text-xs text-slate-700">
               {profile?.name || "Namn saknas"}
             </div>

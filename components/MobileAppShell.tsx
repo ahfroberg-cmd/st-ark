@@ -99,7 +99,7 @@ export default function MobileAppShell() {
                   "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium",
                   active
                     ? "text-emerald-700"
-                    : "text-slate-500 hover:text-slate-700",
+                    : "text-slate-900 hover:text-slate-700",
                 ].join(" ")}
               >
                 <span
