@@ -14,7 +14,6 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [selectedTab, setSelectedTab] = useState<"bt" | "st">("st");
-  const selectedTabRef = useRef<"bt" | "st">("st");
 
   React.useEffect(() => {
     if (open || milestoneModalOpen) {
@@ -68,17 +67,15 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                     console.log("[MilestonesPopup] BT button clicked");
                     const newTab: "bt" | "st" = "bt";
                     // Always close first to ensure clean state
-                    if (milestoneModalOpen) {
-                      setMilestoneModalOpen(false);
-                    }
-                    // Update ref and state
-                    selectedTabRef.current = newTab;
+                    setMilestoneModalOpen(false);
+                    // Update state first
                     setSelectedTab(newTab);
-                    // Wait a bit then open with new tab
+                    console.log("[MilestonesPopup] Set selectedTab to:", newTab);
+                    // Wait for state to update, then open
                     setTimeout(() => {
-                      console.log("[MilestonesPopup] Opening with tab from ref:", selectedTabRef.current);
+                      console.log("[MilestonesPopup] Opening with selectedTab:", newTab);
                       setMilestoneModalOpen(true);
-                    }, 150);
+                    }, 200);
                   }}
                   className="w-full rounded-xl border-2 border-sky-600 bg-sky-50 px-5 py-5 text-left text-base font-semibold text-sky-900 hover:bg-sky-100 active:translate-y-px"
                 >
@@ -90,17 +87,15 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                     console.log("[MilestonesPopup] ST button clicked");
                     const newTab: "bt" | "st" = "st";
                     // Always close first to ensure clean state
-                    if (milestoneModalOpen) {
-                      setMilestoneModalOpen(false);
-                    }
-                    // Update ref and state
-                    selectedTabRef.current = newTab;
+                    setMilestoneModalOpen(false);
+                    // Update state first
                     setSelectedTab(newTab);
-                    // Wait a bit then open with new tab
+                    console.log("[MilestonesPopup] Set selectedTab to:", newTab);
+                    // Wait for state to update, then open
                     setTimeout(() => {
-                      console.log("[MilestonesPopup] Opening with tab from ref:", selectedTabRef.current);
+                      console.log("[MilestonesPopup] Opening with selectedTab:", newTab);
                       setMilestoneModalOpen(true);
-                    }, 150);
+                    }, 200);
                   }}
                   className="w-full rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-5 text-left text-base font-semibold text-emerald-900 hover:bg-emerald-100 active:translate-y-px"
                 >
@@ -127,9 +122,9 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
           >
             {milestoneModalOpen && (
               <MilestoneOverviewPanel
-                key={`milestone-${selectedTabRef.current}`}
+                key={`milestone-${selectedTab}-${milestoneModalOpen}`}
                 open={milestoneModalOpen}
-                initialTab={selectedTabRef.current}
+                initialTab={selectedTab}
                 onClose={() => {
                   setMilestoneModalOpen(false);
                 }}
