@@ -1,9 +1,10 @@
 // components/MobileIup/AssessmentsView.tsx
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { IupAssessment } from "@/components/IupModal";
 import type { Profile } from "@/lib/types";
+import { db } from "@/lib/db";
 
 type Props = {
   assessments: IupAssessment[];
@@ -37,6 +38,28 @@ export default function AssessmentsView({
   onOpenInstruments,
 }: Props) {
   const isGoals2021 = String(profile?.goalsVersion || "").trim() === "2021";
+  const [placements, setPlacements] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const pls = await db.placements.toArray();
+        setPlacements(pls || []);
+      } catch {
+        setPlacements([]);
+      }
+    })();
+  }, []);
+
+  const getPlacementType = (assessment: IupAssessment): string | null => {
+    if (!assessment.level || !assessment.dateISO) return null;
+    const matching = placements.find((p: any) => {
+      const clinicMatch = (p.clinic || p.title || "").trim() === assessment.level.trim();
+      const dateMatch = p.startDate <= assessment.dateISO && p.endDate >= assessment.dateISO;
+      return clinicMatch && dateMatch;
+    });
+    return matching?.type || matching?.kind || matching?.category || null;
+  };
 
   return (
     <div className="space-y-5">
@@ -44,7 +67,7 @@ export default function AssessmentsView({
           <button
             type="button"
             onClick={onOpenInstruments}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
             Instrument
           </button>
@@ -65,10 +88,21 @@ export default function AssessmentsView({
         <div className="space-y-3">
           {assessments.map((a) => {
             const planned = isFutureDate(a.dateISO);
+            const placementType = getPlacementType(a);
+            const isSpecialType = placementType && 
+              (placementType.includes("Vetenskapligt arbete") || 
+               placementType.includes("Förbättringsarbete") ||
+               placementType.includes("Tjänstledighet") ||
+               placementType.includes("Föräldraledighet") ||
+               placementType.includes("Annan ledighet") ||
+               placementType.includes("Sjukskriven"));
+            const displayLevel = isSpecialType ? placementType : (a.level || "");
             return (
-              <div
+              <button
                 key={a.id}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                type="button"
+                onClick={() => onEdit(a.id)}
+                className="w-full rounded-xl border border-slate-200 bg-white p-5 shadow-sm text-left hover:bg-slate-50 active:bg-slate-100"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -89,7 +123,7 @@ export default function AssessmentsView({
                     </div>
                     <div className="mb-3 space-y-1 text-sm text-slate-600">
                       <div>{a.dateISO || "Datum saknas"}</div>
-                      {a.level && <div>Klinisk tjänstgöring: {a.level}</div>}
+                      {displayLevel && <div>{displayLevel}</div>}
                     </div>
                     {a.summary && (
                       <p className="mb-3 text-base text-slate-700 line-clamp-2">
@@ -111,24 +145,18 @@ export default function AssessmentsView({
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col gap-3 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(a.id)}
-                      className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
-                    >
-                      Redigera
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(a.id)}
-                      className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
-                    >
-                      Ta bort
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(a.id);
+                    }}
+                    className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px shrink-0"
+                  >
+                    Ta bort
+                  </button>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

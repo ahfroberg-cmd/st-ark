@@ -180,9 +180,9 @@ export default function ProfileModal({ open, onClose }: Props) {
       }
     } else {
       // 2015: kräver stStartDate
-      if (!form.stStartDate) {
-        alert("Fyll i startdatum för ST.");
-        return;
+    if (!form.stStartDate) {
+      alert("Fyll i startdatum för ST.");
+      return;
       }
     }
 
@@ -353,7 +353,7 @@ export default function ProfileModal({ open, onClose }: Props) {
           </div>
           <div>
             <Labeled>ST-längd i månader (inklusive BT)</Labeled>
-            <select
+          <select
             value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
             onChange={(e) =>
               setForm({

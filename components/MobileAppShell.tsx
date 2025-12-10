@@ -48,7 +48,7 @@ export default function MobileAppShell() {
   return (
     <div className="flex h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-xl font-extrabold tracking-tight">
+        <h1 className="text-2xl font-extrabold tracking-tight">
           <span className="text-sky-700">ST</span>
           <span className="text-emerald-700">ARK</span>
         </h1>
@@ -61,13 +61,13 @@ export default function MobileAppShell() {
           >
             {exporting ? "Sparar..." : "Spara"}
           </button>
-          <button
-            type="button"
+        <button
+          type="button"
             onClick={() => setProfileOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
-          >
+        >
             Profil
-          </button>
+        </button>
         </div>
       </header>
 

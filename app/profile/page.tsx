@@ -307,10 +307,10 @@ function ProfilePageInner() {
 
         {/* Höger: Uppgifter om ST */}
         <article className="md:order-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-lg font-extrabold">Uppgifter om ST</h2>
+                    <h2 className="mb-3 text-lg font-extrabold">Uppgifter om ST</h2>
           <div className="grid grid-cols-1 gap-3">
             {/* Rad 1: Specialitet (vänster) + Målversion (höger) */}
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
   <div>
     <Labeled>Specialitet</Labeled>
     <select
@@ -348,10 +348,10 @@ function ProfilePageInner() {
       <option value="2021">HSLF-FS 2021:8</option>
     </select>
   </div>
-            </div>
+</div>
 
             {/* Rad 2: BT/ST-startdatum + ST-längd (endast 2021) */}
-            {form.goalsVersion === "2021" && (
+{form.goalsVersion === "2021" && (
   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
     <div>
       <Labeled>Startdatum för BT/ST</Labeled>
@@ -362,7 +362,7 @@ function ProfilePageInner() {
     </div>
     <div>
       <Labeled>ST-längd i månader (inklusive BT)</Labeled>
-      <select
+    <select
       value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
       onChange={(e) =>
         setForm({
@@ -428,11 +428,11 @@ function ProfilePageInner() {
           );
         })}
       </select>
-    </div>
-            </div>
+  </div>
+</div>
             )}
 
-            {/* Hemklinik */}
+{/* Hemklinik */}
             <div>
               <Labeled>Hemklinik</Labeled>
               <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} />

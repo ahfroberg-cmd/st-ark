@@ -204,42 +204,49 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         }
       }
 
-      // Från placements och courses
-      for (const p of placements as any[]) {
-        const arrs = [
-          p?.btMilestones,
-          p?.btGoals,
-          p?.milestones,
-          p?.goals,
-          p?.goalIds,
-          p?.milestoneIds,
-        ];
-        for (const arr of arrs) {
-          if (!arr) continue;
-          for (const v of arr as any[]) {
-            const code = normalizeBtCode(v);
-            if (code) fulfilled.add(code);
-          }
+    // Från placements och courses (endast genomförda)
+    const today = todayISO();
+    for (const p of placements as any[]) {
+      const end = p.endDate || p.endISO || p.end || "";
+      if (!end || end >= today) continue; // Bara genomförda
+      const arrs = [
+        p?.btMilestones,
+        p?.btGoals,
+        p?.milestones,
+        p?.goals,
+        p?.goalIds,
+        p?.milestoneIds,
+      ];
+      for (const arr of arrs) {
+        if (!arr) continue;
+        for (const v of arr as any[]) {
+          const code = normalizeBtCode(v);
+          if (code) fulfilled.add(code);
         }
       }
+    }
 
-      for (const c of courses as any[]) {
-        const arrs = [
-          c?.btMilestones,
-          c?.btGoals,
-          c?.milestones,
-          c?.goals,
-          c?.goalIds,
-          c?.milestoneIds,
-        ];
-        for (const arr of arrs) {
-          if (!arr) continue;
-          for (const v of arr as any[]) {
-            const code = normalizeBtCode(v);
-            if (code) fulfilled.add(code);
-          }
+    for (const c of courses as any[]) {
+      const cert = c.certificateDate || "";
+      const end = c.endDate || "";
+      const date = cert || end;
+      if (!date || date >= today) continue; // Bara genomförda
+      const arrs = [
+        c?.btMilestones,
+        c?.btGoals,
+        c?.milestones,
+        c?.goals,
+        c?.goalIds,
+        c?.milestoneIds,
+      ];
+      for (const arr of arrs) {
+        if (!arr) continue;
+        for (const v of arr as any[]) {
+          const code = normalizeBtCode(v);
+          if (code) fulfilled.add(code);
         }
       }
+    }
     }
 
     // 2) ST-delmål
@@ -257,8 +264,11 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       }
     }
 
-    // Från placements
+    // Från placements (endast genomförda)
+    const today = todayISO();
     for (const p of placements as any[]) {
+      const end = p.endDate || p.endISO || p.end || "";
+      if (!end || end >= today) continue; // Bara genomförda
       const arr = p?.milestones || p?.goals || p?.goalIds || p?.milestoneIds || [];
       for (const v of arr as any[]) {
         const id = normalizeStId(v);
@@ -268,8 +278,12 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       }
     }
 
-    // Från courses
+    // Från courses (endast genomförda)
     for (const c of courses as any[]) {
+      const cert = c.certificateDate || "";
+      const end = c.endDate || "";
+      const date = cert || end;
+      if (!date || date >= today) continue; // Bara genomförda
       const arr = c?.milestones || c?.goals || c?.goalIds || c?.milestoneIds || [];
       for (const v of arr as any[]) {
         const id = normalizeStId(v);
@@ -521,21 +535,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               </div>
             </div>
 
-            <div className="mt-1 space-y-2 text-sm text-slate-900">
-              <div>
-                <span className="font-medium text-slate-900">Registrerad tid motsvarande heltid:</span>{" "}
-                <span className="font-semibold text-slate-900">
-                  {workedFteMonths.toFixed(1)} mån
-                </span>
-              </div>
-
-              <div>
-                <span className="font-medium text-slate-900">{totalLabel}:</span>{" "}
-                <span className="font-semibold text-slate-900">
-                  {planMonths} mån
-                </span>
-              </div>
-
+            <div className="mt-1 text-sm text-slate-900">
               <div>
                 <span className="font-medium text-slate-900">Slutdatum för ST:</span>{" "}
                 <span className="font-semibold text-slate-900">

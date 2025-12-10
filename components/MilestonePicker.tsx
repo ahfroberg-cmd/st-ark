@@ -286,13 +286,13 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
         {/* Header – samma stil som i övriga mobilpopups */}
         <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
           <h2 className="text-xl font-extrabold text-emerald-900">{title}</h2>
-          <button
-            onClick={onClose}
+            <button
+              onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-            title="Stäng"
-          >
+              title="Stäng"
+            >
             ✕
-          </button>
+            </button>
         </header>
 
         {/* Body – två kolumner: A+B vänster, C höger; grå rutor; ingen "Klin/Kurs" här */}
@@ -405,17 +405,17 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
-                    </h3>
+                      </h3>
                   </div>
 
                   {/* Höger: stäng-knapp */}
-                  <button
-                    onClick={() => setDetailId(null)}
+                    <button
+                      onClick={() => setDetailId(null)}
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-                    title="Stäng"
-                  >
+                      title="Stäng"
+                    >
                     ✕
-                  </button>
+                    </button>
                 </header>
 
 

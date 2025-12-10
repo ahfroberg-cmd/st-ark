@@ -1395,16 +1395,50 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Pro
 }
 
 export default function MilestoneOverviewModal({ open, onClose }: Props) {
+  const [tab, setTab] = React.useState<"st" | "bt">("st");
+
   if (!open) return null;
 
   return (
-    <div
-      className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-    >
-
-
-        <MilestoneOverviewPanel open={open} onClose={onClose} initialTab="st" />
+    <div className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
+      {/* Radio buttons for BT/ST selection */}
+      <div className="flex items-center gap-4 border-b border-slate-200 bg-white px-5 py-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="milestone-tab"
+            value="st"
+            checked={tab === "st"}
+            onChange={() => setTab("st")}
+            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-sm font-semibold text-slate-900">ST-delmål</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="milestone-tab"
+            value="bt"
+            checked={tab === "bt"}
+            onChange={() => setTab("bt")}
+            className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+          />
+          <span className="text-sm font-semibold text-slate-900">BT-delmål</span>
+        </label>
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
+            title="Stäng"
+          >
+            ✕
+          </button>
+        </div>
       </div>
+
+      <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={tab} />
+    </div>
   );
 }
 
