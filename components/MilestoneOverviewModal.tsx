@@ -20,11 +20,11 @@ function TitleTrimmer({ text, className }: { text: string; className?: string })
   );
 }
 
-type Props = { open: boolean; onClose: () => void; initialTab: "st" | "bt" };
+type Props = { open: boolean; onClose: () => void; initialTab: "st" | "bt"; title?: string };
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose, initialTab }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab, title }: Props) {
   console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -934,7 +934,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab }: Props) {
         {/* Header */}
         <header className={`border-b border-slate-200 px-5 py-4 flex items-center justify-between ${isBtTab ? "bg-sky-50" : "bg-emerald-50"}`}>
           <h2 className={`text-xl font-extrabold ${isBtTab ? "text-sky-900" : "text-emerald-900"}`}>
-            {isBtTab ? "BT-delmål" : "ST-delmål"}
+            {title ?? (isBtTab ? "BT-delmål" : "ST-delmål")}
           </h2>
           <button
             type="button"

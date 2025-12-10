@@ -396,6 +396,7 @@ export default function MobileIup() {
       <StMilestonesModal
         open={stMilestonesModalOpen}
         onClose={() => setStMilestonesModalOpen(false)}
+        goalsVersion={profile?.goalsVersion}
       />
     </>
   );

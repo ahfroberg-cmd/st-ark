@@ -7,9 +7,11 @@ import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
 type Props = {
   open: boolean;
   onClose: () => void;
+  goalsVersion?: "2015" | "2021";
 };
 
-export default function StMilestonesModal({ open, onClose }: Props) {
+export default function StMilestonesModal({ open, onClose, goalsVersion }: Props) {
+  const title = goalsVersion === "2015" ? "Delmål" : "ST-delmål";
   const [mountKey, setMountKey] = React.useState(() => Date.now());
 
   React.useEffect(() => {
@@ -45,6 +47,7 @@ export default function StMilestonesModal({ open, onClose }: Props) {
           open={true}
           initialTab="st"
           onClose={onClose}
+          title={title}
         />
       </div>
     </div>
