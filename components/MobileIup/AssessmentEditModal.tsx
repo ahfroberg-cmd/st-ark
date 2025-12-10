@@ -93,8 +93,6 @@ export default function AssessmentEditModal({
     onClose();
   }, [dirty, onClose]);
 
-  if (!open || !assessment || !draft) return null;
-
   const handleSave = useCallback(() => {
     if (!draft) return;
     onSave(draft);
@@ -114,8 +112,6 @@ export default function AssessmentEditModal({
   if (!open || !assessment || !draft) return null;
 
   const isGoals2021 = String(profile?.goalsVersion || "").trim() === "2021";
-
-  if (!open || !assessment || !draft) return null;
 
   return (
     <div
