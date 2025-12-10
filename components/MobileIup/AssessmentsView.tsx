@@ -56,7 +56,6 @@ export default function AssessmentsView({
             + Ny bedömning
           </button>
         </div>
-      </div>
 
       {assessments.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-base text-slate-500">
