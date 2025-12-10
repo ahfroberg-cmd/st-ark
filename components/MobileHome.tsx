@@ -71,7 +71,6 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
   // Planerad total tid (BT+ST eller ST) – samma logik som i PusslaDinST
   const [planMonths, setPlanMonths] = useState<number>(60);
-  const [restAttendance, setRestAttendance] = useState<number>(100); // tjänstgöring på X %
   const [stEndISO, setStEndISO] = useState<string | null>(null);
 
   useEffect(() => {
@@ -137,28 +136,12 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     return Math.max(0, Math.min(100, raw));
   }, [workedFteMonths, planMonths]);
 
-  // Beräkna ST-slutdatum vid tjänstgöring på X %
+  // Ladda ST-slutdatum från profil (används som fallback om stEndDate inte finns)
   useEffect(() => {
-    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const totalPlanMonths = Math.max(0, planMonths);
-    const restFrac = Math.max(0, Math.min(1, (restAttendance || 0) / 100));
-
-    if (!totalPlanMonths || restFrac <= 0) {
-      setStEndISO(null);
-      return;
+    if (profile && (profile as any)?.stEndDate) {
+      setStEndISO((profile as any).stEndDate);
     }
-
-    const remainingFte = Math.max(0, totalPlanMonths - workedFteMonths);
-    if (remainingFte === 0) {
-      // All planerad FTE uppnådd – visa idag
-      setStEndISO(todayISO());
-      return;
-    }
-
-    const remainingCalendarMonths = remainingFte / restFrac;
-    const endDate = addMonthsApprox(new Date(), remainingCalendarMonths);
-    setStEndISO(fmtISO(endDate));
-  }, [profile, planMonths, workedFteMonths, restAttendance]);
+  }, [profile]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -251,13 +234,18 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
   return (
     <div className="space-y-4">
-      {/* ST-översikt */}
+      {/* Översikt */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">ST-översikt</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Översikt</h2>
           {profile && (
             <span className="text-xs text-slate-900">
               {profile.specialty || (profile as any).speciality || "Specialitet ej angiven"}
+              {profile.goalsVersion && (
+                <span className="ml-1">
+                  , {profile.goalsVersion === "2021" ? "HSLF-FS 2021:8" : "SOSFS 2015:8"}
+                </span>
+              )}
             </span>
           )}
         </div>
@@ -299,25 +287,10 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-slate-900">
-                <span className="font-medium text-slate-900">
-                  Slutdatum för ST vid tjänstgöring på
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  max={200}
-                  step={5}
-                  value={restAttendance}
-                  onChange={(e) => {
-                    const v = Number(e.target.value) || 0;
-                    setRestAttendance(Math.max(0, Math.min(200, v)));
-                  }}
-                  className="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                />
-                <span className="text-slate-900">%:</span>
+              <div>
+                <span className="font-medium text-slate-900">Slutdatum för ST:</span>{" "}
                 <span className="font-semibold text-slate-900">
-                  {stEndISO ?? "—"}
+                  {(profile as any)?.stEndDate ?? stEndISO ?? "—"}
                 </span>
               </div>
             </div>
@@ -330,31 +303,60 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         <button
           type="button"
           onClick={onOpenScan}
-          className="flex w-full items-center justify-between rounded-2xl border border-emerald-500 bg-emerald-50 px-4 py-3 text-left text-sm font-semibold text-emerald-900 shadow-sm active:translate-y-px"
+          className="flex w-full items-center justify-between rounded-2xl border border-emerald-500 bg-emerald-50 px-4 py-4 text-left shadow-sm active:translate-y-px"
         >
           <div>
-            <div>Scanna intyg</div>
-            <div className="text-xs font-normal text-emerald-800">
+            <div className="text-lg font-semibold text-emerald-900">Scanna intyg</div>
+            <div className="mt-1 text-sm font-normal text-emerald-800">
               Lägg till nya tjänstgöringar och kurser direkt från intyg.
             </div>
           </div>
-          <span className="ml-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-emerald-400 bg-white text-xs">
+          <span className="ml-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400 bg-white text-lg font-semibold text-emerald-900">
             +
           </span>
-        </button>
-
-        <div className="grid grid-cols-2 gap-3 text-xs">
+        </button>  
+        
+        <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-slate-900">Kliniska tjänstgöringar</div>
+            <div className="text-sm font-medium text-slate-900">Kliniska tjänstgöringar</div>
             <div className="mt-1 text-lg font-semibold text-slate-900">
               {placements.length}
             </div>
+            {(() => {
+              const today = todayISO();
+              const ongoing = placements.filter((p: any) => {
+                const start = p.startDate || "";
+                const end = p.endDate || "";
+                return start && end && start <= today && end >= today;
+              });
+              const upcoming = placements.filter((p: any) => {
+                const start = p.startDate || "";
+                return start && start > today;
+              }).sort((a: any, b: any) => (a.startDate || "").localeCompare(b.startDate || ""));
+              
+              return (
+                <div className="mt-2 space-y-1 text-xs text-slate-900">
+                  {ongoing.length > 0 && (
+                    <div>
+                      Pågående: {ongoing[0].startDate || ""} – {ongoing[0].endDate || ""}
+                    </div>
+                  )}
+                  {upcoming.length > 0 && (
+                    <div>
+                      Nästa: {upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
-          {/* Här kan du senare lägga motsv. för kurser, handledning osv */}
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="text-slate-900">Profil</div>
-            <div className="mt-1 text-xs text-slate-700">
-              {profile?.name || "Namn saknas"}
+            <div className="text-sm font-medium text-slate-900">Profil</div>
+            <div className="mt-2 space-y-1 text-xs text-slate-900">
+              <div><strong>Namn:</strong> {profile?.name || "—"}</div>
+              <div><strong>Huvudhandledare:</strong> {(profile as any)?.supervisor || "—"}</div>
+              <div><strong>Studierektor:</strong> {(profile as any)?.studyDirector || "—"}</div>
+              <div><strong>Chef:</strong> {(profile as any)?.manager || "—"}</div>
             </div>
           </div>
         </div>

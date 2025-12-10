@@ -155,6 +155,9 @@ export default function MobilePlacements() {
       endDate: "",
       attendance: 100,
       phase: "",
+      type: "Klinisk tjänstgöring",
+      kind: "Klinisk tjänstgöring",
+      category: "Klinisk tjänstgöring",
       milestones: [],
     };
     setSelectedId(draft.id);
@@ -184,6 +187,9 @@ export default function MobilePlacements() {
         endDate: fmtDate(editing.endDate),
         attendance,
         phase: editing.phase ?? "",
+        type: editing.type ?? editing.kind ?? editing.category ?? "",
+        kind: editing.type ?? editing.kind ?? editing.category ?? "",
+        category: editing.type ?? editing.kind ?? editing.category ?? "",
         milestones: editing.milestones || [],
       };
 
@@ -286,7 +292,7 @@ export default function MobilePlacements() {
           isDirty={isDirty}
         />
       )}
-    </div>
+            </div>
   );
 }
 
@@ -391,6 +397,30 @@ function PlacementEditPopup({
             <div className="space-y-4 text-sm">
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
+                  Typ
+                </label>
+                <select
+                  value={placement.type || placement.kind || placement.category || placement.phase || "Klinisk tjänstgöring"}
+                  onChange={(e) => {
+                    const typeValue = e.target.value;
+                    onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
+                  }}
+                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                >
+                  <option value="Klinisk tjänstgöring">Klinisk tjänstgöring</option>
+                  <option value="Vetenskapligt arbete">Vetenskapligt arbete</option>
+                  <option value="Förbättringsarbete">Förbättringsarbete</option>
+                  <option value="Auskultation">Auskultation</option>
+                  <option value="Forskning">Forskning</option>
+                  <option value="Tjänstledighet">Tjänstledighet</option>
+                  <option value="Föräldraledighet">Föräldraledighet</option>
+                  <option value="Annan ledighet">Annan ledighet</option>
+                  <option value="Sjukskriven">Sjukskriven</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-slate-900">
                   Klinik / enhet
                 </label>
                 <input
@@ -420,20 +450,20 @@ function PlacementEditPopup({
                       onUpdate({ ...placement, endDate: v })
                     }
                     label="Slutdatum"
-                  />
-                </div>
+                />
               </div>
+            </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
-                  Tjänstgöringsgrad (%)
-                </label>
+                Tjänstgöringsgrad (%)
+              </label>
                 <select
                   value={pickPercent(placement)}
-                  onChange={(e) => {
-                    const v = Number(e.target.value) || 0;
+                onChange={(e) => {
+                  const v = Number(e.target.value) || 0;
                     onUpdate({ ...placement, attendance: v });
-                  }}
+                }}
                   className="h-12 w-32 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 >
                   {Array.from({ length: 21 }, (_, i) => i * 5).map((val) => (
@@ -468,23 +498,23 @@ function PlacementEditPopup({
                     )}
                   </div>
                 </div>
-              </div>
+            </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-slate-900">
-                  Kommentar / notering
-                </label>
-                <textarea
+                Kommentar / notering
+              </label>
+              <textarea
                   rows={4}
                   value={placement.note ?? ""}
-                  onChange={(e) =>
+                onChange={(e) =>
                     onUpdate({ ...placement, note: e.target.value })
-                  }
+                }
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                />
+              />
               </div>
             </div>
-          </div>
+            </div>
 
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
             <button
@@ -494,17 +524,17 @@ function PlacementEditPopup({
             >
               Avbryt
             </button>
-            <button
-              type="button"
+              <button
+                type="button"
               onClick={onSave}
               disabled={saving || !isDirty}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Spara
-            </button>
+              </button>
           </footer>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {milestonePickerOpen && goals && (
         <MilestonePicker

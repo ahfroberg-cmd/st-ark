@@ -108,7 +108,7 @@ export default function CalendarDatePicker({
 
   return (
     <div ref={rootRef} className="relative inline-block w-full align-top">
-      {label ? <label className="mb-1 block text-sm text-slate-700">{label}</label> : null}
+      {label ? <label className="mb-1 block text-sm text-slate-900">{label}</label> : null}
 
       <button
         type="button"
@@ -141,7 +141,7 @@ export default function CalendarDatePicker({
         className={className ? `${triggerClasses} ${className}` : triggerClasses}
       >
 
-        <span className="truncate">{fmtHuman(isoValue)}</span>
+        <span className="truncate text-slate-900">{fmtHuman(isoValue)}</span>
         <span className="ml-auto opacity-70">📅</span>
       </button>
 
@@ -160,8 +160,8 @@ export default function CalendarDatePicker({
                 rootRef.current &&
                 !rootRef.current.contains(target)
               ) {
-                e.stopPropagation();
-                setOpen(false);
+              e.stopPropagation();
+              setOpen(false);
               }
             }}
             onClick={(e) => {
@@ -262,7 +262,7 @@ export default function CalendarDatePicker({
                           isSelected ? "ring-2 ring-sky-500" : "",
                         ].join(" ")}
                       >
-                        <span className="inline-flex items-center justify-center">
+                        <span className="inline-flex items-center justify-center text-slate-900">
                           <span className="tabular-nums">{inMonth ? day : ""}</span>
                           {isToday && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-sky-500 align-middle" />}
                         </span>
@@ -285,14 +285,14 @@ export default function CalendarDatePicker({
                   onChange(t);
                   setOpen(false);
                 }}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm hover:bg-slate-50 hover:border-slate-400"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400"
               >
                 Idag
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm hover:bg-slate-50 hover:border-slate-400"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400"
               >
                 Stäng
               </button>

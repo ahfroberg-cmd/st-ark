@@ -76,7 +76,7 @@ function Input({
 }
 
 function Labeled({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1 block text-xs font-medium text-slate-600">{children}</label>;
+  return <label className="mb-1 block text-xs font-medium text-slate-900">{children}</label>;
 }
 
 export default function MobileProfile({ open, onClose }: Props) {
@@ -319,7 +319,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                   value={form.specialty}
                   onChange={(e) => setForm({ ...form, specialty: (e.target as HTMLSelectElement).value })}
                   disabled={lockedCore}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-500 cursor-not-allowed"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
                   title={lockedCore ? "För att ändra specialitet krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
                 >
                   <option value="">— Välj —</option>
@@ -341,7 +341,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                     });
                   }}
                   disabled={lockedCore}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-500 cursor-not-allowed"
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
                   title={lockedCore ? "För att ändra målversion krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
                 >
                   <option value="2015">SOSFS 2015:8</option>
