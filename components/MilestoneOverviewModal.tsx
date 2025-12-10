@@ -917,8 +917,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const hasAnySt = !!goals && (groups.A.length + groups.B.length + groups.C.length > 0);
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
-  // Use tab directly for BT check - if user selected BT, show BT regardless of is2021
-  const isBtTab = tab === "bt";
+  // Use initialTab directly for BT check - this is the source of truth
+  const isBtTab = initialTab === "bt";
   
   // Debug logging
   useEffect(() => {
@@ -994,7 +994,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
             </div>
-          ) : tab === "bt" ? (
+          ) : initialTab === "bt" ? (
             // BT-delmål tab
             !is2021 ? (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
