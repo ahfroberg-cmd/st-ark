@@ -269,7 +269,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             {/* Progressbar */}
             <div className="mb-3">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="text-slate-600">
+                <span className="text-slate-900">
                   Andel av planerad tid
                 </span>
                 <span className="font-semibold text-slate-900">
@@ -284,23 +284,23 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               </div>
             </div>
 
-            <div className="mt-1 space-y-2 text-sm">
+            <div className="mt-1 space-y-2 text-sm text-slate-900">
               <div>
-                <span className="font-medium">Registrerad tid motsvarande heltid:</span>{" "}
-                <span className="font-semibold">
+                <span className="font-medium text-slate-900">Registrerad tid motsvarande heltid:</span>{" "}
+                <span className="font-semibold text-slate-900">
                   {workedFteMonths.toFixed(1)} mån
                 </span>
               </div>
 
               <div>
-                <span className="font-medium">{totalLabel}:</span>{" "}
-                <span className="font-semibold">
+                <span className="font-medium text-slate-900">{totalLabel}:</span>{" "}
+                <span className="font-semibold text-slate-900">
                   {planMonths} mån
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">
+              <div className="flex flex-wrap items-center gap-2 text-slate-900">
+                <span className="font-medium text-slate-900">
                   Slutdatum för ST vid tjänstgöring på
                 </span>
                 <input
@@ -313,10 +313,10 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                     const v = Number(e.target.value) || 0;
                     setRestAttendance(Math.max(0, Math.min(200, v)));
                   }}
-                  className="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  className="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                 />
-                <span>%:</span>
-                <span className="font-semibold">
+                <span className="text-slate-900">%:</span>
+                <span className="font-semibold text-slate-900">
                   {stEndISO ?? "—"}
                 </span>
               </div>

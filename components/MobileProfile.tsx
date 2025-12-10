@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import { exportAll, downloadJson } from "@/lib/backup";
 
 type Props = {
   open: boolean;
@@ -106,6 +107,8 @@ export default function MobileProfile({ open, onClose }: Props) {
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const lockedCore = !!orig.locked;
 
   const specialtiesSorted = useMemo(
     () => [...SPECIALTIES].sort((a, b) => a.localeCompare(b, "sv")),
@@ -184,6 +187,51 @@ export default function MobileProfile({ open, onClose }: Props) {
     onClose();
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const bundle = await exportAll();
+      const d = new Date().toISOString().slice(0, 10);
+      await downloadJson(bundle, `st-intyg-backup-${d}.json`);
+    } catch (e) {
+      console.error(e);
+      alert("Kunde inte spara filen.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleReset() {
+    if (
+      !confirm(
+        "Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Har du sparat en JSON-export?"
+      )
+    ) {
+      return;
+    }
+
+    // 1) Radera hela IndexedDB-databasen
+    try {
+      await db.delete();
+    } catch {
+      // ignorera ev. fel vid radering av DB
+    }
+
+    // 2) Töm all localStorage (inklusive tidslinje-drafts m.m.)
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.clear();
+      }
+    } catch {
+      // ignorera ev. fel vid radering av localStorage
+    }
+
+    // 3) Ladda om till startsidan i helt rent läge
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -193,11 +241,18 @@ export default function MobileProfile({ open, onClose }: Props) {
         <h1 className="text-base font-semibold text-slate-900">Profil</h1>
         <div className="flex items-center gap-2">
           <button
+            disabled={exporting}
+            onClick={handleExport}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px disabled:opacity-50"
+          >
+            {exporting ? "Sparar..." : "Spara"}
+          </button>
+          <button
             disabled={!dirty || saving}
             onClick={handleSave}
             className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
           >
-            {saving ? "Sparar..." : "Spara"}
+            {saving ? "Sparar..." : "Uppdatera"}
           </button>
           <button
             onClick={requestClose}
@@ -279,14 +334,16 @@ export default function MobileProfile({ open, onClose }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Specialitet + Målversion */}
+            {/* Specialitet + Målversion - LÅSTA */}
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <Labeled>Specialitet</Labeled>
                 <select
                   value={form.specialty}
                   onChange={(e) => setForm({ ...form, specialty: (e.target as HTMLSelectElement).value })}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  disabled={lockedCore}
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-500 cursor-not-allowed"
+                  title={lockedCore ? "För att ändra specialitet krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
                 >
                   <option value="">— Välj —</option>
                   {specialtiesSorted.map((s) => (
@@ -306,7 +363,9 @@ export default function MobileProfile({ open, onClose }: Props) {
                       stTotalMonths: gv === "2021" ? 66 : 60,
                     });
                   }}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  disabled={lockedCore}
+                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-500 cursor-not-allowed"
+                  title={lockedCore ? "För att ändra målversion krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
                 >
                   <option value="2015">SOSFS 2015:8</option>
                   <option value="2021">HSLF-FS 2021:8</option>
@@ -622,6 +681,21 @@ export default function MobileProfile({ open, onClose }: Props) {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Återställ allt */}
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-red-900">Återställ allt</h3>
+              <p className="mb-3 text-xs text-red-700">
+                Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Se till att du har sparat en JSON-export innan du fortsätter.
+              </p>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="rounded-lg border border-red-600 bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 active:translate-y-px"
+              >
+                Återställ allt
+              </button>
             </div>
           </div>
         )}

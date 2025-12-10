@@ -6,16 +6,13 @@ import MobileHome from "./MobileHome";
 import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
 import MobileProfile from "./MobileProfile";
+import MobileIup from "./MobileIup";
 
 const ScanIntygModal = dynamic(
   () => import("@/components/ScanIntygModal"),
   { ssr: false }
 );
 
-const IupModal = dynamic(
-  () => import("@/components/IupModal"),
-  { ssr: false }
-);
 
 type TabKey = "home" | "placements" | "courses" | "iup";
 
@@ -29,7 +26,6 @@ const TABS: { id: TabKey; label: string }[] = [
 export default function MobileAppShell() {
   const [tab, setTab] = useState<TabKey>("home");
   const [scanOpen, setScanOpen] = useState(false);
-  const [iupOpen, setIupOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
@@ -47,15 +43,24 @@ export default function MobileAppShell() {
   return (
     <div className="flex h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-base font-semibold text-slate-900">{title}</h1>
-        <button
-          type="button"
-          onClick={() => setProfileOpen(true)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 active:translate-y-px"
-          title="Profil"
-        >
-          P
-        </button>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-extrabold tracking-tight">
+            <span className="text-sky-700">ST</span>
+            <span className="text-emerald-700">ARK</span>
+          </h1>
+          {title !== "ST-översikt" && (
+            <span className="text-sm font-semibold text-slate-900">{title}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
+          >
+            Profil
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pt-3 pb-16">
@@ -70,20 +75,7 @@ export default function MobileAppShell() {
 
         {tab === "courses" && <MobileCourses />}
 
-        {tab === "iup" && (
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              Här hanteras handledarsamtal och progressionsbedömningar.
-            </div>
-            <button
-              type="button"
-              onClick={() => setIupOpen(true)}
-              className="w-full rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm active:translate-y-px"
-            >
-              Öppna IUP
-            </button>
-          </div>
-        )}
+        {tab === "iup" && <MobileIup />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white">
@@ -124,11 +116,6 @@ export default function MobileAppShell() {
         onClose={() => setScanOpen(false)}
         onSaved={undefined}
         goalsVersion={undefined}
-      />
-
-      <IupModal
-        open={iupOpen}
-        onClose={() => setIupOpen(false)}
       />
 
       <MobileProfile
