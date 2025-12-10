@@ -44,6 +44,18 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
     }
   }, [open, initialTab]);
 
+  // Förhindra scroll på body när popup är öppen
+  useEffect(() => {
+    if (open || detailId) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open, detailId]);
+
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailPlanText, setDetailPlanText] = useState<string>("");
   const [detailDirty, setDetailDirty] = useState(false);
@@ -1027,7 +1039,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
         {/* Body */}
         <section className="flex-1 overflow-y-auto p-5">
           {!goals ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
             </div>
           ) : is2021 ? (
@@ -1164,37 +1176,21 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                 className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                                <header className="flex items-center justify-between border-b px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="mb-1 inline-flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800">
-                        {String((m as any)?.code ?? mid).toLowerCase()}
-                      </span>
-                      <h3 className="m-0 truncate text-[15px] font-extrabold text-slate-900">
-                        <TitleTrimmer text={String((m as any)?.title ?? "Delmål")} />
-                      </h3>
-                    </div>
+                                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
+                      {String((m as any)?.title ?? "Delmål")}
+                    </h3>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSaveDetail(mid)}
-                      disabled={!detailDirty || detailSaving}
-                      className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 hover:border-sky-800 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-              title="Spara ändringar"
-                    >
-                      {detailSaving ? "Spara" : "Spara"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCloseDetail}
-                      className="inline-flex h-[36px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                      title="Stäng"
-                    >
-                      Stäng
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseDetail}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+                    title="Stäng"
+                  >
+                    ✕
+                  </button>
                 </header>
 
 
@@ -1207,7 +1203,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                       <div className="space-y-4">
                         {typeof (m as any).description === "string" &&
                         (m as any).description.trim().length > 0 ? (
-                          <p className="text-[14px] leading-relaxed text-slate-800">
+                          <p className="text-[14px] leading-relaxed text-slate-900">
                             {(m as any).description}
                           </p>
                         ) : null}
@@ -1218,18 +1214,18 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                               (sec: { title?: string; items?: any[]; text?: string }, idx: number) => (
                                 <section key={idx}>
                                   {sec.title ? (
-                                    <div className="mb-1 text-[13px] font-semibold text-slate-700">
+                                    <div className="mb-1 text-[13px] font-semibold text-slate-900">
                                       {sec.title}
                                     </div>
                                   ) : null}
                                   {Array.isArray(sec.items) ? (
-                                    <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-800">
+                                    <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-900">
                                       {sec.items.map((it, i) => (
-                                        <li key={i}>{typeof it === "string" ? it : String(it)}</li>
+                                        <li key={i} className="text-slate-900">{typeof it === "string" ? it : String(it)}</li>
                                       ))}
                                     </ul>
                                   ) : sec.text ? (
-                                    <p className="text-[14px] leading-relaxed text-slate-800">
+                                    <p className="text-[14px] leading-relaxed text-slate-900">
                                       {sec.text}
                                     </p>
                                   ) : null}
@@ -1238,7 +1234,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                             )}
                           </div>
                         ) : !((m as any).description) ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                             Ingen beskrivning hittades i målfilen.
                           </div>
                         ) : null}
@@ -1247,7 +1243,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                       {/* Höger: plan + förslag */}
                       <div className="space-y-3">
                         <div>
-                          <div className="mb-1 text-[13px] font-semibold text-slate-700">
+                          <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Planerade metoder och bedömningsinstrument
                           </div>
                           <textarea
@@ -1257,18 +1253,18 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                               setDetailPlanText(value);
                               setDetailDirty(value !== initialTextForMid);
                             }}
-                            className="w-full rounded-lg border border-slate-300 px-2 py-2 text-[13px] leading-relaxed text-slate-800 shadow-inner focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                            className="w-full rounded-lg border border-slate-300 px-2 py-2 text-[13px] leading-relaxed text-slate-900 shadow-inner focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
                             style={{ minHeight: 120, resize: "vertical" }}
                           />
                         </div>
 
                         <div className="flex h-full flex-col">
-                          <div className="mb-1 text-[13px] font-semibold text-slate-700">
+                          <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Förslag
                           </div>
                           <div className="max-h-[120px] flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
 
-                            <ul className="space-y-1.5 text-[13px] text-slate-800">
+                            <ul className="space-y-1.5 text-[13px] text-slate-900">
                               {suggestionItems.map((s) => (
                                 <li key={s} className="flex items-center gap-2">
                                   <input
@@ -1277,7 +1273,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                                     checked={!!detailSelectedSuggestions[s]}
                                     onChange={() => toggleSuggestion(s)}
                                   />
-                                  <span className="leading-snug">{s}</span>
+                                  <span className="leading-snug text-slate-900">{s}</span>
                                 </li>
                               ))}
                             </ul>
@@ -1286,7 +1282,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                             <button
                               type="button"
                               onClick={addSelectedSuggestions}
-                              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-800 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
                             >
                               Lägg till markerade
                             </button>
@@ -1295,7 +1291,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                       Information saknas för det valda delmålet.
                     </div>
                   )}
@@ -1384,7 +1380,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                         className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px]"
                       >
                         <div className="font-semibold text-slate-900">{it.line1}</div>
-                        {it.line2 && <div className="text-[11px] text-slate-600">{it.line2}</div>}
+                        {it.line2 && <div className="text-[11px] text-slate-900">{it.line2}</div>}
                       </li>
                     ))}
                   </ul>

@@ -15,6 +15,17 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<"bt" | "st">("st");
 
+  React.useEffect(() => {
+    if (open || milestoneModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open, milestoneModalOpen]);
+
   if (!open) return null;
 
   return (

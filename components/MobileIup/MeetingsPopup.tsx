@@ -28,6 +28,17 @@ export default function MeetingsPopup({
 }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (

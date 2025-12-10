@@ -35,6 +35,18 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
   const q = ""; // Sökfunktionalitet borttagen för mobil
 
+  // Förhindra scroll på body när popup är öppen
+  useEffect(() => {
+    if (open || detailId) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open, detailId]);
+
   // Normalisera koder så att "a1", "A1", "STa1" etc hamnar på samma nyckel ("A1")
   const normalizeCode = (raw: string): string => {
     const base = String(raw ?? "").trim().split(/\s|–|-|:|\u2013/)[0];
@@ -286,37 +298,36 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
         {/* Body – två kolumner: A+B vänster, C höger; grå rutor; ingen "Klin/Kurs" här */}
         <section className="max-h-[75vh] overflow-auto p-5">
           {!goals ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               Laddar mål…
             </div>
           ) : groups.A.length + groups.B.length + groups.C.length === 0 ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
-
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               Inga delmål matchar sökningen.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {/* Kolumn 1: Delmål A + B */}
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål A</h3>
+                <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål A</h3>
                 <div className="mb-4 space-y-1.5">
                   {groups.A.map((m) => renderRow(m))}
-                  {groups.A.length === 0 && <div className="text-[12px] text-slate-500">—</div>}
+                  {groups.A.length === 0 && <div className="text-[12px] text-slate-900">—</div>}
                 </div>
 
-                <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål B</h3>
+                <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål B</h3>
                 <div className="space-y-1.5">
                   {groups.B.map((m) => renderRow(m))}
-                  {groups.B.length === 0 && <div className="text-[12px] text-slate-500">—</div>}
+                  {groups.B.length === 0 && <div className="text-[12px] text-slate-900">—</div>}
                 </div>
               </section>
 
               {/* Kolumn 2: Delmål C */}
               <section>
-                <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål C</h3>
+                <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål C</h3>
                 <div className="space-y-1.5">
                   {groups.C.map((m) => renderRow(m))}
-                  {groups.C.length === 0 && <div className="text-[12px] text-slate-500">—</div>}
+                  {groups.C.length === 0 && <div className="text-[12px] text-slate-900">—</div>}
                 </div>
               </section>
             </div>
@@ -389,52 +400,22 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                 className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
-                  {/* Vänster: chip + rubrik i headern */}
+                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
+                  {/* Vänster: rubrik med radbrytning */}
                   <div className="min-w-0 flex-1">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900">
-                        {String((m as any)?.code ?? mid).toLowerCase()}
-                      </span>
-                      <h3 className="truncate text-lg font-extrabold text-emerald-900">
-                        <TitleTrimmer text={String((m as any)?.title ?? "Delmål")} />
-                      </h3>
-                    </div>
+                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
+                      {String((m as any)?.title ?? "Delmål")}
+                    </h3>
                   </div>
 
-
-                  {/* Höger: knappar */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onToggle(mid)}
-                      className={
-                        "inline-flex h-10 w-10 items-center justify-center rounded-full border-2 transition " +
-                        (isMarked
-                          ? "border-emerald-500 bg-emerald-500 hover:bg-emerald-600 active:translate-y-px"
-                          : "border-slate-300 bg-white hover:bg-slate-100 active:translate-y-px")
-                      }
-                      title={isMarked ? "Avmarkera delmål" : "Markera delmål"}
-                    >
-                      {isMarked && (
-                        <svg
-                          viewBox="0 0 20 20"
-                          className="h-5 w-5 text-white"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path d="M5 10.5l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setDetailId(null)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-                      title="Stäng"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  {/* Höger: stäng-knapp */}
+                  <button
+                    onClick={() => setDetailId(null)}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+                    title="Stäng"
+                  >
+                    ✕
+                  </button>
                 </header>
 
 
@@ -446,9 +427,9 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
 
                   {/* Innehåll – visa beskrivning/avsnitt om de finns, annars enkel notis */}
                   {m ? (
-                    <div className="prose prose-slate max-w-none text-[14px] leading-relaxed">
+                    <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
                       {typeof (m as any).description === "string" && (m as any).description.trim().length > 0 ? (
-                        <p>{(m as any).description}</p>
+                        <p className="text-slate-900">{(m as any).description}</p>
                       ) : null}
 
                       {(m as any).sections && Array.isArray((m as any).sections) && (m as any).sections.length > 0 ? (
@@ -456,18 +437,18 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                           {(m as any).sections.map((sec: any, idx: number) => (
                             <div key={idx}>
                               {sec.title ? (
-                                <div className="mb-1 text-[13px] font-semibold text-slate-700">
+                                <div className="mb-1 text-[13px] font-semibold text-slate-900">
                                   {sec.title}
                                 </div>
                               ) : null}
                               {Array.isArray(sec.items) ? (
-                                <ul className="list-disc pl-5 text-[14px]">
+                                <ul className="list-disc pl-5 text-[14px] text-slate-900">
                                   {sec.items.map((it: any, i: number) => (
-                                    <li key={i}>{typeof it === "string" ? it : String(it)}</li>
+                                    <li key={i} className="text-slate-900">{typeof it === "string" ? it : String(it)}</li>
                                   ))}
                                 </ul>
                               ) : sec.text ? (
-                                <p className="text-[14px]">{sec.text}</p>
+                                <p className="text-[14px] text-slate-900">{sec.text}</p>
                               ) : null}
                             </div>
                           ))}
@@ -475,13 +456,13 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                       ) : null}
 
                       {!((m as any).description || (m as any).sections) ? (
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                           Ingen ytterligare information tillgänglig för detta delmål.
                         </div>
                       ) : null}
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                       Information saknas för det valda delmålet.
                     </div>
                   )}

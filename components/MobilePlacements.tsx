@@ -308,6 +308,16 @@ function PlacementEditPopup({
 }) {
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
+
+  // Förhindra scroll på body när popup är öppen
+  React.useEffect(() => {
+    if (true) { // Popup är alltid öppen när den renderas
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const milestonesSet = new Set(placement.milestones || []);
