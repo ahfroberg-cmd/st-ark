@@ -908,120 +908,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
   return (
-      <div className="w-full max-w-[980px] max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+      <div className="w-full max-w-[980px] rounded-2xl bg-white shadow-2xl flex flex-col my-4">
 
         {/* Header */}
         <header className="border-b border-slate-200 bg-emerald-50 px-5 py-4 flex items-center justify-between">
-          <div className="flex-1 flex items-center gap-4">
-  {is2021 ? (
-    <div className="flex items-center gap-4 flex-wrap">
-      
-      {/* 2021 - Vänster: BT/ST-val */}
-      <div className="flex items-center gap-6">
-        <span className="text-[13px] font-semibold text-slate-900">
-          Vilka delmål visas?
-        </span>
-
-        <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-          <input
-            type="radio"
-            className="h-4 w-4.5 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={tab === "bt"}
-            onChange={() => setTab("bt")}
-          />
-          <span>BT-delmål</span>
-        </label>
-
-        <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-          <input
-            type="radio"
-            className="h-4 w-4.5 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={tab === "st"}
-            onChange={() => setTab("st")}
-          />
-          <span>ST-delmål</span>
-        </label>
-      </div>
-
-      {/* 2021 - Höger: Kryssrutor */}
-      <div className="flex items-center gap-4">
-        <span className="text-[13px] font-semibold text-slate-900">
-          Utbildningsaktiviteter:
-        </span>
-
-        <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showDone}
-            onChange={() => setShowDone((v) => !v)}
-          />
-          <span>Genomförda</span>
-        </label>
-
-        <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showOngoing}
-            onChange={() => setShowOngoing((v) => !v)}
-          />
-          <span>Pågående</span>
-        </label>
-
-        <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showPlanned}
-            onChange={() => setShowPlanned((v) => !v)}
-          />
-          <span>Planerade</span>
-        </label>
-      </div>
-
-    </div>
-  ) : (
-    /* 2015 – bara ST, flytta utbildningsaktiviteter till vänster */
-    <div className="flex items-center justify-start gap-6">
-
-      <span className="text-[13px] font-semibold text-slate-900">
-        Utbildningsaktiviteter:
-      </span>
-
-      <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-        <input
-          type="checkbox"
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-          checked={showDone}
-          onChange={() => setShowDone((v) => !v)}
-        />
-        <span>Genomförda</span>
-      </label>
-
-      <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-        <input
-          type="checkbox"
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-          checked={showOngoing}
-          onChange={() => setShowOngoing((v) => !v)}
-        />
-        <span>Pågående</span>
-      </label>
-
-      <label className="inline-flex items-center gap-2 text-[13px] text-slate-800">
-        <input
-          type="checkbox"
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-          checked={showPlanned}
-          onChange={() => setShowPlanned((v) => !v)}
-        />
-        <span>Planerade</span>
-      </label>
-
-    </div>
-  )}
-          </div>
+          <h2 className="text-xl font-extrabold text-emerald-900">
+            {is2021 && tab === "bt" ? "BT-delmål" : "ST-delmål"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -1030,13 +923,53 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
           >
             ✕
           </button>
-</header>
+        </header>
+
+        {/* Utbildningsaktiviteter - under header */}
+        <div className="border-b border-slate-200 px-5 py-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] font-semibold text-slate-900">
+              Utbildningsaktiviteter:
+            </span>
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                  checked={showDone}
+                  onChange={() => setShowDone((v) => !v)}
+                />
+                <span>Genomförda</span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                  checked={showOngoing}
+                  onChange={() => setShowOngoing((v) => !v)}
+                />
+                <span>Pågående</span>
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                  checked={showPlanned}
+                  onChange={() => setShowPlanned((v) => !v)}
+                />
+                <span>Planerade</span>
+              </label>
+            </div>
+          </div>
+        </div>
 
 
 
 
         {/* Body */}
-        <section className="flex-1 overflow-y-auto p-5">
+        <section className="p-5">
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
@@ -1164,7 +1097,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
 
           return (
             <div
-              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-3"
+              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   handleCloseDetail();
@@ -1172,10 +1105,10 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
               }}
             >
               <div
-                className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
+                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
@@ -1192,8 +1125,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
                   </button>
                 </header>
 
-
-                <div className="max-h-[60vh] overflow-y-auto px-4 py-3">
+                <div className="flex-1 overflow-y-auto px-5 py-5">
 
                   {m ? (
                     <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
@@ -1311,38 +1243,42 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
           const m = btMilestones.find((x) => x.id === id) as BtMilestone | undefined;
           return (
             <div
-              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-3"
+              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setDetailId(null);
               }}
             >
               <div
-                className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b px-4 py-3">
-                  <div className="text-[13px] font-semibold text-slate-900">
-                    {id} – {m?.title ?? "BT-delmål"}
+                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
+                      {m?.title ?? "BT-delmål"}
+                    </h3>
                   </div>
                   <button
                     type="button"
                     onClick={() => setDetailId(null)}
-                    className="inline-flex h-[36px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
                     title="Stäng"
                   >
-                    Stäng
+                    ✕
                   </button>
                 </header>
 
-                <div className="px-4 py-3 text-sm text-slate-700">
+                <div className="flex-1 overflow-y-auto px-5 py-5">
                   {m ? (
-                    <ul className="list-disc space-y-1 pl-5">
-                      {m.bullets.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
+                    <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
+                      <ul className="list-disc space-y-2 pl-5 text-slate-900">
+                        {m.bullets.map((b, i) => (
+                          <li key={i} className="text-slate-900">{b}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
-                    <div>Information saknas för {id}.</div>
+                    <div className="text-slate-900">Information saknas för {id}.</div>
                   )}
                 </div>
               </div>
@@ -1456,10 +1392,10 @@ function StGrid({
   openList: (kind: "klin" | "kurs", m: GoalsMilestone) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
       {/* Kolumn 1: Delmål A + B */}
       <section>
-        <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål A</h3>
+        <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål A</h3>
         <div className="mb-4 space-y-1.5">
           {groups.A.map((m) => {
             const { p, c } = countsFor(m.id);
@@ -1468,19 +1404,12 @@ function StGrid({
                 <button
                   type="button"
                   onClick={() => openDetail(m.id)}
-                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-800 hover:bg-slate-100"
+                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
-                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
-                    {(
-                      (m.code ?? "").includes("-")
-                        ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
-
+                  <span className="truncate text-[12px] text-slate-900">
+                    {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
-
-                  <TitleTrimmer text={m.title} className="truncate text-[12px]" />
                 </button>
 
                 <div className="flex items-center gap-1.5">
@@ -1519,7 +1448,7 @@ function StGrid({
           })}
         </div>
 
-        <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål B</h3>
+        <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål B</h3>
         <div className="space-y-1.5">
           {groups.B.map((m) => {
             const { p, c } = countsFor(m.id);
@@ -1528,18 +1457,12 @@ function StGrid({
                 <button
                   type="button"
                   onClick={() => openDetail(m.id)}
-                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-800 hover:bg-slate-100"
+                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
-                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
-                    {(
-                      (m.code ?? "").includes("-")
-                        ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                  <span className="truncate text-[12px] text-slate-900">
+                    {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
-
-                  <TitleTrimmer text={m.title} className="truncate text-[12px]" />
                 </button>
 
                 <div className="flex items-center gap-1.5">
@@ -1581,7 +1504,7 @@ function StGrid({
 
       {/* Kolumn 2: Delmål C */}
       <section>
-        <h3 className="mb-2 text-[12px] font-semibold text-slate-700">Delmål C</h3>
+        <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål C</h3>
         <div className="space-y-1.5">
           {groups.C.map((m) => {
             const { p, c } = countsFor(m.id);
@@ -1590,14 +1513,12 @@ function StGrid({
                 <button
                   type="button"
                   onClick={() => openDetail(m.id)}
-                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-800 hover:bg-slate-100"
+                  className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
                 >
-                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
-                    {(m.code ?? "").includes("-") ? (m.code ?? "").split("-")[0] : (m.code ?? "")}
+                  <span className="truncate text-[12px] text-slate-900">
+                    {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
                   </span>
-
-                  <TitleTrimmer text={m.title} className="truncate text-[12px]" />
                 </button>
 
                 <div className="flex items-center gap-1.5">
@@ -1660,13 +1581,12 @@ function BtList({
             <button
               type="button"
               onClick={() => openDetail(row.code)}
-              className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-800 hover:bg-slate-100"
+              className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
               title="Visa information om delmålet"
             >
-              <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
-                {row.code}
+              <span className="truncate text-[12px] text-slate-900">
+                {(m?.title ?? "BT-delmål").length > 50 ? (m?.title ?? "BT-delmål").slice(0, 50) + "..." : (m?.title ?? "BT-delmål")}
               </span>
-              <TitleTrimmer text={m?.title ?? "BT-delmål"} className="truncate text-[12px]" />
             </button>
 
             <div className="flex items-center gap-1.5">

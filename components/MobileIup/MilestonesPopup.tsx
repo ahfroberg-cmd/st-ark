@@ -97,7 +97,7 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
           }}
         >
           <div
-            className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="w-full max-w-[980px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <MilestoneOverviewPanel
