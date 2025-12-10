@@ -65,16 +65,17 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
+                    console.log("[MilestonesPopup] BT button clicked");
+                    const newTab: "bt" | "st" = "bt";
+                    setSelectedTab(newTab);
+                    setInitialTab(newTab);
                     if (milestoneModalOpen) {
                       setMilestoneModalOpen(false);
                       setTimeout(() => {
-                        setSelectedTab("bt");
-                        setInitialTab("bt");
+                        console.log("[MilestonesPopup] Reopening with tab:", newTab);
                         setMilestoneModalOpen(true);
-                      }, 50);
+                      }, 100);
                     } else {
-                      setSelectedTab("bt");
-                      setInitialTab("bt");
                       setMilestoneModalOpen(true);
                     }
                   }}
@@ -85,16 +86,17 @@ export default function MilestonesPopup({ open, onClose, onOpenModal }: Props) {
                 <button
                   type="button"
                   onClick={() => {
+                    console.log("[MilestonesPopup] ST button clicked");
+                    const newTab: "bt" | "st" = "st";
+                    setSelectedTab(newTab);
+                    setInitialTab(newTab);
                     if (milestoneModalOpen) {
                       setMilestoneModalOpen(false);
                       setTimeout(() => {
-                        setSelectedTab("st");
-                        setInitialTab("st");
+                        console.log("[MilestonesPopup] Reopening with tab:", newTab);
                         setMilestoneModalOpen(true);
-                      }, 50);
+                      }, 100);
                     } else {
-                      setSelectedTab("st");
-                      setInitialTab("st");
                       setMilestoneModalOpen(true);
                     }
                   }}

@@ -34,6 +34,11 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [showDone, setShowDone] = useState(true);
+  
+  // Always sync tab with initialTab when it changes
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
   const [showOngoing, setShowOngoing] = useState(true);
   const [showPlanned, setShowPlanned] = useState(true);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -53,7 +58,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
   // Popup "Inget kopplat"
   const [notMetOpen, setNotMetOpen] = useState(false);
 
-  // Set initial tab when opening
+  // Always sync tab with initialTab
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
+  
+  // Also set tab when opening (in case initialTab hasn't changed)
   useEffect(() => {
     if (open) {
       setTab(initialTab);
@@ -909,6 +919,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab = "st" }: Pro
 
   // Use tab directly for BT check - if user selected BT, show BT regardless of is2021
   const isBtTab = tab === "bt";
+  
+  // Debug logging
+  useEffect(() => {
+    if (open) {
+      console.log("[MilestoneOverviewPanel] open:", open, "tab:", tab, "initialTab:", initialTab, "isBtTab:", isBtTab);
+    }
+  }, [open, tab, initialTab, isBtTab]);
 
   return (
       <div className="w-full max-w-[980px] max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
