@@ -70,13 +70,38 @@ function Input({
       inputMode={inputMode}
       autoComplete="off"
       spellCheck={false}
-      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
     />
   );
 }
 
 function Labeled({ children }: { children: React.ReactNode }) {
   return <label className="mb-1 block text-xs font-medium text-slate-900">{children}</label>;
+}
+
+function Select({
+  value,
+  onChange,
+  children,
+  disabled,
+  className = "",
+}: {
+  value: any;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className={`h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300 ${className}`}
+    >
+      {children}
+    </select>
+  );
 }
 
 export default function MobileProfile({ open, onClose }: Props) {
@@ -264,113 +289,106 @@ export default function MobileProfile({ open, onClose }: Props) {
       {/* Innehåll */}
       <main className="flex-1 overflow-y-auto px-4 py-4">
         {tab === "person" ? (
-          <div className="space-y-3">
-            <div>
+          <div className="space-y-4">
+            <div className="space-y-2">
               <Labeled>Namn</Labeled>
               <Input value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
             </div>
-            <div>
+            <div className="space-y-2">
               <Labeled>Personnummer</Labeled>
               <Input value={form.personalNumber} onChange={(v) => setForm({ ...form, personalNumber: v })} inputMode="numeric" />
             </div>
-            <div>
+            <div className="space-y-2">
               <Labeled>Utdelningsadress</Labeled>
               <Input value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div>
+              <div className="space-y-2">
                 <Labeled>Postnummer</Labeled>
                 <Input value={form.postalCode} onChange={(v) => setForm({ ...form, postalCode: v })} inputMode="numeric" />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Labeled>Postort</Labeled>
                 <Input value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
               </div>
             </div>
-            <div>
+            <div className="space-y-2">
               <Labeled>E-postadress</Labeled>
               <Input value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Labeled>Mobiltelefon</Labeled>
-                <Input value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} inputMode="tel" />
-              </div>
-              <div>
-                <Labeled>Telefon (bostad)</Labeled>
-                <Input value={form.phoneHome} onChange={(v) => setForm({ ...form, phoneHome: v })} inputMode="tel" />
-              </div>
-              <div>
-                <Labeled>Telefon (arbete)</Labeled>
-                <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" />
-              </div>
+            <div className="space-y-2">
+              <Labeled>Mobiltelefon</Labeled>
+              <Input value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} inputMode="tel" />
+            </div>
+            <div className="space-y-2">
+              <Labeled>Telefon (bostad)</Labeled>
+              <Input value={form.phoneHome} onChange={(v) => setForm({ ...form, phoneHome: v })} inputMode="tel" />
+            </div>
+            <div className="space-y-2">
+              <Labeled>Telefon (arbete)</Labeled>
+              <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" />
             </div>
             <p className="mt-4 text-xs leading-relaxed text-slate-600">
               <strong>Lagring:</strong> Allt sparas endast lokalt i din webbläsare. Ingen server används.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Specialitet + Målversion - LÅSTA */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Labeled>Specialitet</Labeled>
-                <select
-                  value={form.specialty}
-                  onChange={(e) => setForm({ ...form, specialty: (e.target as HTMLSelectElement).value })}
-                  disabled={lockedCore}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
-                  title={lockedCore ? "För att ändra specialitet krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
-                >
-                  <option value="">— Välj —</option>
-                  {specialtiesSorted.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Labeled>Målversion</Labeled>
-                <select
-                  value={form.goalsVersion}
-                  onChange={(e) => {
-                    const gv = (e.target as HTMLSelectElement).value as any;
-                    setForm({
-                      ...form,
-                      goalsVersion: gv,
-                      stTotalMonths: gv === "2021" ? 66 : 60,
-                    });
-                  }}
-                  disabled={lockedCore}
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm text-slate-900 cursor-not-allowed"
-                  title={lockedCore ? "För att ändra målversion krävs att du återställer allt längre ned. Detta raderar all lokal data." : undefined}
-                >
-                  <option value="2015">SOSFS 2015:8</option>
-                  <option value="2021">HSLF-FS 2021:8</option>
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Labeled>Specialitet</Labeled>
+              <Select
+                value={form.specialty}
+                onChange={(v) => setForm({ ...form, specialty: v })}
+                disabled={lockedCore}
+                className={lockedCore ? "bg-slate-100 cursor-not-allowed" : ""}
+              >
+                <option value="">— Välj —</option>
+                {specialtiesSorted.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Labeled>Målversion</Labeled>
+              <Select
+                value={form.goalsVersion}
+                onChange={(v) => {
+                  const gv = v as any;
+                  setForm({
+                    ...form,
+                    goalsVersion: gv,
+                    stTotalMonths: gv === "2021" ? 66 : 60,
+                  });
+                }}
+                disabled={lockedCore}
+                className={lockedCore ? "bg-slate-100 cursor-not-allowed" : ""}
+              >
+                <option value="2015">SOSFS 2015:8</option>
+                <option value="2021">HSLF-FS 2021:8</option>
+              </Select>
             </div>
 
             {/* BT/ST-startdatum + ST-längd (endast 2021) */}
             {form.goalsVersion === "2021" && (
-              <div className="grid grid-cols-1 gap-3">
-                <div>
+              <>
+                <div className="space-y-2">
                   <Labeled>Startdatum för BT/ST</Labeled>
                   <CalendarDatePicker
                     value={form.btStartDate || ""}
                     onChange={(v: string) => setForm({ ...form, btStartDate: v })}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Labeled>ST-längd i månader (inklusive BT)</Labeled>
-                  <select
+                  <Select
                     value={String(form.stTotalMonths ?? 66)}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       setForm({
                         ...form,
-                        stTotalMonths: Number((e.target as HTMLSelectElement).value),
+                        stTotalMonths: Number(v),
                       })
                     }
-                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                   >
                     {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
                       const isSix = m % 6 === 0;
@@ -385,32 +403,31 @@ export default function MobileProfile({ open, onClose }: Props) {
                         </option>
                       );
                     })}
-                  </select>
+                  </Select>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Startdatum ST (endast 2015) */}
             {form.goalsVersion === "2015" && (
-              <div className="grid grid-cols-1 gap-3">
-                <div>
+              <>
+                <div className="space-y-2">
                   <Labeled>Startdatum för ST</Labeled>
                   <CalendarDatePicker
                     value={form.stStartDate || ""}
                     onChange={(v: string) => setForm({ ...form, stStartDate: v })}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Labeled>ST-längd i månader</Labeled>
-                  <select
+                  <Select
                     value={String(form.stTotalMonths ?? 60)}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       setForm({
                         ...form,
-                        stTotalMonths: Number((e.target as HTMLSelectElement).value),
+                        stTotalMonths: Number(v),
                       })
                     }
-                    className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                   >
                     {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
                       const isSix = m % 6 === 0;
@@ -425,19 +442,19 @@ export default function MobileProfile({ open, onClose }: Props) {
                         </option>
                       );
                     })}
-                  </select>
+                  </Select>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Hemklinik */}
-            <div>
+            <div className="space-y-2">
               <Labeled>Hemklinik</Labeled>
               <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} />
             </div>
 
             {/* Huvudhandledare */}
-            <div>
+            <div className="space-y-2">
               <Labeled>Huvudhandledare</Labeled>
               <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} />
               <label className="mt-2 inline-flex items-center gap-2 text-xs select-none">
@@ -462,7 +479,7 @@ export default function MobileProfile({ open, onClose }: Props) {
             </div>
 
             {/* Studierektor */}
-            <div>
+            <div className="space-y-2">
               <Labeled>Studierektor</Labeled>
               <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} />
               <label className="mt-2 inline-flex items-center gap-2 text-xs select-none">
@@ -481,15 +498,13 @@ export default function MobileProfile({ open, onClose }: Props) {
             </div>
 
             {/* Chef + Verksamhetschef */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Labeled>Chef</Labeled>
-                <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} />
-              </div>
-              <div>
-                <Labeled>Verksamhetschef</Labeled>
-                <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} />
-              </div>
+            <div className="space-y-2">
+              <Labeled>Chef</Labeled>
+              <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} />
+            </div>
+            <div className="space-y-2">
+              <Labeled>Verksamhetschef</Labeled>
+              <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} />
             </div>
 
             {/* Land + Datum för läkarexamen */}

@@ -75,6 +75,78 @@ function pickPercent(p: PlacementRow): number {
   return Math.max(0, Math.min(200, n));
 }
 
+/** Kontrollera om två datumintervall överlappar */
+function datesOverlap(
+  start1: string,
+  end1: string,
+  start2: string,
+  end2: string
+): boolean {
+  if (!start1 || !end1 || !start2 || !end2) return false;
+  return start1 <= end2 && start2 <= end1;
+}
+
+/** Hitta närmaste tillgängliga datum efter en given datum */
+function findNextAvailableDate(
+  targetDate: string,
+  existingPlacements: PlacementRow[],
+  currentPlacementId: any,
+  isStartDate: boolean
+): string {
+  if (!targetDate) return targetDate;
+
+  // Sortera placeringar efter startdatum
+  const sorted = [...existingPlacements]
+    .filter((p) => p.id !== currentPlacementId && p.startDate && p.endDate)
+    .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""));
+
+  if (isStartDate) {
+    // För startdatum: hitta första tillgängliga datum efter alla överlappande
+    let candidate = targetDate;
+    let changed = false;
+
+    for (const p of sorted) {
+      const start = p.startDate || "";
+      const end = p.endDate || "";
+
+      if (datesOverlap(candidate, candidate, start, end)) {
+        // Överlappar - flytta till dagen efter slutet
+        const endDate = new Date(end + "T00:00:00");
+        endDate.setDate(endDate.getDate() + 1);
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, "0");
+        const day = String(endDate.getDate()).padStart(2, "0");
+        candidate = `${year}-${month}-${day}`;
+        changed = true;
+      }
+    }
+
+    return changed ? candidate : targetDate;
+  } else {
+    // För slutdatum: hitta första tillgängliga datum före alla överlappande
+    let candidate = targetDate;
+    let changed = false;
+
+    for (const p of sorted) {
+      const start = p.startDate || "";
+      const end = p.endDate || "";
+
+      if (datesOverlap(candidate, candidate, start, end)) {
+        // Överlappar - flytta till dagen före starten
+        const startDate = new Date(start + "T00:00:00");
+        startDate.setDate(startDate.getDate() - 1);
+        const year = startDate.getFullYear();
+        const month = String(startDate.getMonth() + 1).padStart(2, "0");
+        const day = String(startDate.getDate()).padStart(2, "0");
+        candidate = `${year}-${month}-${day}`;
+        changed = true;
+      }
+    }
+
+    return changed ? candidate : targetDate;
+  }
+}
+
 export default function MobilePlacements() {
   const [rows, setRows] = useState<PlacementRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,6 +362,7 @@ export default function MobilePlacements() {
           saving={saving}
           onUpdate={setEditing}
           isDirty={isDirty}
+          allPlacements={rows}
         />
       )}
             </div>
@@ -304,6 +377,7 @@ function PlacementEditPopup({
   saving,
   onUpdate,
   isDirty,
+  allPlacements,
 }: {
   placement: PlacementRow;
   onSave: () => void;
@@ -311,6 +385,7 @@ function PlacementEditPopup({
   saving: boolean;
   onUpdate: (p: PlacementRow) => void;
   isDirty: boolean;
+  allPlacements: PlacementRow[];
 }) {
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
@@ -437,18 +512,30 @@ function PlacementEditPopup({
                 <div className="space-y-2">
                   <CalendarDatePicker
                     value={placement.startDate ?? ""}
-                    onChange={(v) =>
-                      onUpdate({ ...placement, startDate: v })
-                    }
+                    onChange={(v) => {
+                      const adjusted = findNextAvailableDate(
+                        v,
+                        allPlacements,
+                        placement.id,
+                        true
+                      );
+                      onUpdate({ ...placement, startDate: adjusted });
+                    }}
                     label="Startdatum"
                   />
                 </div>
                 <div className="space-y-2">
                   <CalendarDatePicker
                     value={placement.endDate ?? ""}
-                    onChange={(v) =>
-                      onUpdate({ ...placement, endDate: v })
-                    }
+                    onChange={(v) => {
+                      const adjusted = findNextAvailableDate(
+                        v,
+                        allPlacements,
+                        placement.id,
+                        false
+                      );
+                      onUpdate({ ...placement, endDate: adjusted });
+                    }}
                     label="Slutdatum"
                 />
               </div>

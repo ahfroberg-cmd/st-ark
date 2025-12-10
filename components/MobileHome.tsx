@@ -319,9 +319,6 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="text-sm font-medium text-slate-900">Kliniska tjänstgöringar</div>
-            <div className="mt-1 text-lg font-semibold text-slate-900">
-              {placements.length}
-            </div>
             {(() => {
               const today = todayISO();
               const ongoing = placements.filter((p: any) => {
@@ -335,15 +332,19 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               }).sort((a: any, b: any) => (a.startDate || "").localeCompare(b.startDate || ""));
               
               return (
-                <div className="mt-2 space-y-1 text-xs text-slate-900">
+                <div className="mt-2 space-y-2 text-xs text-slate-900">
                   {ongoing.length > 0 && (
                     <div>
-                      Pågående: {ongoing[0].startDate || ""} – {ongoing[0].endDate || ""}
+                      <div className="font-medium">Pågående:</div>
+                      <div className="mt-0.5 break-words">{ongoing[0].clinic || "Klinik saknas"}</div>
+                      <div className="text-slate-600">{ongoing[0].startDate || ""} – {ongoing[0].endDate || ""}</div>
                     </div>
                   )}
                   {upcoming.length > 0 && (
                     <div>
-                      Nästa: {upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}
+                      <div className="font-medium">Nästa:</div>
+                      <div className="mt-0.5 break-words">{upcoming[0].clinic || "Klinik saknas"}</div>
+                      <div className="text-slate-600">{upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}</div>
                     </div>
                   )}
                 </div>
@@ -353,7 +354,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
           <div className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="text-sm font-medium text-slate-900">Profil</div>
             <div className="mt-2 space-y-1 text-xs text-slate-900">
-              <div><strong>Namn:</strong> {profile?.name || "—"}</div>
+              <div className="break-words">{profile?.name || "—"}</div>
               <div><strong>Huvudhandledare:</strong> {(profile as any)?.supervisor || "—"}</div>
               <div><strong>Studierektor:</strong> {(profile as any)?.studyDirector || "—"}</div>
               <div><strong>Chef:</strong> {(profile as any)?.manager || "—"}</div>
