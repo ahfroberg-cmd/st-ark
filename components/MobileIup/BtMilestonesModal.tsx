@@ -10,14 +10,14 @@ type Props = {
 };
 
 export default function BtMilestonesModal({ open, onClose }: Props) {
-  const [mountKey, setMountKey] = React.useState(0);
+  const [mountKey, setMountKey] = React.useState(() => Date.now());
 
   React.useEffect(() => {
     if (open) {
       console.log("[BtMilestonesModal] Opening BT modal");
       document.body.style.overflow = "hidden";
-      // Force remount when opening
-      setMountKey(prev => prev + 1);
+      // Force remount when opening with new timestamp
+      setMountKey(Date.now());
     } else {
       document.body.style.overflow = "";
     }
@@ -42,7 +42,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <MilestoneOverviewPanel
-          key={`bt-milestones-${mountKey}`}
+          key={`bt-only-${mountKey}`}
           open={true}
           initialTab="bt"
           onClose={onClose}
