@@ -674,6 +674,15 @@ export async function ocrImage(
       hasBox: !!(data as any)?.box,
     }, null, 2));
     
+    // Logga blocks oavsett vad det är
+    console.log("[OCR DEBUG] blocksDirect direkt:", JSON.stringify({
+      isUndefined: blocksDirect === undefined,
+      isNull: blocksDirect === null,
+      type: typeof blocksDirect,
+      isArray: Array.isArray(blocksDirect),
+      value: blocksDirect,
+    }, null, 2));
+    
     // Om blocks/layoutBlocks är objekt men inte arrays, undersök strukturen
     if (blocksDirect !== undefined && blocksDirect !== null && typeof blocksDirect === "object" && !Array.isArray(blocksDirect)) {
       const blockKeys = Object.keys(blocksDirect);
@@ -687,17 +696,18 @@ export async function ocrImage(
         firstKey: firstKey,
         firstValueType: firstValue ? typeof firstValue : null,
         firstValueIsArray: Array.isArray(firstValue),
-        firstValueKeys: firstValue && typeof firstValue === "object" ? Object.keys(firstValue) : null,
-        firstValueSample: firstValue && typeof firstValue === "object" ? {
+        firstValueKeys: firstValue && firstValue !== null && typeof firstValue === "object" ? Object.keys(firstValue) : null,
+        firstValueSample: firstValue && firstValue !== null && typeof firstValue === "object" ? {
           hasParagraphs: Array.isArray(firstValue.paragraphs),
           hasLines: Array.isArray(firstValue.lines),
           hasWords: Array.isArray(firstValue.words),
           hasSymbols: Array.isArray(firstValue.symbols),
         } : null,
         // Försök konvertera till array
-        asArray: Object.values(blocksDirect),
         asArrayLength: Object.values(blocksDirect).length,
-        firstArrayItem: Object.values(blocksDirect).length > 0 ? Object.values(blocksDirect)[0] : null,
+        firstArrayItemKeys: Object.values(blocksDirect).length > 0 && Object.values(blocksDirect)[0] !== null && typeof Object.values(blocksDirect)[0] === "object" 
+          ? Object.keys(Object.values(blocksDirect)[0]) 
+          : null,
       }, null, 2));
     }
     
