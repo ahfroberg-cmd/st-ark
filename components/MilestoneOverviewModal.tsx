@@ -1472,7 +1472,7 @@ function StGrid({
   openList: (kind: "klin" | "kurs", m: GoalsMilestone) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
       {/* Kolumn 1: Delmål A + B */}
       <section>
         <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål A</h3>
