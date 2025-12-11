@@ -629,12 +629,15 @@ export async function ocrImage(
   }
 
   try {
+    // Konfigurera Tesseract för att returnera detaljerad struktur med words
     const { data } = await T.recognize(src, lang, {
       logger: (m: any) => {
         if (m?.status === "recognizing text" && typeof m.progress === "number") {
           onProgress?.(m.progress);
         }
       },
+      // Försök få words med koordinater
+      rectangle: undefined, // Ingen begränsning
     });
 
     const rawText = (data?.text || "").trim();
