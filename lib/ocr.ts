@@ -854,7 +854,39 @@ export async function ocrImage(
         return data.words;
       }
       
-      // Försök extrahera från BOX-formatet först (enklare format)
+      // Försök extrahera från HOCR-formatet först (HTML-format med word-koordinater)
+      const hocrValue = (data as any)?.hocr;
+      if (hocrValue && typeof hocrValue === "string" && hocrValue.trim().length > 0) {
+        console.log("[OCR DEBUG] Försöker extrahera words från HOCR-format, längd:", hocrValue.length);
+        // HOCR-format: HTML med <span class="ocrx_word" title="bbox X Y W H">text</span>
+        const wordRegex = /<span[^>]*class="ocrx_word"[^>]*title="bbox\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)"[^>]*>([^<]*)<\/span>/gi;
+        let match;
+        while ((match = wordRegex.exec(hocrValue)) !== null) {
+          const x0 = parseInt(match[1], 10);
+          const y0 = parseInt(match[2], 10);
+          const x1 = parseInt(match[3], 10);
+          const y1 = parseInt(match[4], 10);
+          const text = match[5]?.trim();
+          
+          if (text && !isNaN(x0) && !isNaN(y0) && !isNaN(x1) && !isNaN(y1)) {
+            words.push({
+              text: text,
+              bbox: {
+                x0: x0,
+                y0: y0,
+                x1: x1,
+                y1: y1,
+              },
+            });
+          }
+        }
+        if (words.length > 0) {
+          console.log("[OCR DEBUG] Extraherade", words.length, "words från HOCR");
+          return words;
+        }
+      }
+      
+      // Försök extrahera från BOX-formatet (enklare format)
       const boxValue = (data as any)?.box;
       if (boxValue && typeof boxValue === "string" && boxValue.trim().length > 0) {
         console.log("[OCR DEBUG] Försöker extrahera words från BOX-format, längd:", boxValue.length);
