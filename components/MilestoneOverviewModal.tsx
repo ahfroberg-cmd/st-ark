@@ -1672,7 +1672,7 @@ function BtList({
   openList: (kind: "intyg", m: { code: string }) => void;
 }) {
   return (
-    <div className="grid gap-2 md:grid-cols-2">
+    <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {btRows.map((row) => {
         const m = btMilestones.find((x) => x.id.toUpperCase() === row.code.toUpperCase());
         const total = (row.klinCount ?? 0) + (row.kursCount ?? 0);

@@ -506,18 +506,43 @@ function CourseEditPopup({
                   </label>
 
                   {/* BT-delmål */}
-                  <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBtMilestonePickerOpen(true)}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                    >
+                      BT-delmål
+                    </button>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {course.btMilestones && course.btMilestones.length > 0 ? (
+                        course.btMilestones.map((m: string) => (
+                          <span
+                            key={m}
+                            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
+                          >
+                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-900 text-sm">—</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ST-delmål (visas bara om "Uppfyller ST-delmål" är ikryssad) */}
+                  {course.fulfillsStGoals && (
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setBtMilestonePickerOpen(true)}
+                        onClick={() => setMilestonePickerOpen(true)}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                       >
-                        BT-delmål
+                        ST-delmål
                       </button>
                       <div className="flex items-center gap-1 flex-wrap">
-                        {course.btMilestones && course.btMilestones.length > 0 ? (
-                          course.btMilestones.map((m: string) => (
+                        {course.milestones && course.milestones.length > 0 ? (
+                          sortMilestoneIds(course.milestones).map((m: string) => (
                             <span
                               key={m}
                               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
@@ -528,35 +553,6 @@ function CourseEditPopup({
                         ) : (
                           <span className="text-slate-900 text-sm">—</span>
                         )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ST-delmål (visas bara om "Uppfyller ST-delmål" är ikryssad) */}
-                  {course.fulfillsStGoals && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setMilestonePickerOpen(true)}
-                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-                        >
-                          ST-delmål
-                        </button>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {course.milestones && course.milestones.length > 0 ? (
-                            sortMilestoneIds(course.milestones).map((m: string) => (
-                              <span
-                                key={m}
-                                className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
-                              >
-                                {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-slate-900 text-sm">—</span>
-                          )}
-                        </div>
                       </div>
                     </div>
                   )}
