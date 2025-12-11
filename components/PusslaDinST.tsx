@@ -2225,6 +2225,18 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
   setSelectedCourseId(null);
 }
 
+  async function deleteSelectedPlacement() {
+    if (!selectedPlacement) return;
+    const a = selectedPlacement;
+    if (a.linkedPlacementId) {
+      try {
+        await db.placements.delete(a.linkedPlacementId);
+      } catch {}
+    }
+    setActivities((prev) => prev.filter((x) => x.id !== a.id));
+    setSelectedPlacementId(null);
+    await refreshLists();
+  }
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -2802,7 +2814,19 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
                   title={`${MONTH_NAMES[monthIndex]} ${year} · ${i%2 ? "H2" : "H1"}`}
                   onMouseEnter={() => setHover({ row: rowIndex, col: i })}
                   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
-                  onClick={() => { setSelectedCourseId(null); addActivityAt(globalSlot); }}
+                  onClick={() => {
+                    // Om något är valt, stäng detaljrutan med varning om dirty
+                    if (selectedPlacementId || selectedCourseId) {
+                      if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+                      setDirty(false);
+                      setSelectedPlacementId(null);
+                      setSelectedCourseId(null);
+                    } else {
+                      // Annars skapa ny aktivitet
+                      setSelectedCourseId(null);
+                      addActivityAt(globalSlot);
+                    }
+                  }}
                   style={{ gridRowStart: 1 }}
                 />
               );
@@ -2838,8 +2862,17 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
   onClick={(e) => {
     e.stopPropagation();
-    setSelectedPlacementId(null);
-    createCourseAt(defaultISO);
+    // Om något är valt, stäng detaljrutan med varning om dirty
+    if (selectedPlacementId || selectedCourseId) {
+      if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+      setDirty(false);
+      setSelectedPlacementId(null);
+      setSelectedCourseId(null);
+    } else {
+      // Annars skapa ny kurs
+      setSelectedPlacementId(null);
+      createCourseAt(defaultISO);
+    }
   }}
 />
 
@@ -4664,6 +4697,37 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 // --- ändringsflagga för panelen ---
 const [dirty, setDirty] = useState(false);
 useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
+
+// Keyboard handler för Delete-tangenten
+useEffect(() => {
+  function handleKeyDown(e: KeyboardEvent) {
+    // Ignorera om användaren skriver i ett input-fält
+    if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") {
+      return;
+    }
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (selectedPlacement) {
+        if (dirty) {
+          if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
+        } else {
+          if (!confirm("Vill du ta bort vald aktivitet?")) return;
+        }
+        deleteSelectedPlacement();
+      } else if (selectedCourse) {
+        if (dirty) {
+          if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
+        } else {
+          if (!confirm("Vill du ta bort vald aktivitet?")) return;
+        }
+        deleteSelectedCourse();
+      }
+    }
+  }
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [selectedPlacement, selectedCourse, dirty]);
 
 
   // === Spara hela tidslinjen till DB så PrepareApplication/Profil/rapport läser samma källa ===
