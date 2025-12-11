@@ -675,7 +675,7 @@ export async function ocrImage(
     }, null, 2));
     
     // Om blocks/layoutBlocks är objekt men inte arrays, undersök strukturen
-    if (blocksDirect !== undefined && typeof blocksDirect === "object" && !Array.isArray(blocksDirect)) {
+    if (blocksDirect !== undefined && blocksDirect !== null && typeof blocksDirect === "object" && !Array.isArray(blocksDirect)) {
       const blockKeys = Object.keys(blocksDirect);
       const firstKey = blockKeys.length > 0 ? blockKeys[0] : null;
       const firstValue = firstKey ? blocksDirect[firstKey] : null;
@@ -701,7 +701,7 @@ export async function ocrImage(
       }, null, 2));
     }
     
-    if (layoutBlocksDirect !== undefined && typeof layoutBlocksDirect === "object" && !Array.isArray(layoutBlocksDirect)) {
+    if (layoutBlocksDirect !== undefined && layoutBlocksDirect !== null && typeof layoutBlocksDirect === "object" && !Array.isArray(layoutBlocksDirect)) {
       const layoutKeys = Object.keys(layoutBlocksDirect);
       const firstLayoutKey = layoutKeys.length > 0 ? layoutKeys[0] : null;
       const firstLayoutValue = firstLayoutKey ? layoutBlocksDirect[firstLayoutKey] : null;
@@ -741,7 +741,7 @@ export async function ocrImage(
     }
     
     // Logga blocks/layoutBlocks om de finns men inte är arrays
-    if (blocksValue && !Array.isArray(blocksValue)) {
+    if (blocksValue && blocksValue !== null && !Array.isArray(blocksValue)) {
       const blockKeys = Object.keys(blocksValue);
       const firstBlockKey = blockKeys.length > 0 ? blockKeys[0] : null;
       const firstBlockValue = firstBlockKey ? blocksValue[firstBlockKey] : null;
@@ -760,7 +760,7 @@ export async function ocrImage(
         } : null,
       }, null, 2));
     }
-    if (layoutBlocksValue && !Array.isArray(layoutBlocksValue)) {
+    if (layoutBlocksValue && layoutBlocksValue !== null && !Array.isArray(layoutBlocksValue)) {
       const layoutKeys = Object.keys(layoutBlocksValue);
       const firstLayoutKey = layoutKeys.length > 0 ? layoutKeys[0] : null;
       const firstLayoutValue = firstLayoutKey ? layoutBlocksValue[firstLayoutKey] : null;
@@ -821,7 +821,7 @@ export async function ocrImage(
               linesLength: Array.isArray(firstBlock.paragraphs[0]?.lines) ? firstBlock.paragraphs[0].lines.length : 0,
             }
           : null,
-        firstLine: Array.isArray(firstBlock?.lines) && firstBlock.lines.length > 0
+        firstLine: Array.isArray(firstBlock?.lines) && firstBlock.lines.length > 0 && firstBlock.lines[0] !== null && typeof firstBlock.lines[0] === "object"
           ? {
               keys: Object.keys(firstBlock.lines[0]),
               hasWords: Array.isArray(firstBlock.lines[0]?.words),
