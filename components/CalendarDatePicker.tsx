@@ -160,8 +160,8 @@ export default function CalendarDatePicker({
                 rootRef.current &&
                 !rootRef.current.contains(target)
               ) {
-              e.stopPropagation();
-              setOpen(false);
+                e.stopPropagation();
+                setOpen(false);
               }
             }}
             onClick={(e) => {
@@ -172,8 +172,23 @@ export default function CalendarDatePicker({
                 calendarRef.current &&
                 !calendarRef.current.contains(target) &&
                 rootRef.current &&
-                !rootRef.current.querySelector('button')?.contains(target)
+                !rootRef.current.contains(target)
               ) {
+                e.stopPropagation();
+                setOpen(false);
+              }
+            }}
+            onTouchStart={(e) => {
+              // Förhindra touch events från att gå igenom
+              const target = e.target as HTMLElement;
+              if (
+                target === e.currentTarget &&
+                calendarRef.current &&
+                !calendarRef.current.contains(target) &&
+                rootRef.current &&
+                !rootRef.current.contains(target)
+              ) {
+                e.stopPropagation();
                 setOpen(false);
               }
             }}
@@ -184,12 +199,21 @@ export default function CalendarDatePicker({
             ref={calendarRef}
             role="dialog"
             aria-modal="true"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
             onMouseDownCapture={(e) => {
               e.stopPropagation();
               // Förhindra att backdrop stänger kalendern när man klickar på kalendern
             }}
             onClick={(e) => {
               // Förhindra att klicket bubblar upp till backdrop
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchEnd={(e) => {
               e.stopPropagation();
             }}
             style={
@@ -255,6 +279,19 @@ export default function CalendarDatePicker({
                           e.stopPropagation();  // bubbla inte upp (första klicket stannar här)
                           if (!inMonth || day == null) return;
                           pick(viewYear, viewMonth, day);  // sätter onChange + stänger
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!inMonth || day == null) return;
+                          pick(viewYear, viewMonth, day);
+                        }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
                         }}
                         className={[
                           "h-9 select-none rounded-md bg-white text-sm transition",

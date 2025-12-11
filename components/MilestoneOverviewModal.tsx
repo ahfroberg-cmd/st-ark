@@ -960,7 +960,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     value="st"
                     checked={tab === "st"}
                     onChange={() => setTab("st")}
-                    className="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    className="h-4 w-4.5 border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
                   <span className="text-sm font-medium text-slate-900">ST-delmål</span>
                 </label>
@@ -971,7 +971,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     value="bt"
                     checked={tab === "bt"}
                     onChange={() => setTab("bt")}
-                    className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-500"
+                    className="h-4 w-4.5 border-slate-300 text-sky-600 focus:ring-sky-500"
                   />
                   <span className="text-sm font-medium text-slate-900">BT-delmål</span>
                 </label>
