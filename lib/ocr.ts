@@ -780,32 +780,14 @@ export async function ocrImage(
       }, null, 2));
     }
     
-    // Logga blocks/layoutBlocks om de finns men inte är arrays
-    if (blocksValue && !Array.isArray(blocksValue)) {
-      console.log("[OCR DEBUG] blocks (inte array):", JSON.stringify({
-        type: typeof blocksValue,
-        isArray: Array.isArray(blocksValue),
-        keys: Object.keys(blocksValue),
-        firstKey: Object.keys(blocksValue)[0],
-        firstValue: Object.keys(blocksValue).length > 0 ? blocksValue[Object.keys(blocksValue)[0]] : null,
-      }, null, 2));
-    }
-    if (layoutBlocksValue && !Array.isArray(layoutBlocksValue)) {
-      console.log("[OCR DEBUG] layoutBlocks (inte array):", JSON.stringify({
-        type: typeof layoutBlocksValue,
-        isArray: Array.isArray(layoutBlocksValue),
-        keys: Object.keys(layoutBlocksValue),
-        firstKey: Object.keys(layoutBlocksValue)[0],
-        firstValue: Object.keys(layoutBlocksValue).length > 0 ? layoutBlocksValue[Object.keys(layoutBlocksValue)[0]] : null,
-      }, null, 2));
-    }
+    // Logga blocks/layoutBlocks om de finns men inte är arrays (ta bort duplicerad loggning)
     
     // Logga första blocket i detalj om det finns (efter konvertering)
-    const blocksArray = Array.isArray(blocksValue) ? blocksValue : (blocksValue && typeof blocksValue === "object" ? Object.values(blocksValue) : []);
-    const layoutBlocksArray = Array.isArray(layoutBlocksValue) ? layoutBlocksValue : (layoutBlocksValue && typeof layoutBlocksValue === "object" ? Object.values(layoutBlocksValue) : []);
+    const blocksArray = Array.isArray(blocksValue) ? blocksValue : (blocksValue && blocksValue !== null && typeof blocksValue === "object" ? Object.values(blocksValue) : []);
+    const layoutBlocksArray = Array.isArray(layoutBlocksValue) ? layoutBlocksValue : (layoutBlocksValue && layoutBlocksValue !== null && typeof layoutBlocksValue === "object" ? Object.values(layoutBlocksValue) : []);
     const firstBlock = blocksArray.length > 0 ? blocksArray[0] : (layoutBlocksArray.length > 0 ? layoutBlocksArray[0] : null);
     
-    if (firstBlock) {
+    if (firstBlock && firstBlock !== null && typeof firstBlock === "object") {
       console.log("[OCR DEBUG] Första blocket:", JSON.stringify({
         keys: Object.keys(firstBlock),
         hasParagraphs: Array.isArray(firstBlock?.paragraphs),
@@ -814,7 +796,7 @@ export async function ocrImage(
         linesLength: Array.isArray(firstBlock?.lines) ? firstBlock.lines.length : 0,
         hasWords: Array.isArray(firstBlock?.words),
         wordsLength: Array.isArray(firstBlock?.words) ? firstBlock.words.length : 0,
-        firstParagraph: Array.isArray(firstBlock?.paragraphs) && firstBlock.paragraphs.length > 0 
+        firstParagraph: Array.isArray(firstBlock?.paragraphs) && firstBlock.paragraphs.length > 0 && firstBlock.paragraphs[0] !== null && typeof firstBlock.paragraphs[0] === "object"
           ? {
               keys: Object.keys(firstBlock.paragraphs[0]),
               hasLines: Array.isArray(firstBlock.paragraphs[0]?.lines),
@@ -893,11 +875,11 @@ export async function ocrImage(
       } else if (Array.isArray(data?.blocks)) {
         console.log("[OCR DEBUG] Använder blocks:", data.blocks.length);
         blocksToProcess = data.blocks;
-      } else if (data?.blocks && typeof data.blocks === "object") {
+      } else if (data?.blocks && data.blocks !== null && typeof data.blocks === "object" && !Array.isArray(data.blocks)) {
         // Om blocks är ett objekt, försök konvertera till array
         console.log("[OCR DEBUG] blocks är objekt, försöker konvertera");
         blocksToProcess = Object.values(data.blocks);
-      } else if (data?.layoutBlocks && typeof data.layoutBlocks === "object") {
+      } else if (data?.layoutBlocks && data.layoutBlocks !== null && typeof data.layoutBlocks === "object" && !Array.isArray(data.layoutBlocks)) {
         // Om layoutBlocks är ett objekt, försök konvertera till array
         console.log("[OCR DEBUG] layoutBlocks är objekt, försöker konvertera");
         blocksToProcess = Object.values(data.layoutBlocks);
