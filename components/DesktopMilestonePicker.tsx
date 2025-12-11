@@ -26,9 +26,11 @@ type Props = {
   checked: Set<string>;
   onToggle: (milestoneId: string) => void;
   onClose: () => void;
+  /** Om true: visa bara "Stäng"-knapp i detaljvyn, ingen kryssruta */
+  readOnly?: boolean;
 };
 
-export default function DesktopMilestonePicker({ open, title, goals, checked, onToggle, onClose }: Props) {
+export default function DesktopMilestonePicker({ open, title, goals, checked, onToggle, onClose, readOnly = false }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
   const q = ""; // Sökfunktionalitet borttagen
@@ -388,9 +390,9 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
           open={true}
           milestone={detailMilestone}
           onClose={() => setDetailId(null)}
-          selectable={true}
+          selectable={!readOnly}
           checked={isDetailChecked}
-          onToggle={(id) => {
+          onToggle={readOnly ? undefined : (id) => {
             onToggle(id);
             setDetailId(null);
           }}

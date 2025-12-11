@@ -26,9 +26,11 @@ type Props = {
   /** Toggle en kod (vi skickar tillbaka "BT1" o.s.v.) */
   onToggle: (btCode: string) => void;
   onClose: () => void;
+  /** Om true: visa bara "Stäng"-knapp i detaljvyn, ingen kryssruta */
+  readOnly?: boolean;
 };
 
-export default function DesktopBtMilestonePicker({ open, title, checked, onToggle, onClose }: Props) {
+export default function DesktopBtMilestonePicker({ open, title, checked, onToggle, onClose, readOnly = false }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
 
@@ -211,40 +213,52 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "flex-end",
                 gap: 8,
                 padding: "10px 12px",
                 borderTop: "1px solid #e5e7eb",
               }}
             >
-              <button
-                onClick={() => {
-                  onToggle(String(detailId).toUpperCase());
-                  setDetailId(null);
-                }}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid",
-                  borderRadius: 10,
-                  background: isDetailChecked ? "#ef4444" : "#10b981",
-                  borderColor: isDetailChecked ? "#ef4444" : "#10b981",
-                  color: "#fff",
-                  fontWeight: 600,
-                }}
-              >
-                {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
-              </button>
-              <div style={{ marginLeft: "auto" }} />
-              <button
-                onClick={() => setDetailId(null)}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #d0d7de",
-                  borderRadius: 10,
-                  background: "#fff",
-                }}
-              >
-                Stäng
-              </button>
+              {readOnly ? (
+                <button
+                  onClick={() => setDetailId(null)}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                >
+                  Stäng
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      onToggle(String(detailId).toUpperCase());
+                      setDetailId(null);
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid",
+                      borderRadius: 10,
+                      background: isDetailChecked ? "#ef4444" : "#10b981",
+                      borderColor: isDetailChecked ? "#ef4444" : "#10b981",
+                      color: "#fff",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
+                  </button>
+                  <div style={{ marginLeft: "auto" }} />
+                  <button
+                    onClick={() => setDetailId(null)}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #d0d7de",
+                      borderRadius: 10,
+                      background: "#fff",
+                    }}
+                  >
+                    Stäng
+                  </button>
+                </>
+              )}
             </footer>
           </div>
         </div>

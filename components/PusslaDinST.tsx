@@ -12,9 +12,11 @@ import ReportPrintModal from "@/components/ReportPrintModal";
 import IupModal from "@/components/IupModal";
 
 
-import type { GoalsCatalog } from "@/lib/goals";
+import type { GoalsCatalog, GoalsMilestone } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
+import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 
 import dynamic from "next/dynamic";
 const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ssr: false });
@@ -1180,6 +1182,16 @@ const [milestonePicker, setMilestonePicker] = useState<{ open: boolean; mode: "c
 const [btMilestonePicker, setBtMilestonePicker] = useState<{ open: boolean; mode: "course" | "placement" | null }>({
   open: false,
   mode: null,
+});
+
+// State för informationsrutor för delmål (från chips)
+const [stMilestoneDetail, setStMilestoneDetail] = useState<{ open: boolean; milestoneId: string | null }>({
+  open: false,
+  milestoneId: null,
+});
+const [btMilestoneDetail, setBtMilestoneDetail] = useState<{ open: boolean; milestoneId: string | null }>({
+  open: false,
+  milestoneId: null,
 });
 
 
@@ -5685,12 +5697,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             <div className="flex items-center gap-1 flex-wrap">
               {(selectedPlacement as any)?.btMilestones?.length > 0 ? (
                 sortMilestoneIds(((selectedPlacement as any).btMilestones || []) as string[]).map((m: string) => (
-                  <span
+                  <button
                     key={`bt-${m}`}
-                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                    type="button"
+                    onClick={() => setBtMilestoneDetail({ open: true, milestoneId: m })}
+                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
                   >
                     {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                  </span>
+                  </button>
                 ))
               ) : (
                 <span className="text-slate-400 text-sm">—</span>
@@ -5712,12 +5726,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <div className="flex items-center gap-1 flex-wrap">
                 {(selectedPlacement as any)?.milestones?.length > 0 ? (
                   (selectedPlacement as any).milestones.map((m: string) => (
-                    <span
+                    <button
                       key={`st-${m}`}
-                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                      type="button"
+                      onClick={() => setStMilestoneDetail({ open: true, milestoneId: m })}
+                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
                     >
                       {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                    </span>
+                    </button>
                   ))
                 ) : (
                   <span className="text-slate-400 text-sm">—</span>
@@ -5742,12 +5758,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <div className="flex items-center gap-1 flex-wrap">
           {selectedPlacement?.id && (selectedPlacement as any)?.milestones?.length > 0 ? (
             sortMilestoneIds(((selectedPlacement as any).milestones || []) as string[]).map((m: string) => (
-              <span
+              <button
                 key={m}
-                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                type="button"
+                onClick={() => setStMilestoneDetail({ open: true, milestoneId: m })}
+                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
               >
                 {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-              </span>
+              </button>
             ))
           ) : (
             <span className="text-slate-400 text-sm">—</span>
