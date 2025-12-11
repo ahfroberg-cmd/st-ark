@@ -1,7 +1,7 @@
 // components/PusslaDinST.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/db";
 import { liveQuery } from "dexie";
@@ -4709,7 +4709,15 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 const [dirty, setDirty] = useState(false);
 useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
 
-// Keyboard handler för Delete-tangenten
+// Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
+const closeDetailPanel = useCallback(() => {
+  if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+  setDirty(false);
+  setSelectedPlacementId(null);
+  setSelectedCourseId(null);
+}, [dirty]);
+
+// Keyboard handler för Delete-tangenten och Esc
 useEffect(() => {
   function handleKeyDown(e: KeyboardEvent) {
     // Ignorera om användaren skriver i ett input-fält
@@ -4734,11 +4742,18 @@ useEffect(() => {
         deleteSelectedCourse();
       }
     }
+
+    // Esc-tangent: stäng detaljrutan (samma som "Stäng"-knappen)
+    if (e.key === "Escape") {
+      if (selectedPlacement || selectedCourse) {
+        closeDetailPanel();
+      }
+    }
   }
 
   window.addEventListener("keydown", handleKeyDown);
   return () => window.removeEventListener("keydown", handleKeyDown);
-}, [selectedPlacement, selectedCourse, dirty]);
+}, [selectedPlacement, selectedCourse, dirty, closeDetailPanel]);
 
 
   // === Spara hela tidslinjen till DB så PrepareApplication/Profil/rapport läser samma källa ===
@@ -5937,12 +5952,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
           <button
-  onClick={() => {
-    if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
-    setDirty(false);
-    setSelectedPlacementId(null);
-    setSelectedCourseId(null);
-  }}
+  onClick={closeDetailPanel}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
   title="Stäng panelen"
 >
@@ -6266,7 +6276,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             {/* Visningsläge: intervall vs datum */}
       <div>
         <label className="block text-sm text-slate-700">
-          Visning
+          Visa i tidslinjen
         </label>
         <select
           className="w-full h-9.5 rounded-lg border px-3"
@@ -6288,8 +6298,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             setDirty(true);
           }}
         >
-          <option value="interval">Visa som tidsintervall</option>
-          <option value="date">Visa slutdatum</option>
+          <option value="interval">Start till slut</option>
+          <option value="date">Enbart slutdatum</option>
         </select>
       </div>
 
@@ -6546,12 +6556,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
           <button
-  onClick={() => {
-    if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
-    setDirty(false);
-    setSelectedCourseId(null);
-    setSelectedPlacementId(null);
-  }}
+  onClick={closeDetailPanel}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
   title="Stäng panelen"
 >
