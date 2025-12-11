@@ -29,7 +29,6 @@ type Props = {
 };
 
 export default function BtMilestonePicker({ open, title, checked, onToggle, onClose }: Props) {
-  const [q, setQ] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
 
@@ -41,22 +40,16 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
     return () => window.removeEventListener("keydown", h);
   }, [open, onClose]);
 
-  // Filtrerad BT-lista (BT saknar A/B/C-grupper)
+  // BT-lista (ingen filtrering - sökfältet är borttaget)
   const list = useMemo<BtMilestone[]>(() => {
-    const base = Array.isArray(btMilestones) ? btMilestones : [];
-    const qlc = q.trim().toLowerCase();
-    if (!qlc) return base;
-    return base.filter((m) => {
-      const hay = [m.id, m.title, ...(m.bullets ?? [])].join(" ").toLowerCase();
-      return hay.includes(qlc);
-    });
-  }, [q]);
+    return Array.isArray(btMilestones) ? btMilestones : [];
+  }, []);
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[260] grid place-items-center bg-black/40 p-3"
+      className="fixed inset-0 z-[260] flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -64,36 +57,23 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header – identisk struktur/klasser som i MilestonePicker */}
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="m-0 text-lg font-extrabold text-slate-900">{title}</h2>
-            <p className="mt-1 text-[12px] leading-snug text-slate-700">
-              Klicka på ett delmål för info. Kryssa i rutan till höger för att välja.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Sök i BT-delmål…"
-              className="h-[40px] w-52 rounded-lg border border-slate-300 bg-white px-3 text-[14px] text-slate-900 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
-            />
-            <button
-              onClick={onClose}
-              className="inline-flex h-[40px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              title="Stäng"
-            >
-              Stäng
-            </button>
-          </div>
+        {/* Header – matchar mobilversionens design */}
+        <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
+          <h2 className="text-xl font-extrabold text-sky-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+            title="Stäng"
+          >
+            ✕
+          </button>
         </header>
 
         {/* Body – samma kort/rad-stil som i MilestonePicker (checkbox inuti rutan) */}
-        <section className="max-h-[75vh] overflow-auto p-4">
+        <section className="flex-1 overflow-y-auto p-5">
           {list.length === 0 ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
               Inga BT-delmål matchar sökningen.
@@ -113,7 +93,7 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
           )}
         </section>
 
-        {/* Detalj-popup – design lik MilestonePicker, data från btMilestones (som i MilestoneOverviewModal) */}
+        {/* Detalj-popup – design lik mobilversionens modaler */}
         {detailId && (() => {
           const id = String(detailId).toUpperCase();
           const m = btMilestones.find((x) => x.id === id);
@@ -121,59 +101,64 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
 
           return (
             <div
-              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-3"
+              className="fixed inset-0 z-[270] flex items-center justify-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setDetailId(null);
               }}
             >
               <div
-                className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+                className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="mb-1 inline-flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-800">
-                        {id}
-                      </span>
-                      <h3 className="m-0 truncate text-[15px] font-extrabold text-slate-900">
-                        <TitleTrimmer text={m?.title ?? "BT-delmål"} />
-                      </h3>
-                    </div>
+                <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+                      {id.toLowerCase()}
+                    </span>
+                    <h3 className="text-base sm:text-lg font-extrabold text-sky-900 break-words">
+                      {m?.title ?? "BT-delmål"}
+                    </h3>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onToggle(id)}
-                      className={
-                        "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-white " +
-                        (isMarked
-                          ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
-                          : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
-                      }
-                    >
-                      {isMarked ? "Avmarkera delmål" : "Markera delmål"}
-                    </button>
-                    <button
-                      onClick={() => setDetailId(null)}
-                      className="inline-flex h-[36px] items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                      title="Stäng"
-                    >
-                      Stäng
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setDetailId(null)}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+                    title="Stäng"
+                  >
+                    ✕
+                  </button>
                 </header>
 
-                <div className="px-4 py-4">
+                <div className="flex-1 overflow-y-auto px-5 py-5">
                   {m ? (
-                    <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-800">
-                      {m.bullets.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
+                    <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
+                      <ul className="list-disc space-y-2 pl-5 text-slate-900">
+                        {m.bullets.map((b, i) => (
+                          <li key={i} className="text-slate-900">{b}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
                     <div className="text-[14px] text-slate-700">Information saknas för {id}.</div>
                   )}
+                </div>
+
+                {/* Footer med knappar */}
+                <div className="border-t border-slate-200 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggle(id);
+                      setDetailId(null);
+                    }}
+                    className={
+                      "w-full inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition " +
+                      (isMarked
+                        ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
+                        : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
+                    }
+                  >
+                    {isMarked ? "Avmarkera delmål" : "Markera delmål"}
+                  </button>
                 </div>
               </div>
             </div>
