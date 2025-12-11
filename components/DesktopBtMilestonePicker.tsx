@@ -55,8 +55,6 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
 
   const isDetailChecked = detailId ? checked.has(String(detailId).toUpperCase()) : false;
 
-  const isDetailChecked = detailId ? checked.has(String(detailId).toUpperCase()) : false;
-
   if (!open) return null;
 
   return (

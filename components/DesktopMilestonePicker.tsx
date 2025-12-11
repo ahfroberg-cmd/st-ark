@@ -412,11 +412,16 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
       </div>
 
       {/* Detalj-popup – matchar IUP->Delmål design men read-only */}
-      {detailId && detailMilestone && (() => {
+      {detailId && (() => {
         const m = detailMilestone;
         const mid = detailId;
         const planText = planByMilestone[mid] ?? "";
-        const titleCode = String((m as any)?.code ?? mid).toLowerCase();
+        const titleCode = m ? String((m as any)?.code ?? mid).toLowerCase() : String(mid).toLowerCase();
+        
+        // Debug: logga om detailMilestone är null
+        if (!m) {
+          console.log("[DesktopMilestonePicker] detailId:", detailId, "detailMilestone:", m, "goals:", goals);
+        }
 
         const suggestionItems: string[] = [
           "Klinisk tjänstgöring",
