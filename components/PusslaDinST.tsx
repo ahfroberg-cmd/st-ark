@@ -4709,6 +4709,14 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 const [dirty, setDirty] = useState(false);
 useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
 
+// Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
+const closeDetailPanel = useCallback(() => {
+  if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+  setDirty(false);
+  setSelectedPlacementId(null);
+  setSelectedCourseId(null);
+}, [dirty]);
+
 // Keyboard handler för Delete-tangenten
 useEffect(() => {
   function handleKeyDown(e: KeyboardEvent) {
