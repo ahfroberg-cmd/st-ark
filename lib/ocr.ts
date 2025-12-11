@@ -674,18 +674,70 @@ export async function ocrImage(
       hasBox: !!(data as any)?.box,
     }, null, 2));
     
-    // Om blocks/layoutBlocks är undefined men finns i keys, försök hämta dem direkt
-    if (blocksDirect === undefined && data && 'blocks' in data) {
-      try {
-        const blocksTry = (data as any)['blocks'];
-        console.log("[OCR DEBUG] blocks via bracket notation:", JSON.stringify({
-          type: typeof blocksTry,
-          isArray: Array.isArray(blocksTry),
-          value: blocksTry,
-        }, null, 2));
-      } catch (e) {
-        console.log("[OCR DEBUG] Kunde inte hämta blocks:", e);
-      }
+    // Om blocks/layoutBlocks är objekt men inte arrays, undersök strukturen
+    if (blocksDirect !== undefined && typeof blocksDirect === "object" && !Array.isArray(blocksDirect)) {
+      const blockKeys = Object.keys(blocksDirect);
+      const firstKey = blockKeys.length > 0 ? blockKeys[0] : null;
+      const firstValue = firstKey ? blocksDirect[firstKey] : null;
+      console.log("[OCR DEBUG] blocks (objekt, inte array):", JSON.stringify({
+        type: typeof blocksDirect,
+        isArray: Array.isArray(blocksDirect),
+        keys: blockKeys,
+        keysLength: blockKeys.length,
+        firstKey: firstKey,
+        firstValueType: firstValue ? typeof firstValue : null,
+        firstValueIsArray: Array.isArray(firstValue),
+        firstValueKeys: firstValue && typeof firstValue === "object" ? Object.keys(firstValue) : null,
+        firstValueSample: firstValue && typeof firstValue === "object" ? {
+          hasParagraphs: Array.isArray(firstValue.paragraphs),
+          hasLines: Array.isArray(firstValue.lines),
+          hasWords: Array.isArray(firstValue.words),
+          hasSymbols: Array.isArray(firstValue.symbols),
+        } : null,
+        // Försök konvertera till array
+        asArray: Object.values(blocksDirect),
+        asArrayLength: Object.values(blocksDirect).length,
+        firstArrayItem: Object.values(blocksDirect).length > 0 ? Object.values(blocksDirect)[0] : null,
+      }, null, 2));
+    }
+    
+    if (layoutBlocksDirect !== undefined && typeof layoutBlocksDirect === "object" && !Array.isArray(layoutBlocksDirect)) {
+      const layoutKeys = Object.keys(layoutBlocksDirect);
+      const firstLayoutKey = layoutKeys.length > 0 ? layoutKeys[0] : null;
+      const firstLayoutValue = firstLayoutKey ? layoutBlocksDirect[firstLayoutKey] : null;
+      console.log("[OCR DEBUG] layoutBlocks (objekt, inte array):", JSON.stringify({
+        type: typeof layoutBlocksDirect,
+        isArray: Array.isArray(layoutBlocksDirect),
+        keys: layoutKeys,
+        keysLength: layoutKeys.length,
+        firstKey: firstLayoutKey,
+        firstValueType: firstLayoutValue ? typeof firstLayoutValue : null,
+        firstValueIsArray: Array.isArray(firstLayoutValue),
+        firstValueKeys: firstLayoutValue && typeof firstLayoutValue === "object" ? Object.keys(firstLayoutValue) : null,
+        firstValueSample: firstLayoutValue && typeof firstLayoutValue === "object" ? {
+          hasParagraphs: Array.isArray(firstLayoutValue.paragraphs),
+          hasLines: Array.isArray(firstLayoutValue.lines),
+          hasWords: Array.isArray(firstLayoutValue.words),
+          hasSymbols: Array.isArray(firstLayoutValue.symbols),
+        } : null,
+        // Försök konvertera till array
+        asArray: Object.values(layoutBlocksDirect),
+        asArrayLength: Object.values(layoutBlocksDirect).length,
+        firstArrayItem: Object.values(layoutBlocksDirect).length > 0 ? Object.values(layoutBlocksDirect)[0] : null,
+      }, null, 2));
+    }
+    
+    // Kolla om TSV faktiskt finns men är tom eller null
+    if (data && 'tsv' in data) {
+      const tsvValue = (data as any).tsv;
+      console.log("[OCR DEBUG] TSV-värde:", JSON.stringify({
+        exists: 'tsv' in data,
+        type: typeof tsvValue,
+        isString: typeof tsvValue === "string",
+        length: typeof tsvValue === "string" ? tsvValue.length : null,
+        isEmpty: typeof tsvValue === "string" ? tsvValue.trim().length === 0 : null,
+        firstChars: typeof tsvValue === "string" && tsvValue.length > 0 ? tsvValue.substring(0, 200) : null,
+      }, null, 2));
     }
     
     // Logga blocks/layoutBlocks om de finns men inte är arrays
