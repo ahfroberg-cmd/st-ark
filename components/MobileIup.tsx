@@ -26,6 +26,9 @@ export default function MobileIup() {
   const [loading, setLoading] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showMeetingsOnTimeline, setShowMeetingsOnTimeline] = useState<boolean>(true);
+  const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] = useState<boolean>(true);
+  const [planningHidden, setPlanningHidden] = useState<Set<string>>(new Set());
   
   // Editing states
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
@@ -69,6 +72,13 @@ export default function MobileIup() {
         const loadedInstruments = row?.instruments && Array.isArray(row.instruments) && row.instruments.length > 0
           ? [...row.instruments]
           : DEFAULT_INSTRUMENTS;
+        const loadedShowMeetings = typeof row?.showMeetingsOnTimeline === "boolean" ? row.showMeetingsOnTimeline : true;
+        const loadedShowAssessments = typeof row?.showAssessmentsOnTimeline === "boolean" ? row.showAssessmentsOnTimeline : true;
+        const loadedPlanningHidden = Array.isArray(row?.planningHidden) 
+          ? new Set<string>(row.planningHidden)
+          : row?.planningHidden instanceof Set
+          ? row.planningHidden
+          : new Set<string>();
 
         if (!cancelled) {
           setMeetings(loadedMeetings);
@@ -76,6 +86,9 @@ export default function MobileIup() {
           setPlanning(loadedPlanning);
           setPlanningExtra(loadedPlanningExtra);
           setInstruments(loadedInstruments);
+          setShowMeetingsOnTimeline(loadedShowMeetings);
+          setShowAssessmentsOnTimeline(loadedShowAssessments);
+          setPlanningHidden(loadedPlanningHidden);
           setDirty(false);
         }
       } catch (e) {
@@ -102,6 +115,9 @@ export default function MobileIup() {
           planning,
           planningExtra,
           instruments,
+          showMeetingsOnTimeline,
+          showAssessmentsOnTimeline,
+          planningHidden: Array.from(planningHidden),
         });
       }
       setDirty(false);
@@ -109,7 +125,7 @@ export default function MobileIup() {
       console.error("Kunde inte spara IUP-data:", e);
       throw e;
     }
-  }, [meetings, assessments, planning, planningExtra, instruments]);
+  }, [meetings, assessments, planning, planningExtra, instruments, showMeetingsOnTimeline, showAssessmentsOnTimeline, planningHidden]);
 
   // Meeting handlers
   const addMeeting = useCallback(() => {

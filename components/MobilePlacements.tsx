@@ -11,6 +11,8 @@ import type { Profile } from "@/lib/types";
 type PlacementRow = {
   id: any;
   clinic?: string;
+  title?: string;
+  leaveSubtype?: string;
   note?: string;
   startDate?: string;
   endDate?: string;
@@ -26,6 +28,11 @@ type PlacementRow = {
   milestones?: string[];
   btMilestones?: string[];
   fulfillsStGoals?: boolean;
+  supervisor?: string;
+  supervisorSpeciality?: string;
+  supervisorSite?: string;
+  btAssessment?: string;
+  showOnTimeline?: boolean;
 };
 
 function fmtDate(iso?: string): string {
@@ -254,18 +261,28 @@ export default function MobilePlacements() {
       const isExisting = rows.some((r) => r.id === editing.id);
 
       const attendance = pickPercent(editing);
+      const placementType = editing.type ?? editing.kind ?? editing.category ?? "";
+      const isLeaveType = placementType === "Annan ledighet";
+      
       const patch: PlacementRow = {
         id: editing.id,
-        clinic: editing.clinic ?? "",
+        type: placementType,
+        clinic: isLeaveType ? undefined : (editing.clinic ?? ""),
+        title: isLeaveType ? (editing.leaveSubtype ?? "") : (editing.clinic ?? ""),
+        leaveSubtype: isLeaveType ? (editing.leaveSubtype ?? "") : "",
         note: editing.note ?? "",
         startDate: fmtDate(editing.startDate),
         endDate: fmtDate(editing.endDate),
         attendance,
-        phase: editing.phase || undefined,
-        type: editing.type ?? editing.kind ?? editing.category ?? "",
-        kind: editing.type ?? editing.kind ?? editing.category ?? "",
-        category: editing.type ?? editing.kind ?? editing.category ?? "",
+        phase: editing.phase || "ST",
+        supervisor: editing.supervisor ?? "",
+        supervisorSpeciality: editing.supervisorSpeciality ?? "",
+        supervisorSite: editing.supervisorSite ?? "",
+        btAssessment: editing.btAssessment ?? "",
+        showOnTimeline: true,
         milestones: editing.milestones || [],
+        btMilestones: editing.btMilestones || [],
+        fulfillsStGoals: !!editing.fulfillsStGoals,
       };
 
       if (isExisting) {

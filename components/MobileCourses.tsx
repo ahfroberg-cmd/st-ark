@@ -12,9 +12,11 @@ type CourseRow = {
   id: any;
   title?: string;
   courseName?: string;
+  kind?: string;
   provider?: string;
   site?: string;
   city?: string;
+  courseLeaderName?: string;
   startDate?: string;
   endDate?: string;
   certificateDate?: string;
@@ -23,6 +25,9 @@ type CourseRow = {
   phase?: "BT" | "ST";
   btMilestones?: string[];
   fulfillsStGoals?: boolean;
+  btAssessment?: string;
+  showOnTimeline?: boolean;
+  showAsInterval?: boolean;
 };
 
 function fmtDate(iso?: string): string {
@@ -155,16 +160,21 @@ export default function MobileCourses() {
 
       const patch: CourseRow = {
         id: editing.id,
-        title: editing.title ?? editing.courseName ?? "",
-        courseName: editing.courseName ?? "",
-        provider: editing.provider ?? "",
-        site: editing.site ?? "",
+        title: editing.title ?? editing.courseName ?? "Kurs",
+        kind: editing.kind ?? "Kurs",
         city: editing.city ?? "",
+        courseLeaderName: editing.courseLeaderName ?? editing.provider ?? "",
         startDate: fmtDate(editing.startDate),
         endDate: fmtDate(editing.endDate),
         certificateDate: fmtDate(editing.certificateDate),
         note: editing.note ?? "",
+        showOnTimeline: true,
         milestones: editing.milestones || [],
+        btMilestones: editing.btMilestones || [],
+        fulfillsStGoals: !!editing.fulfillsStGoals,
+        phase: editing.phase || "ST",
+        btAssessment: editing.btAssessment ?? "",
+        showAsInterval: editing.showAsInterval || false,
       };
 
       if (isExisting) {
