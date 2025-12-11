@@ -640,6 +640,9 @@ export async function ocrImage(
     const rawText = (data?.text || "").trim();
 
     // DEBUG: Logga vad Tesseract returnerar
+    const blocksValue = (data as any)?.blocks;
+    const layoutBlocksValue = (data as any)?.layoutBlocks;
+    
     console.log("[OCR DEBUG] Tesseract data-struktur:", JSON.stringify({
       hasData: !!data,
       hasText: !!data?.text,
@@ -647,11 +650,14 @@ export async function ocrImage(
       hasWords: Array.isArray((data as any)?.words),
       wordsLength: Array.isArray((data as any)?.words) ? (data as any).words.length : 0,
       dataKeys: data ? Object.keys(data) : [],
-      hasBlocks: Array.isArray((data as any)?.blocks),
-      blocksLength: Array.isArray((data as any)?.blocks) ? (data as any).blocks.length : 0,
-      firstBlockKeys: Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0 
-        ? Object.keys((data as any).blocks[0]) 
-        : [],
+      hasBlocks: Array.isArray(blocksValue),
+      blocksType: blocksValue ? typeof blocksValue : "undefined",
+      blocksIsArray: Array.isArray(blocksValue),
+      blocksLength: Array.isArray(blocksValue) ? blocksValue.length : (blocksValue ? "not array" : 0),
+      hasLayoutBlocks: Array.isArray(layoutBlocksValue),
+      layoutBlocksType: layoutBlocksValue ? typeof layoutBlocksValue : "undefined",
+      layoutBlocksIsArray: Array.isArray(layoutBlocksValue),
+      layoutBlocksLength: Array.isArray(layoutBlocksValue) ? layoutBlocksValue.length : (layoutBlocksValue ? "not array" : 0),
       hasSymbols: Array.isArray((data as any)?.symbols),
       symbolsLength: Array.isArray((data as any)?.symbols) ? (data as any).symbols.length : 0,
       hasLines: Array.isArray((data as any)?.lines),
@@ -660,9 +666,72 @@ export async function ocrImage(
       paragraphsLength: Array.isArray((data as any)?.paragraphs) ? (data as any).paragraphs.length : 0,
     }, null, 2));
     
-    // Logga första blocket i detalj om det finns
-    if (Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0) {
-      const firstBlock = (data as any).blocks[0];
+    // Logga blocks/layoutBlocks om de finns men inte är arrays
+    if (blocksValue && !Array.isArray(blocksValue)) {
+      const blockKeys = Object.keys(blocksValue);
+      const firstBlockKey = blockKeys.length > 0 ? blockKeys[0] : null;
+      const firstBlockValue = firstBlockKey ? blocksValue[firstBlockKey] : null;
+      console.log("[OCR DEBUG] blocks (inte array):", JSON.stringify({
+        type: typeof blocksValue,
+        keys: blockKeys,
+        keysLength: blockKeys.length,
+        firstKey: firstBlockKey,
+        firstValueType: firstBlockValue ? typeof firstBlockValue : null,
+        firstValueIsArray: Array.isArray(firstBlockValue),
+        firstValueKeys: firstBlockValue && typeof firstBlockValue === "object" ? Object.keys(firstBlockValue) : null,
+        firstValueSample: firstBlockValue && typeof firstBlockValue === "object" ? {
+          hasParagraphs: Array.isArray(firstBlockValue.paragraphs),
+          hasLines: Array.isArray(firstBlockValue.lines),
+          hasWords: Array.isArray(firstBlockValue.words),
+        } : null,
+      }, null, 2));
+    }
+    if (layoutBlocksValue && !Array.isArray(layoutBlocksValue)) {
+      const layoutKeys = Object.keys(layoutBlocksValue);
+      const firstLayoutKey = layoutKeys.length > 0 ? layoutKeys[0] : null;
+      const firstLayoutValue = firstLayoutKey ? layoutBlocksValue[firstLayoutKey] : null;
+      console.log("[OCR DEBUG] layoutBlocks (inte array):", JSON.stringify({
+        type: typeof layoutBlocksValue,
+        keys: layoutKeys,
+        keysLength: layoutKeys.length,
+        firstKey: firstLayoutKey,
+        firstValueType: firstLayoutValue ? typeof firstLayoutValue : null,
+        firstValueIsArray: Array.isArray(firstLayoutValue),
+        firstValueKeys: firstLayoutValue && typeof firstLayoutValue === "object" ? Object.keys(firstLayoutValue) : null,
+        firstValueSample: firstLayoutValue && typeof firstLayoutValue === "object" ? {
+          hasParagraphs: Array.isArray(firstLayoutValue.paragraphs),
+          hasLines: Array.isArray(firstLayoutValue.lines),
+          hasWords: Array.isArray(firstLayoutValue.words),
+        } : null,
+      }, null, 2));
+    }
+    
+    // Logga blocks/layoutBlocks om de finns men inte är arrays
+    if (blocksValue && !Array.isArray(blocksValue)) {
+      console.log("[OCR DEBUG] blocks (inte array):", JSON.stringify({
+        type: typeof blocksValue,
+        isArray: Array.isArray(blocksValue),
+        keys: Object.keys(blocksValue),
+        firstKey: Object.keys(blocksValue)[0],
+        firstValue: Object.keys(blocksValue).length > 0 ? blocksValue[Object.keys(blocksValue)[0]] : null,
+      }, null, 2));
+    }
+    if (layoutBlocksValue && !Array.isArray(layoutBlocksValue)) {
+      console.log("[OCR DEBUG] layoutBlocks (inte array):", JSON.stringify({
+        type: typeof layoutBlocksValue,
+        isArray: Array.isArray(layoutBlocksValue),
+        keys: Object.keys(layoutBlocksValue),
+        firstKey: Object.keys(layoutBlocksValue)[0],
+        firstValue: Object.keys(layoutBlocksValue).length > 0 ? layoutBlocksValue[Object.keys(layoutBlocksValue)[0]] : null,
+      }, null, 2));
+    }
+    
+    // Logga första blocket i detalj om det finns (efter konvertering)
+    const blocksArray = Array.isArray(blocksValue) ? blocksValue : (blocksValue && typeof blocksValue === "object" ? Object.values(blocksValue) : []);
+    const layoutBlocksArray = Array.isArray(layoutBlocksValue) ? layoutBlocksValue : (layoutBlocksValue && typeof layoutBlocksValue === "object" ? Object.values(layoutBlocksValue) : []);
+    const firstBlock = blocksArray.length > 0 ? blocksArray[0] : (layoutBlocksArray.length > 0 ? layoutBlocksArray[0] : null);
+    
+    if (firstBlock) {
       console.log("[OCR DEBUG] Första blocket:", JSON.stringify({
         keys: Object.keys(firstBlock),
         hasParagraphs: Array.isArray(firstBlock?.paragraphs),
@@ -702,10 +771,28 @@ export async function ocrImage(
         return data.words;
       }
       
-      // Annars, gå igenom hierarkin: blocks -> paragraphs -> lines -> words
-      if (Array.isArray(data?.blocks)) {
-        console.log("[OCR DEBUG] Går igenom blocks:", data.blocks.length);
-        for (const block of data.blocks) {
+      // Försök med layoutBlocks först (kan vara rätt struktur)
+      let blocksToProcess: any[] = [];
+      if (Array.isArray(data?.layoutBlocks)) {
+        console.log("[OCR DEBUG] Använder layoutBlocks:", data.layoutBlocks.length);
+        blocksToProcess = data.layoutBlocks;
+      } else if (Array.isArray(data?.blocks)) {
+        console.log("[OCR DEBUG] Använder blocks:", data.blocks.length);
+        blocksToProcess = data.blocks;
+      } else if (data?.blocks && typeof data.blocks === "object") {
+        // Om blocks är ett objekt, försök konvertera till array
+        console.log("[OCR DEBUG] blocks är objekt, försöker konvertera");
+        blocksToProcess = Object.values(data.blocks);
+      } else if (data?.layoutBlocks && typeof data.layoutBlocks === "object") {
+        // Om layoutBlocks är ett objekt, försök konvertera till array
+        console.log("[OCR DEBUG] layoutBlocks är objekt, försöker konvertera");
+        blocksToProcess = Object.values(data.layoutBlocks);
+      }
+      
+      // Gå igenom hierarkin: blocks -> paragraphs -> lines -> words
+      if (blocksToProcess.length > 0) {
+        console.log("[OCR DEBUG] Går igenom blocks:", blocksToProcess.length);
+        for (const block of blocksToProcess) {
           // Kolla om block har words direkt
           if (Array.isArray(block?.words)) {
             console.log("[OCR DEBUG] Hittade words på block-nivå:", block.words.length);
