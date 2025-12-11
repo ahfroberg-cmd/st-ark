@@ -640,7 +640,7 @@ export async function ocrImage(
     const rawText = (data?.text || "").trim();
 
     // DEBUG: Logga vad Tesseract returnerar
-    console.log("[OCR DEBUG] Tesseract data-struktur:", {
+    console.log("[OCR DEBUG] Tesseract data-struktur:", JSON.stringify({
       hasData: !!data,
       hasText: !!data?.text,
       textLength: rawText.length,
@@ -649,10 +649,47 @@ export async function ocrImage(
       dataKeys: data ? Object.keys(data) : [],
       hasBlocks: Array.isArray((data as any)?.blocks),
       blocksLength: Array.isArray((data as any)?.blocks) ? (data as any).blocks.length : 0,
-      firstBlock: Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0 
-        ? (data as any).blocks[0] 
-        : null,
-    });
+      firstBlockKeys: Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0 
+        ? Object.keys((data as any).blocks[0]) 
+        : [],
+      hasSymbols: Array.isArray((data as any)?.symbols),
+      symbolsLength: Array.isArray((data as any)?.symbols) ? (data as any).symbols.length : 0,
+      hasLines: Array.isArray((data as any)?.lines),
+      linesLength: Array.isArray((data as any)?.lines) ? (data as any).lines.length : 0,
+      hasParagraphs: Array.isArray((data as any)?.paragraphs),
+      paragraphsLength: Array.isArray((data as any)?.paragraphs) ? (data as any).paragraphs.length : 0,
+    }, null, 2));
+    
+    // Logga första blocket i detalj om det finns
+    if (Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0) {
+      const firstBlock = (data as any).blocks[0];
+      console.log("[OCR DEBUG] Första blocket:", JSON.stringify({
+        keys: Object.keys(firstBlock),
+        hasParagraphs: Array.isArray(firstBlock?.paragraphs),
+        paragraphsLength: Array.isArray(firstBlock?.paragraphs) ? firstBlock.paragraphs.length : 0,
+        hasLines: Array.isArray(firstBlock?.lines),
+        linesLength: Array.isArray(firstBlock?.lines) ? firstBlock.lines.length : 0,
+        hasWords: Array.isArray(firstBlock?.words),
+        wordsLength: Array.isArray(firstBlock?.words) ? firstBlock.words.length : 0,
+        firstParagraph: Array.isArray(firstBlock?.paragraphs) && firstBlock.paragraphs.length > 0 
+          ? {
+              keys: Object.keys(firstBlock.paragraphs[0]),
+              hasLines: Array.isArray(firstBlock.paragraphs[0]?.lines),
+              linesLength: Array.isArray(firstBlock.paragraphs[0]?.lines) ? firstBlock.paragraphs[0].lines.length : 0,
+            }
+          : null,
+        firstLine: Array.isArray(firstBlock?.lines) && firstBlock.lines.length > 0
+          ? {
+              keys: Object.keys(firstBlock.lines[0]),
+              hasWords: Array.isArray(firstBlock.lines[0]?.words),
+              wordsLength: Array.isArray(firstBlock.lines[0]?.words) ? firstBlock.lines[0].words.length : 0,
+              firstWord: Array.isArray(firstBlock.lines[0]?.words) && firstBlock.lines[0].words.length > 0
+                ? firstBlock.lines[0].words[0]
+                : null,
+            }
+          : null,
+      }, null, 2));
+    }
 
     // Tesseract.js returnerar data i hierarkisk struktur: blocks -> paragraphs -> lines -> words
     // Vi behöver extrahera alla words från denna struktur
@@ -661,40 +698,130 @@ export async function ocrImage(
       
       // Om det finns en direkt words-array, använd den
       if (Array.isArray(data?.words)) {
+        console.log("[OCR DEBUG] Hittade direkt words-array:", data.words.length);
         return data.words;
       }
       
       // Annars, gå igenom hierarkin: blocks -> paragraphs -> lines -> words
       if (Array.isArray(data?.blocks)) {
+        console.log("[OCR DEBUG] Går igenom blocks:", data.blocks.length);
         for (const block of data.blocks) {
+          // Kolla om block har words direkt
+          if (Array.isArray(block?.words)) {
+            console.log("[OCR DEBUG] Hittade words på block-nivå:", block.words.length);
+            words.push(...block.words);
+          }
+          
+          // Gå igenom paragraphs
           if (Array.isArray(block?.paragraphs)) {
             for (const para of block.paragraphs) {
+              // Kolla om paragraph har words direkt
+              if (Array.isArray(para?.words)) {
+                console.log("[OCR DEBUG] Hittade words på paragraph-nivå:", para.words.length);
+                words.push(...para.words);
+              }
+              
+              // Gå igenom lines
               if (Array.isArray(para?.lines)) {
                 for (const line of para.lines) {
+                  // Kolla om line har words direkt
                   if (Array.isArray(line?.words)) {
                     words.push(...line.words);
+                  }
+                  // Vissa versioner har symbols istället för words
+                  if (Array.isArray(line?.symbols)) {
+                    // Gruppera symbols till words baserat på mellanslag
+                    const lineWords: any[] = [];
+                    let currentWord: any[] = [];
+                    for (const sym of line.symbols) {
+                      if (sym.text === " ") {
+                        if (currentWord.length > 0) {
+                          // Skapa ett word från symbols
+                          const wordText = currentWord.map(s => s.text).join("");
+                          const firstSym = currentWord[0];
+                          const lastSym = currentWord[currentWord.length - 1];
+                          lineWords.push({
+                            text: wordText,
+                            bbox: {
+                              x0: Math.min(...currentWord.map(s => s.bbox?.x0 ?? s.left ?? 0)),
+                              y0: Math.min(...currentWord.map(s => s.bbox?.y0 ?? s.top ?? 0)),
+                              x1: Math.max(...currentWord.map(s => s.bbox?.x1 ?? (s.left + s.width) ?? 0)),
+                              y1: Math.max(...currentWord.map(s => s.bbox?.y1 ?? (s.top + s.height) ?? 0)),
+                            },
+                            confidence: currentWord.reduce((sum, s) => sum + (s.confidence ?? s.conf ?? 0), 0) / currentWord.length,
+                          });
+                          currentWord = [];
+                        }
+                      } else {
+                        currentWord.push(sym);
+                      }
+                    }
+                    // Lägg till sista ordet om det finns
+                    if (currentWord.length > 0) {
+                      const wordText = currentWord.map(s => s.text).join("");
+                      const firstSym = currentWord[0];
+                      lineWords.push({
+                        text: wordText,
+                        bbox: {
+                          x0: Math.min(...currentWord.map(s => s.bbox?.x0 ?? s.left ?? 0)),
+                          y0: Math.min(...currentWord.map(s => s.bbox?.y0 ?? s.top ?? 0)),
+                          x1: Math.max(...currentWord.map(s => s.bbox?.x1 ?? (s.left + s.width) ?? 0)),
+                          y1: Math.max(...currentWord.map(s => s.bbox?.y1 ?? (s.top + s.height) ?? 0)),
+                        },
+                        confidence: currentWord.reduce((sum, s) => sum + (s.confidence ?? s.conf ?? 0), 0) / currentWord.length,
+                      });
+                    }
+                    words.push(...lineWords);
                   }
                 }
               }
             }
           }
-          // Vissa versioner har words direkt på block-nivå
-          if (Array.isArray(block?.words)) {
-            words.push(...block.words);
+          
+          // Vissa versioner har lines direkt på block-nivå
+          if (Array.isArray(block?.lines)) {
+            for (const line of block.lines) {
+              if (Array.isArray(line?.words)) {
+                words.push(...line.words);
+              }
+            }
           }
         }
       }
       
+      // Om inga words hittades, försök med symbols direkt på data-nivå
+      if (words.length === 0 && Array.isArray(data?.symbols)) {
+        console.log("[OCR DEBUG] Försöker extrahera från symbols-array:", data.symbols.length);
+        // Gruppera symbols till words (enklare version)
+        let currentWord: any[] = [];
+        for (const sym of data.symbols) {
+          if (sym.text === " " || sym.text === "\n") {
+            if (currentWord.length > 0) {
+              const wordText = currentWord.map(s => s.text).join("");
+              words.push({
+                text: wordText,
+                bbox: sym.bbox || { x0: 0, y0: 0, x1: 0, y1: 0 },
+                confidence: currentWord.reduce((sum, s) => sum + (s.confidence ?? s.conf ?? 0), 0) / currentWord.length,
+              });
+              currentWord = [];
+            }
+          } else {
+            currentWord.push(sym);
+          }
+        }
+      }
+      
+      console.log("[OCR DEBUG] Totalt antal words extraherade:", words.length);
       return words;
     };
 
     const rawWords: any[] = extractWordsFromData(data);
 
-    console.log("[OCR DEBUG] rawWords efter extraktion:", {
+    console.log("[OCR DEBUG] rawWords efter extraktion:", JSON.stringify({
       rawWordsLength: rawWords.length,
       firstRawWord: rawWords.length > 0 ? rawWords[0] : null,
       firstRawWordKeys: rawWords.length > 0 ? Object.keys(rawWords[0]) : [],
-    });
+    }, null, 2));
 
     const words: OcrWord[] = rawWords
       .map((w: any) => {
@@ -752,10 +879,11 @@ export async function ocrImage(
       })
       .filter((w): w is OcrWord => !!w);
 
-    console.log("[OCR DEBUG] OcrWord[] efter mapping:", {
+    console.log("[OCR DEBUG] OcrWord[] efter mapping:", JSON.stringify({
       wordsLength: words.length,
       firstWord: words.length > 0 ? words[0] : null,
-    });
+      firstFewWords: words.slice(0, 3),
+    }, null, 2));
 
     const imageSize = (data as any)?.imageSize || {};
     const width =
