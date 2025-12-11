@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
+import MobileMilestoneOverviewPanel from "@/components/MobileIup/MobileMilestoneOverviewPanel";
 
 export default function MilestonesView() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,11 +41,27 @@ export default function MilestonesView() {
         </div>
       </div>
 
-      <MilestoneOverviewPanel
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        initialTab={initialTab}
-      />
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setModalOpen(false);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-[980px] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MobileMilestoneOverviewPanel
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              initialTab={initialTab}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

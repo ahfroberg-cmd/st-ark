@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
+import MobileMilestoneOverviewPanel from "@/components/MobileIup/MobileMilestoneOverviewPanel";
 
 type Props = {
   open: boolean;
@@ -42,7 +42,7 @@ export default function StMilestonesModal({ open, onClose, goalsVersion }: Props
         className="w-full max-w-[980px] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <MilestoneOverviewPanel
+        <MobileMilestoneOverviewPanel
           key={`st-only-${mountKey}`}
           open={true}
           initialTab="st"
