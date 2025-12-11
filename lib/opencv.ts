@@ -56,7 +56,8 @@ export async function loadOpenCV(): Promise<typeof globalThis.cv> {
           // Om lokal fil misslyckas, försök CDN
           if (src === "/opencv.js") {
             console.warn("[OpenCV] Lokal fil /opencv.js hittades inte, försöker CDN...");
-            tryLoad("https://docs.opencv.org/4.10.0/opencv.js");
+            // Använd jsdelivr CDN för OpenCV.js
+            tryLoad("https://cdn.jsdelivr.net/npm/opencv-js@1.2.1/dist/opencv.js");
           } else {
             reject(new Error(`OpenCV failed to load from ${src}`));
           }
