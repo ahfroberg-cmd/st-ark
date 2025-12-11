@@ -730,6 +730,28 @@ export async function extractZonesFromImage<
     console.log(`[ZONLOGIK] Bildstorlek: ${actualWidth}×${actualHeight}, förväntad: ${expectedSize.width}×${expectedSize.height}`);
     console.log(`[ZONLOGIK] Skalning: ${scaleX.toFixed(3)}×${scaleY.toFixed(3)}`);
     
+    // Debug: logga första zonen för att verifiera position
+    if (zoneKeys.length > 0) {
+      const firstKey = zoneKeys[0];
+      const firstZone = zones[firstKey];
+      const firstScaled = {
+        x: Math.round(firstZone.x * scaleX),
+        y: Math.round(firstZone.y * scaleY),
+        w: Math.round(firstZone.w * scaleX),
+        h: Math.round(firstZone.h * scaleY),
+      };
+      console.log(`[ZONLOGIK] Första zonen (${firstKey}):`, {
+        original: firstZone,
+        scaled: firstScaled,
+        actual: {
+          x: Math.max(0, Math.min(firstScaled.x, actualWidth - 1)),
+          y: Math.max(0, Math.min(firstScaled.y, actualHeight - 1)),
+          w: Math.max(1, Math.min(firstScaled.w, actualWidth - firstScaled.x)),
+          h: Math.max(1, Math.min(firstScaled.h, actualHeight - firstScaled.y)),
+        }
+      });
+    }
+    
     // OCR:a varje zon separat
     for (let i = 0; i < zoneKeys.length; i++) {
       const key = zoneKeys[i];
@@ -748,6 +770,14 @@ export async function extractZonesFromImage<
       const y = Math.max(0, Math.min(scaledZone.y, actualHeight - 1));
       const w = Math.max(1, Math.min(scaledZone.w, actualWidth - x));
       const h = Math.max(1, Math.min(scaledZone.h, actualHeight - y));
+      
+      // Debug: logga om zonen klipptes av
+      if (scaledZone.x !== x || scaledZone.y !== y || scaledZone.w !== w || scaledZone.h !== h) {
+        console.warn(`[ZONLOGIK] Zon ${key} klipptes av:`, {
+          scaled: scaledZone,
+          actual: { x, y, w, h }
+        });
+      }
       
       // Klipp ut zonen med Canvas API och förbättra bildkvaliteten
       const canvas = document.createElement("canvas");
