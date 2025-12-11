@@ -113,7 +113,7 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
 
         return (
           <div
-            className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
+            className="fixed inset-0 z-[400] grid place-items-center bg-black/40 p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setDetailId(null);
             }}
