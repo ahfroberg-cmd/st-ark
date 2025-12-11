@@ -8,7 +8,7 @@
  * - Stöd för OpenCV-baserad zonparsning när word-koordinater inte finns.
  */
 
-import { loadOpenCV } from "./opencv";
+// OpenCV används inte längre - vi använder Canvas API istället
 
 export type OcrWord = {
   text: string;
