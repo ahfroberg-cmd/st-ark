@@ -215,25 +215,23 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
                 borderTop: "1px solid #e5e7eb",
               }}
             >
-              {!readOnly && (
-                <button
-                  onClick={() => {
-                    onToggle(String(detailId).toUpperCase());
-                    setDetailId(null);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    border: "1px solid",
-                    borderRadius: 10,
-                    background: isDetailChecked ? "#ef4444" : "#10b981",
-                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
-                    color: "#fff",
-                    fontWeight: 600,
-                  }}
-                >
-                  {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  onToggle(String(detailId).toUpperCase());
+                  setDetailId(null);
+                }}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid",
+                  borderRadius: 10,
+                  background: isDetailChecked ? "#ef4444" : "#10b981",
+                  borderColor: isDetailChecked ? "#ef4444" : "#10b981",
+                  color: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
+              </button>
               <div style={{ marginLeft: "auto" }} />
               <button
                 onClick={() => setDetailId(null)}
