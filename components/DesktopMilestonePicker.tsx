@@ -446,14 +446,16 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
 
         return (
           <div
-            className="fixed inset-0 z-[400] grid place-items-center bg-black/40 p-4"
+            className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setDetailId(null);
             }}
+            style={{ zIndex: 400 }}
           >
             <div
-              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col relative"
               onClick={(e) => e.stopPropagation()}
+              style={{ zIndex: 401 }}
             >
               <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
                 <div className="min-w-0 flex-1 flex items-center gap-2">
