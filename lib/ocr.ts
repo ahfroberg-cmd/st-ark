@@ -734,9 +734,18 @@ export async function ocrImage(
         exists: 'tsv' in data,
         type: typeof tsvValue,
         isString: typeof tsvValue === "string",
+        isObject: typeof tsvValue === "object" && tsvValue !== null,
+        isArray: Array.isArray(tsvValue),
         length: typeof tsvValue === "string" ? tsvValue.length : null,
         isEmpty: typeof tsvValue === "string" ? tsvValue.trim().length === 0 : null,
         firstChars: typeof tsvValue === "string" && tsvValue.length > 0 ? tsvValue.substring(0, 200) : null,
+        // Om det är ett objekt, visa nycklar
+        objectKeys: typeof tsvValue === "object" && tsvValue !== null && !Array.isArray(tsvValue) ? Object.keys(tsvValue) : null,
+        // Om det är en array, visa längd
+        arrayLength: Array.isArray(tsvValue) ? tsvValue.length : null,
+        // Försök hitta text i objektet
+        hasText: typeof tsvValue === "object" && tsvValue !== null ? 'text' in tsvValue : false,
+        textValue: typeof tsvValue === "object" && tsvValue !== null && 'text' in tsvValue ? (typeof (tsvValue as any).text === "string" ? (tsvValue as any).text.substring(0, 200) : (tsvValue as any).text) : null,
       }, null, 2));
     }
     
