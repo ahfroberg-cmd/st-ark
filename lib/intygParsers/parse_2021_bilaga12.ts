@@ -1,11 +1,12 @@
 // lib/intygParsers/parse_2021_bilaga12.ts
 import type { ParsedIntyg } from "./types";
+import type { OcrWord } from "@/lib/ocr";
 import {
   extractPersonnummer, extractFullNameBlock, extractSpecialty,
   extractBlockAfterLabel
 } from "./common";
 
-export function parse_2021_bilaga12(text: string): ParsedIntyg {
+export function parse_2021_bilaga12(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2021-B12-STa3";
   const { fullName, firstName, lastName } = extractFullNameBlock(text);
   const personnummer = extractPersonnummer(text);

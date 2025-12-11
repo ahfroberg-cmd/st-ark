@@ -1,4 +1,6 @@
 // lib/intygParsers/types.ts
+import type { OcrWord } from "@/lib/ocr";
+
 export type ParsedIntyg = {
   kind: string;
   fullName?: string;
@@ -19,4 +21,12 @@ export type ParsedIntyg = {
     personalNumber?: string;
     placeDateRaw?: string;
   };
+  // För handledare/supervisor (kompatibilitet med gamla parsers)
+  supervisorName?: string;
+  supervisorSpeciality?: string;
+  supervisorSite?: string;
 };
+
+// Parser-funktioner kan nu acceptera optional words-parameter för zonlogik
+// Vissa parsers returnerar olika typer (t.ex. ParsedKlinisk2015, ParsedKurs2021)
+export type ParserFn = (text: string, words?: OcrWord[]) => any;

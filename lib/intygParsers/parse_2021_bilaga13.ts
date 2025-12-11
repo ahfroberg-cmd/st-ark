@@ -1,5 +1,6 @@
 // lib/intygParsers/parse_2021_bilaga13.ts
 import type { ParsedIntyg } from "./types";
+import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes,
   extractPersonnummer,
@@ -17,7 +18,7 @@ import {
  *  - Utbildningsaktiviteter som sökanden genomfört
  *  - Hur uppfyllelse kontrollerats
  */
-export function parse_2021_bilaga13(text: string): ParsedIntyg {
+export function parse_2021_bilaga13(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2021-B13-TREDJELAND";
 
   const delmalCodes = extractDelmalCodes(text);

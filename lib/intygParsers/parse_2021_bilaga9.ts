@@ -1,12 +1,66 @@
 // lib/intygParsers/parse_2021_bilaga9.ts
 import type { ParsedIntyg } from "./types";
+import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
-  extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, fallbackPeriod
+  extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, 
+  fallbackPeriod, extractPeriodFromZoneText
 } from "./common";
+import { extractZonesFromWords, zones_2021_B9_KLIN } from "@/lib/ocr";
 
-export function parse_2021_bilaga9(text: string): ParsedIntyg {
+export function parse_2021_bilaga9(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2021-B9-KLIN";
+  
+  // Använd zonlogik om words finns (direktfotograferat dokument)
+  if (words && words.length > 0) {
+    const zones = extractZonesFromWords(words, zones_2021_B9_KLIN);
+    
+    // Kombinera förnamn och efternamn
+    const firstName = zones.applicantFirstName?.trim() || "";
+    const lastName = zones.applicantLastName?.trim() || "";
+    const fullName = `${lastName} ${firstName}`.trim() || undefined;
+    
+    // Extrahera personnummer från zon
+    const personnummer = zones.personnummer?.trim().replace(/\s+/g, "") || undefined;
+    
+    // Extrahera delmål från zon
+    const delmalCodes = extractDelmalCodes(zones.delmal || "");
+    
+    // Extrahera period från period-zon
+    const period = extractPeriodFromZoneText(zones.period || "");
+    
+    // Extrahera klinik från clinic-zon
+    const clinic = zones.clinic?.trim() || undefined;
+    
+    // Beskrivning från description-zon
+    const description = zones.description?.trim() || undefined;
+    
+    // Handledare-information
+    const supervisorName = zones.supervisorNamePrinted?.trim() || undefined;
+    const supervisorSpeciality = zones.supervisorSpecialty?.trim() || undefined;
+    const supervisorSite = zones.supervisorSite?.trim() || undefined;
+    
+    // Specialitet
+    const specialtyHeader = zones.specialty?.trim() || undefined;
+    
+    return {
+      kind,
+      fullName,
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
+      personnummer,
+      specialtyHeader,
+      delmalCodes: delmalCodes.length > 0 ? delmalCodes : undefined,
+      clinic,
+      period: period || fallbackPeriod(text),
+      description,
+      supervisorName,
+      supervisorSpeciality,
+      supervisorSite,
+    };
+  }
+  
+  // Fallback till smart logik om inga words finns (bakåtkompatibilitet)
   const delmalCodes = extractDelmalCodes(text);
   const { fullName, firstName, lastName } = extractFullNameBlock(text);
   const personnummer = extractPersonnummer(text);

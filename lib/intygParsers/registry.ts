@@ -1,5 +1,6 @@
 // lib/intygParsers/registry.ts
 import type { IntygKind } from "@/lib/intygDetect";
+import type { ParserFn } from "./types";
 
 // Importera bef. parser-funktioner (de som redan finns hos dig)
 import { parse_2015_bilaga3 }  from "@/lib/intygParsers/parse_2015_bilaga3";
@@ -13,8 +14,6 @@ import { parse_2021_bilaga10 } from "@/lib/intygParsers/parse_2021_bilaga10";
 import { parse_2021_bilaga11 } from "@/lib/intygParsers/parse_2021_bilaga11";
 import { parse_2021_bilaga12 } from "@/lib/intygParsers/parse_2021_bilaga12";
 import { parse_2021_bilaga13 } from "@/lib/intygParsers/parse_2021_bilaga13";
-
-type ParserFn = (text: string) => any;
 
 const registry: Partial<Record<IntygKind, ParserFn>> = {
   // 2015

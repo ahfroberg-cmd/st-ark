@@ -1,11 +1,12 @@
 // lib/intygParsers/parse_2015_bilaga6.ts
 import type { ParsedIntyg } from "./types";
+import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractSubjectAfterLabel, extractBlockAfterLabel, fallbackPeriod
 } from "./common";
 
-export function parse_2015_bilaga6(text: string): ParsedIntyg {
+export function parse_2015_bilaga6(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2015-B6-UTV";
   const delmalCodes = extractDelmalCodes(text);
   const { fullName, firstName, lastName } = extractFullNameBlock(text);

@@ -1,12 +1,13 @@
 // lib/intygParsers/parse_2021_bilaga8.ts
 import type { ParsedIntyg } from "./types";
+import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractBlockAfterLabel, extractSubjectAfterLabel,
   extractClinicAndPeriodFromLine, fallbackPeriod
 } from "./common";
 
-export function parse_2021_bilaga8(text: string): ParsedIntyg {
+export function parse_2021_bilaga8(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2021-B8-AUSK";
   const delmalCodes = extractDelmalCodes(text);
   const { fullName, firstName, lastName } = extractFullNameBlock(text);

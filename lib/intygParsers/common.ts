@@ -4,6 +4,19 @@ import { extractDates, splitClinicAndPeriod } from "@/lib/dateExtract";
 // Vanlig svensk personnummer-match (med/utan bindestreck)
 const PNR = /\b(\d{6}|\d{8})[- ]?\d{4}\b/;
 
+// Helper för att extrahera period från zon-text (t.ex. "270101-270401" eller "2025-01-01 - 2025-04-01")
+export function extractPeriodFromZoneText(periodText: string): { startISO?: string; endISO?: string } | undefined {
+  if (!periodText || !periodText.trim()) return undefined;
+  
+  // Använd extractDates som är robust och hanterar olika datumformat
+  const dates = extractDates(periodText);
+  if (dates.startISO || dates.endISO) {
+    return dates;
+  }
+  
+  return undefined;
+}
+
 // Delmålkoder: a1..a7, b1.., c1.. (2015) samt STa1..STa7, STb1.., STc1.. (2021)
 export function extractDelmalCodes(text: string): string[] {
   const res = new Set<string>();

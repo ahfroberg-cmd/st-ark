@@ -101,24 +101,31 @@ export default function ScanIntygModal({
         return;
       }
 
-      // Lägg högst upp i filen (tillsammans med övriga imports/konstanter om du vill):
-      const USE_IMAGE_CLEAN = true; // slå till false om du vill tvångs-bypassa tvätten
-      const CLEAN_TIMEOUT_MS = 8000; // hård timeout för tvätten
-
-      // ... inne i handleScan(), ERSÄTT OCR-BLOCKET:
-
-      // OCR (bild) — enkel och robust, med hård timeout (ingen OpenCV)
+      // OCR (bild) — med words för zonlogik
       const ocrTimeoutMs = 25000; // 25s max
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("ocr-timeout")), ocrTimeoutMs)
       );
 
-      const { text } = await Promise.race([
+      const ocrResult = await Promise.race([
         ocrImage(file, "swe+eng"),
         timeout,
       ]);
 
+      const { text, words, width, height } = ocrResult;
       lastOcrRaw = text || "";
+
+      // Validera bildstorlek/aspect ratio för bättre zonlogik
+      if (width && height) {
+        const expectedAspectRatio = 1057 / 1496; // A4-format
+        const actualAspectRatio = width / height;
+        
+        if (Math.abs(actualAspectRatio - expectedAspectRatio) > 0.15) {
+          setWarning(
+            "Bilden verkar inte ha rätt proportioner. Se till att du fotograferat hela dokumentet rakt ovanifrån för bästa resultat."
+          );
+        }
+      }
 
       let content = preCleanRawOcr(lastOcrRaw);
       setOcrText(content);
@@ -164,7 +171,7 @@ export default function ScanIntygModal({
             // Kvalitets-/utvecklingsarbete – Bilaga 6
             k = "2015-B6-UTV";
             break;
-          case "2021-B12-STA3":
+          case "2021-B12-STa3":
             // Självständigt skriftligt arbete – Bilaga 7
             k = "2015-B7-SKRIFTLIGT";
             break;
@@ -204,13 +211,17 @@ export default function ScanIntygModal({
       const dates = extractDates(content);
 
       // Parser via registry, med säker fallback till din stabila 2015-KLIN
+      // Använd zonlogik om words finns (direktfotograferat dokument)
       let p: any = {};
       const parser = getParser(k || undefined);
+      const useZoneLogic = words && words.length > 0;
+      
       if (parser) {
-        p = parser(content);
+        // Skicka words till parser om den stödjer det
+        p = useZoneLogic ? parser(content, words) : parser(content);
       } else if (k === "2015-B4-KLIN") {
         // Fallback för säkerhets skull om registry saknas
-        p = parse_2015_bilaga4(content);
+        p = useZoneLogic ? parse_2015_bilaga4(content, words) : parse_2015_bilaga4(content);
       } else {
         setWarning(
           "Kunde inte identifiera intygsmallen automatiskt. Du kan fylla fälten manuellt."
@@ -218,32 +229,12 @@ export default function ScanIntygModal({
         p = {};
       }
 
-      // Försiktig efterfyllnad
-      const improved = improveParsedFromOcr(content, p, k as IntygKind | null);
-
-      // Zonlogik (p) ska alltid ha företräde framför "smart" logik.
-      // Behåll befintliga (icke-tomma) värden från p för centrala fält.
-      if (p && typeof p === "object") {
-        const preserveKeys = [
-          "fullName",
-          "personnummer",
-          "specialtyHeader",
-          "clinic",
-          "supervisorName",
-          "supervisorSpeciality",
-          "supervisorSite",
-        ];
-
-        for (const key of preserveKeys) {
-          const val = (p as any)[key];
-          if (val === undefined || val === null) continue;
-          if (typeof val === "string" && val.trim() === "") continue;
-          if (Array.isArray(val) && val.length === 0) continue;
-          (improved as any)[key] = val;
-        }
+      // Om zonlogik används, hoppa över improveParsedFromOcr (zonlogik är redan robust)
+      // Annars använd smart logik som fallback
+      if (!useZoneLogic) {
+        const improved = improveParsedFromOcr(content, p, k as IntygKind | null);
+        p = improved;
       }
-
-      p = improved;
 
 
       // Endast för mallar med datum
@@ -270,7 +261,7 @@ export default function ScanIntygModal({
           const lines = clinicRaw
             .replace(/\r\n?/g, "\n")
             .split("\n")
-            .map((l) => l.trim())
+            .map((l: string) => l.trim())
             .filter(Boolean);
 
           let working = lines.length > 0 ? lines[lines.length - 1] : "";
@@ -452,7 +443,7 @@ export default function ScanIntygModal({
 
           // Skriftligt / vetenskapligt arbete
           case "2015-B7-SKRIFTLIGT":
-          case "2021-B12-STA3":
+          case "2021-B12-STa3":
             typeFromKind = "Vetenskapligt arbete";
             break;
 
@@ -811,7 +802,7 @@ export default function ScanIntygModal({
       break;
 
     // HSLF-FS 2021:8 – Bilaga 12 (STa3 – medicinsk vetenskap)
-    case "2021-B12-STA3":
+    case "2021-B12-STa3":
       titleLabel = "Delmål STa3 – medicinsk vetenskap";
       clinicLabel = "Utbildningsaktiviteter (rubrik/ämne)";
       descriptionLabel = "Samlad beskrivning av det vetenskapliga arbetet";
@@ -868,14 +859,19 @@ export default function ScanIntygModal({
               <div className="space-y-4">
                 {/* Tips för bästa resultat */}
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
-                  <div className="font-semibold mb-2">Tips för bästa resultat:</div>
+                  <div className="font-semibold mb-2">Viktigt för bästa resultat:</div>
                   <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning</li>
+                    <li><strong>Fotografera dokumentet direkt</strong> - inte en skannad bild eller screenshot</li>
                     <li>Håll kameran rakt ovanför dokumentet, undvik vinkling</li>
                     <li>Se till att hela dokumentet syns i bilden</li>
+                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning</li>
                     <li>Undvik skuggor och reflektioner</li>
                     <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
                   </ul>
+                  <div className="mt-3 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
+                    <strong>OBS:</strong> Systemet fungerar bäst med direktfotograferade dokument. 
+                    Skannade bilder eller screenshots kan ge sämre resultat.
+                  </div>
                 </div>
 
                 {/* Input */}

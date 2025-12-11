@@ -1,5 +1,6 @@
 // lib/intygParsers/parse_2015_bilaga7.ts
 import type { IntygKind } from "@/lib/intygDetect";
+import type { OcrWord } from "@/lib/ocr";
 
 // Minimal layout-typ (matchar Tesseract.js result.data.blocks)
 type OcrBBox = { x0: number; y0: number; x1: number; y1: number };
@@ -126,7 +127,10 @@ function extractDelmalCodes(text: string): string[] {
   return Array.from(out);
 }
 
-export function parse_2015_bilaga7(rawInput: string, layout?: OcrLayout): Parsed {
+// Acceptera både layout (gammalt) och words (nytt) för bakåtkompatibilitet
+export function parse_2015_bilaga7(rawInput: string, layoutOrWords?: OcrLayout | OcrWord[]): Parsed {
+  // Om det är en array av OcrWord, ignorera det för nu (denna parser använder layout)
+  const layout = Array.isArray(layoutOrWords) ? undefined : (layoutOrWords as OcrLayout | undefined);
   const raw = normalize(rawInput);
   const soft = asciiSoft(raw);
   const out: Parsed = { kind: "2015-B7-SKRIFTLIGT" };

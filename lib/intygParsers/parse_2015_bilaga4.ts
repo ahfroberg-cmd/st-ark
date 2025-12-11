@@ -1,4 +1,8 @@
 import { extractCommon, normalizeOcrText } from "../fieldExtract";
+import type { OcrWord } from "@/lib/ocr";
+import { extractZonesFromWords, zones_2015_B2_KLIN } from "@/lib/ocr";
+import { extractDelmalCodes, extractPeriodFromZoneText } from "./common";
+import { splitClinicAndPeriod } from "@/lib/dateExtract";
 
 export type ParsedKlinisk2015 = ReturnType<typeof extractCommon> & {
   type: "PLACEMENT";
@@ -15,7 +19,60 @@ export type ParsedKlinisk2015 = ReturnType<typeof extractCommon> & {
   specialtyHeader?: string;
 };
 
-export function parse_2015_bilaga4(raw: string): ParsedKlinisk2015 {
+export function parse_2015_bilaga4(raw: string, words?: OcrWord[]): ParsedKlinisk2015 {
+  // Använd zonlogik om words finns (direktfotograferat dokument)
+  if (words && words.length > 0) {
+    const zones = extractZonesFromWords(words, zones_2015_B2_KLIN);
+    const base = extractCommon(raw);
+    
+    // Kombinera förnamn och efternamn
+    const firstName = zones.applicantFirstName?.trim() || "";
+    const lastName = zones.applicantLastName?.trim() || "";
+    
+    // Personnummer från zon
+    const personnummer = zones.personnummer?.trim().replace(/\s+/g, "") || base.personnummer;
+    
+    // Delmål från zon
+    const delmalCodes = extractDelmalCodes(zones.delmal || "");
+    
+    // Tjänstgöringsställe och period från clinicAndPeriod-zon
+    const clinicAndPeriodText = zones.clinicAndPeriod || "";
+    const { clean: clinic, startISO, endISO } = splitClinicAndPeriod(clinicAndPeriodText);
+    const period = (startISO || endISO) ? { startISO, endISO } : base.period;
+    
+    // Beskrivning från description-zon
+    const description = zones.description?.trim() || undefined;
+    
+    // Handledare-information
+    const supervisorName = zones.supervisorNamePrinted?.trim() || undefined;
+    const supervisorSpeciality = zones.supervisorSpecialty?.trim() || undefined;
+    const supervisorSite = zones.supervisorSite?.trim() || undefined;
+    
+    // Ort och datum från supervisorPlaceAndDate-zon
+    const cityDateRaw = zones.supervisorPlaceAndDate?.trim() || undefined;
+    
+    // Specialitet
+    const specialtyHeader = zones.specialty?.trim() || undefined;
+    
+    return {
+      ...base,
+      personnummer,
+      delmalCodes: delmalCodes.length > 0 ? delmalCodes : base.delmalCodes,
+      period,
+      type: "PLACEMENT",
+      clinic: clinic || undefined,
+      description: cleanupMultiline(description),
+      supervisorName,
+      supervisorSpeciality,
+      supervisorSite,
+      cityDateRaw,
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
+      specialtyHeader,
+    };
+  }
+  
+  // Fallback till smart logik om inga words finns (bakåtkompatibilitet)
   const text = raw;                          // behåll originalet för UI
   const t = normalizeOcrText(raw);           // normaliserat för regex
   const base = extractCommon(text);
