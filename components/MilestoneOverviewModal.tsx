@@ -954,45 +954,74 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             </header>
           )}
 
-        {/* Utbildningsaktiviteter - under header */}
-        <div className="px-5 py-3">
-          <div className="flex flex-col gap-2">
-        <span className="text-[13px] font-semibold text-slate-900">
-          Utbildningsaktiviteter:
-        </span>
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showDone}
-            onChange={() => setShowDone((v) => !v)}
-          />
-          <span>Genomförda</span>
-        </label>
-
-              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showOngoing}
-            onChange={() => setShowOngoing((v) => !v)}
-          />
-          <span>Pågående</span>
-        </label>
-
-              <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
-            checked={showPlanned}
-            onChange={() => setShowPlanned((v) => !v)}
-          />
-          <span>Planerade</span>
-        </label>
-      </div>
-    </div>
-    </div>
+        {/* Utbildningsaktiviteter - på samma rad som ST-delmål/BT-delmål knapparna */}
+        <div className="px-5 py-3 border-b border-slate-200">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Vänster: Knappar för ST-delmål/BT-delmål (endast för 2021) */}
+            {is2021 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTab("st")}
+                  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                    tab === "st"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  ST-delmål
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("bt")}
+                  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                    tab === "bt"
+                      ? "bg-sky-600 text-white shadow-sm"
+                      : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  BT-delmål
+                </button>
+              </div>
+            )}
+            
+            {/* Höger: Utbildningsaktiviteter med kryssrutor på samma rad */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[13px] font-semibold text-slate-900">
+                Utbildningsaktiviteter:
+              </span>
+              <div className="flex items-center gap-4">
+                <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                    checked={showDone}
+                    onChange={() => setShowDone((v) => !v)}
+                  />
+                  <span>Genomförda</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                    checked={showOngoing}
+                    onChange={() => setShowOngoing((v) => !v)}
+                  />
+                  <span>Pågående</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
+                    checked={showPlanned}
+                    onChange={() => setShowPlanned((v) => !v)}
+                  />
+                  <span>Planerade</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Body */}
         <section className="flex-1 overflow-y-auto p-5">
@@ -1472,7 +1501,7 @@ function StGrid({
   openList: (kind: "klin" | "kurs", m: GoalsMilestone) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+    <div className="grid grid-cols-1 gap-4">
       {/* Kolumn 1: Delmål A + B */}
       <section>
         <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål A</h3>
@@ -1672,7 +1701,7 @@ function BtList({
   openList: (kind: "intyg", m: { code: string }) => void;
 }) {
   return (
-    <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
       {btRows.map((row) => {
         const m = btMilestones.find((x) => x.id.toUpperCase() === row.code.toUpperCase());
         const total = (row.klinCount ?? 0) + (row.kursCount ?? 0);
@@ -1688,8 +1717,8 @@ function BtList({
               <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                 {row.code.toLowerCase()}
               </span>
-              <span className="truncate text-[12px] text-slate-900">
-                {(m?.title ?? "BT-delmål").length > 50 ? (m?.title ?? "BT-delmål").slice(0, 50) + "..." : (m?.title ?? "BT-delmål")}
+              <span className="min-w-0 flex-1 text-[12px] text-slate-900 line-clamp-2 break-words">
+                {m?.title ?? "BT-delmål"}
               </span>
             </button>
 

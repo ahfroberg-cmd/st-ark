@@ -375,7 +375,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
                 Inga BT-delmål hittades.
               </div>
             ) : (
-              <div className="grid gap-2 md:grid-cols-3">
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                 {btRows.map((row) => {
                   const m = btMilestones.find((x) => x.id.toUpperCase() === row.code.toUpperCase());
                   const total = (row.klinCount ?? 0) + (row.kursCount ?? 0);
@@ -391,7 +391,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
                         <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                           {row.code.toLowerCase()}
                         </span>
-                        <span className="min-w-0 flex-1 text-[12px] text-slate-900 line-clamp-2">
+                        <span className="min-w-0 flex-1 text-[12px] text-slate-900 line-clamp-2 break-words">
                           {m?.title ?? "BT-delmål"}
                         </span>
                       </button>
