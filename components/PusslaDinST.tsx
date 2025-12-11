@@ -4711,16 +4711,23 @@ useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
 
 // Ref för att spåra om en confirm-dialog är öppen (förhindrar att Esc triggas när confirm() är synlig)
 const confirmDialogOpenRef = useRef(false);
+const confirmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 // Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
 const closeDetailPanel = useCallback(() => {
   if (dirty) {
+    // Rensa eventuell tidigare timeout
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current);
+    }
+    // Sätt ref till true INNAN confirm() anropas
     confirmDialogOpenRef.current = true;
     const result = confirm("Du har osparade ändringar. Stäng utan att spara?");
-    // Använd setTimeout för att säkerställa att Esc-händelsen ignoreras tillräckligt länge
-    setTimeout(() => {
+    // Använd en längre timeout för att säkerställa att Esc-händelsen ignoreras tillräckligt länge
+    confirmTimeoutRef.current = setTimeout(() => {
       confirmDialogOpenRef.current = false;
-    }, 100);
+      confirmTimeoutRef.current = null;
+    }, 500);
     if (!result) return;
   }
   setDirty(false);
@@ -4738,41 +4745,59 @@ useEffect(() => {
 
     // Ignorera Esc om en confirm-dialog är öppen eller nyligen stängd (förhindrar att dialogen blinkar bort)
     if (e.key === "Escape" && confirmDialogOpenRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
       return; // Låt browser hantera Esc för confirm-dialogen
     }
 
     if (e.key === "Delete" || e.key === "Backspace") {
       if (selectedPlacement) {
         if (dirty) {
+          if (confirmTimeoutRef.current) {
+            clearTimeout(confirmTimeoutRef.current);
+          }
           confirmDialogOpenRef.current = true;
           const result = confirm("Du har osparade ändringar. Ta bort ändå?");
-          setTimeout(() => {
+          confirmTimeoutRef.current = setTimeout(() => {
             confirmDialogOpenRef.current = false;
-          }, 100);
+            confirmTimeoutRef.current = null;
+          }, 500);
           if (!result) return;
         } else {
+          if (confirmTimeoutRef.current) {
+            clearTimeout(confirmTimeoutRef.current);
+          }
           confirmDialogOpenRef.current = true;
           const result = confirm("Vill du ta bort vald aktivitet?");
-          setTimeout(() => {
+          confirmTimeoutRef.current = setTimeout(() => {
             confirmDialogOpenRef.current = false;
-          }, 100);
+            confirmTimeoutRef.current = null;
+          }, 500);
           if (!result) return;
         }
         deleteSelectedPlacement();
       } else if (selectedCourse) {
         if (dirty) {
+          if (confirmTimeoutRef.current) {
+            clearTimeout(confirmTimeoutRef.current);
+          }
           confirmDialogOpenRef.current = true;
           const result = confirm("Du har osparade ändringar. Ta bort ändå?");
-          setTimeout(() => {
+          confirmTimeoutRef.current = setTimeout(() => {
             confirmDialogOpenRef.current = false;
-          }, 100);
+            confirmTimeoutRef.current = null;
+          }, 500);
           if (!result) return;
         } else {
+          if (confirmTimeoutRef.current) {
+            clearTimeout(confirmTimeoutRef.current);
+          }
           confirmDialogOpenRef.current = true;
           const result = confirm("Vill du ta bort vald aktivitet?");
-          setTimeout(() => {
+          confirmTimeoutRef.current = setTimeout(() => {
             confirmDialogOpenRef.current = false;
-          }, 100);
+            confirmTimeoutRef.current = null;
+          }, 500);
           if (!result) return;
         }
         deleteSelectedCourse();
@@ -4787,8 +4812,8 @@ useEffect(() => {
     }
   }
 
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown, true); // Använd capture phase
+  return () => window.removeEventListener("keydown", handleKeyDown, true);
 }, [selectedPlacement, selectedCourse, dirty, closeDetailPanel]);
 
 
