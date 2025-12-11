@@ -78,6 +78,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
   // Planerad total tid (BT+ST eller ST) – samma logik som i PusslaDinST
   const [planMonths, setPlanMonths] = useState<number>(60);
   const [stEndISO, setStEndISO] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"bt" | "st">("st"); // BT eller ST-läge för 2021
 
   useEffect(() => {
     let live = true;
@@ -139,6 +140,54 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     };
   }, []);
 
+  // Beräkna BT-slutdatum (från profil eller 2 år efter BT-start)
+  const btEndISO = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return null;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return null;
+    
+    const btEndManual = (profile as any)?.btEndDate;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      return btEndManual;
+    }
+    
+    // Default: 2 år (24 månader) efter BT-start
+    try {
+      const btDate = new Date(btStart + "T00:00:00");
+      btDate.setMonth(btDate.getMonth() + 24);
+      const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(btDate.getDate()).padStart(2, "0");
+      return `${btDate.getFullYear()}-${mm}-${dd}`;
+    } catch {
+      return null;
+    }
+  }, [profile]);
+
+  // Beräkna ST-slutdatum (från profil eller baserat på total längd)
+  const stEndDateISO = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") {
+      return (profile as any)?.stEndDate ?? stEndISO ?? null;
+    }
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return (profile as any)?.stEndDate ?? stEndISO ?? null;
+    
+    // ST-slutdatum = BT-start + total längd i månader
+    try {
+      const startDate = new Date(btStart + "T00:00:00");
+      const months = planMonths || 66;
+      startDate.setMonth(startDate.getMonth() + months);
+      const mm = String(startDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(startDate.getDate()).padStart(2, "0");
+      return `${startDate.getFullYear()}-${mm}-${dd}`;
+    } catch {
+      return (profile as any)?.stEndDate ?? stEndISO ?? null;
+    }
+  }, [profile, planMonths, stEndISO]);
+
   // Registrerad tid motsvarande heltid (endast placements)
   const workedFteMonths = useMemo(() => {
     if (!placements || placements.length === 0) return 0;
@@ -154,30 +203,69 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     }, 0);
   }, [placements]);
 
+  // Beräkna progress baserat på BT eller ST-läge (för 2021)
   const progressPct = useMemo(() => {
-    if (!planMonths || planMonths <= 0) return 0;
-    const raw = (workedFteMonths / planMonths) * 100;
-    if (!Number.isFinite(raw)) return 0;
-    return Math.max(0, Math.min(100, raw));
-  }, [workedFteMonths, planMonths]);
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") {
+      // 2015: samma som tidigare
+      if (!planMonths || planMonths <= 0) return 0;
+      const raw = (workedFteMonths / planMonths) * 100;
+      if (!Number.isFinite(raw)) return 0;
+      return Math.max(0, Math.min(100, raw));
+    }
 
-  // Beräkna totala antalet delmål som ska uppfyllas
+    // 2021: beräkna baserat på BT eller ST-läge
+    if (viewMode === "bt") {
+      // BT: hur lång tid det är kvar på BT
+      const btStart = (profile as any)?.btStartDate;
+      if (!btStart || !btEndISO) return 0;
+      
+      const today = todayISO();
+      const totalMonths = monthDiffExact(btStart, btEndISO);
+      const workedMonths = monthDiffExact(btStart, today);
+      
+      if (totalMonths <= 0) return 0;
+      const raw = (workedMonths / totalMonths) * 100;
+      if (!Number.isFinite(raw)) return 0;
+      return Math.max(0, Math.min(100, raw));
+    } else {
+      // ST: från slut av BT till slut av ST
+      if (!btEndISO || !stEndDateISO) return 0;
+      
+      const today = todayISO();
+      const totalMonths = monthDiffExact(btEndISO, stEndDateISO);
+      const workedMonths = monthDiffExact(btEndISO, today);
+      
+      if (totalMonths <= 0) return 0;
+      const raw = (workedMonths / totalMonths) * 100;
+      if (!Number.isFinite(raw)) return 0;
+      return Math.max(0, Math.min(100, raw));
+    }
+  }, [workedFteMonths, planMonths, profile, viewMode, btEndISO, stEndDateISO]);
+
+  // Beräkna totala antalet delmål som ska uppfyllas (baserat på BT eller ST-läge för 2021)
   const totalMilestones = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     if (gv === "2021") {
-      // 18 BT-delmål + 2x7 a-delmål + 2x4 b-delmål + 2x12 c-delmål = 18+14+8+24 = 64
-      return 64;
+      if (viewMode === "bt") {
+        // BT: 18 delmål
+        return 18;
+      } else {
+        // ST: 46 delmål
+        return 46;
+      }
     } else {
       // 2015: 50 delmål
       return 50;
     }
-  }, [profile]);
+  }, [profile, viewMode]);
 
-  // Beräkna uppfyllda delmål
+  // Beräkna uppfyllda delmål (baserat på BT eller ST-läge för 2021)
   const fulfilledMilestones = useMemo(() => {
     const fulfilled = new Set<string>();
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     const is2021 = gv === "2021";
+    const isBtMode = is2021 && viewMode === "bt";
 
     // Normalisera BT-kod
     const normalizeBtCode = (x: unknown) => {
@@ -193,8 +281,8 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       return s.toUpperCase().replace(/\s+/g, "");
     };
 
-    // 1) BT-delmål (endast för 2021)
-    if (is2021) {
+    // 1) BT-delmål (endast för 2021 och BT-läge)
+    if (isBtMode) {
       // Från achievements
       for (const a of achievements) {
         const cand = [a.goalId, a.milestoneId, a.id, (a as any).code, (a as any).milestone].filter(Boolean);
@@ -249,7 +337,8 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     }
     }
 
-    // 2) ST-delmål
+    // 2) ST-delmål (endast för ST-läge eller 2015)
+    if (!isBtMode) {
     // För 2021: Varje ST-delmål kan uppfyllas av både kurs och klinisk tjänstgöring (2 uppfyllelser)
     // För 2015: Varje ST-delmål räknas bara en gång
     const stMilestoneIdsFromPlacements = new Set<string>();
@@ -353,9 +442,10 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         fulfilled.add(id);
       }
     }
+    }
 
     return fulfilled.size;
-  }, [profile, achievements, placements, courses, goals]);
+  }, [profile, achievements, placements, courses, goals, viewMode]);
 
   const milestoneProgressPct = useMemo(() => {
     if (!totalMilestones || totalMilestones <= 0) return 0;
@@ -481,7 +571,35 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     <div className="space-y-4">
       {/* Översikt */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Översikt</h2>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-slate-900">Översikt</h2>
+          {gv === "2021" && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode("bt")}
+                className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "bt"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                BT
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("st")}
+                className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  viewMode === "st"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                ST
+              </button>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <div className="py-4 text-sm text-slate-900">Laddar …</div>
@@ -499,7 +617,9 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               </div>
               <div className="mt-1 h-4 rounded-full bg-slate-200">
                 <div
-                  className="h-4 rounded-full bg-emerald-500 transition-[width] duration-300"
+                  className={`h-4 rounded-full transition-[width] duration-300 ${
+                    gv === "2021" && viewMode === "bt" ? "bg-sky-500" : "bg-emerald-500"
+                  }`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -517,7 +637,9 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               </div>
               <div className="mt-1 h-4 rounded-full bg-slate-200">
                 <div
-                  className="h-4 rounded-full bg-emerald-500 transition-[width] duration-300"
+                  className={`h-4 rounded-full transition-[width] duration-300 ${
+                    gv === "2021" && viewMode === "bt" ? "bg-sky-500" : "bg-emerald-500"
+                  }`}
                   style={{ width: `${milestoneProgressPct}%` }}
                 />
               </div>
@@ -525,9 +647,14 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
             <div className="mt-1 text-sm text-slate-900">
               <div>
-                <span className="font-medium text-slate-900">Slutdatum för ST:</span>{" "}
+                <span className="font-medium text-slate-900">
+                  {gv === "2021" && viewMode === "bt" ? "Slutdatum för BT:" : "Slutdatum för ST:"}
+                </span>{" "}
                 <span className="font-semibold text-slate-900">
-                  {(profile as any)?.stEndDate ?? stEndISO ?? "—"}
+                  {gv === "2021" && viewMode === "bt" 
+                    ? (btEndISO ?? "—")
+                    : ((profile as any)?.stEndDate ?? stEndDateISO ?? stEndISO ?? "—")
+                  }
                 </span>
               </div>
             </div>
