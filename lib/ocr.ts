@@ -659,7 +659,7 @@ async function getTesseract(): Promise<TesseractModule> {
 }
 
 /**
- * Extrahera text för ett helt zon-objekt genom att klippa ut zoner med OpenCV
+ * Extrahera text för ett helt zon-objekt genom att klippa ut zoner med Canvas API
  * och OCR:a varje zon separat. Detta fungerar även när Tesseract inte returnerar word-koordinater.
  */
 export async function extractZonesFromImage<
@@ -674,106 +674,130 @@ export async function extractZonesFromImage<
 ): Promise<Record<K, string>> {
   const result: Record<string, string> = {};
   
-  // Ladda OpenCV
-  const cv = await loadOpenCV();
-  const T = await getTesseract();
-  
-  // Konvertera bild till OpenCV Mat
-  let imgElement: HTMLImageElement | HTMLCanvasElement;
-  
-  if (typeof image === "string") {
-    // URL
-    imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = image;
-    });
-  } else if (image instanceof HTMLImageElement || image instanceof HTMLCanvasElement) {
-    imgElement = image;
-  } else {
-    // File/Blob - konvertera till Image
-    const url = URL.createObjectURL(image);
-    try {
+  try {
+    const T = await getTesseract();
+    
+    // Konvertera bild till Image element
+    let imgElement: HTMLImageElement;
+    
+    if (typeof image === "string") {
+      // URL
       imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => resolve(img);
         img.onerror = reject;
-        img.src = url;
+        img.src = image;
       });
-    } finally {
-      URL.revokeObjectURL(url);
+    } else if (image instanceof HTMLImageElement) {
+      imgElement = image;
+    } else if (image instanceof HTMLCanvasElement) {
+      // Konvertera canvas till image
+      imgElement = new Image();
+      imgElement.src = image.toDataURL();
+      await new Promise((resolve, reject) => {
+        imgElement.onload = resolve;
+        imgElement.onerror = reject;
+      });
+    } else {
+      // File/Blob - konvertera till Image
+      const url = URL.createObjectURL(image);
+      try {
+        imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = url;
+        });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }
-  }
-  
-  // Ladda bilden i OpenCV
-  const src = cv.imread(imgElement);
-  const actualWidth = src.cols;
-  const actualHeight = src.rows;
-  
-  // Skala zonerna baserat på faktisk bildstorlek
-  const scaleX = actualWidth / expectedSize.width;
-  const scaleY = actualHeight / expectedSize.height;
-  
-  const zoneKeys = Object.keys(zones) as K[];
-  const totalZones = zoneKeys.length;
-  
-  // OCR:a varje zon separat
-  for (let i = 0; i < zoneKeys.length; i++) {
-    const key = zoneKeys[i];
-    const zone = zones[key];
     
-    // Skala zonen
-    const scaledZone: OcrZone = {
-      x: Math.round(zone.x * scaleX),
-      y: Math.round(zone.y * scaleY),
-      w: Math.round(zone.w * scaleX),
-      h: Math.round(zone.h * scaleY),
-    };
+    // Faktisk bildstorlek
+    const actualWidth = imgElement.naturalWidth || imgElement.width;
+    const actualHeight = imgElement.naturalHeight || imgElement.height;
     
-    // Säkerställ att zonen är inom bildens gränser
-    const x = Math.max(0, Math.min(scaledZone.x, actualWidth - 1));
-    const y = Math.max(0, Math.min(scaledZone.y, actualHeight - 1));
-    const w = Math.max(1, Math.min(scaledZone.w, actualWidth - x));
-    const h = Math.max(1, Math.min(scaledZone.h, actualHeight - y));
+    // Skala zonerna baserat på faktisk bildstorlek
+    const scaleX = actualWidth / expectedSize.width;
+    const scaleY = actualHeight / expectedSize.height;
     
-    // Klipp ut zonen med OpenCV
-    const rect = new cv.Rect(x, y, w, h);
-    const roi = src.roi(rect);
+    const zoneKeys = Object.keys(zones) as K[];
+    const totalZones = zoneKeys.length;
     
-    // Konvertera ROI till canvas för Tesseract
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    cv.imshow(canvas, roi);
+    console.log(`[ZONLOGIK] Använder Canvas-baserad zonparsning för ${totalZones} zoner`);
+    console.log(`[ZONLOGIK] Bildstorlek: ${actualWidth}×${actualHeight}, förväntad: ${expectedSize.width}×${expectedSize.height}`);
+    console.log(`[ZONLOGIK] Skalning: ${scaleX.toFixed(3)}×${scaleY.toFixed(3)}`);
     
-    // OCR:a zonen
-    try {
-      const { data } = await T.recognize(canvas, lang, {
-        logger: (m: any) => {
-          // Ignorera progress för individuella zoner
-        },
-      });
+    // OCR:a varje zon separat
+    for (let i = 0; i < zoneKeys.length; i++) {
+      const key = zoneKeys[i];
+      const zone = zones[key];
       
-      result[key] = (data?.text || "").trim();
-    } catch (error) {
-      console.warn(`[OCR] Kunde inte OCR:a zon ${key}:`, error);
+      // Skala zonen
+      const scaledZone: OcrZone = {
+        x: Math.round(zone.x * scaleX),
+        y: Math.round(zone.y * scaleY),
+        w: Math.round(zone.w * scaleX),
+        h: Math.round(zone.h * scaleY),
+      };
+      
+      // Säkerställ att zonen är inom bildens gränser
+      const x = Math.max(0, Math.min(scaledZone.x, actualWidth - 1));
+      const y = Math.max(0, Math.min(scaledZone.y, actualHeight - 1));
+      const w = Math.max(1, Math.min(scaledZone.w, actualWidth - x));
+      const h = Math.max(1, Math.min(scaledZone.h, actualHeight - y));
+      
+      // Klipp ut zonen med Canvas API
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      
+      if (!ctx) {
+        console.warn(`[OCR] Kunde inte skapa canvas context för zon ${key}`);
+        result[key] = "";
+        continue;
+      }
+      
+      // Rita zonen från originalbilden
+      ctx.drawImage(
+        imgElement,
+        x, y, w, h,  // Source rectangle
+        0, 0, w, h  // Destination rectangle
+      );
+      
+      // OCR:a zonen
+      try {
+        const { data } = await T.recognize(canvas, lang, {
+          logger: (m: any) => {
+            // Ignorera progress för individuella zoner
+          },
+        });
+        
+        result[key] = (data?.text || "").trim();
+      } catch (error) {
+        console.warn(`[OCR] Kunde inte OCR:a zon ${key}:`, error);
+        result[key] = "";
+      }
+      
+      // Uppdatera progress
+      if (onProgress) {
+        onProgress(i + 1, totalZones);
+      }
+    }
+    
+    console.log(`[ZONLOGIK] Klar med ${totalZones} zoner`);
+    
+  } catch (error) {
+    console.error("[ZONLOGIK] Fel vid Canvas-baserad zonparsning:", error);
+    // Returnera tomma resultat vid fel
+    const zoneKeys = Object.keys(zones) as K[];
+    zoneKeys.forEach(key => {
       result[key] = "";
-    }
-    
-    // Rensa OpenCV-objekt
-    roi.delete();
-    
-    // Uppdatera progress
-    if (onProgress) {
-      onProgress(i + 1, totalZones);
-    }
+    });
   }
-  
-  // Rensa OpenCV-objekt
-  src.delete();
   
   return result as Record<K, string>;
 }
