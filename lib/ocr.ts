@@ -576,7 +576,7 @@ export function extractZonesFromWords<
   
   // Om vi har förväntad storlek, skala zonerna
   const shouldScale = expectedSize && actualSize;
-  
+
   (Object.keys(zones) as K[]).forEach((key) => {
     let zone = zones[key];
     
@@ -841,6 +841,10 @@ export async function ocrImage(
     const extractWordsFromData = (data: any): any[] => {
       const words: any[] = [];
       
+      // Hämta blocks/layoutBlocks direkt (utan optional chaining)
+      const blocksDirectInFunc = (data as any).blocks;
+      const layoutBlocksDirectInFunc = (data as any).layoutBlocks;
+      
       // Om det finns en direkt words-array, använd den
       if (Array.isArray(data?.words)) {
         console.log("[OCR DEBUG] Hittade direkt words-array:", data.words.length);
@@ -887,21 +891,24 @@ export async function ocrImage(
       }
       
       // Försök med layoutBlocks först (kan vara rätt struktur)
+      // Använd blocksDirectInFunc/layoutBlocksDirectInFunc istället för optional chaining
       let blocksToProcess: any[] = [];
-      if (Array.isArray(data?.layoutBlocks)) {
-        console.log("[OCR DEBUG] Använder layoutBlocks:", data.layoutBlocks.length);
-        blocksToProcess = data.layoutBlocks;
-      } else if (Array.isArray(data?.blocks)) {
-        console.log("[OCR DEBUG] Använder blocks:", data.blocks.length);
-        blocksToProcess = data.blocks;
-      } else if (data?.blocks && data.blocks !== null && typeof data.blocks === "object" && !Array.isArray(data.blocks)) {
+      if (Array.isArray(layoutBlocksDirectInFunc)) {
+        console.log("[OCR DEBUG] Använder layoutBlocks (array):", layoutBlocksDirectInFunc.length);
+        blocksToProcess = layoutBlocksDirectInFunc;
+      } else if (Array.isArray(blocksDirectInFunc)) {
+        console.log("[OCR DEBUG] Använder blocks (array):", blocksDirectInFunc.length);
+        blocksToProcess = blocksDirectInFunc;
+      } else if (blocksDirectInFunc && blocksDirectInFunc !== null && typeof blocksDirectInFunc === "object" && !Array.isArray(blocksDirectInFunc)) {
         // Om blocks är ett objekt, försök konvertera till array
-        console.log("[OCR DEBUG] blocks är objekt, försöker konvertera");
-        blocksToProcess = Object.values(data.blocks);
-      } else if (data?.layoutBlocks && data.layoutBlocks !== null && typeof data.layoutBlocks === "object" && !Array.isArray(data.layoutBlocks)) {
+        console.log("[OCR DEBUG] blocks är objekt, försöker konvertera, antal keys:", Object.keys(blocksDirectInFunc).length);
+        blocksToProcess = Object.values(blocksDirectInFunc);
+      } else if (layoutBlocksDirectInFunc && layoutBlocksDirectInFunc !== null && typeof layoutBlocksDirectInFunc === "object" && !Array.isArray(layoutBlocksDirectInFunc)) {
         // Om layoutBlocks är ett objekt, försök konvertera till array
-        console.log("[OCR DEBUG] layoutBlocks är objekt, försöker konvertera");
-        blocksToProcess = Object.values(data.layoutBlocks);
+        console.log("[OCR DEBUG] layoutBlocks är objekt, försöker konvertera, antal keys:", Object.keys(layoutBlocksDirectInFunc).length);
+        blocksToProcess = Object.values(layoutBlocksDirectInFunc);
+      } else {
+        console.log("[OCR DEBUG] Inga blocks hittades - blocksDirectInFunc:", blocksDirectInFunc, "layoutBlocksDirectInFunc:", layoutBlocksDirectInFunc);
       }
       
       // Gå igenom hierarkin: blocks -> paragraphs -> lines -> words
