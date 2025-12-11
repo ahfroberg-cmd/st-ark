@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
+import { db } from "@/lib/db";
 
 /**
  * Trim av rubriker utan flimmer – identisk med MilestonePicker.
@@ -51,6 +52,8 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
     const id = String(detailId).toUpperCase();
     return btMilestones.find((x) => x.id === id) || null;
   }, [detailId]);
+
+  const isDetailChecked = detailId ? checked.has(String(detailId).toUpperCase()) : false;
 
   const isDetailChecked = detailId ? checked.has(String(detailId).toUpperCase()) : false;
 
@@ -103,151 +106,75 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
         </div>
       </div>
 
-      {/* Detalj-popup – vit header, samma stil som LegacyMilestoneDetail */}
-      {detailId && detailMilestone && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,.32)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-            zIndex: 270,
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setDetailId(null);
-          }}
-        >
+      {/* Detalj-popup – matchar IUP->Delmål design (BT har ingen plan-textarea, bara beskrivning) */}
+      {detailId && detailMilestone && (() => {
+        const m = detailMilestone;
+        const id = String(detailId).toUpperCase();
+
+        return (
           <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              width: "100%",
-              maxWidth: 860,
-              overflow: "hidden",
-              boxShadow: "0 12px 36px rgba(0,0,0,.28)",
+            className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setDetailId(null);
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <header
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 12px",
-                borderBottom: "1px solid #e5e7eb",
-              }}
+            <div
+              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ fontWeight: 700, fontSize: 16 }}>
-                {String(detailMilestone.id ?? "").toLowerCase()} – {detailMilestone.title}
+              <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+                    {id.toLowerCase()}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
+                    {m?.title ?? "BT-delmål"}
+                  </h3>
+                </div>
+              </header>
+
+              <div className="flex-1 overflow-y-auto px-5 py-5">
+                {m ? (
+                  <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
+                    <ul className="list-disc space-y-2 pl-5 text-slate-900">
+                      {m.bullets.map((b, i) => (
+                        <li key={i} className="text-slate-900">{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="text-slate-900">Information saknas för {id}.</div>
+                )}
               </div>
-              <button
-                onClick={() => setDetailId(null)}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #d0d7de",
-                  borderRadius: 10,
-                  background: "#fff",
-                  width: 36,
-                  height: 36,
-                  lineHeight: "20px",
-                  textAlign: "center",
-                  paddingInline: 0,
-                }}
-                aria-label="Stäng"
-              >
-                ×
-              </button>
-            </header>
 
-            <div style={{ padding: 14, maxHeight: "70vh", overflow: "auto" }}>
-              {detailMilestone.bullets && detailMilestone.bullets.length > 0 ? (
-                <div
+              {/* Footer med Markera/Avmarkera och Stäng */}
+              <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggle(id);
+                    setDetailId(null);
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold text-white hover:opacity-90 active:translate-y-px"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: 12,
+                    background: isDetailChecked ? "#ef4444" : "#10b981",
+                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
                   }}
                 >
-                  <article
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      padding: 10,
-                      background: "#fff",
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Beskrivning</div>
-                    <pre
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
-                        fontSize: 14,
-                        color: "#111827",
-                      }}
-                    >
-                      {detailMilestone.bullets.map((b, i) => `• ${b}`).join("\n")}
-                    </pre>
-                  </article>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: 10,
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 10,
-                    background: "#fafafa",
-                    color: "#374151",
-                  }}
+                  {isDetailChecked ? "Avmarkera delmål" : "Markera delmål"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailId(null)}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                 >
-                  Ingen beskrivning hittades för detta BT-delmål.
-                </div>
-              )}
+                  Stäng
+                </button>
+              </footer>
             </div>
-
-            <footer
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 12px",
-                borderTop: "1px solid #e5e7eb",
-              }}
-            >
-              <button
-                onClick={() => {
-                  onToggle(String(detailId).toUpperCase());
-                  setDetailId(null);
-                }}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid",
-                  borderRadius: 10,
-                  background: isDetailChecked ? "#ef4444" : "#10b981",
-                  borderColor: isDetailChecked ? "#ef4444" : "#10b981",
-                  color: "#fff",
-                  fontWeight: 600,
-                }}
-              >
-                {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
-              </button>
-              <div style={{ marginLeft: "auto" }} />
-              <button
-                onClick={() => setDetailId(null)}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #d0d7de",
-                  borderRadius: 10,
-                  background: "#fff",
-                }}
-              >
-                Stäng
-              </button>
-            </footer>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </>
   );
 

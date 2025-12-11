@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { GoalsCatalog, GoalsMilestone } from "@/lib/goals";
-import LegacyMilestoneDetail from "@/components/LegacyMilestoneDetail";
+import { db } from "@/lib/db";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
 
 /**
@@ -31,7 +31,37 @@ type Props = {
 export default function DesktopMilestonePicker({ open, title, goals, checked, onToggle, onClose }: Props) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [hoveredCheckbox, setHoveredCheckbox] = useState<string | null>(null);
+  const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
   const q = ""; // Sökfunktionalitet borttagen
+
+  // Ladda planer för delmål
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const anyDb = db as any;
+        const table =
+          anyDb.iupMilestonePlans ??
+          anyDb.milestonePlans ??
+          (typeof anyDb.table === "function" ? anyDb.table("iupMilestonePlans") : null);
+        if (table && typeof table.toArray === "function") {
+          const rows = await table.toArray();
+          const map: Record<string, string> = {};
+          for (const row of rows as any[]) {
+            const mid = String((row as any).milestoneId ?? (row as any).id ?? "");
+            if (!mid) continue;
+            const text = String((row as any).planText ?? (row as any).text ?? "");
+            map[mid] = text;
+          }
+          setPlanByMilestone(map);
+        } else {
+          setPlanByMilestone({});
+        }
+      } catch {
+        setPlanByMilestone({});
+      }
+    })();
+  }, [open]);
 
   // Förhindra scroll på body när popup är öppen
   useEffect(() => {
@@ -381,20 +411,170 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
         </div>
       </div>
 
-      {/* Detalj-popup – använd LegacyMilestoneDetail med vit header */}
-      {detailId && detailMilestone && (
-        <LegacyMilestoneDetail
-          open={true}
-          milestone={detailMilestone}
-          onClose={() => setDetailId(null)}
-          selectable={true}
-          checked={isDetailChecked}
-          onToggle={(id) => {
-            onToggle(id);
-            setDetailId(null);
-          }}
-        />
-      )}
+      {/* Detalj-popup – matchar IUP->Delmål design men read-only */}
+      {detailId && detailMilestone && (() => {
+        const m = detailMilestone;
+        const mid = detailId;
+        const planText = planByMilestone[mid] ?? "";
+        const titleCode = String((m as any)?.code ?? mid).toLowerCase();
+
+        const suggestionItems: string[] = [
+          "Klinisk tjänstgöring",
+          "Auskultation",
+          "Självständigt skriftligt arbete",
+          "Kvalitets-/förbättringsarbete",
+          "Kurs/er",
+          "Handledning av studenter/AT/BT/underläkare",
+          "Undervisning för studenter/AT/BT/underläkare",
+          "Deltagande i reflektionsgrupp",
+          "Journal Club",
+          "Deltagande i kurs/kongress",
+          "Återkoppling till kliniken efter kurs/kongress",
+          "Leda och delta i APT",
+          "Kontinuerlig uppföljning av huvudhandledare",
+          "Mini Clinical Evaluation Exercise (Mini-CEX)",
+          "Case-based discussion (CBD)",
+          "Medsittning",
+          "360-gradersbedömning",
+          "ST-kollegium",
+        ];
+
+        return (
+          <div
+            className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setDetailId(null);
+            }}
+          >
+            <div
+              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+                    {titleCode}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
+                    {String((m as any)?.title ?? "Delmål")}
+                  </h3>
+                </div>
+              </header>
+
+              <div className="flex-1 overflow-y-auto px-5 py-5">
+                {m ? (
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
+                    {/* Vänster: beskrivning från målfilen */}
+                    <div className="space-y-4">
+                      {typeof (m as any).description === "string" &&
+                      (m as any).description.trim().length > 0 ? (
+                        <p className="text-[14px] leading-relaxed text-slate-900">
+                          {(m as any).description}
+                        </p>
+                      ) : null}
+
+                      {Array.isArray((m as any).sections) && (m as any).sections.length > 0 ? (
+                        <div className="space-y-4">
+                          {(m as any).sections.map(
+                            (sec: { title?: string; items?: any[]; text?: string }, idx: number) => (
+                              <section key={idx}>
+                                {sec.title ? (
+                                  <div className="mb-1 text-[13px] font-semibold text-slate-900">
+                                    {sec.title}
+                                  </div>
+                                ) : null}
+                                {Array.isArray(sec.items) ? (
+                                  <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-900">
+                                    {sec.items.map((it, i) => (
+                                      <li key={i} className="text-slate-900">{typeof it === "string" ? it : String(it)}</li>
+                                    ))}
+                                  </ul>
+                                ) : sec.text ? (
+                                  <p className="text-[14px] leading-relaxed text-slate-900">
+                                    {sec.text}
+                                  </p>
+                                ) : null}
+                              </section>
+                            )
+                          )}
+                        </div>
+                      ) : !((m as any).description) ? (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
+                          Ingen beskrivning hittades i målfilen.
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Höger: plan + förslag (read-only) */}
+                    <div className="space-y-3">
+                      <div>
+                        <div className="mb-1 text-[13px] font-semibold text-slate-900">
+                          Planerade metoder och bedömningsinstrument
+                        </div>
+                        <textarea
+                          value={planText}
+                          readOnly
+                          className="w-full rounded-lg border border-slate-300 px-2 py-2 text-[13px] leading-relaxed text-slate-900 bg-slate-50 cursor-not-allowed"
+                          style={{ minHeight: 120, resize: "vertical" }}
+                        />
+                      </div>
+
+                      <div className="flex h-full flex-col">
+                        <div className="mb-1 text-[13px] font-semibold text-slate-900">
+                          Förslag
+                        </div>
+                        <div className="max-h-[120px] flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+                          <ul className="space-y-1.5 text-[13px] text-slate-900">
+                            {suggestionItems.map((s) => (
+                              <li key={s} className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  disabled
+                                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300 cursor-not-allowed opacity-50"
+                                />
+                                <span className="leading-snug text-slate-900">{s}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
+                    Information saknas för det valda delmålet.
+                  </div>
+                )}
+              </div>
+
+              {/* Footer med Markera/Avmarkera och Stäng */}
+              <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggle(mid);
+                    setDetailId(null);
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold text-white hover:opacity-90 active:translate-y-px"
+                  style={{
+                    background: isDetailChecked ? "#ef4444" : "#10b981",
+                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
+                  }}
+                >
+                  {isDetailChecked ? "Avmarkera delmål" : "Markera delmål"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailId(null)}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                >
+                  Stäng
+                </button>
+              </footer>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 
