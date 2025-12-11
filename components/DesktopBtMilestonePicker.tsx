@@ -75,10 +75,9 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
             <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
             <button
               onClick={onClose}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100"
-              title="Stäng"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
             >
-              ✕
+              Spara och stäng
             </button>
           </header>
 
@@ -143,44 +142,23 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
               <div style={{ fontWeight: 700, fontSize: 16 }}>
                 {String(detailMilestone.id ?? "").toLowerCase()} – {detailMilestone.title}
               </div>
-              {!readOnly ? (
-                <button
-                  onClick={() => {
-                    onToggle(String(detailId).toUpperCase());
-                    setDetailId(null);
-                  }}
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid",
-                    borderRadius: 10,
-                    background: isDetailChecked ? "#ef4444" : "#10b981",
-                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 14,
-                  }}
-                >
-                  Spara och stäng
-                </button>
-              ) : (
-                <button
-                  onClick={() => setDetailId(null)}
-                  style={{
-                    padding: "8px 12px",
-                    border: "1px solid #d0d7de",
-                    borderRadius: 10,
-                    background: "#fff",
-                    width: 36,
-                    height: 36,
-                    lineHeight: "20px",
-                    textAlign: "center",
-                    paddingInline: 0,
-                  }}
-                  aria-label="Stäng"
-                >
-                  ×
-                </button>
-              )}
+              <button
+                onClick={() => setDetailId(null)}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #d0d7de",
+                  borderRadius: 10,
+                  background: "#fff",
+                  width: 36,
+                  height: 36,
+                  lineHeight: "20px",
+                  textAlign: "center",
+                  paddingInline: 0,
+                }}
+                aria-label="Stäng"
+              >
+                ×
+              </button>
             </header>
 
             <div style={{ padding: 14, maxHeight: "70vh", overflow: "auto" }}>
@@ -228,30 +206,47 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
               )}
             </div>
 
-            {readOnly && (
-              <footer
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  gap: 8,
-                  padding: "10px 12px",
-                  borderTop: "1px solid #e5e7eb",
-                }}
-              >
+            <footer
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 12px",
+                borderTop: "1px solid #e5e7eb",
+              }}
+            >
+              {!readOnly && (
                 <button
-                  onClick={() => setDetailId(null)}
+                  onClick={() => {
+                    onToggle(String(detailId).toUpperCase());
+                    setDetailId(null);
+                  }}
                   style={{
                     padding: "8px 12px",
-                    border: "1px solid #d0d7de",
+                    border: "1px solid",
                     borderRadius: 10,
-                    background: "#fff",
+                    background: isDetailChecked ? "#ef4444" : "#10b981",
+                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
+                    color: "#fff",
+                    fontWeight: 600,
                   }}
                 >
-                  Stäng
+                  {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
                 </button>
-              </footer>
-            )}
+              )}
+              <div style={{ marginLeft: "auto" }} />
+              <button
+                onClick={() => setDetailId(null)}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #d0d7de",
+                  borderRadius: 10,
+                  background: "#fff",
+                }}
+              >
+                Stäng
+              </button>
+            </footer>
           </div>
         </div>
       )}

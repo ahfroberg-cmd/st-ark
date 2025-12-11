@@ -49,28 +49,7 @@ export default function LegacyMilestoneDetail({
           <div style={{ fontWeight:700, fontSize:16 }}>
             {m.code} – {m.title}
           </div>
-          {selectable && onToggle ? (
-            <button
-              onClick={() => {
-                onToggle(m.id);
-                onClose();
-              }}
-              style={{
-                padding: "8px 16px",
-                border: "1px solid",
-                borderRadius: 10,
-                background: checked ? "#ef4444" : "#10b981",
-                borderColor: checked ? "#ef4444" : "#10b981",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 14,
-              }}
-            >
-              Spara och stäng
-            </button>
-          ) : (
-            <button onClick={onClose} style={btnX} aria-label="Stäng">×</button>
-          )}
+          <button onClick={onClose} style={btnX} aria-label="Stäng">×</button>
         </header>
 
         <div style={{ padding:14, maxHeight:"70vh", overflow:"auto" }}>
@@ -98,12 +77,16 @@ export default function LegacyMilestoneDetail({
         </div>
 
         <footer style={ftr}>
-          {!selectable && (
-            <>
-              <div style={{ marginLeft:"auto" }} />
-              <button onClick={onClose} style={btn}>Stäng</button>
-            </>
+          {selectable && onToggle && (
+            <button
+              onClick={() => { onToggle(m.id); onClose(); }}
+              style={checked ? btnDanger : btnPrimary}
+            >
+              {checked ? "Avmarkera delmål" : "Välj delmål"}
+            </button>
           )}
+          <div style={{ marginLeft:"auto" }} />
+          <button onClick={onClose} style={btn}>Stäng</button>
         </footer>
       </div>
     </div>

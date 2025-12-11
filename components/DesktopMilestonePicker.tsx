@@ -334,10 +334,9 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
             <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
             <button
               onClick={onClose}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100"
-              title="Stäng"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
             >
-              ✕
+              Spara och stäng
             </button>
           </header>
 
