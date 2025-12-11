@@ -688,7 +688,7 @@ function CourseEditPopup({
               disabled={saving || !isDirty}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Spara
+              {saving ? "Sparar..." : "Spara"}
             </button>
           </footer>
         </div>
