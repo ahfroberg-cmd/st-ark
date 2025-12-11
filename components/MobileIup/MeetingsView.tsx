@@ -60,18 +60,20 @@ export default function MeetingsView({
                     onClick={() => onEdit(m.id)}
                     className="flex-1 min-w-0 text-left"
                   >
-                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                    <div className="mb-2 flex items-center justify-between gap-2 flex-wrap">
                       <h3 className="text-base font-semibold text-slate-900 truncate">
                         {m.focus || "Handledarsamtal"}
                       </h3>
-                      {planned && (
-                        <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
-                          Planerat
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {m.dateISO || "Datum saknas"}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-sm text-slate-600">
+                          {m.dateISO || "Datum saknas"}
+                        </div>
+                        {planned && (
+                          <span className="text-xs italic text-sky-800">
+                            Planerad
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 </div>

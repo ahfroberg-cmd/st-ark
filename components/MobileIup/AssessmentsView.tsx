@@ -106,20 +106,26 @@ export default function AssessmentsView({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                    <div className="mb-2 flex items-center justify-between gap-2 flex-wrap">
                       <h3 className="text-base font-semibold text-slate-900">
                         {a.instrument || "Progressionsbedömning"}
                       </h3>
-                      {planned && (
-                        <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
-                          Planerat
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className="text-sm text-slate-600">
+                          {a.dateISO || "Datum saknas"}
+                        </div>
+                        {planned && (
+                          <span className="text-xs italic text-sky-800">
+                            Planerad
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="mb-3 space-y-1 text-sm text-slate-600">
-                      <div>{a.dateISO || "Datum saknas"}</div>
-                      {displayLevel && <div>{displayLevel}</div>}
-                    </div>
+                    {displayLevel && (
+                      <div className="mb-3 text-sm text-slate-600">
+                        {displayLevel}
+                      </div>
+                    )}
                     {a.summary && (
                       <p className="mb-3 text-base text-slate-700 line-clamp-2">
                         {a.summary}

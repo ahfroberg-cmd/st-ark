@@ -699,13 +699,6 @@ export default function MobileProfile({ open, onClose }: Props) {
         <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
           <button
             type="button"
-            onClick={requestClose}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-          >
-            Avbryt
-          </button>
-          <button
-            type="button"
             disabled={!dirty || saving}
             onClick={handleSave}
             className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"

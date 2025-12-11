@@ -187,15 +187,29 @@ export default function MobileCourses() {
         setRows((prev) =>
           prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
         );
-        setOriginalEditing(JSON.parse(JSON.stringify(patch)));
+        // Uppdatera både editing och originalEditing så att isDirty blir false
+        // patch har redan formaterade datum, så använd dem direkt
+        const updatedEditing = {
+          ...editing,
+          ...patch,
+        };
+        setEditing(updatedEditing);
+        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       } else {
         // Ny rad: behåll id och skicka in hela patch (med id) till add
         const insertPatch: CourseRow = { ...patch };
         await anyDb.courses?.add?.(insertPatch);
         setRows((prev) => [...prev, insertPatch]);
         setSelectedId(insertPatch.id);
-        setEditing({ ...insertPatch });
-        setOriginalEditing(JSON.parse(JSON.stringify(insertPatch)));
+        // Formatera datum för editing (samma format som när man väljer en rad)
+        const updatedEditing = {
+          ...insertPatch,
+          startDate: fmtDate(insertPatch.startDate),
+          endDate: fmtDate(insertPatch.endDate),
+          certificateDate: fmtDate(insertPatch.certificateDate),
+        };
+        setEditing(updatedEditing);
+        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       }
     } catch (e) {
       console.error("Kunde inte spara kurs:", e);
@@ -670,9 +684,9 @@ function CourseEditPopup({
               onClick={() => {
                 const isExisting = allCourses.some((c) => c.id === course.id);
                 if (isExisting) {
-                  if (window.confirm("Vill du ta bort denna aktivitet?")) {
-                    onDelete();
-                  }
+                  // Ta bort confirm här eftersom handleDelete också gör en confirm
+                  // Vi anropar direkt onDelete som kommer göra confirm i handleDelete
+                  onDelete();
                 } else {
                   // New item, just close
                   onClose();

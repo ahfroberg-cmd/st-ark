@@ -293,15 +293,28 @@ export default function MobilePlacements() {
         setRows((prev) =>
           prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
         );
-        setOriginalEditing(JSON.parse(JSON.stringify(patch)));
+        // Uppdatera både editing och originalEditing så att isDirty blir false
+        // patch har redan formaterade datum, så använd dem direkt
+        const updatedEditing = {
+          ...editing,
+          ...patch,
+        };
+        setEditing(updatedEditing);
+        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       } else {
         // Ny rad: behåll id och skicka in hela patch (med id) till add
         const insertPatch: PlacementRow = { ...patch };
         await anyDb.placements?.add?.(insertPatch);
         setRows((prev) => [...prev, insertPatch]);
         setSelectedId(insertPatch.id);
-        setEditing({ ...insertPatch });
-        setOriginalEditing(JSON.parse(JSON.stringify(insertPatch)));
+        // Formatera datum för editing (samma format som när man väljer en rad)
+        const updatedEditing = {
+          ...insertPatch,
+          startDate: fmtDate(insertPatch.startDate),
+          endDate: fmtDate(insertPatch.endDate),
+        };
+        setEditing(updatedEditing);
+        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       }
     } catch (e) {
       console.error("Kunde inte spara placering:", e);
@@ -796,9 +809,9 @@ function PlacementEditPopup({
               onClick={() => {
                 const isExisting = allPlacements.some((p) => p.id === placement.id);
                 if (isExisting) {
-                  if (window.confirm("Vill du ta bort denna aktivitet?")) {
-                    onDelete();
-                  }
+                  // Ta bort confirm här eftersom handleDelete också gör en confirm
+                  // Vi anropar direkt onDelete som kommer göra confirm i handleDelete
+                  onDelete();
                 } else {
                   // New item, just close
                   onClose();
