@@ -647,18 +647,53 @@ export async function ocrImage(
       hasWords: Array.isArray((data as any)?.words),
       wordsLength: Array.isArray((data as any)?.words) ? (data as any).words.length : 0,
       dataKeys: data ? Object.keys(data) : [],
-      firstWord: Array.isArray((data as any)?.words) && (data as any).words.length > 0 
-        ? (data as any).words[0] 
+      hasBlocks: Array.isArray((data as any)?.blocks),
+      blocksLength: Array.isArray((data as any)?.blocks) ? (data as any).blocks.length : 0,
+      firstBlock: Array.isArray((data as any)?.blocks) && (data as any).blocks.length > 0 
+        ? (data as any).blocks[0] 
         : null,
     });
 
-    const rawWords: any[] = Array.isArray((data as any)?.words)
-      ? (data as any).words
-      : [];
+    // Tesseract.js returnerar data i hierarkisk struktur: blocks -> paragraphs -> lines -> words
+    // Vi behöver extrahera alla words från denna struktur
+    const extractWordsFromData = (data: any): any[] => {
+      const words: any[] = [];
+      
+      // Om det finns en direkt words-array, använd den
+      if (Array.isArray(data?.words)) {
+        return data.words;
+      }
+      
+      // Annars, gå igenom hierarkin: blocks -> paragraphs -> lines -> words
+      if (Array.isArray(data?.blocks)) {
+        for (const block of data.blocks) {
+          if (Array.isArray(block?.paragraphs)) {
+            for (const para of block.paragraphs) {
+              if (Array.isArray(para?.lines)) {
+                for (const line of para.lines) {
+                  if (Array.isArray(line?.words)) {
+                    words.push(...line.words);
+                  }
+                }
+              }
+            }
+          }
+          // Vissa versioner har words direkt på block-nivå
+          if (Array.isArray(block?.words)) {
+            words.push(...block.words);
+          }
+        }
+      }
+      
+      return words;
+    };
 
-    console.log("[OCR DEBUG] rawWords efter filtrering:", {
+    const rawWords: any[] = extractWordsFromData(data);
+
+    console.log("[OCR DEBUG] rawWords efter extraktion:", {
       rawWordsLength: rawWords.length,
       firstRawWord: rawWords.length > 0 ? rawWords[0] : null,
+      firstRawWordKeys: rawWords.length > 0 ? Object.keys(rawWords[0]) : [],
     });
 
     const words: OcrWord[] = rawWords
@@ -666,31 +701,38 @@ export async function ocrImage(
         const t = String(w.text ?? "").trim();
         if (!t) return null;
 
-        const bbox: any = w.bbox || {};
-        const x0 =
-          typeof bbox.x0 === "number"
-            ? bbox.x0
-            : typeof bbox.x === "number"
-            ? bbox.x
-            : 0;
-        const y0 =
-          typeof bbox.y0 === "number"
-            ? bbox.y0
-            : typeof bbox.y === "number"
-            ? bbox.y
-            : 0;
-        const x1 =
-          typeof bbox.x1 === "number"
-            ? bbox.x1
-            : typeof bbox.w === "number"
-            ? x0 + bbox.w
-            : x0;
-        const y1 =
-          typeof bbox.y1 === "number"
-            ? bbox.y1
-            : typeof bbox.h === "number"
-            ? y0 + bbox.h
-            : y0;
+        // Tesseract.js kan ha bbox i olika format
+        const bbox: any = w.bbox || w;
+        
+        // Försök olika sätt att få koordinater
+        let x0 = 0;
+        let y0 = 0;
+        let x1 = 0;
+        let y1 = 0;
+
+        if (bbox) {
+          // Format 1: bbox.x0, bbox.y0, bbox.x1, bbox.y1
+          if (typeof bbox.x0 === "number") {
+            x0 = bbox.x0;
+            y0 = bbox.y0;
+            x1 = bbox.x1;
+            y1 = bbox.y1;
+          }
+          // Format 2: bbox.x, bbox.y, bbox.w, bbox.h
+          else if (typeof bbox.x === "number") {
+            x0 = bbox.x;
+            y0 = bbox.y;
+            x1 = bbox.x + (bbox.w || 0);
+            y1 = bbox.y + (bbox.h || 0);
+          }
+          // Format 3: left, top, width, height (direkt på word-objektet)
+          else if (typeof w.left === "number") {
+            x0 = w.left;
+            y0 = w.top;
+            x1 = w.left + (w.width || 0);
+            y1 = w.top + (w.height || 0);
+          }
+        }
 
         const conf =
           typeof w.confidence === "number"
