@@ -749,7 +749,7 @@ export async function extractZonesFromImage<
       const w = Math.max(1, Math.min(scaledZone.w, actualWidth - x));
       const h = Math.max(1, Math.min(scaledZone.h, actualHeight - y));
       
-      // Klipp ut zonen med Canvas API
+      // Klipp ut zonen med Canvas API och förbättra bildkvaliteten
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
@@ -761,12 +761,47 @@ export async function extractZonesFromImage<
         continue;
       }
       
-      // Rita zonen från originalbilden
+      // Förbättra rendering-kvalitet
+      ctx.imageSmoothingEnabled = false; // Ingen smoothing för skarpare text
+      ctx.imageSmoothingQuality = "high";
+      
+      // Rita zonen från originalbilden i större upplösning för bättre kvalitet
+      // Skala upp för bättre OCR-resultat
+      const scale = 2; // 2x uppskalning för bättre textigenkänning
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      
+      // Rita med uppskalning
       ctx.drawImage(
         imgElement,
         x, y, w, h,  // Source rectangle
-        0, 0, w, h  // Destination rectangle
+        0, 0, w * scale, h * scale  // Destination rectangle (uppskalad)
       );
+      
+      // Förbättra kontrast och skärpa med bildfilter
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Konvertera till gråskala och öka kontrast
+      for (let i = 0; i < data.length; i += 4) {
+        // Gråskala
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        
+        // Öka kontrast (kontrastfaktor 1.5)
+        const contrast = 1.5;
+        const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+        const newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
+        
+        // Binarisering (threshold på 128)
+        const binary = newGray > 128 ? 255 : 0;
+        
+        data[i] = binary;     // R
+        data[i + 1] = binary; // G
+        data[i + 2] = binary; // B
+        // data[i + 3] behålls (alpha)
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
       
       // OCR:a zonen
       try {
