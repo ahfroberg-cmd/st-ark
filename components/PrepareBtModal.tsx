@@ -1102,15 +1102,11 @@ useEffect(() => {
 
 
   /** ====== Render helpers ====== */
-  function ChipView({ chip, onRemove, onClick }: { chip: Chip; onRemove: () => void; onClick?: () => void }) {
+  function ChipView({ chip, onRemove }: { chip: Chip; onRemove: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
-    >
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs">
       {chip.label}
-    </button>
+    </span>
   );
 }
 
@@ -2134,12 +2130,6 @@ useEffect(() => {
                           key={g.id}
                           chip={g}
                           onRemove={() => setBtGoals((list) => list.filter((x) => x.id !== g.id))}
-                          onClick={() => {
-                            // Öppna BT-delmål informationsruta via BtMilestonePicker detaljvy
-                            // Detta hanteras av BtMilestonePicker när man klickar på en rad
-                            setPickerOpen(true);
-                            // Vi kan inte direkt öppna detaljvyn här, så vi öppnar pickern istället
-                          }}
                         />
                       ))}
                   </div>

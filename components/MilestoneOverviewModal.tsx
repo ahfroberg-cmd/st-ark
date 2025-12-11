@@ -924,15 +924,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   const hasAnySt = !!goals && (groups.A.length + groups.B.length + groups.C.length > 0);
   const hasAnyBt = is2021 && btMilestones.length > 0;
 
-  // Use initialTab directly for BT check - this is the source of truth
-  const isBtTab = initialTab === "bt";
-  
-  // Debug logging
-  useEffect(() => {
-    if (open) {
-      console.log("[MilestoneOverviewPanel] open:", open, "tab:", tab, "initialTab:", initialTab, "isBtTab:", isBtTab);
-    }
-  }, [open, tab, initialTab, isBtTab]);
+  // Use tab state for BT check - this reflects the current selection
+  const isBtTab = tab === "bt";
 
       return (
         <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
@@ -954,7 +947,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             </header>
           )}
 
-        {/* Utbildningsaktiviteter - på samma rad som ST-delmål/BT-delmål radioknappar */}
+        {/* Utbildningsaktiviteter - på samma rad som ST-delmål/BT-delmål knapparna */}
         <div className="px-5 py-3 border-b border-slate-200">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             {/* Vänster: Radioknappar för ST-delmål/BT-delmål (endast för 2021) */}
@@ -1029,7 +1022,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
             </div>
-          ) : initialTab === "bt" ? (
+          ) : tab === "bt" ? (
             // BT-delmål tab
             !is2021 ? (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
@@ -1042,8 +1035,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             ) : (
               <BtList btRows={btRows} openDetail={openDetail} openList={openList} />
             )
-          ) : is2021 ? (
-            // ST-delmål tab for 2021
+          ) : (
+            // ST-delmål tab (default)
             !(hasAnySt) ? (
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
                 Inga delmål matchar sökningen.
@@ -1051,12 +1044,6 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             ) : (
               <StGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
             )
-          ) : !hasAnySt ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
-              Inga delmål matchar sökningen.
-            </div>
-          ) : (
-            <StGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
           )}
         </section>
 
@@ -1448,6 +1435,7 @@ type ModalProps = {
 };
 
 export default function MilestoneOverviewModal({ open, onClose }: ModalProps) {
+  const [tab, setTab] = useState<"st" | "bt">("st");
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -1460,44 +1448,39 @@ export default function MilestoneOverviewModal({ open, onClose }: ModalProps) {
 
   const is2021 = (profile?.goalsVersion ?? "") === "2021";
 
-  // Beräkna default-tab baserat på om idag är mellan BT-start och BT-slut
-  const defaultTab = useMemo<"st" | "bt">(() => {
-    if (!is2021) return "st";
-    
-    const btStart = (profile as any)?.btStartDate;
-    if (!btStart || !/^\d{4}-\d{2}-\d{2}$/.test(btStart)) return "st";
-    
-    // Beräkna BT-slut: manuellt satt eller 24 månader efter BT-start
-    const btEndManual = (profile as any)?.btEndDate;
-    let btEnd: string;
-    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
-      btEnd = btEndManual;
-    } else {
-      try {
-        const btDate = new Date(btStart + "T00:00:00");
-        btDate.setMonth(btDate.getMonth() + 24);
-        const mm = String(btDate.getMonth() + 1).padStart(2, "0");
-        const dd = String(btDate.getDate()).padStart(2, "0");
-        btEnd = `${btDate.getFullYear()}-${mm}-${dd}`;
-      } catch {
-        return "st";
-      }
-    }
-    
-    // Jämför idag med BT-period
-    const today = new Date().toISOString().slice(0, 10);
-    if (today >= btStart && today <= btEnd) {
-      return "bt";
-    }
-    
-    return "st";
-  }, [is2021, profile]);
-
   if (!open) return null;
 
   return (
     <div className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
-      <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={defaultTab} hideHeader={true} />
+      {/* Tab buttons for BT/ST selection - only for 2021 */}
+      {is2021 && (
+        <div className="flex items-center gap-2 bg-white px-5 py-3">
+          <button
+            type="button"
+            onClick={() => setTab("st")}
+            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              tab === "st"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            ST-delmål
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("bt")}
+            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              tab === "bt"
+                ? "bg-sky-600 text-white shadow-sm"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            }`}
+          >
+            BT-delmål
+          </button>
+        </div>
+      )}
+
+      <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={is2021 ? tab : "st"} hideHeader={true} />
     </div>
   );
 }

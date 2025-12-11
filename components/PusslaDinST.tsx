@@ -12,11 +12,9 @@ import ReportPrintModal from "@/components/ReportPrintModal";
 import IupModal from "@/components/IupModal";
 
 
-import type { GoalsCatalog, GoalsMilestone } from "@/lib/goals";
+import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
-import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
-import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 
 import dynamic from "next/dynamic";
 const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ssr: false });
@@ -1182,16 +1180,6 @@ const [milestonePicker, setMilestonePicker] = useState<{ open: boolean; mode: "c
 const [btMilestonePicker, setBtMilestonePicker] = useState<{ open: boolean; mode: "course" | "placement" | null }>({
   open: false,
   mode: null,
-});
-
-// State för informationsrutor för delmål (från chips)
-const [stMilestoneDetail, setStMilestoneDetail] = useState<{ open: boolean; milestoneId: string | null }>({
-  open: false,
-  milestoneId: null,
-});
-const [btMilestoneDetail, setBtMilestoneDetail] = useState<{ open: boolean; milestoneId: string | null }>({
-  open: false,
-  milestoneId: null,
 });
 
 
@@ -5697,14 +5685,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             <div className="flex items-center gap-1 flex-wrap">
               {(selectedPlacement as any)?.btMilestones?.length > 0 ? (
                 sortMilestoneIds(((selectedPlacement as any).btMilestones || []) as string[]).map((m: string) => (
-                  <button
+                  <span
                     key={`bt-${m}`}
-                    type="button"
-                    onClick={() => setBtMilestoneDetail({ open: true, milestoneId: m })}
-                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
+                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
                   >
                     {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                  </button>
+                  </span>
                 ))
               ) : (
                 <span className="text-slate-400 text-sm">—</span>
@@ -5726,14 +5712,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <div className="flex items-center gap-1 flex-wrap">
                 {(selectedPlacement as any)?.milestones?.length > 0 ? (
                   (selectedPlacement as any).milestones.map((m: string) => (
-                    <button
+                    <span
                       key={`st-${m}`}
-                      type="button"
-                      onClick={() => setStMilestoneDetail({ open: true, milestoneId: m })}
-                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
+                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
                     >
                       {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                    </button>
+                    </span>
                   ))
                 ) : (
                   <span className="text-slate-400 text-sm">—</span>
@@ -5758,14 +5742,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <div className="flex items-center gap-1 flex-wrap">
           {selectedPlacement?.id && (selectedPlacement as any)?.milestones?.length > 0 ? (
             sortMilestoneIds(((selectedPlacement as any).milestones || []) as string[]).map((m: string) => (
-              <button
+              <span
                 key={m}
-                type="button"
-                onClick={() => setStMilestoneDetail({ open: true, milestoneId: m })}
-                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
+                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
               >
                 {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-              </button>
+              </span>
             ))
           ) : (
             <span className="text-slate-400 text-sm">—</span>
@@ -7463,7 +7445,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         : ((selectedPlacement as any)?.milestones || [])
     ) as string[]
   )}
-  readOnly={true}
   onToggle={(milestoneId) => {
     if (milestonePicker.mode === "course" && selectedCourse) {
       const cur = new Set<string>(
@@ -7520,7 +7501,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         : ((selectedPlacement as any)?.btMilestones || [])
     ) as string[]
   )}
-  readOnly={true}
   onToggle={async (milestoneId: string) => {
     // Kurs: uppdatera lokal state + skriv (om tabell finns) till db.courses
     if (btMilestonePicker.mode === "course" && selectedCourse) {
@@ -7813,306 +7793,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
       {/* Överlapp ej möjligt: varningsblock borttaget enligt specifikation */}
-
-      {/* ST-delmål informationsruta (från chips) */}
-      {stMilestoneDetail.open && stMilestoneDetail.milestoneId && goals && (() => {
-        const mid = String(stMilestoneDetail.milestoneId);
-        const midNorm = mid.toUpperCase().replace(/\s+/g, "");
-        const isAb2015 = !is2021 && /^[AB]\d+$/i.test(midNorm);
-
-        let base: GoalsMilestone | null = null;
-
-        if (isAb2015) {
-          const commonByKey =
-            (COMMON_AB_MILESTONES as any)[midNorm] ??
-            (COMMON_AB_MILESTONES as any)[midNorm.toLowerCase()];
-          if (commonByKey) {
-            base = commonByKey as GoalsMilestone;
-          } else {
-            const commonByCode = Object.values(COMMON_AB_MILESTONES as any).find((cm: any) => {
-              const codeRaw = String(cm?.code ?? cm?.id ?? "");
-              const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
-              return codeKey === midNorm;
-            }) as GoalsMilestone | undefined;
-            if (commonByCode) {
-              base = commonByCode;
-            }
-          }
-        } else {
-          base =
-            (goals.milestones.find((m) => m.id === mid || m.code === mid) as GoalsMilestone | undefined) ??
-            null;
-
-          if (!base) {
-            const commonByKey =
-              (COMMON_AB_MILESTONES as any)[midNorm] ??
-              (COMMON_AB_MILESTONES as any)[midNorm.toLowerCase()];
-            if (commonByKey) {
-              base = commonByKey as GoalsMilestone;
-            } else {
-              const commonByCode = Object.values(COMMON_AB_MILESTONES as any).find((cm: any) => {
-                const codeRaw = String(cm?.code ?? cm?.id ?? "");
-                const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
-                return codeKey === midNorm;
-              }) as GoalsMilestone | undefined;
-              if (commonByCode) {
-                base = commonByCode;
-              }
-            }
-          }
-        }
-
-        const m = mergeWithCommon(base);
-        const isChecked = selectedPlacement
-          ? ((selectedPlacement as any)?.milestones || [] as string[]).includes(mid)
-          : selectedCourse
-          ? ((selectedCourse as any)?.milestones || [] as string[]).includes(mid)
-          : false;
-
-        const handleToggle = () => {
-          if (selectedPlacement) {
-            const cur = new Set<string>(((selectedPlacement as any)?.milestones || []) as string[]);
-            if (cur.has(mid)) {
-              cur.delete(mid);
-            } else {
-              cur.add(mid);
-            }
-            setActivities((prev) =>
-              prev.map((a) =>
-                a.id === selectedPlacement.id
-                  ? { ...a, ...(a as any), milestones: Array.from(cur) }
-                  : a
-              )
-            );
-            setDirty(true);
-          } else if (selectedCourse) {
-            const cur = new Set<string>(((selectedCourse as any)?.milestones || []) as string[]);
-            if (cur.has(mid)) {
-              cur.delete(mid);
-            } else {
-              cur.add(mid);
-            }
-            setCourses((prev) =>
-              prev.map((c) =>
-                c.id === selectedCourse.id
-                  ? { ...c, ...(c as any), milestones: Array.from(cur) }
-                  : c
-              )
-            );
-            setDirty(true);
-          }
-        };
-
-        return (
-          <div
-            className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setStMilestoneDetail({ open: false, milestoneId: null });
-            }}
-          >
-            <div
-              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
-                <div className="min-w-0 flex-1 flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-                    {String((m as any)?.code ?? mid).toLowerCase()}
-                  </span>
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
-                    {String((m as any)?.title ?? "Delmål")}
-                  </h3>
-                </div>
-              </header>
-
-              <div className="flex-1 overflow-y-auto px-5 py-5">
-                {m ? (
-                  <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
-                    <div className="space-y-4">
-                      {typeof (m as any).description === "string" &&
-                      (m as any).description.trim().length > 0 ? (
-                        <p className="text-[14px] leading-relaxed text-slate-900">
-                          {(m as any).description}
-                        </p>
-                      ) : null}
-
-                      {Array.isArray((m as any).sections) && (m as any).sections.length > 0 ? (
-                        <div className="space-y-4">
-                          {(m as any).sections.map(
-                            (sec: { title?: string; items?: any[]; text?: string }, idx: number) => (
-                              <section key={idx}>
-                                {sec.title ? (
-                                  <div className="mb-1 text-[13px] font-semibold text-slate-900">
-                                    {sec.title}
-                                  </div>
-                                ) : null}
-                                {Array.isArray(sec.items) ? (
-                                  <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-900">
-                                    {sec.items.map((it, i) => (
-                                      <li key={i} className="text-slate-900">{typeof it === "string" ? it : String(it)}</li>
-                                    ))}
-                                  </ul>
-                                ) : sec.text ? (
-                                  <p className="text-[14px] leading-relaxed text-slate-900">
-                                    {sec.text}
-                                  </p>
-                                ) : null}
-                              </section>
-                            )
-                          )}
-                        </div>
-                      ) : !((m as any).description) ? (
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
-                          Ingen beskrivning hittades i målfilen.
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
-                    Information saknas för det valda delmålet.
-                  </div>
-                )}
-              </div>
-
-              <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleToggle();
-                    setStMilestoneDetail({ open: false, milestoneId: null });
-                  }}
-                  className={`inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold text-white transition ${
-                    isChecked
-                      ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
-                      : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px"
-                  }`}
-                >
-                  {isChecked ? "Avmarkera delmål" : "Markera delmål"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStMilestoneDetail({ open: false, milestoneId: null })}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-                >
-                  Stäng
-                </button>
-              </footer>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* BT-delmål informationsruta (från chips) */}
-      {btMilestoneDetail.open && btMilestoneDetail.milestoneId && (() => {
-        const id = String(btMilestoneDetail.milestoneId).toUpperCase();
-        const m = btMilestones.find((x) => x.id === id) as BtMilestone | undefined;
-        const isChecked = selectedPlacement
-          ? ((selectedPlacement as any)?.btMilestones || [] as string[]).includes(id)
-          : selectedCourse
-          ? ((selectedCourse as any)?.btMilestones || [] as string[]).includes(id)
-          : false;
-
-        const handleToggle = async () => {
-          if (selectedPlacement) {
-            const cur = new Set<string>(((selectedPlacement as any)?.btMilestones || []) as string[]);
-            cur.has(id) ? cur.delete(id) : cur.add(id);
-            const next = Array.from(cur);
-            setActivities((prev) =>
-              prev.map((a) =>
-                a.id === selectedPlacement.id
-                  ? { ...a, ...(a as any), btMilestones: next }
-                  : a
-              )
-            );
-            try {
-              await (db as any).placements.update(selectedPlacement.id, { btMilestones: next });
-            } catch {}
-            setDirty(true);
-          } else if (selectedCourse) {
-            const cur = new Set<string>(((selectedCourse as any)?.btMilestones || []) as string[]);
-            cur.has(id) ? cur.delete(id) : cur.add(id);
-            const next = Array.from(cur);
-            setCourses((prev) =>
-              prev.map((c) =>
-                c.id === selectedCourse.id
-                  ? { ...c, ...(c as any), btMilestones: next }
-                  : c
-              )
-            );
-            try {
-              const anyDb: any = db as any;
-              if (anyDb?.courses?.update) {
-                await anyDb.courses.update(selectedCourse.id, { btMilestones: next });
-              }
-            } catch {}
-            setDirty(true);
-          }
-        };
-
-        return (
-          <div
-            className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setBtMilestoneDetail({ open: false, milestoneId: null });
-            }}
-          >
-            <div
-              className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
-                <div className="min-w-0 flex-1 flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-                    {id.toLowerCase()}
-                  </span>
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
-                    {m?.title ?? "BT-delmål"}
-                  </h3>
-                </div>
-              </header>
-
-              <div className="flex-1 overflow-y-auto px-5 py-5">
-                {m ? (
-                  <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
-                    <ul className="list-disc space-y-2 pl-5 text-slate-900">
-                      {m.bullets.map((b, i) => (
-                        <li key={i} className="text-slate-900">{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="text-slate-900">Information saknas för {id}.</div>
-                )}
-              </div>
-
-              <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleToggle();
-                    setBtMilestoneDetail({ open: false, milestoneId: null });
-                  }}
-                  className={`inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold text-white transition ${
-                    isChecked
-                      ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
-                      : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px"
-                  }`}
-                >
-                  {isChecked ? "Avmarkera delmål" : "Markera delmål"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBtMilestoneDetail({ open: false, milestoneId: null })}
-                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-                >
-                  Stäng
-                </button>
-              </footer>
-            </div>
-          </div>
-        );
-      })()}
       </>
   );
 }
