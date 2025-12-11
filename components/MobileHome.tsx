@@ -140,7 +140,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     };
   }, []);
 
-  // Beräkna BT-slutdatum (från profil eller 2 år efter BT-start)
+  // Beräkna BT-slutdatum (från profil eller 1 år efter BT-start)
   const btEndISO = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     if (gv !== "2021") return null;
@@ -150,13 +150,27 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     
     const btEndManual = (profile as any)?.btEndDate;
     if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      // Om manuellt satt, använd det (men minst 1 år om det är mindre)
+      const manualMonths = monthDiffExact(btStart, btEndManual);
+      if (manualMonths < 12) {
+        // Om mindre än 1 år, använd 1 år som default
+        try {
+          const btDate = new Date(btStart + "T00:00:00");
+          btDate.setMonth(btDate.getMonth() + 12);
+          const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+          const dd = String(btDate.getDate()).padStart(2, "0");
+          return `${btDate.getFullYear()}-${mm}-${dd}`;
+        } catch {
+          return btEndManual;
+        }
+      }
       return btEndManual;
     }
     
-    // Default: 2 år (24 månader) efter BT-start
+    // Default: 1 år (12 månader) efter BT-start
     try {
       const btDate = new Date(btStart + "T00:00:00");
-      btDate.setMonth(btDate.getMonth() + 24);
+      btDate.setMonth(btDate.getMonth() + 12);
       const mm = String(btDate.getMonth() + 1).padStart(2, "0");
       const dd = String(btDate.getDate()).padStart(2, "0");
       return `${btDate.getFullYear()}-${mm}-${dd}`;
@@ -165,7 +179,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     }
   }, [profile]);
 
-  // Beräkna ST-slutdatum (från profil eller baserat på total längd)
+  // Beräkna ST-slutdatum (från profil eller 4,5 år efter BT-start)
   const stEndDateISO = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     if (gv !== "2021") {
@@ -173,35 +187,161 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     }
     
     const btStart = (profile as any)?.btStartDate;
-    if (!btStart) return (profile as any)?.stEndDate ?? stEndISO ?? null;
+    if (!btStart || !btEndISO) return (profile as any)?.stEndDate ?? stEndISO ?? null;
     
-    // ST-slutdatum = BT-start + total längd i månader
+    // Om manuellt satt ST-slutdatum, använd det
+    const stEndManual = (profile as any)?.stEndDate;
+    if (stEndManual && /^\d{4}-\d{2}-\d{2}$/.test(stEndManual)) {
+      return stEndManual;
+    }
+    
+    // Default: 4,5 år (54 månader) efter BT-start, eller från BT-slut + 4,5 år
+    // Men eftersom ST börjar efter BT, räkna från BT-slut + 4,5 år
     try {
-      const startDate = new Date(btStart + "T00:00:00");
-      const months = planMonths || 66;
-      startDate.setMonth(startDate.getMonth() + months);
-      const mm = String(startDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(startDate.getDate()).padStart(2, "0");
-      return `${startDate.getFullYear()}-${mm}-${dd}`;
+      const btEndDate = new Date(btEndISO + "T00:00:00");
+      btEndDate.setMonth(btEndDate.getMonth() + 54);
+      const mm = String(btEndDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(btEndDate.getDate()).padStart(2, "0");
+      return `${btEndDate.getFullYear()}-${mm}-${dd}`;
     } catch {
       return (profile as any)?.stEndDate ?? stEndISO ?? null;
     }
-  }, [profile, planMonths, stEndISO]);
+  }, [profile, btEndISO, stEndISO]);
 
-  // Registrerad tid motsvarande heltid (endast placements)
-  const workedFteMonths = useMemo(() => {
+  // Hjälpfunktion: avgör om en tjänstgöring är BT-fasad (för 2021)
+  // För placeringar: använd startdatum. För kurser: använd slutdatum/certificateDate
+  const isPlacementBTPhase = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return () => false;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart || !btEndISO) return () => false;
+    
+    return (p: any) => {
+      // Om phase är explicit satt, använd det
+      if (p.phase === "BT") return true;
+      if (p.phase === "ST") return false;
+      
+      // För placeringar: använd startdatum
+      const refDate = p.startDate || p.startISO || p.start || "";
+      if (!refDate) return false;
+      
+      const refMs = new Date(refDate + "T00:00:00").getTime();
+      const btStartMs = new Date(btStart + "T00:00:00").getTime();
+      const btEndMs = new Date(btEndISO + "T00:00:00").getTime();
+      
+      if (!Number.isFinite(refMs) || !Number.isFinite(btStartMs) || !Number.isFinite(btEndMs)) {
+        return false;
+      }
+      
+      // BT om startdatum ligger inom BT-fönstret [BT-start, BT-slut)
+      return refMs >= btStartMs && refMs < btEndMs;
+    };
+  }, [profile, btEndISO]);
+
+  // Registrerad tid för BT-läge: endast BT-fasade tjänstgöringar till dagens datum
+  const workedBtFteMonths = useMemo(() => {
     if (!placements || placements.length === 0) return 0;
-
+    
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return 0;
+    
     const today = todayISO();
-
+    const isBT = isPlacementBTPhase;
+    
     return placements.reduce((acc, p: any) => {
+      // Endast BT-fasade tjänstgöringar
+      if (!isBT(p)) return acc;
+      
       const start = p.startDate || p.startISO || p.start || "";
+      if (!start) return acc;
+      
+      // Räkna till dagens datum (eller slutdatum om det är tidigare)
       const end = p.endDate || p.endISO || p.end || today;
-      const months = monthDiffExact(start, end);
+      const endDate = end > today ? today : end;
+      
+      const months = monthDiffExact(start, endDate);
       const frac = pickPercent(p) / 100;
       return acc + months * frac;
     }, 0);
-  }, [placements]);
+  }, [placements, profile, isPlacementBTPhase]);
+
+  // Registrerad tid för ST-läge: ST-fasade + BT-fasade med "Uppfyller ST-delmål"
+  const workedStFteMonths = useMemo(() => {
+    if (!placements || placements.length === 0) return 0;
+    
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") {
+      // 2015: räkna alla
+      const today = todayISO();
+      return placements.reduce((acc, p: any) => {
+        const start = p.startDate || p.startISO || p.start || "";
+        const end = p.endDate || p.endISO || p.end || today;
+        const months = monthDiffExact(start, end);
+        const frac = pickPercent(p) / 100;
+        return acc + months * frac;
+      }, 0);
+    }
+    
+    const today = todayISO();
+    const isBT = isPlacementBTPhase;
+    
+    return placements.reduce((acc, p: any) => {
+      const start = p.startDate || p.startISO || p.start || "";
+      if (!start) return acc;
+      
+      const end = p.endDate || p.endISO || p.end || today;
+      const months = monthDiffExact(start, end);
+      const frac = pickPercent(p) / 100;
+      
+      // ST-fasade tjänstgöringar
+      if (!isBT(p)) {
+        return acc + months * frac;
+      }
+      
+      // BT-fasade som "Uppfyller ST-delmål"
+      if (p.fulfillsStGoals) {
+        return acc + months * frac;
+      }
+      
+      return acc;
+    }, 0);
+  }, [placements, profile, isPlacementBTPhase]);
+
+  // Beräkna total tid för BT (default 1 år, men justera om btEndDate är satt)
+  const totalBtMonths = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return 0;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart || !btEndISO) return 12; // Default 1 år
+    
+    const months = monthDiffExact(btStart, btEndISO);
+    // Om btEndDate är satt och tiden är mindre än 1 år, använd den faktiska längden
+    // Annars använd 1 år som default
+    const btEndManual = (profile as any)?.btEndDate;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      // Om manuellt satt och mindre än 1 år, använd den längden
+      return months < 12 ? months : 12;
+    }
+    
+    // Default: 1 år
+    return 12;
+  }, [profile, btEndISO]);
+
+  // Beräkna total tid för ST (default 4,5 år, men justera om stEndDate är satt)
+  const totalStMonths = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") {
+      return planMonths || 60;
+    }
+    
+    if (!btEndISO || !stEndDateISO) return 54; // Default 4,5 år
+    
+    const months = monthDiffExact(btEndISO, stEndDateISO);
+    // Om mindre än 4,5 år, använd 4,5 år som minimum
+    return Math.max(54, months);
+  }, [profile, btEndISO, stEndDateISO, planMonths]);
 
   // Beräkna progress baserat på BT eller ST-läge (för 2021)
   const progressPct = useMemo(() => {
@@ -209,39 +349,26 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     if (gv !== "2021") {
       // 2015: samma som tidigare
       if (!planMonths || planMonths <= 0) return 0;
-      const raw = (workedFteMonths / planMonths) * 100;
+      const raw = (workedStFteMonths / planMonths) * 100;
       if (!Number.isFinite(raw)) return 0;
       return Math.max(0, Math.min(100, raw));
     }
 
     // 2021: beräkna baserat på BT eller ST-läge
     if (viewMode === "bt") {
-      // BT: hur lång tid det är kvar på BT
-      const btStart = (profile as any)?.btStartDate;
-      if (!btStart || !btEndISO) return 0;
-      
-      const today = todayISO();
-      const totalMonths = monthDiffExact(btStart, btEndISO);
-      const workedMonths = monthDiffExact(btStart, today);
-      
-      if (totalMonths <= 0) return 0;
-      const raw = (workedMonths / totalMonths) * 100;
+      // BT: använd workedBtFteMonths och totalBtMonths
+      if (totalBtMonths <= 0) return 0;
+      const raw = (workedBtFteMonths / totalBtMonths) * 100;
       if (!Number.isFinite(raw)) return 0;
       return Math.max(0, Math.min(100, raw));
     } else {
-      // ST: från slut av BT till slut av ST
-      if (!btEndISO || !stEndDateISO) return 0;
-      
-      const today = todayISO();
-      const totalMonths = monthDiffExact(btEndISO, stEndDateISO);
-      const workedMonths = monthDiffExact(btEndISO, today);
-      
-      if (totalMonths <= 0) return 0;
-      const raw = (workedMonths / totalMonths) * 100;
+      // ST: använd workedStFteMonths och totalStMonths
+      if (totalStMonths <= 0) return 0;
+      const raw = (workedStFteMonths / totalStMonths) * 100;
       if (!Number.isFinite(raw)) return 0;
       return Math.max(0, Math.min(100, raw));
     }
-  }, [workedFteMonths, planMonths, profile, viewMode, btEndISO, stEndDateISO]);
+  }, [workedBtFteMonths, workedStFteMonths, totalBtMonths, totalStMonths, planMonths, profile, viewMode]);
 
   // Beräkna totala antalet delmål som ska uppfyllas (baserat på BT eller ST-läge för 2021)
   const totalMilestones = useMemo(() => {
