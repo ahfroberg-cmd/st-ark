@@ -4709,15 +4709,18 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 const [dirty, setDirty] = useState(false);
 useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
 
-// State för att spåra om en confirm-dialog är öppen (förhindrar att Esc triggas när confirm() är synlig)
-const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+// Ref för att spåra om en confirm-dialog är öppen (förhindrar att Esc triggas när confirm() är synlig)
+const confirmDialogOpenRef = useRef(false);
 
 // Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
 const closeDetailPanel = useCallback(() => {
   if (dirty) {
-    setConfirmDialogOpen(true);
+    confirmDialogOpenRef.current = true;
     const result = confirm("Du har osparade ändringar. Stäng utan att spara?");
-    setConfirmDialogOpen(false);
+    // Använd setTimeout för att säkerställa att Esc-händelsen ignoreras tillräckligt länge
+    setTimeout(() => {
+      confirmDialogOpenRef.current = false;
+    }, 100);
     if (!result) return;
   }
   setDirty(false);
@@ -4733,35 +4736,43 @@ useEffect(() => {
       return;
     }
 
-    // Ignorera Esc om en confirm-dialog är öppen (förhindrar att dialogen blinkar bort)
-    if (e.key === "Escape" && confirmDialogOpen) {
+    // Ignorera Esc om en confirm-dialog är öppen eller nyligen stängd (förhindrar att dialogen blinkar bort)
+    if (e.key === "Escape" && confirmDialogOpenRef.current) {
       return; // Låt browser hantera Esc för confirm-dialogen
     }
 
     if (e.key === "Delete" || e.key === "Backspace") {
       if (selectedPlacement) {
         if (dirty) {
-          setConfirmDialogOpen(true);
+          confirmDialogOpenRef.current = true;
           const result = confirm("Du har osparade ändringar. Ta bort ändå?");
-          setConfirmDialogOpen(false);
+          setTimeout(() => {
+            confirmDialogOpenRef.current = false;
+          }, 100);
           if (!result) return;
         } else {
-          setConfirmDialogOpen(true);
+          confirmDialogOpenRef.current = true;
           const result = confirm("Vill du ta bort vald aktivitet?");
-          setConfirmDialogOpen(false);
+          setTimeout(() => {
+            confirmDialogOpenRef.current = false;
+          }, 100);
           if (!result) return;
         }
         deleteSelectedPlacement();
       } else if (selectedCourse) {
         if (dirty) {
-          setConfirmDialogOpen(true);
+          confirmDialogOpenRef.current = true;
           const result = confirm("Du har osparade ändringar. Ta bort ändå?");
-          setConfirmDialogOpen(false);
+          setTimeout(() => {
+            confirmDialogOpenRef.current = false;
+          }, 100);
           if (!result) return;
         } else {
-          setConfirmDialogOpen(true);
+          confirmDialogOpenRef.current = true;
           const result = confirm("Vill du ta bort vald aktivitet?");
-          setConfirmDialogOpen(false);
+          setTimeout(() => {
+            confirmDialogOpenRef.current = false;
+          }, 100);
           if (!result) return;
         }
         deleteSelectedCourse();
@@ -4778,7 +4789,7 @@ useEffect(() => {
 
   window.addEventListener("keydown", handleKeyDown);
   return () => window.removeEventListener("keydown", handleKeyDown);
-}, [selectedPlacement, selectedCourse, dirty, closeDetailPanel, confirmDialogOpen]);
+}, [selectedPlacement, selectedCourse, dirty, closeDetailPanel]);
 
 
   // === Spara hela tidslinjen till DB så PrepareApplication/Profil/rapport läser samma källa ===
