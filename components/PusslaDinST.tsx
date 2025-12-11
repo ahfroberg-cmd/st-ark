@@ -2633,7 +2633,18 @@ react-hooks/exhaustive-deps
   // rubrik
   function MonthHeader() {
     return (
-      <div className="grid grid-cols-[80px_1fr] items-end sticky top-0 z-40 backdrop-blur bg-white/80 border-b border-slate-200">
+      <div 
+        className="grid grid-cols-[80px_1fr] items-end sticky top-0 z-40 backdrop-blur bg-white/80 border-b border-slate-200 cursor-pointer"
+        onClick={() => {
+          // Om något är valt, stäng detaljrutan med varning om dirty
+          if (selectedPlacementId || selectedCourseId) {
+            if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+            setDirty(false);
+            setSelectedPlacementId(null);
+            setSelectedCourseId(null);
+          }
+        }}
+      >
         <div className="pr-2" />
         <div className="relative">
           <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] text-xs text-slate-700">
@@ -7348,6 +7359,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       }}
                       weekStartsOn={1}
                       className="h-8 w-full"
+                      forceDirection="up"
                     />
                   </div>
                 </div>

@@ -12,6 +12,7 @@ type Props = {
   weekStartsOn?: 0 | 1;          // 0=söndag, 1=måndag (default 1)
   align?: "left" | "right";      // popover-placering, default "left"
   className?: string;            // extra klasser för trigger-knappen
+  forceDirection?: "up" | "down"; // Tvinga riktning (default: auto)
 };
 
 export default function CalendarDatePicker({
@@ -23,6 +24,7 @@ export default function CalendarDatePicker({
   weekStartsOn = 1,
   align = "left",
   className,
+  forceDirection,
 }: Props) {
   const normalized = parseISO(value) ?? todayISO();
   const init = new Date(normalized + "T00:00:00");
@@ -118,19 +120,23 @@ export default function CalendarDatePicker({
           setOpen((prev) => {
             const next = !prev;
             if (!prev && next && rootRef.current) {
-              const rect = rootRef.current.getBoundingClientRect();
-              const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-
-              // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
-              const calendarHeight = 340;
-
-              const spaceBelow = viewportHeight - rect.bottom;
-              const spaceAbove = rect.top;
-
-              if (spaceBelow < calendarHeight && spaceAbove > spaceBelow) {
-                setDirection("up");
+              if (forceDirection) {
+                setDirection(forceDirection);
               } else {
-                setDirection("down");
+                const rect = rootRef.current.getBoundingClientRect();
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+                // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
+                const calendarHeight = 340;
+
+                const spaceBelow = viewportHeight - rect.bottom;
+                const spaceAbove = rect.top;
+
+                if (spaceBelow < calendarHeight && spaceAbove > spaceBelow) {
+                  setDirection("up");
+                } else {
+                  setDirection("down");
+                }
               }
             }
             return next;
@@ -218,12 +224,18 @@ export default function CalendarDatePicker({
             }}
             style={
               direction === "up" && rootRef.current
-                ? {
-                    // Fixera övre kanten: använd top med negativ offset istället för bottom
-                    // Övre kanten ska vara 4px ovanför trigger-knappens övre kant
-                    // Så top ska vara -(trigger-höjd + 4px)
-                    top: `-${(rootRef.current.offsetHeight || 38) + 4}px`,
-                  }
+                ? (() => {
+                    const rect = rootRef.current.getBoundingClientRect();
+                    const triggerHeight = rootRef.current.offsetHeight || 38;
+                    const spaceAbove = rect.top;
+                    // Säkerställ att övre kanten är synlig även när kalendern är hög (6 rader)
+                    // maxHeight ska vara utrymmet ovanför minus 4px margin
+                    return {
+                      top: `-${triggerHeight + 4}px`,
+                      maxHeight: `${Math.max(300, spaceAbove - 4)}px`,
+                      overflowY: "auto",
+                    };
+                  })()
                 : undefined
             }
             className={`absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl ${
