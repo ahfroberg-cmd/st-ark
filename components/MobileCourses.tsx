@@ -174,7 +174,9 @@ export default function MobileCourses() {
         fulfillsStGoals: !!editing.fulfillsStGoals,
         phase: editing.phase || "ST",
         btAssessment: editing.btAssessment ?? "",
-        showAsInterval: editing.showAsInterval || false,
+        ...(typeof editing.showAsInterval === "boolean"
+          ? { showAsInterval: !!editing.showAsInterval }
+          : {}),
       };
 
       if (isExisting) {
