@@ -143,23 +143,44 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
               <div style={{ fontWeight: 700, fontSize: 16 }}>
                 {String(detailMilestone.id ?? "").toLowerCase()} – {detailMilestone.title}
               </div>
-              <button
-                onClick={() => setDetailId(null)}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #d0d7de",
-                  borderRadius: 10,
-                  background: "#fff",
-                  width: 36,
-                  height: 36,
-                  lineHeight: "20px",
-                  textAlign: "center",
-                  paddingInline: 0,
-                }}
-                aria-label="Stäng"
-              >
-                ×
-              </button>
+              {!readOnly ? (
+                <button
+                  onClick={() => {
+                    onToggle(String(detailId).toUpperCase());
+                    setDetailId(null);
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    border: "1px solid",
+                    borderRadius: 10,
+                    background: isDetailChecked ? "#ef4444" : "#10b981",
+                    borderColor: isDetailChecked ? "#ef4444" : "#10b981",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 14,
+                  }}
+                >
+                  Spara och stäng
+                </button>
+              ) : (
+                <button
+                  onClick={() => setDetailId(null)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #d0d7de",
+                    borderRadius: 10,
+                    background: "#fff",
+                    width: 36,
+                    height: 36,
+                    lineHeight: "20px",
+                    textAlign: "center",
+                    paddingInline: 0,
+                  }}
+                  aria-label="Stäng"
+                >
+                  ×
+                </button>
+              )}
             </header>
 
             <div style={{ padding: 14, maxHeight: "70vh", overflow: "auto" }}>
