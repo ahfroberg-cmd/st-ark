@@ -228,45 +228,30 @@ export default function DesktopBtMilestonePicker({ open, title, checked, onToggl
               )}
             </div>
 
-            <footer
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 12px",
-                borderTop: "1px solid #e5e7eb",
-              }}
-            >
-              <button
-                onClick={() => {
-                  onToggle(String(detailId).toUpperCase());
-                  setDetailId(null);
-                }}
+            {readOnly && (
+              <footer
                 style={{
-                  padding: "8px 12px",
-                  border: "1px solid",
-                  borderRadius: 10,
-                  background: isDetailChecked ? "#ef4444" : "#10b981",
-                  borderColor: isDetailChecked ? "#ef4444" : "#10b981",
-                  color: "#fff",
-                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  padding: "10px 12px",
+                  borderTop: "1px solid #e5e7eb",
                 }}
               >
-                {isDetailChecked ? "Avmarkera delmål" : "Välj delmål"}
-              </button>
-              <div style={{ marginLeft: "auto" }} />
-              <button
-                onClick={() => setDetailId(null)}
-                style={{
-                  padding: "8px 12px",
-                  border: "1px solid #d0d7de",
-                  borderRadius: 10,
-                  background: "#fff",
-                }}
-              >
-                Stäng
-              </button>
-            </footer>
+                <button
+                  onClick={() => setDetailId(null)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #d0d7de",
+                    borderRadius: 10,
+                    background: "#fff",
+                  }}
+                >
+                  Stäng
+                </button>
+              </footer>
+            )}
           </div>
         </div>
       )}

@@ -98,16 +98,12 @@ export default function LegacyMilestoneDetail({
         </div>
 
         <footer style={ftr}>
-          {selectable && onToggle && (
-            <button
-              onClick={() => { onToggle(m.id); onClose(); }}
-              style={checked ? btnDanger : btnPrimary}
-            >
-              {checked ? "Avmarkera delmål" : "Välj delmål"}
-            </button>
+          {!selectable && (
+            <>
+              <div style={{ marginLeft:"auto" }} />
+              <button onClick={onClose} style={btn}>Stäng</button>
+            </>
           )}
-          <div style={{ marginLeft:"auto" }} />
-          <button onClick={onClose} style={btn}>Stäng</button>
         </footer>
       </div>
     </div>
