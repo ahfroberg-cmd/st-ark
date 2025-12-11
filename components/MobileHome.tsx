@@ -336,11 +336,25 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       return planMonths || 60;
     }
     
-    if (!btEndISO || !stEndDateISO) return 54; // Default 4,5 år
+    if (!btEndISO) return 54; // Default 4,5 år
     
-    const months = monthDiffExact(btEndISO, stEndDateISO);
-    // Om mindre än 4,5 år, använd 4,5 år som minimum
-    return Math.max(54, months);
+    // Om stEndDate är manuellt satt, använd tiden från BT-slut till ST-slut
+    const stEndManual = (profile as any)?.stEndDate;
+    if (stEndManual && /^\d{4}-\d{2}-\d{2}$/.test(stEndManual)) {
+      const months = monthDiffExact(btEndISO, stEndManual);
+      // Om mindre än 4,5 år, använd 4,5 år som minimum
+      return Math.max(54, months);
+    }
+    
+    // Om stEndDateISO är beräknat (från planMonths), använd det
+    if (stEndDateISO) {
+      const months = monthDiffExact(btEndISO, stEndDateISO);
+      // Om mindre än 4,5 år, använd 4,5 år som minimum
+      return Math.max(54, months);
+    }
+    
+    // Default: 4,5 år
+    return 54;
   }, [profile, btEndISO, stEndDateISO, planMonths]);
 
   // Beräkna progress baserat på BT eller ST-läge (för 2021)
