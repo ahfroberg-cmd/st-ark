@@ -115,6 +115,37 @@ export default function ScanIntygModal({
       const { text, words, width, height } = ocrResult;
       lastOcrRaw = text || "";
 
+      // DEBUG: Logga alltid vad vi får från OCR
+      console.log("[OCR DEBUG] OCR-resultat:", {
+        hasText: !!text,
+        textLength: text?.length || 0,
+        hasWords: !!words,
+        wordsLength: words?.length || 0,
+        width,
+        height,
+      });
+
+      // Om words saknas, logga det också
+      if (!words || words.length === 0) {
+        console.warn("[ZONLOGIK] INGEN WORDS från OCR! Zonlogik kommer inte användas.");
+        console.log("[OCR DEBUG] ocrResult-struktur:", {
+          hasOcrResult: !!ocrResult,
+          keys: Object.keys(ocrResult || {}),
+          fullResult: ocrResult,
+        });
+      } else {
+        console.log("[ZONLOGIK] Words hittade! Antal:", words.length);
+        if (words.length > 0) {
+          console.log("[ZONLOGIK] Första ordet:", {
+            text: words[0].text,
+            x1: words[0].x1,
+            y1: words[0].y1,
+            x2: words[0].x2,
+            y2: words[0].y2,
+          });
+        }
+      }
+
       // Validera bildstorlek/aspect ratio för bättre zonlogik
       if (width && height) {
         const expectedAspectRatio = 1057 / 1496; // A4-format

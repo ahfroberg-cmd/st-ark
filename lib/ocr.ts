@@ -639,9 +639,27 @@ export async function ocrImage(
 
     const rawText = (data?.text || "").trim();
 
+    // DEBUG: Logga vad Tesseract returnerar
+    console.log("[OCR DEBUG] Tesseract data-struktur:", {
+      hasData: !!data,
+      hasText: !!data?.text,
+      textLength: rawText.length,
+      hasWords: Array.isArray((data as any)?.words),
+      wordsLength: Array.isArray((data as any)?.words) ? (data as any).words.length : 0,
+      dataKeys: data ? Object.keys(data) : [],
+      firstWord: Array.isArray((data as any)?.words) && (data as any).words.length > 0 
+        ? (data as any).words[0] 
+        : null,
+    });
+
     const rawWords: any[] = Array.isArray((data as any)?.words)
       ? (data as any).words
       : [];
+
+    console.log("[OCR DEBUG] rawWords efter filtrering:", {
+      rawWordsLength: rawWords.length,
+      firstRawWord: rawWords.length > 0 ? rawWords[0] : null,
+    });
 
     const words: OcrWord[] = rawWords
       .map((w: any) => {
@@ -692,11 +710,18 @@ export async function ocrImage(
       })
       .filter((w): w is OcrWord => !!w);
 
+    console.log("[OCR DEBUG] OcrWord[] efter mapping:", {
+      wordsLength: words.length,
+      firstWord: words.length > 0 ? words[0] : null,
+    });
+
     const imageSize = (data as any)?.imageSize || {};
     const width =
       typeof imageSize.width === "number" ? imageSize.width : undefined;
     const height =
       typeof imageSize.height === "number" ? imageSize.height : undefined;
+
+    console.log("[OCR DEBUG] Bildstorlek från imageSize:", { width, height, imageSize });
 
     return {
       text: rawText,
