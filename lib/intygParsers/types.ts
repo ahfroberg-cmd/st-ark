@@ -28,5 +28,6 @@ export type ParsedIntyg = {
 };
 
 // Parser-funktioner kan nu acceptera optional words-parameter för zonlogik
+// eller zones-parameter för OpenCV-baserad zonparsning
 // Vissa parsers returnerar olika typer (t.ex. ParsedKlinisk2015, ParsedKurs2021)
-export type ParserFn = (text: string, words?: OcrWord[]) => any;
+export type ParserFn = (text: string, words?: OcrWord[], zones?: Record<string, string>) => any;

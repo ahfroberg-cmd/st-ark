@@ -19,11 +19,19 @@ export type ParsedKlinisk2015 = ReturnType<typeof extractCommon> & {
   specialtyHeader?: string;
 };
 
-export function parse_2015_bilaga4(raw: string, words?: OcrWord[]): ParsedKlinisk2015 {
-  // Använd zonlogik om words finns (direktfotograferat dokument)
-  if (words && words.length > 0) {
+export function parse_2015_bilaga4(raw: string, words?: OcrWord[], zonesFromImage?: Record<string, string>): ParsedKlinisk2015 {
+  // Använd zonlogik om words finns (direktfotograferat dokument) eller om zonesFromImage finns (OpenCV-baserad)
+  let zones: Record<string, string> = {};
+  
+  if (zonesFromImage) {
+    // Använd OpenCV-baserade zoner direkt
+    zones = zonesFromImage;
+  } else if (words && words.length > 0) {
     // Zoner är definierade för 1128×1584 px (enligt kommentaren i ocr.ts)
-    const zones = extractZonesFromWords(words, zones_2015_B2_KLIN, { width: 1128, height: 1584 });
+    zones = extractZonesFromWords(words, zones_2015_B2_KLIN, { width: 1128, height: 1584 });
+  }
+  
+  if (Object.keys(zones).length > 0) {
     const base = extractCommon(raw);
     
     // Kombinera förnamn och efternamn

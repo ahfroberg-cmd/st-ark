@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { ocrImage, ocrPdf } from "@/lib/ocr";
+import { ocrImage, ocrPdf, extractZonesFromImage, getZonesForIntygKind } from "@/lib/ocr";
 import { detectIntygKind, type IntygKind } from "@/lib/intygDetect";
 
 // 2015
@@ -243,9 +243,39 @@ export default function ScanIntygModal({
 
       // Parser via registry, med säker fallback till din stabila 2015-KLIN
       // Använd zonlogik om words finns (direktfotograferat dokument)
+      // Om words saknas men vi har identifierat intyg-kind, använd OpenCV-baserad zonparsning
       let p: any = {};
       const parser = getParser(k || undefined);
       const useZoneLogic = words && words.length > 0;
+      let useOpenCVZoneLogic = false;
+      let zonesFromImage: Record<string, string> | undefined = undefined;
+      
+      // Om words saknas men vi har identifierat intyg-kind, försök använda OpenCV-baserad zonparsning
+      if (!useZoneLogic && k && file) {
+        const zoneConfig = getZonesForIntygKind(k);
+        if (zoneConfig) {
+          console.log("[ZONLOGIK] Försöker använda OpenCV-baserad zonparsning för", k);
+          try {
+            // Använd extractZonesFromImage för att få zon-text direkt
+            zonesFromImage = await extractZonesFromImage(
+              file,
+              zoneConfig.zones,
+              zoneConfig.expectedSize,
+              "swe+eng",
+              (current, total) => {
+                // Uppdatera progress om det behövs
+                console.log(`[ZONLOGIK] OCR:ar zon ${current}/${total}`);
+              }
+            );
+            
+            useOpenCVZoneLogic = true;
+            console.log("[ZONLOGIK] OpenCV-zonparsning klar, använder", Object.keys(zonesFromImage).length, "zoner");
+          } catch (error) {
+            console.error("[ZONLOGIK] Fel vid OpenCV-baserad zonparsning:", error);
+            // Fallback till smart parsing
+          }
+        }
+      }
       
       // Debug: logga om zonlogik används
       if (useZoneLogic) {
@@ -253,14 +283,28 @@ export default function ScanIntygModal({
         if (width && height) {
           console.log("[ZONLOGIK] Bildstorlek:", width, "×", height);
         }
+      } else if (useOpenCVZoneLogic) {
+        console.log("[ZONLOGIK] Använder OpenCV-baserad zonparsning för", k);
       }
       
       if (parser) {
-        // Skicka words till parser om den stödjer det
-        p = useZoneLogic ? parser(content, words) : parser(content);
+        // Skicka words eller zonesFromImage till parser
+        if (useZoneLogic) {
+          p = parser(content, words);
+        } else if (useOpenCVZoneLogic && zonesFromImage) {
+          p = parser(content, undefined, zonesFromImage);
+        } else {
+          p = parser(content);
+        }
       } else if (k === "2015-B4-KLIN") {
         // Fallback för säkerhets skull om registry saknas
-        p = useZoneLogic ? parse_2015_bilaga4(content, words) : parse_2015_bilaga4(content);
+        if (useZoneLogic) {
+          p = parse_2015_bilaga4(content, words);
+        } else if (useOpenCVZoneLogic && zonesFromImage) {
+          p = parse_2015_bilaga4(content, undefined, zonesFromImage);
+        } else {
+          p = parse_2015_bilaga4(content);
+        }
       } else {
         setWarning(
           "Kunde inte identifiera intygsmallen automatiskt. Du kan fylla fälten manuellt."
@@ -269,7 +313,7 @@ export default function ScanIntygModal({
       }
 
       // Debug: logga resultat
-      if (useZoneLogic) {
+      if (useZoneLogic || useOpenCVZoneLogic) {
         console.log("[ZONLOGIK] Parsat resultat:", {
           fullName: p.fullName,
           clinic: p.clinic,
@@ -279,7 +323,7 @@ export default function ScanIntygModal({
 
       // Om zonlogik används, hoppa över improveParsedFromOcr (zonlogik är redan robust)
       // Annars använd smart logik som fallback
-      if (!useZoneLogic) {
+      if (!useZoneLogic && !useOpenCVZoneLogic) {
         const improved = improveParsedFromOcr(content, p, k as IntygKind | null);
         p = improved;
       }

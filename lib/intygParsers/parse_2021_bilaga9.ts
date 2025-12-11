@@ -8,13 +8,21 @@ import {
 } from "./common";
 import { extractZonesFromWords, zones_2021_B9_KLIN } from "@/lib/ocr";
 
-export function parse_2021_bilaga9(text: string, words?: OcrWord[]): ParsedIntyg {
+export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromImage?: Record<string, string>): ParsedIntyg {
   const kind = "2021-B9-KLIN";
   
-  // Använd zonlogik om words finns (direktfotograferat dokument)
-  if (words && words.length > 0) {
+  // Använd zonlogik om words finns (direktfotograferat dokument) eller om zonesFromImage finns (OpenCV-baserad)
+  let zones: Record<string, string> = {};
+  
+  if (zonesFromImage) {
+    // Använd OpenCV-baserade zoner direkt
+    zones = zonesFromImage;
+  } else if (words && words.length > 0) {
     // Zoner är definierade för 1057×1496 px (A4-format för 2021-intyg)
-    const zones = extractZonesFromWords(words, zones_2021_B9_KLIN, { width: 1057, height: 1496 });
+    zones = extractZonesFromWords(words, zones_2021_B9_KLIN, { width: 1057, height: 1496 });
+  }
+  
+  if (Object.keys(zones).length > 0) {
     
     // Kombinera förnamn och efternamn
     const firstName = zones.applicantFirstName?.trim() || "";
