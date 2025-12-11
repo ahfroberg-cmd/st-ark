@@ -640,8 +640,11 @@ export async function ocrImage(
     const rawText = (data?.text || "").trim();
 
     // DEBUG: Logga vad Tesseract returnerar
+    // Försök få blocks/layoutBlocks på olika sätt
     const blocksValue = (data as any)?.blocks;
     const layoutBlocksValue = (data as any)?.layoutBlocks;
+    const blocksDirect = (data as any).blocks; // Utan optional chaining
+    const layoutBlocksDirect = (data as any).layoutBlocks; // Utan optional chaining
     
     console.log("[OCR DEBUG] Tesseract data-struktur:", JSON.stringify({
       hasData: !!data,
@@ -652,10 +655,12 @@ export async function ocrImage(
       dataKeys: data ? Object.keys(data) : [],
       hasBlocks: Array.isArray(blocksValue),
       blocksType: blocksValue ? typeof blocksValue : "undefined",
+      blocksDirectType: blocksDirect !== undefined ? typeof blocksDirect : "undefined",
       blocksIsArray: Array.isArray(blocksValue),
       blocksLength: Array.isArray(blocksValue) ? blocksValue.length : (blocksValue ? "not array" : 0),
       hasLayoutBlocks: Array.isArray(layoutBlocksValue),
       layoutBlocksType: layoutBlocksValue ? typeof layoutBlocksValue : "undefined",
+      layoutBlocksDirectType: layoutBlocksDirect !== undefined ? typeof layoutBlocksDirect : "undefined",
       layoutBlocksIsArray: Array.isArray(layoutBlocksValue),
       layoutBlocksLength: Array.isArray(layoutBlocksValue) ? layoutBlocksValue.length : (layoutBlocksValue ? "not array" : 0),
       hasSymbols: Array.isArray((data as any)?.symbols),
@@ -664,7 +669,24 @@ export async function ocrImage(
       linesLength: Array.isArray((data as any)?.lines) ? (data as any).lines.length : 0,
       hasParagraphs: Array.isArray((data as any)?.paragraphs),
       paragraphsLength: Array.isArray((data as any)?.paragraphs) ? (data as any).paragraphs.length : 0,
+      hasHocr: !!(data as any)?.hocr,
+      hasTsv: !!(data as any)?.tsv,
+      hasBox: !!(data as any)?.box,
     }, null, 2));
+    
+    // Om blocks/layoutBlocks är undefined men finns i keys, försök hämta dem direkt
+    if (blocksDirect === undefined && data && 'blocks' in data) {
+      try {
+        const blocksTry = (data as any)['blocks'];
+        console.log("[OCR DEBUG] blocks via bracket notation:", JSON.stringify({
+          type: typeof blocksTry,
+          isArray: Array.isArray(blocksTry),
+          value: blocksTry,
+        }, null, 2));
+      } catch (e) {
+        console.log("[OCR DEBUG] Kunde inte hämta blocks:", e);
+      }
+    }
     
     // Logga blocks/layoutBlocks om de finns men inte är arrays
     if (blocksValue && !Array.isArray(blocksValue)) {
@@ -762,6 +784,7 @@ export async function ocrImage(
 
     // Tesseract.js returnerar data i hierarkisk struktur: blocks -> paragraphs -> lines -> words
     // Vi behöver extrahera alla words från denna struktur
+    // Om blocks/layoutBlocks är undefined, kan vi använda TSV-formatet istället
     const extractWordsFromData = (data: any): any[] => {
       const words: any[] = [];
       
@@ -769,6 +792,45 @@ export async function ocrImage(
       if (Array.isArray(data?.words)) {
         console.log("[OCR DEBUG] Hittade direkt words-array:", data.words.length);
         return data.words;
+      }
+      
+      // Försök extrahera från TSV-formatet om blocks är undefined
+      if (data?.tsv && typeof data.tsv === "string") {
+        console.log("[OCR DEBUG] Försöker extrahera words från TSV-format");
+        const tsvLines = data.tsv.split("\n");
+        // TSV-format: level, page_num, block_num, par_num, line_num, word_num, left, top, width, height, conf, text
+        for (let i = 1; i < tsvLines.length; i++) { // Skippa header
+          const line = tsvLines[i].trim();
+          if (!line) continue;
+          const parts = line.split("\t");
+          if (parts.length >= 12) {
+            const level = parseInt(parts[0], 10);
+            const left = parseInt(parts[6], 10);
+            const top = parseInt(parts[7], 10);
+            const width = parseInt(parts[8], 10);
+            const height = parseInt(parts[9], 10);
+            const conf = parseFloat(parts[10]);
+            const text = parts[11]?.trim();
+            
+            // Level 5 = word level
+            if (level === 5 && text && !isNaN(left) && !isNaN(top) && !isNaN(width) && !isNaN(height)) {
+              words.push({
+                text: text,
+                bbox: {
+                  x0: left,
+                  y0: top,
+                  x1: left + width,
+                  y1: top + height,
+                },
+                confidence: !isNaN(conf) ? conf : undefined,
+              });
+            }
+          }
+        }
+        if (words.length > 0) {
+          console.log("[OCR DEBUG] Extraherade", words.length, "words från TSV");
+          return words;
+        }
       }
       
       // Försök med layoutBlocks först (kan vara rätt struktur)
