@@ -311,6 +311,30 @@ export default function MobilePlacements() {
     }
   }
 
+  async function handleDelete() {
+    if (!editing) return;
+    const isExisting = rows.some((r) => r.id === editing.id);
+    if (!isExisting) {
+      // Om det är en ny rad, stäng bara
+      setEditing(null);
+      setSelectedId(null);
+      return;
+    }
+    
+    if (!window.confirm("Vill du ta bort denna aktivitet?")) return;
+    
+    try {
+      const anyDb: any = db as any;
+      await anyDb.placements?.delete?.(editing.id);
+      setRows((prev) => prev.filter((p) => p.id !== editing.id));
+      setEditing(null);
+      setSelectedId(null);
+    } catch (e) {
+      console.error("Kunde inte ta bort placering:", e);
+      window.alert("Kunde inte ta bort tjänstgöringen.");
+    }
+  }
+
   return (
     <div className="space-y-3">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -379,6 +403,7 @@ export default function MobilePlacements() {
             setOriginalEditing(null);
             setSelectedId(null);
           }}
+          onDelete={handleDelete}
           saving={saving}
           onUpdate={setEditing}
           isDirty={isDirty}
@@ -394,6 +419,7 @@ function PlacementEditPopup({
   placement,
   onSave,
   onClose,
+  onDelete,
   saving,
   onUpdate,
   isDirty,
@@ -402,6 +428,7 @@ function PlacementEditPopup({
   placement: PlacementRow;
   onSave: () => void;
   onClose: () => void;
+  onDelete: () => void;
   saving: boolean;
   onUpdate: (p: PlacementRow) => void;
   isDirty: boolean;
@@ -513,29 +540,73 @@ function PlacementEditPopup({
 
           <div className="flex-1 overflow-y-auto p-5">
             <div className="space-y-4 text-sm">
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-900">
-                  Typ
-                </label>
-                <select
-                  value={placement.type || placement.kind || placement.category || "Klinisk tjänstgöring"}
-                  onChange={(e) => {
-                    const typeValue = e.target.value;
-                    onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
-                  }}
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                >
-                  <option value="Klinisk tjänstgöring">Klinisk tjänstgöring</option>
-                  <option value="Vetenskapligt arbete">Vetenskapligt arbete</option>
-                  <option value="Förbättringsarbete">Förbättringsarbete</option>
-                  <option value="Auskultation">Auskultation</option>
-                  <option value="Forskning">Forskning</option>
-                  <option value="Tjänstledighet">Tjänstledighet</option>
-                  <option value="Föräldraledighet">Föräldraledighet</option>
-                  <option value="Annan ledighet">Annan ledighet</option>
-                  <option value="Sjukskriven">Sjukskriven</option>
-                </select>
-              </div>
+              {is2021 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
+                      Typ
+                    </label>
+                    <select
+                      value={placement.type || placement.kind || placement.category || "Klinisk tjänstgöring"}
+                      onChange={(e) => {
+                        const typeValue = e.target.value;
+                        onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
+                      }}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    >
+                      <option value="Klinisk tjänstgöring">Klinisk tjänstgöring</option>
+                      <option value="Vetenskapligt arbete">Vetenskapligt arbete</option>
+                      <option value="Förbättringsarbete">Förbättringsarbete</option>
+                      <option value="Auskultation">Auskultation</option>
+                      <option value="Forskning">Forskning</option>
+                      <option value="Tjänstledighet">Tjänstledighet</option>
+                      <option value="Föräldraledighet">Föräldraledighet</option>
+                      <option value="Annan ledighet">Annan ledighet</option>
+                      <option value="Sjukskriven">Sjukskriven</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
+                      Fas
+                    </label>
+                    <select
+                      value={currentPhase}
+                      onChange={(e) => {
+                        const phaseValue = e.target.value as "BT" | "ST";
+                        onUpdate({ ...placement, phase: phaseValue });
+                      }}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    >
+                      <option value="BT">BT</option>
+                      <option value="ST">ST</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Typ
+                  </label>
+                  <select
+                    value={placement.type || placement.kind || placement.category || "Klinisk tjänstgöring"}
+                    onChange={(e) => {
+                      const typeValue = e.target.value;
+                      onUpdate({ ...placement, type: typeValue, kind: typeValue, category: typeValue });
+                    }}
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  >
+                    <option value="Klinisk tjänstgöring">Klinisk tjänstgöring</option>
+                    <option value="Vetenskapligt arbete">Vetenskapligt arbete</option>
+                    <option value="Förbättringsarbete">Förbättringsarbete</option>
+                    <option value="Auskultation">Auskultation</option>
+                    <option value="Forskning">Forskning</option>
+                    <option value="Tjänstledighet">Tjänstledighet</option>
+                    <option value="Föräldraledighet">Föräldraledighet</option>
+                    <option value="Annan ledighet">Annan ledighet</option>
+                    <option value="Sjukskriven">Sjukskriven</option>
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
                 <div className="space-y-2">
@@ -605,25 +676,6 @@ function PlacementEditPopup({
               </div>
             </div>
 
-              {/* Fas (endast för 2021) */}
-              {is2021 && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-slate-900">
-                    Fas
-                  </label>
-                  <select
-                    value={currentPhase}
-                    onChange={(e) => {
-                      const phaseValue = e.target.value as "BT" | "ST";
-                      onUpdate({ ...placement, phase: phaseValue });
-                    }}
-                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                  >
-                    <option value="BT">BT</option>
-                    <option value="ST">ST</option>
-                  </select>
-                </div>
-              )}
 
               {/* Delmål - olika layout beroende på fas */}
               {is2021 && currentPhase === "BT" ? (
@@ -738,7 +790,24 @@ function PlacementEditPopup({
             </div>
             </div>
 
-          <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+            <button
+              type="button"
+              onClick={() => {
+                const isExisting = allPlacements.some((p) => p.id === placement.id);
+                if (isExisting) {
+                  if (window.confirm("Vill du ta bort denna aktivitet?")) {
+                    onDelete();
+                  }
+                } else {
+                  // New item, just close
+                  onClose();
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
+            >
+              Ta bort
+            </button>
             <button
               type="button"
               onClick={onSave}

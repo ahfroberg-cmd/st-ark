@@ -355,6 +355,10 @@ export default function MobileIup() {
             actions: "",
           }}
           onSave={updateMeeting}
+          onDelete={(id) => {
+            removeMeeting(id);
+            setEditingMeetingId(null);
+          }}
           onClose={() => setEditingMeetingId(null)}
         />
       )}
@@ -375,6 +379,10 @@ export default function MobileIup() {
           instruments={instruments}
           profile={profile}
           onSave={updateAssessment}
+          onDelete={(id) => {
+            removeAssessment(id);
+            setEditingAssessmentId(null);
+          }}
           onClose={() => setEditingAssessmentId(null)}
         />
       )}

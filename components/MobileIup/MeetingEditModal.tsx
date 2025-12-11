@@ -9,6 +9,7 @@ type Props = {
   open: boolean;
   meeting: IupMeeting | null;
   onSave: (meeting: IupMeeting) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 };
 
@@ -43,7 +44,7 @@ function cloneMeeting(m: IupMeeting): IupMeeting {
   return { ...m };
 }
 
-export default function MeetingEditModal({ open, meeting, onSave, onClose }: Props) {
+export default function MeetingEditModal({ open, meeting, onSave, onDelete, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupMeeting | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -68,8 +69,8 @@ export default function MeetingEditModal({ open, meeting, onSave, onClose }: Pro
     if (!draft) return;
     onSave(draft);
     setDirty(false);
-    onClose();
-  }, [draft, onSave, onClose]);
+    // Don't close on save
+  }, [draft, onSave]);
 
   const updateDraft = (patch: Partial<IupMeeting>) => {
     setDraft((prev) => {
@@ -209,12 +210,25 @@ export default function MeetingEditModal({ open, meeting, onSave, onClose }: Pro
           </div>
         </div>
 
-        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+        <footer className="flex items-center gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          {onDelete && draft && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Vill du ta bort detta handledarsamtal?")) {
+                  onDelete(draft.id);
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
+            >
+              Ta bort
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSave}
             disabled={!dirty}
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           >
             Spara
           </button>

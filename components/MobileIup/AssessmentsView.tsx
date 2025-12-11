@@ -140,16 +140,6 @@ export default function AssessmentsView({
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemove(a.id);
-                    }}
-                    className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px shrink-0"
-                  >
-                    Ta bort
-                  </button>
                 </div>
               </button>
             );

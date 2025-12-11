@@ -205,6 +205,30 @@ export default function MobileCourses() {
     }
   }
 
+  async function handleDelete() {
+    if (!editing) return;
+    const isExisting = rows.some((r) => r.id === editing.id);
+    if (!isExisting) {
+      // Om det är en ny rad, stäng bara
+      setEditing(null);
+      setSelectedId(null);
+      return;
+    }
+    
+    if (!window.confirm("Vill du ta bort denna aktivitet?")) return;
+    
+    try {
+      const anyDb: any = db as any;
+      await anyDb.courses?.delete?.(editing.id);
+      setRows((prev) => prev.filter((c) => c.id !== editing.id));
+      setEditing(null);
+      setSelectedId(null);
+    } catch (e) {
+      console.error("Kunde inte ta bort kurs:", e);
+      window.alert("Kunde inte ta bort kursen.");
+    }
+  }
+
   return (
     <div className="space-y-3">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -272,9 +296,11 @@ export default function MobileCourses() {
             setOriginalEditing(null);
             setSelectedId(null);
           }}
+          onDelete={handleDelete}
           saving={saving}
           onUpdate={setEditing}
           isDirty={isDirty}
+          allCourses={rows}
         />
       )}
             </div>
@@ -286,16 +312,20 @@ function CourseEditPopup({
   course,
   onSave,
   onClose,
+  onDelete,
   saving,
   onUpdate,
   isDirty,
+  allCourses,
 }: {
   course: CourseRow;
   onSave: () => void;
   onClose: () => void;
+  onDelete: () => void;
   saving: boolean;
   onUpdate: (c: CourseRow) => void;
   isDirty: boolean;
+  allCourses: CourseRow[];
 }) {
   const overlayRef = React.useRef<HTMLDivElement | null>(null);
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
@@ -422,19 +452,53 @@ function CourseEditPopup({
 
           <div className="flex-1 overflow-y-auto p-5">
             <div className="space-y-4 text-sm">
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-900">
-                  Titel
-                </label>
-                <input
-                  type="text"
-                  value={course.title ?? course.courseName ?? ""}
-                  onChange={(e) =>
-                    onUpdate({ ...course, title: e.target.value })
-                  }
-                  className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                />
-              </div>
+              {is2021 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
+                      Titel
+                    </label>
+                    <input
+                      type="text"
+                      value={course.title ?? course.courseName ?? ""}
+                      onChange={(e) =>
+                        onUpdate({ ...course, title: e.target.value })
+                      }
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-900">
+                      Fas
+                    </label>
+                    <select
+                      value={currentPhase}
+                      onChange={(e) => {
+                        const phaseValue = e.target.value as "BT" | "ST";
+                        onUpdate({ ...course, phase: phaseValue });
+                      }}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    >
+                      <option value="BT">BT</option>
+                      <option value="ST">ST</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-900">
+                    Titel
+                  </label>
+                  <input
+                    type="text"
+                    value={course.title ?? course.courseName ?? ""}
+                    onChange={(e) =>
+                      onUpdate({ ...course, title: e.target.value })
+                    }
+                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -486,25 +550,6 @@ function CourseEditPopup({
                 </div>
               </div>
 
-              {/* Fas (endast för 2021) */}
-              {is2021 && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-slate-900">
-                    Fas
-                  </label>
-                  <select
-                    value={currentPhase}
-                    onChange={(e) => {
-                      const phaseValue = e.target.value as "BT" | "ST";
-                      onUpdate({ ...course, phase: phaseValue });
-                    }}
-                    className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                  >
-                    <option value="BT">BT</option>
-                    <option value="ST">ST</option>
-                  </select>
-                </div>
-              )}
 
               {/* Delmål - olika layout beroende på fas */}
               {is2021 && currentPhase === "BT" ? (
@@ -619,7 +664,24 @@ function CourseEditPopup({
             </div>
           </div>
 
-          <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+            <button
+              type="button"
+              onClick={() => {
+                const isExisting = allCourses.some((c) => c.id === course.id);
+                if (isExisting) {
+                  if (window.confirm("Vill du ta bort denna aktivitet?")) {
+                    onDelete();
+                  }
+                } else {
+                  // New item, just close
+                  onClose();
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
+            >
+              Ta bort
+            </button>
             <button
               type="button"
               onClick={onSave}
