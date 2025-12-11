@@ -847,14 +847,14 @@ export default function ScanIntygModal({
       >
         <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4">
           <h2 className="text-xl font-extrabold text-emerald-900">Scanna intyg</h2>
-          <button
+            <button
             type="button"
-            onClick={handleClose}
+              onClick={handleClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
-          >
+            >
             ✕
-          </button>
-        </header>
+            </button>
+          </header>
 
         <div className="flex-1 overflow-y-auto p-5">
             {warning && (
@@ -1259,16 +1259,16 @@ export default function ScanIntygModal({
 
         {step === "review" && (
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
-            {previewUrl && (
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noreferrer"
+                  {previewUrl && (
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
                 className="text-sm text-sky-700 underline hover:text-sky-800"
-              >
-                {file?.name ?? "Visa bild"}
-              </a>
-            )}
+                    >
+                      {file?.name ?? "Visa bild"}
+                    </a>
+                  )}
             <button
               type="button"
               onClick={handleSave}

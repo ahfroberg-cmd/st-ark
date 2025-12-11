@@ -843,15 +843,15 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                       <div className="font-medium">Pågående:</div>
                       <div className="mt-0.5 break-words font-semibold">{ongoing[0].clinic || "Klinik saknas"}</div>
                       <div className="text-slate-600">{ongoing[0].startDate || ""} – {ongoing[0].endDate || ""}</div>
-                    </div>
-                  )}
+          </div>
+        )}
                   {upcoming.length > 0 && (
                     <div>
                       <div className="font-medium">Nästa:</div>
                       <div className="mt-0.5 break-words font-semibold">{upcoming[0].clinic || "Klinik saknas"}</div>
                       <div className="text-slate-600">{upcoming[0].startDate || ""} – {upcoming[0].endDate || ""}</div>
-                    </div>
-                  )}
+          </div>
+        )}
                 </div>
               );
             })()}
@@ -875,7 +875,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
                 return start && start > today;
               }).sort((a: any, b: any) => (a.startDate || "").localeCompare(b.startDate || ""));
               
-              return (
+            return (
                 <div className="mt-2 space-y-2 text-xs text-slate-900">
                   {completed.length > 0 && (
                     <div>
