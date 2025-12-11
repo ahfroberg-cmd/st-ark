@@ -854,8 +854,54 @@ export async function ocrImage(
         return data.words;
       }
       
+      // Försök extrahera från BOX-formatet först (enklare format)
+      const boxValue = (data as any)?.box;
+      if (boxValue && typeof boxValue === "string" && boxValue.trim().length > 0) {
+        console.log("[OCR DEBUG] Försöker extrahera words från BOX-format, längd:", boxValue.length);
+        // BOX-format: text left top width height page
+        const boxLines = boxValue.split("\n");
+        for (const line of boxLines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const parts = trimmed.split(/\s+/);
+          if (parts.length >= 5) {
+            const text = parts[0];
+            const left = parseInt(parts[1], 10);
+            const top = parseInt(parts[2], 10);
+            const width = parseInt(parts[3], 10);
+            const height = parseInt(parts[4], 10);
+            
+            if (text && text !== "~" && !isNaN(left) && !isNaN(top) && !isNaN(width) && !isNaN(height)) {
+              words.push({
+                text: text,
+                bbox: {
+                  x0: left,
+                  y0: top,
+                  x1: left + width,
+                  y1: top + height,
+                },
+              });
+            }
+          }
+        }
+        if (words.length > 0) {
+          console.log("[OCR DEBUG] Extraherade", words.length, "words från BOX");
+          return words;
+        }
+      }
+      
       // Försök extrahera från TSV-formatet om blocks är undefined
-      if (data?.tsv && typeof data.tsv === "string") {
+      const tsvValue = (data as any)?.tsv;
+      let tsvString: string | null = null;
+      
+      // TSV kan vara en sträng direkt eller ett objekt med en text-egenskap
+      if (typeof tsvValue === "string" && tsvValue.trim().length > 0) {
+        tsvString = tsvValue;
+      } else if (tsvValue && typeof tsvValue === "object" && tsvValue !== null && 'text' in tsvValue && typeof (tsvValue as any).text === "string") {
+        tsvString = (tsvValue as any).text;
+      }
+      
+      if (tsvString) {
         console.log("[OCR DEBUG] Försöker extrahera words från TSV-format");
         const tsvLines = data.tsv.split("\n");
         // TSV-format: level, page_num, block_num, par_num, line_num, word_num, left, top, width, height, conf, text
