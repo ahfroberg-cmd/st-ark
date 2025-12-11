@@ -803,15 +803,26 @@ export async function extractZonesFromImage<
       
       ctx.putImageData(imageData, 0, 0);
       
-      // OCR:a zonen
+      // OCR:a zonen med förbättrade inställningar
       try {
+        // Använd bättre Tesseract-inställningar för dokument
         const { data } = await T.recognize(canvas, lang, {
           logger: (m: any) => {
             // Ignorera progress för individuella zoner
           },
+          // Förbättrade inställningar för bättre OCR-resultat
+          tessedit_pageseg_mode: '6', // Uniform block of text
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789-.,:;()[]{} /\\',
         });
         
-        result[key] = (data?.text || "").trim();
+        const text = (data?.text || "").trim();
+        
+        // Debug: logga resultat för första zonen
+        if (i === 0) {
+          console.log(`[ZONLOGIK] Första zonen (${key}) resultat:`, text.substring(0, 100));
+        }
+        
+        result[key] = text;
       } catch (error) {
         console.warn(`[OCR] Kunde inte OCR:a zon ${key}:`, error);
         result[key] = "";
