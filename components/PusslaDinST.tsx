@@ -4939,7 +4939,6 @@ const persistTimelineToDb = async () => {
 
   // UI
   return (
-
       <>
               {/* Rubrik + toppknappar */}
       <div className="flex items-center gap-3 mb-3">
