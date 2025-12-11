@@ -1169,24 +1169,15 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
+                <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
                       {String((m as any)?.code ?? detailId).toLowerCase()}
                       </span>
-                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
                       </h3>
                   </div>
-
-                    <button
-                      type="button"
-                      onClick={handleCloseDetail}
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-                      title="Stäng"
-                    >
-                    ✕
-                    </button>
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -1292,7 +1283,27 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   )}
                 </div>
 
-                                {/* Åtgärdsknapparna är flyttade till headern */}
+                {/* Footer med Spara och Stäng */}
+                <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleSaveDetail(mid);
+                      setDetailDirty(false);
+                    }}
+                    disabled={!detailDirty || detailSaving}
+                    className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {detailSaving ? "Sparar..." : "Spara"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseDetail}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                  >
+                    Stäng
+                  </button>
+                </footer>
 
               </div>
             </div>
@@ -1316,23 +1327,15 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
-                <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4 gap-4">
+                <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
                       {id.toLowerCase()}
                     </span>
-                    <h3 className="text-base sm:text-lg font-extrabold text-sky-900 break-words">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
                       {m?.title ?? "BT-delmål"}
                     </h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setDetailId(null)}
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
-                    title="Stäng"
-                  >
-                    ✕
-                  </button>
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -1348,6 +1351,17 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     <div className="text-slate-900">Information saknas för {id}.</div>
                   )}
                 </div>
+
+                {/* Footer med Stäng (BT har ingen plan-text, så bara Stäng) */}
+                <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setDetailId(null)}
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                  >
+                    Stäng
+                  </button>
+                </footer>
               </div>
             </div>
           );

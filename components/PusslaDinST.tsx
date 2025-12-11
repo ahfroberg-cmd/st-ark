@@ -18,8 +18,8 @@ import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 
 import dynamic from "next/dynamic";
 const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ssr: false });
-const MilestonePicker = dynamic(() => import("@/components/MilestonePicker"), { ssr: false });
-const BtMilestonePicker = dynamic(() => import("@/components/BtMilestonePicker"), { ssr: false });
+const DesktopMilestonePicker = dynamic(() => import("@/components/DesktopMilestonePicker"), { ssr: false });
+const DesktopBtMilestonePicker = dynamic(() => import("@/components/DesktopBtMilestonePicker"), { ssr: false });
 
 const PrepareApplicationModal = dynamic(() => import("@/components/PrepareApplicationModal"), { ssr: false });
 const PrepareBtModal = dynamic(() => import("@/components/PrepareBtModal"), { ssr: false });
@@ -7429,8 +7429,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
 
-{/* MilestonePicker modal (ST-delmål) */}
-<MilestonePicker
+{/* DesktopMilestonePicker modal (ST-delmål) */}
+<DesktopMilestonePicker
   open={milestonePicker.open}
   title={
     milestonePicker.mode === "course"
@@ -7490,8 +7490,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 />
 
 
-{/* BtMilestonePicker modal (BT-delmål) – separat lista */}
-<BtMilestonePicker
+{/* DesktopBtMilestonePicker modal (BT-delmål) – separat lista */}
+<DesktopBtMilestonePicker
   open={btMilestonePicker.open}
   title={btMilestonePicker.mode === "course" ? "Välj BT-delmål för kursen" : "Välj BT-delmål för placeringen"}
   checked={new Set(
