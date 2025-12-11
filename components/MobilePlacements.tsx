@@ -353,9 +353,9 @@ export default function MobilePlacements() {
                       <div className="font-medium text-slate-900">
                         {formatClinicName(p)}
                       </div>
-                      {p.phase && !getPlacementTypeLabel(p) && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-900">
-                          {p.phase}
+                      {p.phase === "BT" && (
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-900">
+                          BT
                         </span>
                       )}
                     </div>

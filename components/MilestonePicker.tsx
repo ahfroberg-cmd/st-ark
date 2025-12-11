@@ -467,6 +467,25 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                     </div>
                   )}
                 </div>
+
+                {/* Footer med "Markera delmål"-knapp */}
+                <div className="border-t border-slate-200 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggle(mid);
+                      setDetailId(null);
+                    }}
+                    className={
+                      "w-full inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition " +
+                      (isMarked
+                        ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
+                        : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
+                    }
+                  >
+                    {isMarked ? "Avmarkera delmål" : "Markera delmål"}
+                  </button>
+                </div>
               </div>
             </div>
           );

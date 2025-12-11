@@ -245,6 +245,11 @@ export default function MobileCourses() {
                       <div className="font-medium text-slate-900">
                         {label(c)}
                       </div>
+                      {c.phase === "BT" && (
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-900">
+                          BT
+                        </span>
+                      )}
                     </div>
                     <div className="mt-0.5 text-xs text-slate-900">
                       {fmtPeriod(c)}
