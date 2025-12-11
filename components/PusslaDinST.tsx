@@ -6289,7 +6289,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           }}
         >
           <option value="interval">Visa som tidsintervall</option>
-          <option value="date">Visa som datum</option>
+          <option value="date">Visa slutdatum</option>
         </select>
       </div>
 

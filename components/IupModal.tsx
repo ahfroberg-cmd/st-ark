@@ -442,11 +442,10 @@ function AssessmentModal({
     setDirty(false);
   }, [open, assessment]);
 
-  // Förifyll klinisk tjänstgöring utifrån placeringar om fältet är tomt
+  // Uppdatera klinisk tjänstgöring automatiskt baserat på valt datum
   useEffect(() => {
     if (!open) return;
     if (!draft || !draft.dateISO) return;
-    if ((draft.level ?? "").trim() !== "") return;
 
     let cancelled = false;
 
@@ -454,22 +453,27 @@ function AssessmentModal({
       try {
         const allPlacements = await db.placements.toArray();
         const date = draft.dateISO;
+        // Hitta placering som är aktiv under valt datum
         const match = allPlacements.find(
           (p: any) => p.startDate <= date && p.endDate >= date
         );
-        if (!cancelled && match && (!draft.level || draft.level.trim() === "")) {
-          setDraft((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  level: match.clinic,
-                }
-              : prev
-          );
+        if (!cancelled && match) {
+          // Använd clinic eller title som fallback
+          const placementName = match.clinic || match.title || "";
+          if (placementName) {
+            setDraft((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    level: placementName,
+                  }
+                : prev
+            );
+          }
         }
       } catch (e) {
         console.error(
-          "Kunde inte föreslå klinisk tjänstgöring för progressionsbedömning:",
+          "Kunde inte uppdatera klinisk tjänstgöring för progressionsbedömning:",
           e
         );
       }
