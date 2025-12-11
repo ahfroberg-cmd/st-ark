@@ -1452,34 +1452,6 @@ export default function MilestoneOverviewModal({ open, onClose }: ModalProps) {
 
   return (
     <div className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
-      {/* Tab buttons for BT/ST selection - only for 2021 */}
-      {is2021 && (
-        <div className="flex items-center gap-2 bg-white px-5 py-3">
-          <button
-            type="button"
-            onClick={() => setTab("st")}
-            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              tab === "st"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            }`}
-          >
-            ST-delmål
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("bt")}
-            className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
-              tab === "bt"
-                ? "bg-sky-600 text-white shadow-sm"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-            }`}
-          >
-            BT-delmål
-          </button>
-        </div>
-      )}
-
       <MilestoneOverviewPanel open={open} onClose={onClose} initialTab={is2021 ? tab : "st"} hideHeader={true} />
     </div>
   );
