@@ -7463,6 +7463,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         : ((selectedPlacement as any)?.milestones || [])
     ) as string[]
   )}
+  readOnly={true}
   onToggle={(milestoneId) => {
     if (milestonePicker.mode === "course" && selectedCourse) {
       const cur = new Set<string>(
@@ -7519,6 +7520,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         : ((selectedPlacement as any)?.btMilestones || [])
     ) as string[]
   )}
+  readOnly={true}
   onToggle={async (milestoneId: string) => {
     // Kurs: uppdatera lokal state + skriv (om tabell finns) till db.courses
     if (btMilestonePicker.mode === "course" && selectedCourse) {
