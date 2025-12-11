@@ -14,6 +14,7 @@ import IupModal from "@/components/IupModal";
 
 import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
+import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 
 import dynamic from "next/dynamic";
@@ -1181,6 +1182,10 @@ const [btMilestonePicker, setBtMilestonePicker] = useState<{ open: boolean; mode
   open: false,
   mode: null,
 });
+
+// States för att öppna enskilda delmål från detaljrutan (read-only)
+const [stMilestoneDetail, setStMilestoneDetail] = useState<string | null>(null);
+const [btMilestoneDetail, setBtMilestoneDetail] = useState<string | null>(null);
 
 
 
@@ -5685,12 +5690,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             <div className="flex items-center gap-1 flex-wrap">
               {(selectedPlacement as any)?.btMilestones?.length > 0 ? (
                 sortMilestoneIds(((selectedPlacement as any).btMilestones || []) as string[]).map((m: string) => (
-                  <span
+                  <button
                     key={`bt-${m}`}
-                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                    type="button"
+                    onClick={() => setBtMilestoneDetail(m)}
+                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
                   >
                     {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                  </span>
+                  </button>
                 ))
               ) : (
                 <span className="text-slate-400 text-sm">—</span>
@@ -5712,12 +5719,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <div className="flex items-center gap-1 flex-wrap">
                 {(selectedPlacement as any)?.milestones?.length > 0 ? (
                   (selectedPlacement as any).milestones.map((m: string) => (
-                    <span
+                    <button
                       key={`st-${m}`}
-                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                      type="button"
+                      onClick={() => setStMilestoneDetail(m)}
+                      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
                     >
                       {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                    </span>
+                    </button>
                   ))
                 ) : (
                   <span className="text-slate-400 text-sm">—</span>
@@ -5742,12 +5751,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <div className="flex items-center gap-1 flex-wrap">
           {selectedPlacement?.id && (selectedPlacement as any)?.milestones?.length > 0 ? (
             sortMilestoneIds(((selectedPlacement as any).milestones || []) as string[]).map((m: string) => (
-              <span
+              <button
                 key={m}
-                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                type="button"
+                onClick={() => setStMilestoneDetail(m)}
+                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
               >
                 {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-              </span>
+              </button>
             ))
           ) : (
             <span className="text-slate-400 text-sm">—</span>
@@ -6312,9 +6323,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <div className="flex items-center gap-1 flex-wrap">
           {(selectedCourse as any)?.btMilestones?.length > 0 ? (
             sortMilestoneIds(((selectedCourse as any).btMilestones || []) as string[]).map((m: string) => (
-              <span key={`bt-${m}`} className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
+              <button
+                key={`bt-${m}`}
+                type="button"
+                onClick={() => setBtMilestoneDetail(m)}
+                className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
+              >
                 {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-              </span>
+              </button>
             ))
           ) : (
             <span className="text-slate-400 text-sm">—</span>
@@ -6337,9 +6353,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           <div className="flex items-center gap-1 flex-wrap">
             {(selectedCourse as any)?.milestones?.length > 0 ? (
               sortMilestoneIds(((selectedCourse as any).milestones || []) as string[]).map((m: string) => (
-                <span key={`st-${m}`} className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
+                <button
+                  key={`st-${m}`}
+                  type="button"
+                  onClick={() => setStMilestoneDetail(m)}
+                  className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
+                >
                   {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
-                </span>
+                </button>
               ))
             ) : (
               <span className="text-slate-400 text-sm">—</span>
@@ -7554,7 +7575,166 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   onClose={() => setBtMilestonePicker({ open: false, mode: null })}
 />
 
+{/* BT-delmål detaljvy (read-only) från detaljrutan */}
+{btMilestoneDetail && (() => {
+  const id = String(btMilestoneDetail).toUpperCase();
+  const m = btMilestones.find((x) => x.id === id) as BtMilestone | undefined;
+  return (
+    <div
+      className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setBtMilestoneDetail(null);
+      }}
+    >
+      <div
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+              {id.toLowerCase()}
+            </span>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
+              {m?.title ?? "BT-delmål"}
+            </h3>
+          </div>
+        </header>
 
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {m ? (
+            <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
+              <ul className="list-disc space-y-2 pl-5 text-slate-900">
+                {m.bullets.map((b, i) => (
+                  <li key={i} className="text-slate-900">{b}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div className="text-slate-900">Information saknas för {id}.</div>
+          )}
+        </div>
+
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={() => setBtMilestoneDetail(null)}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+          >
+            Stäng
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+})()}
+
+{/* ST-delmål detaljvy (read-only) från detaljrutan */}
+{stMilestoneDetail && goals && (() => {
+  // Normalisera milestone ID
+  const normalizeCode = (raw: string): string => {
+    const base = String(raw ?? "").trim().split(/\s|–|-|:|\u2013/)[0];
+    const up = base.toUpperCase().replace(/\s+/g, "");
+    const m = up.match(/^ST([ABC])(\d+)$/) || up.match(/^([ABC])(\d+)$/);
+    if (m) {
+      const letter = m[1].toUpperCase();
+      const num = parseInt(m[2], 10) || 0;
+      return `${letter}${num}`;
+    }
+    return up;
+  };
+
+  const normalizedId = normalizeCode(stMilestoneDetail);
+  const m = goals.milestones.find((x) => {
+    const idK = normalizeCode(x.id);
+    const codeK = normalizeCode(x.code || "");
+    return idK === normalizedId || codeK === normalizedId;
+  });
+
+  if (!m) return null;
+
+  const toText = (v: unknown) =>
+    typeof v === "string"
+      ? v
+      : v == null
+      ? ""
+      : Array.isArray(v)
+      ? v.join("\n")
+      : String(v);
+
+  const sections = [
+    { key: "kompetenskrav", title: "Kompetenskrav", text: toText(m.sections?.kompetenskrav) },
+    { key: "utbildningsaktiviteter", title: "Utbildningsaktiviteter", text: toText(m.sections?.utbildningsaktiviteter) },
+    { key: "intyg", title: "Intyg", text: toText(m.sections?.intyg) },
+    { key: "allmannaRad", title: "Allmänna råd", text: toText(m.sections?.allmannaRad) },
+  ] as const;
+
+  const visible = sections.filter(s => s.text.trim().length > 0);
+  const titleCode = String(m.code || m.id || "").toUpperCase();
+
+  return (
+    <div
+      className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setStMilestoneDetail(null);
+      }}
+    >
+      <div
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
+              {titleCode.toLowerCase()}
+            </span>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
+              {m.title}
+            </h3>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {visible.length === 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
+              Ingen beskrivning hittades i målfilen.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {visible.map((s) => (
+                <article key={s.key} className="border border-slate-200 rounded-xl p-3 bg-white">
+                  <div className="font-bold mb-1.5 text-slate-900">{s.title}</div>
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-slate-900 leading-relaxed">
+                    {s.text}
+                  </pre>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {m.sourceUrl && (
+            <div className="text-xs mt-3 text-slate-600">
+              Källa:{" "}
+              <a href={m.sourceUrl} target="_blank" rel="noreferrer" className="underline">
+                målbeskrivningen
+              </a>
+            </div>
+          )}
+        </div>
+
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={() => setStMilestoneDetail(null)}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+          >
+            Stäng
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+})()}
 
 {/* STa3 – för Vetenskapligt arbete (2021) */}
 <Sta3PrepModal
