@@ -13,7 +13,8 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[]): ParsedIntyg
   
   // Använd zonlogik om words finns (direktfotograferat dokument)
   if (words && words.length > 0) {
-    const zones = extractZonesFromWords(words, zones_2021_B9_KLIN);
+    // Zoner är definierade för 1057×1496 px (A4-format för 2021-intyg)
+    const zones = extractZonesFromWords(words, zones_2021_B9_KLIN, { width: 1057, height: 1496 });
     
     // Kombinera förnamn och efternamn
     const firstName = zones.applicantFirstName?.trim() || "";

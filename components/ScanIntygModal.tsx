@@ -216,6 +216,14 @@ export default function ScanIntygModal({
       const parser = getParser(k || undefined);
       const useZoneLogic = words && words.length > 0;
       
+      // Debug: logga om zonlogik används
+      if (useZoneLogic) {
+        console.log("[ZONLOGIK] Använder zonlogik för", k, "med", words.length, "ord");
+        if (width && height) {
+          console.log("[ZONLOGIK] Bildstorlek:", width, "×", height);
+        }
+      }
+      
       if (parser) {
         // Skicka words till parser om den stödjer det
         p = useZoneLogic ? parser(content, words) : parser(content);
@@ -227,6 +235,15 @@ export default function ScanIntygModal({
           "Kunde inte identifiera intygsmallen automatiskt. Du kan fylla fälten manuellt."
         );
         p = {};
+      }
+
+      // Debug: logga resultat
+      if (useZoneLogic) {
+        console.log("[ZONLOGIK] Parsat resultat:", {
+          fullName: p.fullName,
+          clinic: p.clinic,
+          description: p.description?.substring(0, 50) + "...",
+        });
       }
 
       // Om zonlogik används, hoppa över improveParsedFromOcr (zonlogik är redan robust)

@@ -509,17 +509,88 @@ export function extractZoneTextFromWords(
 }
 
 /**
+ * Skala en zon baserat på faktisk bildstorlek vs förväntad storlek.
+ */
+function scaleZone(
+  zone: OcrZone,
+  expectedWidth: number,
+  expectedHeight: number,
+  actualWidth: number,
+  actualHeight: number
+): OcrZone {
+  const scaleX = actualWidth / expectedWidth;
+  const scaleY = actualHeight / expectedHeight;
+  
+  return {
+    x: zone.x * scaleX,
+    y: zone.y * scaleY,
+    w: zone.w * scaleX,
+    h: zone.h * scaleY,
+  };
+}
+
+/**
+ * Beräkna bildstorlek från words (ta max x och y).
+ */
+function getImageSizeFromWords(words: OcrWord[]): { width: number; height: number } | null {
+  if (!words || words.length === 0) return null;
+  
+  let maxX = 0;
+  let maxY = 0;
+  
+  for (const word of words) {
+    const x1 = Math.max(word.x1, word.x2);
+    const y1 = Math.max(word.y1, word.y2);
+    maxX = Math.max(maxX, x1);
+    maxY = Math.max(maxY, y1);
+  }
+  
+  // Lägg till lite marginal (10%)
+  return {
+    width: Math.ceil(maxX * 1.1),
+    height: Math.ceil(maxY * 1.1),
+  };
+}
+
+/**
  * Extrahera text för ett helt zon-objekt (t.ex. zones_2015_B3_AUSK)
  * och returnera en enkel key->text-karta.
+ * Zonerna skalas automatiskt baserat på bildens faktiska storlek.
  */
 export function extractZonesFromWords<
   K extends string,
   Z extends Record<K, OcrZone>
->(words: OcrWord[] | undefined, zones: Z): Record<K, string> {
+>(
+  words: OcrWord[] | undefined,
+  zones: Z,
+  expectedSize?: { width: number; height: number }
+): Record<K, string> {
   const result: Record<string, string> = {};
 
+  if (!words || words.length === 0) {
+    return result as Record<K, string>;
+  }
+
+  // Beräkna faktisk bildstorlek från words
+  const actualSize = getImageSizeFromWords(words);
+  
+  // Om vi har förväntad storlek, skala zonerna
+  const shouldScale = expectedSize && actualSize;
+  
   (Object.keys(zones) as K[]).forEach((key) => {
-    const zone = zones[key];
+    let zone = zones[key];
+    
+    // Skala zonen om vi har både förväntad och faktisk storlek
+    if (shouldScale) {
+      zone = scaleZone(
+        zone,
+        expectedSize!.width,
+        expectedSize!.height,
+        actualSize!.width,
+        actualSize!.height
+      );
+    }
+    
     result[key] = extractZoneTextFromWords(words, zone);
   });
 
