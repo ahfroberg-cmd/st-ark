@@ -2633,10 +2633,7 @@ react-hooks/exhaustive-deps
         onClick={() => {
           // Om något är valt, stäng detaljrutan med varning om dirty
           if (selectedPlacementId || selectedCourseId) {
-            if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
-            setDirty(false);
-            setSelectedPlacementId(null);
-            setSelectedCourseId(null);
+            closeDetailPanel();
           }
         }}
       >
@@ -2823,10 +2820,8 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
                   onClick={() => {
                     // Om något är valt, stäng detaljrutan med varning om dirty
                     if (selectedPlacementId || selectedCourseId) {
-                      if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
-                      setDirty(false);
-                      setSelectedPlacementId(null);
-                      setSelectedCourseId(null);
+                      closeDetailPanel();
+                      return;
                     } else {
                       // Annars skapa ny aktivitet
                       setSelectedCourseId(null);
@@ -2870,10 +2865,8 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
     e.stopPropagation();
     // Om något är valt, stäng detaljrutan med varning om dirty
     if (selectedPlacementId || selectedCourseId) {
-      if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
-      setDirty(false);
-      setSelectedPlacementId(null);
-      setSelectedCourseId(null);
+      closeDetailPanel();
+      return;
     } else {
       // Annars skapa ny kurs
       setSelectedPlacementId(null);
@@ -3169,7 +3162,8 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
     onDoubleClick={(e) => {
   e.preventDefault();
   e.stopPropagation();
-  switchActivity(a.id, null);
+  const ok = switchActivity(a.id, null);
+  if (!ok) return;
 
   // BT-fasad aktivitet
   if (a.phase === "BT") {
@@ -3660,7 +3654,8 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          switchActivity(null, c.id);
+          const ok = switchActivity(null, c.id);
+          if (!ok) return;
 
 
           // BT-kurs i tidslinjen
@@ -4849,18 +4844,165 @@ const restoreBaseline = useCallback(() => {
   }
 }, [selectedPlacement, selectedCourse]);
 
-// Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
+// ===== Spara (återanvänds av både knapp och osparade-ändringar-dialog) =====
+const savePlacementToDb = useCallback(
+  async (selAct: any): Promise<boolean> => {
+    if (!selAct) return false;
+    if (wouldOverlap(selAct.id, selAct.startSlot, selAct.lengthSlots)) {
+      alert("Datum överlappar annan aktivitet.");
+      return false;
+    }
+
+    try {
+      // Ta i första hand datumet från selAct.exactStartISO/exactEndISO.
+      // Dessa uppdateras direkt när användaren ändrar datum i detaljrutan.
+      const startISO = (selAct.exactStartISO || "").trim();
+      const endISO = (selAct.exactEndISO || "").trim();
+
+      // Spara EXAKT det som står i detaljrutan – ingen slot-baserad omräkning
+      if (!startISO || !endISO || !isValidISO(startISO) || !isValidISO(endISO)) {
+        alert("Kunde inte tolka datum i detaljrutan. Kontrollera start- och slutdatum.");
+        return false;
+      }
+
+      // Mappa till DB-post för placements
+      const record: any = {
+        type: selAct.type,
+        clinic: selAct.type === "Annan ledighet" ? undefined : (selAct.label || ""),
+        title: selAct.type === "Annan ledighet" ? (selAct.leaveSubtype || "") : (selAct.label || ""),
+        leaveSubtype: selAct.type === "Annan ledighet" ? (selAct.leaveSubtype || "") : "",
+        startDate: startISO,
+        endDate: endISO,
+        attendance: selAct.attendance ?? 100,
+        // Spara vald fas (BT/ST) – om ej satt, defaulta till "ST"
+        phase: (selAct as any)?.phase || "ST",
+        supervisor: selAct.supervisor || "",
+        supervisorSpeciality: selAct.supervisorSpeciality || "",
+        supervisorSite: selAct.supervisorSite || "",
+        // Nytt fält till central DB: hur BT-delmål kontrollerats (för Bilaga "Delmål i BT")
+        btAssessment: (selAct as any)?.btAssessment || "",
+        // Beskrivning
+        note: selAct.note || "",
+        showOnTimeline: true,
+        btMilestones: ((selAct as any)?.btMilestones || []),
+        milestones: ((selAct as any)?.milestones || []),
+        fulfillsStGoals: !!(selAct as any)?.fulfillsStGoals,
+      };
+
+      let newId = selAct.linkedPlacementId;
+      if (newId) {
+        try {
+          await (db as any).placements?.update?.(newId, record);
+        } catch {
+          await (db as any).placements?.put?.({ id: newId, ...record });
+        }
+      } else {
+        const genId =
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : Math.random().toString(36).slice(2);
+
+        await (db as any).placements?.put?.({ id: genId, ...record });
+
+        const newIdAny = genId as any;
+        setActivities((prev) =>
+          prev.map((a) => (a.id === selAct.id ? { ...a, linkedPlacementId: newIdAny } : a))
+        );
+      }
+
+      await refreshLists();
+      baselineRef.current = { placement: structuredClone(selAct) };
+      setDirty(false);
+      return true;
+    } catch (e) {
+      console.error(e);
+      alert("Kunde inte spara till databasen.");
+      return false;
+    }
+  },
+  [wouldOverlap, refreshLists]
+);
+
+const saveCourseToDb = useCallback(
+  async (selCourse: any): Promise<boolean> => {
+    if (!selCourse) return false;
+    try {
+      const start = selCourse.startDate || selCourse.endDate || selCourse.certificateDate || "";
+      const end = selCourse.endDate || selCourse.startDate || selCourse.certificateDate || "";
+      const cert = selCourse.certificateDate || selCourse.endDate || selCourse.startDate || "";
+
+      // Mappa till DB-post för courses
+      const record: any = {
+        title: selCourse.title || "Kurs",
+        kind: selCourse.kind || "Kurs",
+        city: selCourse.city || "",
+        courseLeaderName: selCourse.courseLeaderName || "",
+        startDate: start || "",
+        endDate: end || "",
+        certificateDate: cert || "",
+        note: selCourse.note || "",
+        showOnTimeline: true,
+
+        // Extra fält som ska sparas centralt
+        milestones: ((selCourse as any)?.milestones || []) as string[],
+        btMilestones: ((selCourse as any)?.btMilestones || []) as string[],
+        fulfillsStGoals: !!(selCourse as any)?.fulfillsStGoals,
+        phase: (selCourse as any)?.phase || "ST",
+        btAssessment: (selCourse as any)?.btAssessment || "",
+        ...(typeof (selCourse as any)?.showAsInterval === "boolean"
+          ? { showAsInterval: !!(selCourse as any).showAsInterval }
+          : {}),
+      };
+
+      let newId = selCourse.linkedCourseId;
+      if (newId) {
+        try {
+          await (db as any).courses?.update?.(newId, record);
+        } catch {
+          await (db as any).courses?.put?.({ id: newId, ...record });
+        }
+      } else {
+        const genId =
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : Math.random().toString(36).slice(2);
+        await (db as any).courses?.put?.({ id: genId, ...record });
+        const newIdAny = genId as any;
+        setCourses((prev) =>
+          prev.map((c) => (c.id === selCourse.id ? { ...c, linkedCourseId: newIdAny } : c))
+        );
+      }
+
+      await refreshLists();
+      baselineRef.current = { course: structuredClone(selCourse) };
+      setDirty(false);
+      return true;
+    } catch (e) {
+      console.error(e);
+      alert("Kunde inte spara kursen till databasen.");
+      return false;
+    }
+  },
+  [refreshLists]
+);
+
+// ===== Osparade ändringar: tre val (Spara och stäng / Stäng utan att spara / Avbryt) =====
+const [unsavedPrompt, setUnsavedPrompt] = useState<null | {
+  mode: "switch" | "close";
+  nextPlacementId: string | null;
+  nextCourseId: string | null;
+}>(null);
+const [unsavedSaving, setUnsavedSaving] = useState(false);
+
 const closeDetailPanel = useCallback(() => {
   if (dirty) {
-    const ok = confirm("Du har osparade ändringar. Vill du stänga utan att spara?");
-    if (!ok) return;
-    // Återställ ändringar om användaren väljer att stänga utan att spara
-    restoreBaseline();
+    setUnsavedPrompt({ mode: "close", nextPlacementId: null, nextCourseId: null });
+    return;
   }
   setDirty(false);
   setSelectedPlacementId(null);
   setSelectedCourseId(null);
-}, [dirty, restoreBaseline]);
+}, [dirty]);
 
 // Funktion för att byta aktivitet med varning.
 // Returnerar true om bytet accepteras/är onödigt, annars false (används för att avbryta drag/resize).
@@ -4871,17 +5013,8 @@ const switchActivity = useCallback(
     if (sameSelection) return true;
 
     if (dirty) {
-      const ok = confirm("Du har osparade ändringar. Vill du byta aktivitet utan att spara?");
-      if (!ok) return false;
-      // Återställ ändringar om användaren väljer att byta utan att spara
-      restoreBaseline();
-      // Vänta lite så att restoreBaseline hinner uppdatera state innan vi byter aktivitet
-      setTimeout(() => {
-        setDirty(false);
-        setSelectedPlacementId(newPlacementId);
-        setSelectedCourseId(newCourseId);
-      }, 0);
-      return true;
+      setUnsavedPrompt({ mode: "switch", nextPlacementId: newPlacementId, nextCourseId: newCourseId });
+      return false;
     }
 
     setDirty(false);
@@ -4889,7 +5022,7 @@ const switchActivity = useCallback(
     setSelectedCourseId(newCourseId);
     return true;
   },
-  [dirty, restoreBaseline, selectedPlacementId, selectedCourseId]
+  [dirty, selectedPlacementId, selectedCourseId]
 );
 
 // Keyboard handler för Delete-tangenten
@@ -6137,92 +6270,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
                     <button
-  disabled={!dirty}
-  onClick={async () => {
-    if (!dirty) return;
-    if (wouldOverlap(selAct.id, selAct.startSlot, selAct.lengthSlots)) {
-      alert("Datum överlappar annan aktivitet.");
-      return;
-    }
-
-        try {
-            // Ta i första hand datumet från selAct.exactStartISO/exactEndISO.
-      // Dessa uppdateras direkt när användaren ändrar datum i detaljrutan.
-      const startISO = (selAct.exactStartISO || "").trim();
-      const endISO   = (selAct.exactEndISO   || "").trim();
-
-      // Spara EXAKT det som står i detaljrutan – ingen slot-baserad omräkning
-      if (!startISO || !endISO || !isValidISO(startISO) || !isValidISO(endISO)) {
-        alert("Kunde inte tolka datum i detaljrutan. Kontrollera start- och slutdatum.");
-        return;
-      }
-
-
-      // Mappa till DB-post för placements
-      const record: any = {
-        type: selAct.type,
-        clinic:
-          selAct.type === "Annan ledighet" ? undefined : (selAct.label || ""),
-        title:
-          selAct.type === "Annan ledighet" ? (selAct.leaveSubtype || "") : (selAct.label || ""),
-        leaveSubtype: selAct.type === "Annan ledighet" ? (selAct.leaveSubtype || "") : "",
-        startDate: startISO,
-        endDate: endISO,
-        attendance: selAct.attendance ?? 100,
-
-        // Spara vald fas (BT/ST) – om ej satt, defaulta till "ST"
-        phase: (selAct as any)?.phase || "ST",
-        supervisor: selAct.supervisor || "",
-        supervisorSpeciality: selAct.supervisorSpeciality || "",
-        supervisorSite: selAct.supervisorSite || "",
-        // Nytt fält till central DB: hur BT-delmål kontrollerats (för Bilaga "Delmål i BT")
-        btAssessment: (selAct as any)?.btAssessment || "",
-        // Beskrivning
-
-        note: selAct.note || "",
-        showOnTimeline: true,
-        btMilestones: ((selAct as any)?.btMilestones || []),
-        milestones: ((selAct as any)?.milestones || []),
-        fulfillsStGoals: !!(selAct as any)?.fulfillsStGoals,
-      };
-
-
-
-      let newId = selAct.linkedPlacementId;
-      if (newId) {
-        try { await (db as any).placements?.update?.(newId, record); }
-        catch { await (db as any).placements?.put?.({ id: newId, ...record }); }
-      } else {
-        const genId =
-          (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2);
-
-        await (db as any).placements?.put?.({ id: genId, ...record });
-
-        const newIdAny = genId as any;
-        setActivities(prev =>
-          prev.map(a => a.id === selAct.id ? { ...a, linkedPlacementId: newIdAny } : a)
-        );
-      }
-
-      await refreshLists();
-      // Uppdatera baseline efter sparning så att dirty blir false
-      // Använd selAct (nuvarande UI-state) som baseline.
-      // Viktigt: använd inte activities från closure här (kan vara stale efter refreshLists()).
-      baselineRef.current = { placement: structuredClone(selAct) };
-      setDirty(false);
-      // Stäng inte rutan efter sparning
-    } catch (e) {
-      console.error(e);
-      alert("Kunde inte spara till databasen.");
-    }
-  }}
-
-  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
->
-  Spara
-</button>
+                      disabled={!dirty}
+                      onClick={async () => {
+                        if (!dirty) return;
+                        await savePlacementToDb(selAct);
+                      }}
+                      className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      Spara
+                    </button>
 
 
           <button
@@ -6761,74 +6817,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
           <button
-  disabled={!dirty}
-  onClick={async () => {
-    if (!dirty) return;
-
-    try {
-      const start = selCourse.startDate || selCourse.endDate || selCourse.certificateDate || "";
-      const end   = selCourse.endDate   || selCourse.startDate || selCourse.certificateDate || "";
-      const cert  = selCourse.certificateDate || selCourse.endDate || selCourse.startDate || "";
-
-      // Mappa till DB-post för courses
-      const record: any = {
-        title: selCourse.title || "Kurs",
-        kind: selCourse.kind || "Kurs",
-        city: selCourse.city || "",
-        courseLeaderName: selCourse.courseLeaderName || "",
-        startDate: start || "",
-        endDate: end || "",
-        certificateDate: cert || "",
-        note: selCourse.note || "",
-        showOnTimeline: true,
-
-        // Extra fält som ska sparas centralt
-        milestones: ((selCourse as any)?.milestones || []) as string[],
-        btMilestones: ((selCourse as any)?.btMilestones || []) as string[],
-        fulfillsStGoals: !!(selCourse as any)?.fulfillsStGoals,
-        phase: (selCourse as any)?.phase || "ST",
-        btAssessment: (selCourse as any)?.btAssessment || "",
-        ...(typeof (selCourse as any)?.showAsInterval === "boolean"
-          ? { showAsInterval: !!(selCourse as any).showAsInterval }
-          : {}),
-      };
-
-
-
-
-      let newId = selCourse.linkedCourseId;
-      if (newId) {
-        try { await (db as any).courses?.update?.(newId, record); }
-        catch { await (db as any).courses?.put?.({ id: newId, ...record }); }
-      } else {
-  const genId =
-    (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2);
-  await (db as any).courses?.put?.({ id: genId, ...record });
-  const newIdAny = genId as any;
-  setCourses(prev =>
-    prev.map(c => c.id === selCourse.id ? { ...c, linkedCourseId: newIdAny } : c)
-  );
-}
-
-
-      await refreshLists();
-      // Uppdatera baseline efter sparning så att dirty blir false
-      // Använd selCourse (nuvarande UI-state) som baseline.
-      // Viktigt: använd inte courses från closure här (kan vara stale efter refreshLists()).
-      baselineRef.current = { course: structuredClone(selCourse) };
-      setDirty(false);
-      // Stäng inte rutan efter sparning
-    } catch (e) {
-      console.error(e);
-      alert("Kunde inte spara kursen till databasen.");
-    }
-  }}
-  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
->
-  Spara
-</button>
+            disabled={!dirty}
+            onClick={async () => {
+              if (!dirty) return;
+              await saveCourseToDb(selCourse);
+            }}
+            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Spara
+          </button>
 
 
 
@@ -8171,7 +8168,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           <button
             className="inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs font-semibold text-slate-900 transition active:translate-y-px hover:bg-slate-200 hover:border-slate-400"
             onClick={() => {
-              switchActivity(certMenu.placement!.id, null);
+              const ok = switchActivity(certMenu.placement!.id, null);
+              if (!ok) return;
               openPreviewForBtGoals(certMenu.placement!);
               setCertMenu({
                 open: false,
@@ -8196,7 +8194,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             className="inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs font-semibold text-slate-900 transition active:translate-y-px hover:bg-slate-200 hover:border-slate-400"
             onClick={() => {
               const c = certMenu.course!;
-              switchActivity(null, c.id);
+              const ok = switchActivity(null, c.id);
+              if (!ok) return;
 
               // Bygg en "BT-aktivitet" från kursen – delmål + bedömningsfält från kursens detaljruta
               const dummyActivity: Activity = {
@@ -8242,7 +8241,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 alert("Profil saknas – kan inte skapa intyget.");
                 return;
               }
-              switchActivity(certMenu.placement!.id, null);
+              const ok = switchActivity(certMenu.placement!.id, null);
+              if (!ok) return;
               openPreviewForPlacement(certMenu.placement!);
               setCertMenu({
                 open: false,
@@ -8272,7 +8272,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 alert("Profil saknas – kan inte skapa intyget.");
                 return;
               }
-              switchActivity(null, c.id);
+              const ok = switchActivity(null, c.id);
+              if (!ok) return;
               setCourseForModal(c);
               setCourseModalOpen(true);
               setCertMenu({
@@ -8314,6 +8315,92 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
 
+
+      {/* ===== Dialog: Osparade ändringar (3 alternativ) ===== */}
+      {unsavedPrompt && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => {
+            if (unsavedSaving) return;
+            setUnsavedPrompt(null);
+          }}
+        >
+          <div
+            className="w-full max-w-[520px] rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-lg font-extrabold text-slate-900">Osparade ändringar</div>
+            <p className="mt-2 text-slate-700">Du har osparade ändringar. Vad vill du göra?</p>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={unsavedSaving}
+                onClick={() => setUnsavedPrompt(null)}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Avbryt
+              </button>
+
+              <button
+                type="button"
+                disabled={unsavedSaving}
+                onClick={() => {
+                  const p = unsavedPrompt;
+                  if (!p) return;
+                  setUnsavedPrompt(null);
+                  restoreBaseline();
+                  setTimeout(() => {
+                    setDirty(false);
+                    if (p.mode === "close") {
+                      setSelectedPlacementId(null);
+                      setSelectedCourseId(null);
+                    } else {
+                      setSelectedPlacementId(p.nextPlacementId);
+                      setSelectedCourseId(p.nextCourseId);
+                    }
+                  }, 0);
+                }}
+                className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 hover:bg-red-100 disabled:opacity-50"
+              >
+                Stäng utan att spara
+              </button>
+
+              <button
+                type="button"
+                disabled={unsavedSaving}
+                onClick={async () => {
+                  const p = unsavedPrompt;
+                  if (!p) return;
+                  setUnsavedSaving(true);
+                  try {
+                    const ok = selectedPlacement
+                      ? await savePlacementToDb(selectedPlacement)
+                      : selectedCourse
+                      ? await saveCourseToDb(selectedCourse)
+                      : true;
+                    if (!ok) return;
+
+                    setUnsavedPrompt(null);
+                    if (p.mode === "close") {
+                      setSelectedPlacementId(null);
+                      setSelectedCourseId(null);
+                    } else {
+                      setSelectedPlacementId(p.nextPlacementId);
+                      setSelectedCourseId(p.nextCourseId);
+                    }
+                  } finally {
+                    setUnsavedSaving(false);
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 disabled:opacity-50"
+              >
+                Spara och stäng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Överlapp ej möjligt: varningsblock borttaget enligt specifikation */}
       </>
