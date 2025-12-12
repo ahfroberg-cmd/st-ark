@@ -54,6 +54,11 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   const [detailSaving, setDetailSaving] = useState(false);
   const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
   const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
+  
+  // Refs för att mäta höjder dynamiskt i ST-delmål detaljvy
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const rightColRef = useRef<HTMLDivElement>(null);
+  const [suggestionsMaxHeight, setSuggestionsMaxHeight] = useState<number | undefined>(undefined);
 
   // Lista (Klin/Kurs/Intyg)
   const [listOpen, setListOpen] = useState(false);
