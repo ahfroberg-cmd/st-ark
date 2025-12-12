@@ -898,12 +898,120 @@ export async function extractZonesFromImage<
   return result as Record<K, string>;
 }
 
-/** OCR för en bild/canvas/blob/url */
+/**
+ * OCR via OCR.space API (gratis plan: 25k requests/månad)
+ * Fallback till Tesseract.js om API misslyckas
+ */
+async function ocrViaOcrSpace(
+  image: File | Blob,
+  lang = "swe+eng"
+): Promise<OcrResult | null> {
+  try {
+    // Konvertera bild till base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Ta bort data:image/...;base64, prefix
+        const base64Data = result.split(",")[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(image);
+    });
+
+    // OCR.space API endpoint
+    const apiUrl = "https://api.ocr.space/parse/image";
+    
+    // Konvertera lang-format: "swe+eng" -> "swe" (OCR.space stöder bara ett språk)
+    const ocrLang = lang.includes("swe") ? "swe" : lang.split("+")[0] || "eng";
+    
+    const formData = new FormData();
+    formData.append("base64Image", base64);
+    formData.append("language", ocrLang);
+    formData.append("isOverlayRequired", "true"); // Behövs för word-koordinater
+    formData.append("detectOrientation", "true");
+    formData.append("scale", "true");
+    formData.append("OCREngine", "2"); // Engine 2 = bättre för dokument
+    
+    // Lägg till API-nyckel om den finns (valfritt för gratis plan)
+    // I Next.js client-side kod är NEXT_PUBLIC_ variabler tillgängliga direkt
+    const apiKey = typeof process !== "undefined" 
+      ? process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY 
+      : undefined;
+    
+    if (finalApiKey) {
+      formData.append("apikey", finalApiKey);
+    }
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`OCR.space API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    // OCR.space returnerar { ParsedResults: [...] }
+    if (result.ParsedResults && result.ParsedResults.length > 0) {
+      const parsedResult = result.ParsedResults[0];
+      const parsedText = parsedResult.ParsedText || "";
+      
+      // Extrahera words från OCR.space response (om tillgängligt)
+      const words: OcrWord[] = [];
+      if (parsedResult.TextOverlay?.Lines) {
+        for (const line of parsedResult.TextOverlay.Lines) {
+          for (const word of line.Words || []) {
+            if (word.WordText) {
+              words.push({
+                text: word.WordText,
+                x1: word.Left || 0,
+                y1: word.Top || 0,
+                x2: (word.Left || 0) + (word.Width || 0),
+                y2: (word.Top || 0) + (word.Height || 0),
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        text: parsedText.trim(),
+        words: words.length > 0 ? words : undefined,
+        width: parsedResult.ImageWidth,
+        height: parsedResult.ImageHeight,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("[OCR] OCR.space API misslyckades, använder fallback:", error);
+    return null;
+  }
+}
+
+/** OCR för en bild/canvas/blob/url med hybridlösning (OCR.space + Tesseract.js fallback) */
 export async function ocrImage(
   image: File | Blob | HTMLCanvasElement | HTMLImageElement | string,
   lang = "swe+eng",
   onProgress?: (p: number) => void
 ): Promise<OcrResult> {
+  // Försök med OCR.space API först (endast för File/Blob)
+  if (image instanceof File || image instanceof Blob) {
+    const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
+    
+    if (ocrSpaceResult && ocrSpaceResult.text) {
+      console.log("[OCR] Använder OCR.space API (lyckades)");
+      return ocrSpaceResult;
+    }
+    
+    console.log("[OCR] OCR.space misslyckades eller returnerade tom text, använder Tesseract.js fallback");
+  }
+
+  // Fallback till Tesseract.js (befintlig implementation)
   const T = await getTesseract();
 
   // Blob/File → blob-URL för maximal kompatibilitet
