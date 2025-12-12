@@ -219,26 +219,31 @@ function ProfilePageInner() {
 
 
   async function saveProfile() {
+    console.log("[saveProfile] Startar sparning...");
     try {
       // Validering
       if (!form.name.trim() || !form.specialty.trim()) {
+        console.log("[saveProfile] Validering misslyckades: namn eller specialitet saknas");
         alert("Fyll i minst Namn och Specialitet.");
         return;
       }
       // Validering beroende på målversion
       if (form.goalsVersion === "2021") {
         if (!form.btStartDate) {
+          console.log("[saveProfile] Validering misslyckades: btStartDate saknas");
           alert("Fyll i startdatum för BT/ST.");
           return;
         }
       } else {
         // 2015: kräver stStartDate
         if (!form.stStartDate) {
+          console.log("[saveProfile] Validering misslyckades: stStartDate saknas");
           alert("Fyll i startdatum för ST.");
           return;
         }
       }
 
+      console.log("[saveProfile] Validering OK, sparar till databas...");
       // Dexie öppnar databasen automatiskt vid första query
       const parts = (form.name ?? "").trim().split(/\s+/);
       const firstName = parts[0] ?? "";
@@ -246,14 +251,16 @@ function ProfilePageInner() {
       const newProfile = { ...form, firstName, lastName, locked: true } as any;
 
       await db.profile.put(newProfile);
+      console.log("[saveProfile] Profil sparad, navigerar...", { isSetupMode });
       
       if (isSetupMode) {
         router.replace("/planera-st");
       } else {
         router.push("/");
       }
+      console.log("[saveProfile] Navigation anropad");
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error("[saveProfile] Error saving profile:", error);
       alert(`Kunde inte spara profil: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
