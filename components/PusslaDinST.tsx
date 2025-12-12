@@ -6096,10 +6096,10 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     }
 
         try {
-            // Ta i första hand datumet från detaljrutan (actStartISO/actEndISO).
-      // Om det saknas, fall tillbaka till selAct.exactStartISO/exactEndISO.
-      const startISO = (actStartISO || selAct.exactStartISO || "").trim();
-      const endISO   = (actEndISO   || selAct.exactEndISO   || "").trim();
+            // Ta i första hand datumet från selAct.exactStartISO/exactEndISO.
+      // Dessa uppdateras direkt när användaren ändrar datum i detaljrutan.
+      const startISO = (selAct.exactStartISO || "").trim();
+      const endISO   = (selAct.exactEndISO   || "").trim();
 
       // Spara EXAKT det som står i detaljrutan – ingen slot-baserad omräkning
       if (!startISO || !endISO || !isValidISO(startISO) || !isValidISO(endISO)) {
