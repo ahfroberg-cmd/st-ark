@@ -1517,6 +1517,29 @@ export default function IupModal({
     onClose();
   }, [dirty, onClose]);
 
+  // ESC-hantering: stäng det översta fönstret
+  // Om MilestoneOverviewPanel är öppen (tab === "delmal"), låt den hantera ESC först
+  // Annars stäng IupModal
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // Om vi är i delmal-tab, låt MilestoneOverviewPanel hantera ESC
+        // (den kommer att stoppa propagation om den hanterar det)
+        if (tab === "delmal") {
+          // MilestoneOverviewPanel hanterar ESC, vi gör inget här
+          return;
+        }
+        // Annars stäng IupModal
+        e.preventDefault();
+        e.stopPropagation();
+        handleRequestClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, tab, handleRequestClose]);
+
   const handleSave = useCallback(async () => {
     await saveAllToDb(meetings, assessments, planning, planningExtra);
   }, [saveAllToDb, meetings, assessments, planning, planningExtra]);

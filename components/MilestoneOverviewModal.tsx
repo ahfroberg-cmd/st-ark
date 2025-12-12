@@ -671,6 +671,26 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     setDetailId(null);
   };
 
+  // ESC-hantering: stäng det översta fönstret
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        // Om detaljvy är öppen, stäng den först
+        if (detailId) {
+          handleCloseDetail();
+        } else {
+          // Annars stäng hela panelen
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, detailId, detailDirty, onClose]);
+
   const savePlanForMilestone = async (mid: string, text: string) => {
     try {
       setDetailSaving(true);
