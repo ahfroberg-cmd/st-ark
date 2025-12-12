@@ -2344,8 +2344,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
           // Synka detaljrutan → exakta datum + BT/ST-fas med 7/22-logiken
           setFormDatesFromSlots(newStart, d.lengthSlots);
-          // Markera att något ändrats så att Spara-knappen aktiveras
-          setDirty(true);
+          // Dirty-state uppdateras automatiskt via checkDirty
 
           return;
         }
@@ -2394,7 +2393,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
           // Synka detaljrutan (exakta datum och fas) med nya slots
           setFormDatesFromSlots(newStart, newLen);
-          setDirty(true);
+          // Dirty-state uppdateras automatiskt via checkDirty
 
           return;
         }
@@ -2430,7 +2429,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
           // Synka detaljrutan med nya slots (slutdatum till närmaste söndag enligt 7/22-regeln)
           setFormDatesFromSlots(d.startSlot, newLen);
-          setDirty(true);
+          // Dirty-state uppdateras automatiskt via checkDirty
 
           return;
         }
@@ -2574,10 +2573,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
       dragCourseRef.current = null;
 
       // Om något av dem var aktivt → tidslinjen har potentiellt ändrats
-      // → markera formuläret som "dirty" så att Spara-knappen aktiveras.
-      if (hadPlacementDrag || hadCourseDrag) {
-        setDirty(true);
-      }
+      // Dirty-state uppdateras automatiskt via checkDirty
     }
 
 
@@ -3170,7 +3166,7 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
 }}
 
     title={label}
-    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedPlacementId(a.id); setSelectedCourseId(null); }}
+    onClick={(e) => { e.preventDefault(); e.stopPropagation(); switchActivity(a.id, null); }}
     onDoubleClick={(e) => {
   e.preventDefault();
   e.stopPropagation();
@@ -4707,15 +4703,132 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 
 // --- ändringsflagga för panelen ---
 const [dirty, setDirty] = useState(false);
-useEffect(() => { setDirty(false); }, [selectedPlacementId, selectedCourseId]);
+
+// Baseline/snapshot för att jämföra ändringar
+const baselineRef = useRef<{ placement?: any; course?: any } | null>(null);
+
+// Skapa snapshot när aktivitet väljs
+useEffect(() => {
+  if (selectedPlacement) {
+    baselineRef.current = { placement: structuredClone(selectedPlacement) };
+    setDirty(false);
+  } else if (selectedCourse) {
+    baselineRef.current = { course: structuredClone(selectedCourse) };
+    setDirty(false);
+  } else {
+    baselineRef.current = null;
+    setDirty(false);
+  }
+}, [selectedPlacementId, selectedCourseId]);
+
+// Funktion för att kontrollera om det finns ändringar
+const checkDirty = useCallback(() => {
+  const baseline = baselineRef.current;
+  if (!baseline) return false;
+  
+  if (baseline.placement && selectedPlacement) {
+    // Jämför alla relevanta fält för placement
+    const b = baseline.placement;
+    const current = selectedPlacement;
+    
+    return (
+      b.type !== current.type ||
+      b.label !== current.label ||
+      b.leaveSubtype !== current.leaveSubtype ||
+      b.startSlot !== current.startSlot ||
+      b.lengthSlots !== current.lengthSlots ||
+      b.attendance !== current.attendance ||
+      (b as any)?.phase !== (current as any)?.phase ||
+      b.supervisor !== current.supervisor ||
+      b.supervisorSpeciality !== current.supervisorSpeciality ||
+      b.supervisorSite !== current.supervisorSite ||
+      (b as any)?.btAssessment !== (current as any)?.btAssessment ||
+      b.note !== current.note ||
+      JSON.stringify((b as any)?.btMilestones || []) !== JSON.stringify((current as any)?.btMilestones || []) ||
+      JSON.stringify((b as any)?.milestones || []) !== JSON.stringify((current as any)?.milestones || []) ||
+      (b as any)?.fulfillsStGoals !== (current as any)?.fulfillsStGoals ||
+      (b.exactStartISO || "") !== ((current as any)?.exactStartISO || "") ||
+      (b.exactEndISO || "") !== ((current as any)?.exactEndISO || "")
+    );
+  }
+  
+  if (baseline.course && selectedCourse) {
+    // Jämför alla relevanta fält för course
+    const b = baseline.course;
+    const current = selectedCourse;
+    
+    return (
+      b.title !== current.title ||
+      b.kind !== current.kind ||
+      b.city !== current.city ||
+      b.courseLeaderName !== current.courseLeaderName ||
+      b.startDate !== current.startDate ||
+      b.endDate !== current.endDate ||
+      b.certificateDate !== current.certificateDate ||
+      b.note !== current.note ||
+      JSON.stringify((b as any)?.milestones || []) !== JSON.stringify((current as any)?.milestones || []) ||
+      JSON.stringify((b as any)?.btMilestones || []) !== JSON.stringify((current as any)?.btMilestones || []) ||
+      (b as any)?.fulfillsStGoals !== (current as any)?.fulfillsStGoals ||
+      (b as any)?.phase !== (current as any)?.phase ||
+      (b as any)?.btAssessment !== (current as any)?.btAssessment ||
+      (b as any)?.showAsInterval !== (current as any)?.showAsInterval
+    );
+  }
+  
+  return false;
+}, [selectedPlacement, selectedCourse]);
+
+// Uppdatera dirty-state baserat på jämförelse
+useEffect(() => {
+  const isDirty = checkDirty();
+  setDirty(isDirty);
+}, [checkDirty]);
+
+// Funktion för att återställa till baseline
+const restoreBaseline = useCallback(() => {
+  const baseline = baselineRef.current;
+  if (!baseline) return;
+  
+  if (baseline.placement && selectedPlacement) {
+    const b = baseline.placement;
+    setActivities(prev => prev.map(a => 
+      a.id === selectedPlacement.id ? { ...a, ...b } : a
+    ));
+    setActStartISO(b.exactStartISO || "");
+    setActEndISO(b.exactEndISO || "");
+  } else if (baseline.course && selectedCourse) {
+    const b = baseline.course;
+    setCourses(prev => prev.map(c => 
+      c.id === selectedCourse.id ? { ...c, ...b } : c
+    ));
+  }
+}, [selectedPlacement, selectedCourse]);
 
 // Funktion för att stänga detaljrutan (samma logik som "Stäng"-knappen)
 const closeDetailPanel = useCallback(() => {
-  if (dirty && !confirm("Du har osparade ändringar. Stäng utan att spara?")) return;
+  if (dirty) {
+    const ok = confirm("Du har osparade ändringar. Vill du stänga utan att spara?");
+    if (!ok) return;
+    // Återställ ändringar om användaren väljer att stänga utan att spara
+    restoreBaseline();
+  }
   setDirty(false);
   setSelectedPlacementId(null);
   setSelectedCourseId(null);
-}, [dirty]);
+}, [dirty, restoreBaseline]);
+
+// Funktion för att byta aktivitet med varning
+const switchActivity = useCallback((newPlacementId: string | null, newCourseId: string | null) => {
+  if (dirty) {
+    const ok = confirm("Du har osparade ändringar. Vill du byta aktivitet utan att spara?");
+    if (!ok) return;
+    // Återställ ändringar om användaren väljer att byta utan att spara
+    restoreBaseline();
+  }
+  setDirty(false);
+  setSelectedPlacementId(newPlacementId);
+  setSelectedCourseId(newCourseId);
+}, [dirty, restoreBaseline]);
 
 // Keyboard handler för Delete-tangenten
 useEffect(() => {
@@ -5230,6 +5343,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         : { ...a, exactEndISO: iso || undefined };
     })
   );
+  // Dirty-state uppdateras automatiskt via checkDirty
 
   // 2) Beräkna slots baserat på "snappade" datum, endast för visuell layout
   const snappedStartISO = which === "start" ? roundToAnchors(iso, "start") : (selAct.exactStartISO || actStartISO);
@@ -5277,8 +5391,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     })
   );
 
-  // Markera som ändrat
-  setDirty(true);
+  // Dirty-state uppdateras automatiskt via checkDirty
 }
 
 
@@ -5287,7 +5400,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         return (
           <div
   className="relative rounded-xl border-2 bg-white p-4 border-sky-600 ring-1 ring-sky-600 mb-6"
-  onChange={() => setDirty(true)}
+  // Dirty-state uppdateras automatiskt via checkDirty
 
   style={{
   boxShadow: (() => {
@@ -6159,8 +6272,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 };
               })
             );
-
-            setDirty(true);
+            // Dirty-state uppdateras automatiskt via checkDirty
           }}
           className="w-full h-10 rounded-lg border px-3"
         >
@@ -6390,7 +6502,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             const flag = mode === "interval";
 
             updateSelectedCourse({ showAsInterval: flag });
-            setDirty(true);
+            // Dirty-state uppdateras automatiskt via checkDirty
           }}
         >
           <option value="interval">Start till slut</option>
@@ -7660,8 +7772,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             : c
         )
       );
-
-      setDirty(true);
+      // Dirty-state uppdateras automatiskt via checkDirty
     } else if (milestonePicker.mode === "placement" && selectedPlacement) {
       const cur = new Set<string>(
         (((selectedPlacement as any)?.milestones || []) as string[])
@@ -7679,8 +7790,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             : a
         )
       );
-
-      setDirty(true);
+      // Dirty-state uppdateras automatiskt via checkDirty
     }
   }}
   onClose={() => setMilestonePicker({ open: false, mode: null })}
@@ -7722,7 +7832,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         // ignorera tyst om kurstabell saknas
       }
 
-      setDirty(true);
+      // Dirty-state uppdateras automatiskt via checkDirty
       return;
     }
 
@@ -7744,8 +7854,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       } catch {
         // lämna tyst om skrivning skulle misslyckas
       }
-
-      setDirty(true);
+      // Dirty-state uppdateras automatiskt via checkDirty
     }
   }}
   onClose={() => setBtMilestonePicker({ open: false, mode: null })}
