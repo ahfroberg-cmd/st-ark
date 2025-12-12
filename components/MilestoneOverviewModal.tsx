@@ -1,7 +1,7 @@
 // components/MilestoneOverviewModal.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "@/lib/db";
 import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
@@ -1142,6 +1142,50 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
           };
 
           const initialTextForMid = planByMilestone[mid] ?? "";
+          
+          // Refs för att mäta höjder dynamiskt
+          const leftColRef = useRef<HTMLDivElement>(null);
+          const rightColRef = useRef<HTMLDivElement>(null);
+          const [suggestionsMaxHeight, setSuggestionsMaxHeight] = useState<number | undefined>(undefined);
+
+          // Uppdatera maxHeight för Förslag-rutan baserat på vänsterkolumnens faktiska höjd
+          useEffect(() => {
+            if (!leftColRef.current || !rightColRef.current) return;
+            
+            const updateHeight = () => {
+              const leftHeight = leftColRef.current?.offsetHeight || 0;
+              
+              // Hitta textarea och knapp i högerkolumnen
+              const textarea = rightColRef.current.querySelector('textarea');
+              const button = rightColRef.current.querySelector('button');
+              
+              const textareaHeight = textarea?.offsetHeight || 120;
+              const labelHeight = 20; // Approximate height of labels
+              const gap = 12; // space-y-3 = 12px
+              const buttonHeight = (button?.offsetHeight || 0) + 8; // button + margin
+              
+              // Beräkna tillgänglig höjd: vänsterkolumnens höjd minus textarea, labels, gap och knapp
+              const availableHeight = leftHeight - textareaHeight - (labelHeight * 2) - gap - buttonHeight;
+              
+              // Sätt maxHeight till tillgänglig höjd, minst 100px
+              setSuggestionsMaxHeight(Math.max(100, availableHeight));
+            };
+            
+            // Uppdatera vid mount och när innehållet ändras
+            const timeoutId = setTimeout(updateHeight, 0);
+            
+            // Använd ResizeObserver för att uppdatera när höjder ändras
+            const resizeObserver = new ResizeObserver(() => {
+              updateHeight();
+            });
+            if (leftColRef.current) resizeObserver.observe(leftColRef.current);
+            if (rightColRef.current) resizeObserver.observe(rightColRef.current);
+            
+            return () => {
+              clearTimeout(timeoutId);
+              resizeObserver.disconnect();
+            };
+          }, [m, detailPlanText, mid]);
 
           return (
             <div
@@ -1173,7 +1217,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)] md:items-start">
 
                       {/* Vänster: beskrivning från målfilen */}
-                      <div className="space-y-4">
+                      <div className="space-y-4" ref={leftColRef}>
                         {typeof (m as any).description === "string" &&
                         (m as any).description.trim().length > 0 ? (
                           <p className="text-[14px] leading-relaxed text-slate-900">
@@ -1214,7 +1258,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                       </div>
 
                       {/* Höger: plan + förslag */}
-                      <div className="flex flex-col space-y-3 md:h-full">
+                      <div className="flex flex-col space-y-3" ref={rightColRef}>
                         <div>
                           <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Planerade metoder och bedömningsinstrument
@@ -1231,12 +1275,16 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                           />
                         </div>
 
-                        <div className="flex flex-1 flex-col min-h-0">
+                        <div className="flex flex-col">
                           <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Förslag
                           </div>
-                          <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 min-h-0">
-
+                          <div 
+                            className="overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2"
+                            style={{
+                              maxHeight: suggestionsMaxHeight
+                            }}
+                          >
                             <ul className="space-y-1.5 text-[13px] text-slate-900">
                               {suggestionItems.map((s) => (
                                 <li key={s} className="flex items-center gap-2">
