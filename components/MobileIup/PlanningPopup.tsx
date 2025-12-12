@@ -1,7 +1,7 @@
 // components/MobileIup/PlanningPopup.tsx
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import type { IupPlanning, ExtraPlanningSection } from "@/components/IupModal";
 import PlanningView from "./PlanningView";
 
@@ -13,6 +13,8 @@ type Props = {
   setPlanningExtra: (sections: ExtraPlanningSection[]) => void;
   setDirty: (dirty: boolean) => void;
   onClose: () => void;
+  onSave: () => Promise<void>;
+  dirty: boolean;
 };
 
 export default function PlanningPopup({
@@ -23,8 +25,11 @@ export default function PlanningPopup({
   setPlanningExtra,
   setDirty,
   onClose,
+  onSave,
+  dirty,
 }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -37,6 +42,26 @@ export default function PlanningPopup({
     };
   }, [open]);
 
+  const handleRequestClose = () => {
+    if (dirty) {
+      const ok = window.confirm("Du har osparade ändringar. Vill du stänga utan att spara?");
+      if (!ok) return;
+    }
+    onClose();
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave();
+    } catch (e) {
+      console.error("Kunde inte spara planering:", e);
+      alert("Kunde inte spara planering.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -45,7 +70,7 @@ export default function PlanningPopup({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) {
-          onClose();
+          handleRequestClose();
         }
       }}
     >
@@ -57,7 +82,7 @@ export default function PlanningPopup({
           <h2 className="text-xl font-extrabold text-sky-900">Planering</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleRequestClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-700 hover:bg-slate-100 active:translate-y-px"
           >
             ✕
@@ -73,6 +98,17 @@ export default function PlanningPopup({
             setDirty={setDirty}
           />
         </div>
+
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!dirty || saving}
+            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "Sparar..." : "Spara"}
+          </button>
+        </footer>
       </div>
     </div>
   );

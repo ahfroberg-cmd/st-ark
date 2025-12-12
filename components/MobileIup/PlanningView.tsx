@@ -75,7 +75,7 @@ export default function PlanningView({
           rows={5}
           value={planning.overallGoals}
           onChange={(e) => updatePlanning("overallGoals", e.target.value)}
-          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
         />
       </div>
 
@@ -95,7 +95,7 @@ export default function PlanningView({
                 rows={4}
                 value={planning[key]}
                 onChange={(e) => updatePlanning(key, e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
           ))}
@@ -119,7 +119,7 @@ export default function PlanningView({
                 rows={4}
                 value={sec.content}
                 onChange={(e) => updatePlanningSectionContent(sec.id, e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
           ))}
@@ -147,7 +147,7 @@ export default function PlanningView({
             <button
               type="button"
               onClick={addPlanningSection}
-              className="rounded-lg border border-sky-600 bg-sky-600 px-5 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px"
+              className="rounded-lg border border-sky-600 bg-sky-600 px-6 py-3 text-base font-semibold text-white hover:bg-sky-700 active:translate-y-px whitespace-nowrap"
             >
               Lägg till
             </button>

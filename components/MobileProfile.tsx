@@ -196,7 +196,7 @@ export default function MobileProfile({ open, onClose }: Props) {
 
       await db.profile.put(toSave);
       setOrig(toSave);
-      onClose();
+      // Stäng inte fönstret, bara uppdatera baseline så att dirty blir false
     } catch (e) {
       console.error("Kunde inte spara profil:", e);
       alert("Kunde inte spara profil.");

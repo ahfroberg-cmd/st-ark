@@ -310,6 +310,8 @@ export default function MobileIup() {
           setPlanningExtra={setPlanningExtra}
           setDirty={setDirty}
           onClose={() => setOpenTab(null)}
+          onSave={saveAllToDb}
+          dirty={dirty}
         />
       )}
 
