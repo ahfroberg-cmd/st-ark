@@ -21,9 +21,7 @@ export default function HomePage() {
     if (!f) return;
     setImporting(true);
     try {
-      // Vänta på att databasen är öppen
-      await db.open();
-      
+      // Dexie öppnar databasen automatiskt vid första query
       const txt = await f.text();
       const data = JSON.parse(txt);
 

@@ -190,8 +190,7 @@ function ProfilePageInner() {
   useEffect(() => {
     (async () => {
       try {
-        // Vänta på att databasen är öppen
-        await db.open();
+        // Dexie öppnar databasen automatiskt vid första query
         const p = await db.profile.get("default");
         if (p) {
           setProfile(p as any);
@@ -240,9 +239,7 @@ function ProfilePageInner() {
         }
       }
 
-      // Öppna databasen
-      await db.open();
-
+      // Dexie öppnar databasen automatiskt vid första query
       const parts = (form.name ?? "").trim().split(/\s+/);
       const firstName = parts[0] ?? "";
       const lastName = parts.slice(1).join(" ") ?? "";
