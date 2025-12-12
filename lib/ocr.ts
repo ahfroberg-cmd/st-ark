@@ -899,115 +899,62 @@ export async function extractZonesFromImage<
 }
 
 /**
- * OCR via OCR.space API (gratis plan: 25k requests/månad)
- * Fallback till Tesseract.js om API misslyckas
+ * OCR via OCR.space API (server-side proxy: /api/ocr-space).
+ * - API-nyckeln ligger på servern (OCR_SPACE_API_KEY) och exponeras inte i klienten.
+ * - Fallback till Tesseract.js om API misslyckas.
  */
 async function ocrViaOcrSpace(
   image: File | Blob,
   lang = "swe+eng"
 ): Promise<OcrResult | null> {
   try {
-    // Konvertera bild till base64
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Ta bort data:image/...;base64, prefix
-        const base64Data = result.split(",")[1];
-        resolve(base64Data);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(image);
-    });
+    const fd = new FormData();
+    // OCR.space via vår server-route för att slippa CORS + hålla nyckeln hemlig
+    fd.append("lang", lang);
+    fd.append("file", image, "upload.jpg");
 
-    // OCR.space API endpoint
-    const apiUrl = "https://api.ocr.space/parse/image";
-    
-    // Konvertera lang-format: "swe+eng" -> "swe" (OCR.space stöder bara ett språk)
-    const ocrLang = lang.includes("swe") ? "swe" : lang.split("+")[0] || "eng";
-    
-    const formData = new FormData();
-    formData.append("base64Image", base64);
-    formData.append("language", ocrLang);
-    formData.append("isOverlayRequired", "true"); // Behövs för word-koordinater
-    formData.append("detectOrientation", "true");
-    formData.append("scale", "true");
-    formData.append("OCREngine", "2"); // Engine 2 = bättre för dokument
-    
-    // OCR.space kräver API-nyckel (även för gratis plan)
-    // I Next.js client-side kod är NEXT_PUBLIC_ variabler tillgängliga direkt
-    let apiKey: string | undefined;
-    try {
-      if (typeof process !== "undefined" && process.env) {
-        apiKey = process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY;
-      }
-    } catch (e) {
-      // Ignorera om process.env inte är tillgängligt
-    }
-    
-    // OCR.space kräver API-nyckel - hoppa över om ingen finns
-    if (!apiKey || !apiKey.trim()) {
-      throw new Error("OCR.space API key saknas. Lägg till NEXT_PUBLIC_OCR_SPACE_API_KEY i .env.local");
-    }
-    
-    formData.append("apikey", apiKey.trim());
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch("/api/ocr-space", {
       method: "POST",
-      body: formData,
+      body: fd,
     });
+
+    const result: any = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OCR.space API error: ${response.status} - ${errorText}`);
+      const msg = result?.error ? String(result.error) : `OCR proxy error: ${response.status}`;
+      throw new Error(msg);
     }
 
-    const result = await response.json();
-    
-    // OCR.space kan returnera fel i resultatet
-    if (result.ErrorMessage) {
-      throw new Error(`OCR.space API error: ${result.ErrorMessage}`);
-    }
-    
-    // OCR.space returnerar { ParsedResults: [...] }
-    if (result.ParsedResults && result.ParsedResults.length > 0) {
-      const parsedResult = result.ParsedResults[0];
-      const parsedText = parsedResult.ParsedText || "";
-      
-      // Extrahera words från OCR.space response (om tillgängligt)
-      const words: OcrWord[] = [];
-      if (parsedResult.TextOverlay?.Lines) {
-        for (const line of parsedResult.TextOverlay.Lines) {
-          for (const word of line.Words || []) {
-            if (word.WordText) {
-              words.push({
-                text: word.WordText,
-                x1: word.Left || 0,
-                y1: word.Top || 0,
-                x2: (word.Left || 0) + (word.Width || 0),
-                y2: (word.Top || 0) + (word.Height || 0),
-              });
-            }
-          }
-        }
-      }
+    const text = String(result?.text || "").trim();
+    if (!text) return null;
 
-      return {
-        text: parsedText.trim(),
-        words: words.length > 0 ? words : undefined,
-        width: parsedResult.ImageWidth,
-        height: parsedResult.ImageHeight,
-      };
-    }
+    const words: OcrWord[] | undefined = Array.isArray(result?.words)
+      ? (result.words as any[])
+          .map((w: any) => {
+            const t = String(w?.text ?? "").trim();
+            if (!t) return null;
+            return {
+              text: t,
+              x1: Number(w?.x1 ?? 0),
+              y1: Number(w?.y1 ?? 0),
+              x2: Number(w?.x2 ?? 0),
+              y2: Number(w?.y2 ?? 0),
+              confidence:
+                typeof w?.confidence === "number" ? (w.confidence as number) : undefined,
+            } as OcrWord;
+          })
+          .filter((x: any) => x !== null)
+      : undefined;
 
-    return null;
+    return {
+      text,
+      words: words && words.length > 0 ? words : undefined,
+      width: typeof result?.width === "number" ? (result.width as number) : undefined,
+      height: typeof result?.height === "number" ? (result.height as number) : undefined,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn("[OCR] OCR.space API misslyckades, använder fallback:", errorMessage);
-    // Logga mer detaljer för debugging
-    if (error instanceof Error && error.stack) {
-      console.warn("[OCR] OCR.space error details:", error.stack.substring(0, 200));
-    }
+    console.warn("[OCR] OCR.space misslyckades, använder fallback:", errorMessage);
     return null;
   }
 }
@@ -1018,39 +965,11 @@ export async function ocrImage(
   lang = "swe+eng",
   onProgress?: (p: number) => void
 ): Promise<OcrResult> {
-  // Försök med OCR.space API först (endast för File/Blob och om API-nyckel finns)
+  // Försök med OCR.space API först (endast för File/Blob via server-proxy)
   if (image instanceof File || image instanceof Blob) {
-    // Kontrollera om API-nyckel finns innan vi försöker
-    let hasApiKey = false;
-    try {
-      if (typeof process !== "undefined" && process.env) {
-        const apiKey = process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY;
-        hasApiKey = !!(apiKey && apiKey.trim());
-      }
-    } catch (e) {
-      // Ignorera
-    }
-    
-    if (hasApiKey) {
-      try {
-        console.log("[OCR] Försöker använda OCR.space API...");
-        const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
-        
-        if (ocrSpaceResult && ocrSpaceResult.text && ocrSpaceResult.text.trim().length > 0) {
-          console.log("[OCR] ✅ OCR.space API lyckades! Textlängd:", ocrSpaceResult.text.length);
-          if (ocrSpaceResult.words && ocrSpaceResult.words.length > 0) {
-            console.log("[OCR] OCR.space returnerade", ocrSpaceResult.words.length, "words");
-          }
-          return ocrSpaceResult;
-        }
-        
-        console.log("[OCR] OCR.space returnerade tom text, använder Tesseract.js fallback");
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.warn("[OCR] OCR.space kastade exception, använder Tesseract.js fallback:", errorMessage);
-      }
-    } else {
-      console.log("[OCR] OCR.space API-nyckel saknas, hoppar över och använder Tesseract.js direkt");
+    const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
+    if (ocrSpaceResult && ocrSpaceResult.text && ocrSpaceResult.text.trim().length > 0) {
+      return ocrSpaceResult;
     }
   }
 
