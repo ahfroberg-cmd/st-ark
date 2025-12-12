@@ -936,12 +936,17 @@ async function ocrViaOcrSpace(
     
     // Lägg till API-nyckel om den finns (valfritt för gratis plan)
     // I Next.js client-side kod är NEXT_PUBLIC_ variabler tillgängliga direkt
-    const apiKey = typeof process !== "undefined" 
-      ? process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY 
-      : undefined;
+    let apiKey: string | undefined;
+    try {
+      if (typeof process !== "undefined" && process.env) {
+        apiKey = process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY;
+      }
+    } catch (e) {
+      // Ignorera om process.env inte är tillgängligt
+    }
     
-    if (apiKey) {
-      formData.append("apikey", apiKey);
+    if (apiKey && apiKey.trim()) {
+      formData.append("apikey", apiKey.trim());
     }
 
     const response = await fetch(apiUrl, {
@@ -950,10 +955,16 @@ async function ocrViaOcrSpace(
     });
 
     if (!response.ok) {
-      throw new Error(`OCR.space API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`OCR.space API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
+    
+    // OCR.space kan returnera fel i resultatet
+    if (result.ErrorMessage) {
+      throw new Error(`OCR.space API error: ${result.ErrorMessage}`);
+    }
     
     // OCR.space returnerar { ParsedResults: [...] }
     if (result.ParsedResults && result.ParsedResults.length > 0) {
@@ -988,7 +999,12 @@ async function ocrViaOcrSpace(
 
     return null;
   } catch (error) {
-    console.warn("[OCR] OCR.space API misslyckades, använder fallback:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn("[OCR] OCR.space API misslyckades, använder fallback:", errorMessage);
+    // Logga mer detaljer för debugging
+    if (error instanceof Error && error.stack) {
+      console.warn("[OCR] OCR.space error details:", error.stack.substring(0, 200));
+    }
     return null;
   }
 }
