@@ -221,38 +221,44 @@ function ProfilePageInner() {
 
   async function saveProfile() {
     try {
+      // Validering
+      if (!form.name.trim() || !form.specialty.trim()) {
+        alert("Fyll i minst Namn och Specialitet.");
+        return;
+      }
+      // Validering beroende på målversion
+      if (form.goalsVersion === "2021") {
+        if (!form.btStartDate) {
+          alert("Fyll i startdatum för BT/ST.");
+          return;
+        }
+      } else {
+        // 2015: kräver stStartDate
+        if (!form.stStartDate) {
+          alert("Fyll i startdatum för ST.");
+          return;
+        }
+      }
+
+      // Öppna databasen
       await db.open();
+
+      const parts = (form.name ?? "").trim().split(/\s+/);
+      const firstName = parts[0] ?? "";
+      const lastName = parts.slice(1).join(" ") ?? "";
+      const newProfile = { ...form, firstName, lastName, locked: true } as any;
+
+      await db.profile.put(newProfile);
+      
+      if (isSetupMode) {
+        router.replace("/planera-st");
+      } else {
+        router.push("/");
+      }
     } catch (error) {
-      console.error("Error opening database:", error);
-      return;
+      console.error("Error saving profile:", error);
+      alert(`Kunde inte spara profil: ${error instanceof Error ? error.message : String(error)}`);
     }
-    if (!form.name.trim() || !form.specialty.trim()) {
-      alert("Fyll i minst Namn och Specialitet.");
-      return;
-    }
-    // Validering beroende på målversion
-    if (form.goalsVersion === "2021") {
-      if (!form.btStartDate) {
-        alert("Fyll i startdatum för BT/ST.");
-        return;
-      }
-    } else {
-      // 2015: kräver stStartDate
-      if (!form.stStartDate) {
-        alert("Fyll i startdatum för ST.");
-        return;
-      }
-    }
-
-
-    const parts = (form.name ?? "").trim().split(/\s+/);
-    const firstName = parts[0] ?? "";
-    const lastName = parts.slice(1).join(" ") ?? "";
-    const newProfile = { ...form, firstName, lastName, locked: true } as any;
-
-    await db.profile.put(newProfile);
-    if (isSetupMode) router.replace("/planera-st");
-    else router.push("/");
   }
 
   return (
