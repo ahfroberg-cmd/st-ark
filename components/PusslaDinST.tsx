@@ -3169,8 +3169,7 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
     onDoubleClick={(e) => {
   e.preventDefault();
   e.stopPropagation();
-  setSelectedPlacementId(a.id);
-  setSelectedCourseId(null);
+  switchActivity(a.id, null);
 
   // BT-fasad aktivitet
   if (a.phase === "BT") {
@@ -3646,14 +3645,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
 
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
         }}
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
 
 
           // BT-kurs i tidslinjen
@@ -7359,8 +7356,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                               alert("Profil saknas – kan inte skapa intyget.");
                               return;
                             }
-                            setSelectedCourseId(c.id);
-                            setSelectedPlacementId(null);
+                            switchActivity(null, c.id);
                             setCourseForModal(c);
                             setCourseModalOpen(true);
                           }}
