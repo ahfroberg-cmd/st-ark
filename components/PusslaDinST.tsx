@@ -4698,33 +4698,53 @@ const [dirty, setDirty] = useState(false);
 
 // Baseline/snapshot för att jämföra ändringar
 const baselineRef = useRef<{ placement?: any; course?: any } | null>(null);
+const baselinePlacementIdRef = useRef<string | null>(null);
+const baselineCourseIdRef = useRef<string | null>(null);
 
 // Skapa snapshot när aktivitet väljs
 // Använd activities/courses arrays istället för selectedPlacement/selectedCourse
 // för att säkerställa att vi får rätt baseline även efter state-uppdateringar
 useEffect(() => {
+  // Viktigt: baseline ska INTE uppdateras när man redigerar (då ändras activities/courses),
+  // utan endast när man byter vald aktivitet/kurs eller när den valda posten först blir tillgänglig.
   if (selectedPlacementId) {
-    const currentFromArray = activities.find(a => a.id === selectedPlacementId);
-    if (currentFromArray) {
-      baselineRef.current = { placement: structuredClone(currentFromArray) };
-      // exactStartISO och exactEndISO är redan i currentFromArray, behöver inte kopiera separat
-    } else {
+    // Byte (eller första gången) → resetta baseline för denna selection
+    if (baselinePlacementIdRef.current !== selectedPlacementId) {
+      baselinePlacementIdRef.current = selectedPlacementId;
+      baselineCourseIdRef.current = null;
       baselineRef.current = null;
+      setDirty(false);
     }
-    setDirty(false);
-  } else if (selectedCourseId) {
-    const currentFromArray = courses.find(c => c.id === selectedCourseId);
-    if (currentFromArray) {
-      baselineRef.current = { course: structuredClone(currentFromArray) };
-    } else {
-      baselineRef.current = null;
+
+    // Sätt baseline när objektet finns (t.ex. efter initial laddning)
+    if (!baselineRef.current?.placement && selectedPlacement) {
+      baselineRef.current = { placement: structuredClone(selectedPlacement) };
+      setDirty(false);
     }
-    setDirty(false);
-  } else {
-    baselineRef.current = null;
-    setDirty(false);
+    return;
   }
-}, [selectedPlacementId, selectedCourseId, activities, courses]);
+
+  if (selectedCourseId) {
+    if (baselineCourseIdRef.current !== selectedCourseId) {
+      baselineCourseIdRef.current = selectedCourseId;
+      baselinePlacementIdRef.current = null;
+      baselineRef.current = null;
+      setDirty(false);
+    }
+
+    if (!baselineRef.current?.course && selectedCourse) {
+      baselineRef.current = { course: structuredClone(selectedCourse) };
+      setDirty(false);
+    }
+    return;
+  }
+
+  // Inget valt
+  baselinePlacementIdRef.current = null;
+  baselineCourseIdRef.current = null;
+  baselineRef.current = null;
+  setDirty(false);
+}, [selectedPlacementId, selectedCourseId, selectedPlacement, selectedCourse]);
 
 // Funktion för att kontrollera om det finns ändringar
 const checkDirty = useCallback(() => {
@@ -6158,14 +6178,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
       await refreshLists();
       // Uppdatera baseline efter sparning så att dirty blir false
-      // Hämta det uppdaterade objektet från activities array istället för selectedPlacement
-      if (selectedPlacementId) {
-        const updatedFromArray = activities.find(a => a.id === selectedPlacementId);
-        if (updatedFromArray) {
-          baselineRef.current = { placement: structuredClone(updatedFromArray) };
-          // exactStartISO och exactEndISO är redan inkluderade i updatedFromArray
-        }
-      }
+      // Använd selAct (nuvarande UI-state) som baseline.
+      // Viktigt: använd inte activities från closure här (kan vara stale efter refreshLists()).
+      baselineRef.current = { placement: structuredClone(selAct) };
       setDirty(false);
       // Stäng inte rutan efter sparning
     } catch (e) {
@@ -6770,13 +6785,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
       await refreshLists();
       // Uppdatera baseline efter sparning så att dirty blir false
-      // Hämta det uppdaterade objektet från courses array istället för selectedCourse
-      if (selectedCourseId) {
-        const updatedFromArray = courses.find(c => c.id === selectedCourseId);
-        if (updatedFromArray) {
-          baselineRef.current = { course: structuredClone(updatedFromArray) };
-        }
-      }
+      // Använd selCourse (nuvarande UI-state) som baseline.
+      // Viktigt: använd inte courses från closure här (kan vara stale efter refreshLists()).
+      baselineRef.current = { course: structuredClone(selCourse) };
       setDirty(false);
       // Stäng inte rutan efter sparning
     } catch (e) {
