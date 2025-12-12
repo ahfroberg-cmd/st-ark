@@ -171,7 +171,8 @@ export default function MobileIup() {
     }
 
     setMeetings(nextMeetings);
-    setEditingMeetingId(null);
+    // Stäng inte modalen när man sparar - låt användaren fortsätta redigera
+    // setEditingMeetingId(null);
     setDirty(true);
   }, [meetings]);
 
@@ -209,7 +210,8 @@ export default function MobileIup() {
       // Add new assessment to list
       setAssessments((prev) => [...prev, updated]);
     }
-    setEditingAssessmentId(null);
+    // Stäng inte modalen när man sparar - låt användaren fortsätta redigera
+    // setEditingAssessmentId(null);
     setDirty(true);
   }, [assessments]);
 
