@@ -4816,10 +4816,18 @@ const switchActivity = useCallback((newPlacementId: string | null, newCourseId: 
     if (!ok) return;
     // Återställ ändringar om användaren väljer att byta utan att spara
     restoreBaseline();
+    // Vänta lite så att restoreBaseline hinner uppdatera state innan vi byter aktivitet
+    // Använd setTimeout för att säkerställa att state-uppdateringarna har hunnit
+    setTimeout(() => {
+      setDirty(false);
+      setSelectedPlacementId(newPlacementId);
+      setSelectedCourseId(newCourseId);
+    }, 0);
+  } else {
+    setDirty(false);
+    setSelectedPlacementId(newPlacementId);
+    setSelectedCourseId(newCourseId);
   }
-  setDirty(false);
-  setSelectedPlacementId(newPlacementId);
-  setSelectedCourseId(newCourseId);
 }, [dirty, restoreBaseline]);
 
 // Keyboard handler för Delete-tangenten
