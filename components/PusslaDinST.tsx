@@ -8330,7 +8330,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-3 text-left text-[14px] font-normal tracking-tight text-slate-900">
+            <div
+              className="px-5 py-3 text-left text-[14px] font-normal text-slate-900"
+              style={{
+                // Försök matcha “smalare” (condensed) rubrik som i native-dialoger.
+                // Faller tillbaka till systemfont om condensed-varianten saknas.
+                fontFamily:
+                  '"Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", "HelveticaNeue-Condensed", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              }}
+            >
               Du har osparade ändringar
             </div>
             <div className="h-px w-full bg-slate-200" />
