@@ -23,3 +23,7 @@ Thumbs.db
 dist/
 build/
 
+# Environment variables
+.env.local
+.env*.local
+
