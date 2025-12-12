@@ -630,6 +630,16 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
   const openDetail = (id: string) => {
+    // Kolla om det finns osparade ändringar innan vi öppnar ett nytt delmål
+    if (detailDirty && detailId) {
+      const ok = window.confirm("Du har osparade ändringar. Vill du öppna ett annat delmål utan att spara?");
+      if (!ok) return;
+      // Återställ ändringarna om användaren väljer att fortsätta
+      const currentInitial = planByMilestone[detailId] ?? "";
+      setDetailPlanText(currentInitial);
+      setDetailDirty(false);
+    }
+    
     setDetailId(id);
     const existing = planByMilestone[id] ?? "";
     setDetailPlanText(existing);
@@ -642,6 +652,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     if (detailDirty) {
       const ok = window.confirm("Du har osparade ändringar. Vill du stänga utan att spara?");
       if (!ok) return;
+      // Återställ ändringarna om användaren väljer att stänga utan att spara
+      if (detailId) {
+        const initial = planByMilestone[detailId] ?? "";
+        setDetailPlanText(initial);
+        setDetailDirty(false);
+      }
     }
     setDetailId(null);
   };
@@ -1186,7 +1202,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             const prefix = trimmed.length > 0 ? trimmed + "\n" : "";
             const next = prefix + selected.join("\n");
             setDetailPlanText(next);
-            setDetailDirty(true);
+            // Jämför med initialTextForMid för att sätta dirty korrekt
+            setDetailDirty(next !== initialTextForMid);
             setDetailSelectedSuggestions({});
           };
 
@@ -1360,7 +1377,10 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             <div
               className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
-                if (e.target === e.currentTarget) setDetailId(null);
+                if (e.target === e.currentTarget) {
+                  // BT-delmål har inga ändringar, så vi kan stänga direkt
+                  setDetailId(null);
+                }
               }}
             >
               <div
