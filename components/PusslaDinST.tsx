@@ -2121,8 +2121,7 @@ function computeEducationalGaps(acts: Activity[]) {
     ...(phase ? { phase } : {}),
   };
   setCourses(prev => [...prev, c]);
-  setSelectedCourseId(c.id);
-  setSelectedPlacementId(null);
+  switchActivity(null, c.id);
 }
 
 
@@ -3987,14 +3986,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
         title={c.title || "Kurs"}
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
         }}
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
 
           // BT-kurs i tidslinjen
           if (c.phase === "BT") {
@@ -6145,8 +6142,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       }
 
       await refreshLists();
+      // Uppdatera baseline efter sparning så att dirty blir false
+      if (selectedPlacement) {
+        baselineRef.current = { placement: structuredClone(selectedPlacement) };
+      }
       setDirty(false);
-      setSelectedPlacementId(null);
+      // Stäng inte rutan efter sparning
     } catch (e) {
       console.error(e);
       alert("Kunde inte spara till databasen.");
@@ -6748,8 +6749,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
       await refreshLists();
+      // Uppdatera baseline efter sparning så att dirty blir false
+      if (selectedCourse) {
+        baselineRef.current = { course: structuredClone(selectedCourse) };
+      }
       setDirty(false);
-      setSelectedCourseId(null);
+      // Stäng inte rutan efter sparning
     } catch (e) {
       console.error(e);
       alert("Kunde inte spara kursen till databasen.");
@@ -8128,8 +8133,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             className="inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs font-semibold text-slate-900 transition active:translate-y-px hover:bg-slate-200 hover:border-slate-400"
             onClick={() => {
               const c = certMenu.course!;
-              setSelectedCourseId(c.id);
-              setSelectedPlacementId(null);
+              switchActivity(null, c.id);
 
               // Bygg en "BT-aktivitet" från kursen – delmål + bedömningsfält från kursens detaljruta
               const dummyActivity: Activity = {
