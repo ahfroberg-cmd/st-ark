@@ -1241,7 +1241,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                               ))}
                             </ul>
                           </div>
-                          <div className="mt-2 flex justify-end shrink-0">
+                          <div className="mt-2 flex justify-start shrink-0">
                             <button
                               type="button"
                               onClick={addSelectedSuggestions}
@@ -1260,7 +1260,30 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                   )}
                 </div>
 
-                                {/* Åtgärdsknapparna är flyttade till headern */}
+                {/* Footer med Spara och Stäng */}
+                <footer className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4">
+                  <div className="flex-1"></div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleSaveDetail(mid);
+                        setDetailDirty(false);
+                      }}
+                      disabled={!detailDirty || detailSaving}
+                      className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {detailSaving ? "Sparar..." : "Spara"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloseDetail}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                    >
+                      Stäng
+                    </button>
+                  </div>
+                </footer>
 
               </div>
             </div>
