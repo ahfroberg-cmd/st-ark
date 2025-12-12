@@ -5449,7 +5449,61 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               selectedPlacement.type === "Föräldraledighet" ||
               selectedPlacement.type === "Sjukskriven"
             ? { gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }
-            : undefined
+            : (() => {
+                // För core-aktiviteter (Klinisk tjänstgöring, etc.), sätt gridTemplateColumns baserat på antal kolumner
+                const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+                const goals2021 = gv === "2021";
+                const t = selectedPlacement.type;
+                const isCore =
+                  t === "Klinisk tjänstgöring" ||
+                  t === "Vetenskapligt arbete" ||
+                  t === "Förbättringsarbete" ||
+                  t === "Auskultation";
+                
+                if (isCore) {
+                  if (gv === "2015") {
+                    return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                  }
+                  if (goals2021) {
+                    // Kontrollera om BT-fasen är över
+                    const btStartISO: string | null = (profile as any)?.btStartDate || null;
+                    if (!btStartISO) {
+                      return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                    }
+                    
+                    const btEndManual: string | null = (profile as any)?.btEndDate || null;
+                    let btEndISO: string | null = null;
+                    if (btEndManual && isValidISO(btEndManual)) {
+                      btEndISO = btEndManual;
+                    } else {
+                      try {
+                        const d = isoToDateSafe(btStartISO);
+                        btEndISO = dateToISO(addMonths(d, 24));
+                      } catch {
+                        return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                      }
+                    }
+                    
+                    const actStartISO = selectedPlacement.startDate || selectedPlacement.startISO;
+                    if (actStartISO && isValidISO(actStartISO)) {
+                      const actStartMs = Date.parse(actStartISO + "T00:00:00");
+                      const btEndMs = Date.parse(btEndISO + "T00:00:00");
+                      if (Number.isFinite(actStartMs) && Number.isFinite(btEndMs)) {
+                        // Om aktiviteten startar efter BT-slut → 5 kolumner
+                        if (actStartMs >= btEndMs) {
+                          return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                        }
+                      }
+                    }
+                    
+                    // BT-fasen är aktiv → 6 kolumner
+                    return { gridTemplateColumns: "repeat(6, minmax(0, 1fr))" };
+                  }
+                }
+                
+                // För andra typer, använd default (grid-cols-klassen hanterar det)
+                return undefined;
+              })()
           : undefined
       }
     >
