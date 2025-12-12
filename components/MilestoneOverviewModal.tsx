@@ -1621,7 +1621,7 @@ function StGrid({
     const dateStr = planDatesByMilestone[milestoneId];
     if (dateStr) {
       const formattedDate = formatDate(dateStr);
-      return { text: `Planering uppdaterad (${formattedDate})`, color: "text-slate-900", italic: true };
+      return { text: `Planering uppdaterad: ${formattedDate}`, color: "text-slate-900", italic: true };
     }
     
     return { text: "Planering uppdaterad", color: "text-slate-900", italic: true };
