@@ -54,6 +54,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   const [detailSaving, setDetailSaving] = useState(false);
   const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
   const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
+  const [planDatesByMilestone, setPlanDatesByMilestone] = useState<Record<string, string>>({});
   
   // Refs för att mäta höjder dynamiskt i ST-delmål detaljvy
   const leftColRef = useRef<HTMLDivElement>(null);
@@ -137,18 +138,26 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         if (table && typeof table.toArray === "function") {
           const rows = await table.toArray();
           const map: Record<string, string> = {};
+          const dateMap: Record<string, string> = {};
           for (const row of rows as any[]) {
             const mid = String((row as any).milestoneId ?? (row as any).id ?? "");
             if (!mid) continue;
             const text = String((row as any).planText ?? (row as any).text ?? "");
             map[mid] = text;
+            const updatedAt = String((row as any).updatedAt ?? "");
+            if (updatedAt) {
+              dateMap[mid] = updatedAt;
+            }
           }
           setPlanByMilestone(map);
+          setPlanDatesByMilestone(dateMap);
         } else {
           setPlanByMilestone({});
+          setPlanDatesByMilestone({});
         }
       } catch {
         setPlanByMilestone({});
+        setPlanDatesByMilestone({});
       }
 
       setTab("st");
@@ -680,7 +689,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         };
         await table.put(row);
       }
+      const now = new Date().toISOString();
       setPlanByMilestone((prev) => ({ ...prev, [mid]: text }));
+      setPlanDatesByMilestone((prev) => ({ ...prev, [mid]: now }));
       setDetailDirty(false);
     } finally {
       setDetailSaving(false);
@@ -1107,7 +1118,14 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 Inga delmål matchar sökningen.
               </div>
             ) : (
-              <StGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
+              <StGrid 
+                groups={groups} 
+                countsFor={countsFor} 
+                openDetail={openDetail} 
+                openList={openList}
+                planByMilestone={planByMilestone}
+                planDatesByMilestone={planDatesByMilestone}
+              />
             )
           )}
         </section>
@@ -1572,12 +1590,42 @@ function StGrid({
   countsFor,
   openDetail,
   openList,
+  planByMilestone,
+  planDatesByMilestone,
 }: {
   groups: Record<"A" | "B" | "C", GoalsMilestone[]>;
   countsFor: (milestoneId: string) => { p: number; c: number };
   openDetail: (id: string) => void;
   openList: (kind: "klin" | "kurs", m: GoalsMilestone) => void;
+  planByMilestone: Record<string, string>;
+  planDatesByMilestone: Record<string, string>;
 }) {
+  
+  const formatDate = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleDateString("sv-SE", { year: "numeric", month: "short", day: "numeric" });
+    } catch {
+      return "";
+    }
+  };
+  
+  const getPlanningStatus = (milestoneId: string) => {
+    const planText = planByMilestone[milestoneId] ?? "";
+    const hasPlan = planText.trim().length > 0;
+    
+    if (!hasPlan) {
+      return { text: "Inväntar planering", color: "text-red-600", italic: true };
+    }
+    
+    const dateStr = planDatesByMilestone[milestoneId];
+    if (dateStr) {
+      const formattedDate = formatDate(dateStr);
+      return { text: `Planering uppdaterad (${formattedDate})`, color: "text-slate-900", italic: true };
+    }
+    
+    return { text: "Planering uppdaterad", color: "text-slate-900", italic: true };
+  };
   return (
     <div className="grid grid-cols-1 gap-4">
       {/* Kolumn 1: Delmål A + B */}
@@ -1646,6 +1694,7 @@ function StGrid({
         <div className="space-y-1.5">
           {groups.B.map((m) => {
             const { p, c } = countsFor(m.id);
+            const status = getPlanningStatus(m.id);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
@@ -1667,6 +1716,9 @@ function StGrid({
                 </button>
 
                 <div className="flex items-center gap-1.5">
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0`}>
+                    {status.text}
+                  </span>
                   {/* Klin-piller */}
                   <button
                     type="button"
@@ -1709,6 +1761,7 @@ function StGrid({
         <div className="space-y-1.5">
           {groups.C.map((m) => {
             const { p, c } = countsFor(m.id);
+            const status = getPlanningStatus(m.id);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
@@ -1730,6 +1783,9 @@ function StGrid({
                 </button>
 
                 <div className="flex items-center gap-1.5">
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0`}>
+                    {status.text}
+                  </span>
                   {/* Klin-piller */}
                   <button
                     type="button"
