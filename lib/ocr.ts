@@ -248,35 +248,49 @@ export const zones_2021_B8_AUSK = {
 export type Zones2021B8AuskKey = keyof typeof zones_2021_B8_AUSK;
 
 /**
- * Zoner för HSLF-FS 2021:8 Bilaga 9 – Klinisk tjänstgöring under handledning (klin2021.png).
- * Layouten är i praktiken identisk med auskultationsintyget 2021.
+ * Zoner för HSLF-FS 2021:8 Bilaga 9 – Klinisk tjänstgöring under handledning.
+ * Koordinaterna är baserade på exporters.ts coords2021Bil9, konverterade från PDF-koordinater (nedre vänstra hörnet)
+ * till bildkoordinater (övre vänstra hörnet) för bildstorlek 1057×1496 px.
+ * 
+ * PDF-sidans storlek: 595.28×841.89 points (A4)
+ * Bildstorlek: 1057×1496 px
+ * 
+ * Konvertering: imageY = (841.89 - pdfY) * (1496 / 841.89)
+ * Beräknade värden (avrundade):
  */
 export const zones_2021_B9_KLIN = {
-  // Sökande
-  applicantLastName: { x: 136, y: 400, w: 467, h: 52 },
-  applicantFirstName: { x: 608, y: 400, w: 365, h: 52 },
-  personnummer: { x: 136, y: 472, w: 321, h: 52 },
-  specialty: { x: 460, y: 472, w: 513, h: 52 },
+  // Sökande - baserat på coords2021Bil9
+  // efternamn: { x: 76, y: 607 } → imageY = 402
+  applicantLastName: { x: 76, y: 402, w: 255, h: 15 },
+  // fornamn: { x: 331, y: 607 } → imageY = 402
+  applicantFirstName: { x: 331, y: 402, w: 255, h: 15 },
+  // personnummer: { x: 76, y: 569 } → imageY = 470
+  personnummer: { x: 76, y: 470, w: 177, h: 15 },
+  // specialitet: { x: 253, y: 569 } → imageY = 470
+  specialty: { x: 253, y: 470, w: 322, h: 15 },
 
-  // Delmål
-  delmal: { x: 136, y: 578, w: 467, h: 53 },
+  // Delmål - delmal: { x: 76, y: 508 } → imageY = 573
+  delmal: { x: 76, y: 573, w: 480, h: 40 },
 
-  // Tjänstgöringsställe för klinisk tjänstgöring + period
-  clinic: { x: 136, y: 688, w: 547, h: 52 },
-  period: { x: 688, y: 688, w: 285, h: 52 },
+  // Tjänstgöringsställe - tjstgStalle: { x: 76, y: 450 } → imageY = 681
+  clinic: { x: 76, y: 681, w: 299, h: 15 },
+  // period: { x: 375, y: 450 } → imageY = 681
+  period: { x: 375, y: 681, w: 180, h: 15 },
 
-  // Beskrivning av den kliniska tjänstgöringen
-  description: { x: 136, y: 764, w: 837, h: 321 },
+  // Beskrivning - beskrivning: { x: 76, y: 418 } → imageY = 472, höjd = 281
+  description: { x: 76, y: 472, w: 480, h: 281 },
 
-  // Handledare
-  supervisorPlaceAndDate: { x: 608, y: 1190, w: 365, h: 52 },
-  supervisorNamePrinted: { x: 136, y: 1262, w: 511, h: 52 },
-  supervisorPersonnummer: { x: 652, y: 1262, w: 321, h: 52 },
-  supervisorSpecialty: { x: 136, y: 1334, w: 837, h: 52 },
-  supervisorSite: { x: 136, y: 1406, w: 837, h: 52 },
+  // Handledare - ortDatum: { x: 105, y: 260 } → imageY = 1019
+  supervisorPlaceAndDate: { x: 105, y: 1019, w: 200, h: 15 },
+  // namnfortydligande: { x: 76, y: 143 } → imageY = 1227
+  supervisorNamePrinted: { x: 76, y: 1227, w: 279, h: 15 },
+  // handledarSpec: { x: 76, y: 105 } → imageY = 1294
+  supervisorSpecialty: { x: 76, y: 1294, w: 429, h: 15 },
+  // handledarTjanstestalle: { x: 76, y: 68 } → imageY = 1360
+  supervisorSite: { x: 76, y: 1360, w: 429, h: 15 },
 
-  // Bilaganummer
-  attachmentNumber: { x: 924, y: 86, w: 133, h: 33 },
+  // Bilaganummer - bilagaNr: { x: 505, y: 42 } → imageY = 1401
+  attachmentNumber: { x: 505, y: 1401, w: 90, h: 20 },
 } as const;
 
 export type Zones2021B9KlinKey = keyof typeof zones_2021_B9_KLIN;
