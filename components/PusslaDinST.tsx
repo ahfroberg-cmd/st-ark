@@ -4700,18 +4700,33 @@ const [dirty, setDirty] = useState(false);
 const baselineRef = useRef<{ placement?: any; course?: any } | null>(null);
 
 // Skapa snapshot när aktivitet väljs
+// Använd activities/courses arrays istället för selectedPlacement/selectedCourse
+// för att säkerställa att vi får rätt baseline även efter state-uppdateringar
 useEffect(() => {
-  if (selectedPlacement) {
-    baselineRef.current = { placement: structuredClone(selectedPlacement) };
+  if (selectedPlacementId) {
+    const currentFromArray = activities.find(a => a.id === selectedPlacementId);
+    if (currentFromArray) {
+      baselineRef.current = { placement: structuredClone(currentFromArray) };
+      // Spara också exactStartISO och exactEndISO från state
+      baselineRef.current.placement.exactStartISO = actStartISO;
+      baselineRef.current.placement.exactEndISO = actEndISO;
+    } else {
+      baselineRef.current = null;
+    }
     setDirty(false);
-  } else if (selectedCourse) {
-    baselineRef.current = { course: structuredClone(selectedCourse) };
+  } else if (selectedCourseId) {
+    const currentFromArray = courses.find(c => c.id === selectedCourseId);
+    if (currentFromArray) {
+      baselineRef.current = { course: structuredClone(currentFromArray) };
+    } else {
+      baselineRef.current = null;
+    }
     setDirty(false);
   } else {
     baselineRef.current = null;
     setDirty(false);
   }
-}, [selectedPlacementId, selectedCourseId]);
+}, [selectedPlacementId, selectedCourseId, activities, courses, actStartISO, actEndISO]);
 
 // Funktion för att kontrollera om det finns ändringar
 const checkDirty = useCallback(() => {
