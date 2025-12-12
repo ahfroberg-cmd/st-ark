@@ -6887,12 +6887,11 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
 
-                      onClick={() => { setSelectedPlacementId(a.id); setSelectedCourseId(null); }}
+                      onClick={() => { switchActivity(a.id, null); }}
                       onDoubleClick={(e) => {
   e.preventDefault();
   e.stopPropagation();
-  setSelectedPlacementId(a.id);
-  setSelectedCourseId(null);
+  switchActivity(a.id, null);
 
   // BT-fasad aktivitet
   if (a.phase === "BT") {
@@ -7068,8 +7067,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           }`}
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedPlacementId(a.id);
-            setSelectedCourseId(null);
+            switchActivity(a.id, null);
             if (!profile) {
               alert("Profil saknas – kan inte skapa intyget.");
               return;
@@ -7092,8 +7090,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       }`}
       onClick={async (e) => {
         e.stopPropagation();
-        setSelectedPlacementId(a.id);
-        setSelectedCourseId(null);
+        switchActivity(a.id, null);
 
         if (!profile) {
           alert("Profil saknas – kan inte skapa intyget.");
@@ -7224,14 +7221,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 }`}
 
                 onClick={() => {
-                  setSelectedCourseId(c.id);
-                  setSelectedPlacementId(null);
+                  switchActivity(null, c.id);
                 }}
                                 onDoubleClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setSelectedCourseId(c.id);
-                  setSelectedPlacementId(null);
+                  switchActivity(null, c.id);
 
                   // BT-kurs
                   if (c.phase === "BT") {
