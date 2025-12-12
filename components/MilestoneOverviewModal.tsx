@@ -1634,6 +1634,7 @@ function StGrid({
         <div className="mb-4 space-y-1.5">
           {groups.A.map((m) => {
             const { p, c } = countsFor(m.id);
+            const status = getPlanningStatus(m.id);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
