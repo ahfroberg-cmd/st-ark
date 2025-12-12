@@ -1147,50 +1147,6 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
           };
 
           const initialTextForMid = planByMilestone[mid] ?? "";
-          
-          // Refs för att mäta höjder dynamiskt
-          const leftColRef = useRef<HTMLDivElement>(null);
-          const rightColRef = useRef<HTMLDivElement>(null);
-          const [suggestionsMaxHeight, setSuggestionsMaxHeight] = useState<number | undefined>(undefined);
-
-          // Uppdatera maxHeight för Förslag-rutan baserat på vänsterkolumnens faktiska höjd
-          useEffect(() => {
-            if (!leftColRef.current || !rightColRef.current) return;
-            
-            const updateHeight = () => {
-              const leftHeight = leftColRef.current?.offsetHeight || 0;
-              
-              // Hitta textarea och knapp i högerkolumnen
-              const textarea = rightColRef.current.querySelector('textarea');
-              const button = rightColRef.current.querySelector('button');
-              
-              const textareaHeight = textarea?.offsetHeight || 120;
-              const labelHeight = 20; // Approximate height of labels
-              const gap = 12; // space-y-3 = 12px
-              const buttonHeight = (button?.offsetHeight || 0) + 8; // button + margin
-              
-              // Beräkna tillgänglig höjd: vänsterkolumnens höjd minus textarea, labels, gap och knapp
-              const availableHeight = leftHeight - textareaHeight - (labelHeight * 2) - gap - buttonHeight;
-              
-              // Sätt maxHeight till tillgänglig höjd, minst 100px
-              setSuggestionsMaxHeight(Math.max(100, availableHeight));
-            };
-            
-            // Uppdatera vid mount och när innehållet ändras
-            const timeoutId = setTimeout(updateHeight, 0);
-            
-            // Använd ResizeObserver för att uppdatera när höjder ändras
-            const resizeObserver = new ResizeObserver(() => {
-              updateHeight();
-            });
-            if (leftColRef.current) resizeObserver.observe(leftColRef.current);
-            if (rightColRef.current) resizeObserver.observe(rightColRef.current);
-            
-            return () => {
-              clearTimeout(timeoutId);
-              resizeObserver.disconnect();
-            };
-          }, [m, detailPlanText, mid]);
 
           return (
             <div
