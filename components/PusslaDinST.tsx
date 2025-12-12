@@ -5344,10 +5344,42 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               }
 
               // Klinisk tjänstgöring, vetenskapligt arbete, förbättringsarbete, auskultation
-              // 2015 → 5 kolumner, 2021 → 6 kolumner
+              // 2015 → 5 kolumner
+              // 2021 → 6 kolumner om BT-fasen är aktiv, annars 5 kolumner (Fas-kolumnen försvinner efter BT-slut)
               if (isCore) {
                 if (goals2015) return "md:grid-cols-5";
-                if (goals2021) return "md:grid-cols-6";
+                if (goals2021) {
+                  // Kontrollera om BT-fasen är över
+                  const btStartISO: string | null = (profile as any)?.btStartDate || null;
+                  if (!btStartISO) return "md:grid-cols-5"; // Ingen BT-start = 5 kolumner
+                  
+                  const btEndManual: string | null = (profile as any)?.btEndDate || null;
+                  let btEndISO: string | null = null;
+                  if (btEndManual && isValidISO(btEndManual)) {
+                    btEndISO = btEndManual;
+                  } else {
+                    try {
+                      const d = isoToDateSafe(btStartISO);
+                      btEndISO = dateToISO(addMonths(d, 24)); // auto 24 månader
+                    } catch {
+                      return "md:grid-cols-5"; // fallback
+                    }
+                  }
+                  
+                  // Kontrollera om aktiviteten är efter BT-slut
+                  const actStartISO = selAct.startDate || selAct.startISO;
+                  if (actStartISO && isValidISO(actStartISO)) {
+                    const actStartMs = Date.parse(actStartISO + "T00:00:00");
+                    const btEndMs = Date.parse(btEndISO + "T00:00:00");
+                    if (Number.isFinite(actStartMs) && Number.isFinite(btEndMs)) {
+                      // Om aktiviteten startar efter BT-slut → 5 kolumner (Fas-kolumnen försvinner)
+                      if (actStartMs >= btEndMs) return "md:grid-cols-5";
+                    }
+                  }
+                  
+                  // BT-fasen är aktiv → 6 kolumner (inkluderar Fas-kolumnen)
+                  return "md:grid-cols-6";
+                }
               }
             }
 
