@@ -3255,9 +3255,13 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
 
     onMouseDown={(e) => {
       e.preventDefault(); e.stopPropagation();
+      const isSwitching =
+        a.id !== selectedPlacementId || selectedCourseId !== null;
+      const ok = switchActivity(a.id, null);
+      if (!ok) return;
       setActiveLane("placement");
-      setSelectedPlacementId(a.id);
-      setSelectedCourseId(null);
+      // Om vi just bekräftade ett byte med dirty=true, avbryt drag/resize och låt användaren försöka igen efter bytet
+      if (dirty && isSwitching) return;
 
       const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
       if (!rowEl) return;
@@ -3275,9 +3279,12 @@ dragPlacementRef.current = {
       className="absolute inset-y-0 left-0 w-4 cursor-ew-resize pointer-events-auto"
       onMouseDown={(e) => {
         e.preventDefault(); e.stopPropagation();
+        const isSwitching =
+          a.id !== selectedPlacementId || selectedCourseId !== null;
+        const ok = switchActivity(a.id, null);
+        if (!ok) return;
         setActiveLane("placement");
-        setSelectedPlacementId(a.id);
-        setSelectedCourseId(null);
+        if (dirty && isSwitching) return;
 
         const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
         if (!rowEl) return;
@@ -3295,9 +3302,12 @@ dragPlacementRef.current = {
       className="absolute inset-y-0 right-0 w-4 cursor-ew-resize pointer-events-auto"
       onMouseDown={(e) => {
         e.preventDefault(); e.stopPropagation();
+        const isSwitching =
+          a.id !== selectedPlacementId || selectedCourseId !== null;
+        const ok = switchActivity(a.id, null);
+        if (!ok) return;
         setActiveLane("placement");
-        setSelectedPlacementId(a.id);
-        setSelectedCourseId(null);
+        if (dirty && isSwitching) return;
 
         const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
         if (!rowEl) return;
@@ -3701,8 +3711,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
 
         onMouseDown={(e) => {
           e.preventDefault(); e.stopPropagation();
+          const isSwitching =
+            selectedPlacementId !== null || selectedCourseId !== c.id;
+          const ok = switchActivity(null, c.id);
+          if (!ok) return;
           setActiveLane("course");
-          setSelectedPlacementId(null); setSelectedCourseId(c.id);
+          if (dirty && isSwitching) return;
           const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
           if (!rowEl) return;
           const rect = rowEl.getBoundingClientRect();
@@ -3861,8 +3875,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
 
         onMouseDown={(e) => {
           e.preventDefault(); e.stopPropagation();
+          const isSwitching =
+            selectedPlacementId !== null || selectedCourseId !== c.id;
+          const ok = switchActivity(null, c.id);
+          if (!ok) return;
           setActiveLane("course");
-          setSelectedPlacementId(null); setSelectedCourseId(c.id);
+          if (dirty && isSwitching) return;
           const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
           if (!rowEl) return;
           const rect = rowEl.getBoundingClientRect();
@@ -4040,9 +4058,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
         onMouseDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          const isSwitching =
+            selectedPlacementId !== null || selectedCourseId !== c.id;
+          const ok = switchActivity(null, c.id);
+          if (!ok) return;
           setActiveLane("course");
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          if (dirty && isSwitching) return;
           const rowEl = (e.currentTarget as HTMLElement).closest(".st-row") as HTMLElement | null;
           if (!rowEl) return;
           const rect = rowEl.getBoundingClientRect();
@@ -4841,26 +4862,35 @@ const closeDetailPanel = useCallback(() => {
   setSelectedCourseId(null);
 }, [dirty, restoreBaseline]);
 
-// Funktion för att byta aktivitet med varning
-const switchActivity = useCallback((newPlacementId: string | null, newCourseId: string | null) => {
-  if (dirty) {
-    const ok = confirm("Du har osparade ändringar. Vill du byta aktivitet utan att spara?");
-    if (!ok) return;
-    // Återställ ändringar om användaren väljer att byta utan att spara
-    restoreBaseline();
-    // Vänta lite så att restoreBaseline hinner uppdatera state innan vi byter aktivitet
-    // Använd setTimeout för att säkerställa att state-uppdateringarna har hunnit
-    setTimeout(() => {
-      setDirty(false);
-      setSelectedPlacementId(newPlacementId);
-      setSelectedCourseId(newCourseId);
-    }, 0);
-  } else {
+// Funktion för att byta aktivitet med varning.
+// Returnerar true om bytet accepteras/är onödigt, annars false (används för att avbryta drag/resize).
+const switchActivity = useCallback(
+  (newPlacementId: string | null, newCourseId: string | null) => {
+    const sameSelection =
+      newPlacementId === selectedPlacementId && newCourseId === selectedCourseId;
+    if (sameSelection) return true;
+
+    if (dirty) {
+      const ok = confirm("Du har osparade ändringar. Vill du byta aktivitet utan att spara?");
+      if (!ok) return false;
+      // Återställ ändringar om användaren väljer att byta utan att spara
+      restoreBaseline();
+      // Vänta lite så att restoreBaseline hinner uppdatera state innan vi byter aktivitet
+      setTimeout(() => {
+        setDirty(false);
+        setSelectedPlacementId(newPlacementId);
+        setSelectedCourseId(newCourseId);
+      }, 0);
+      return true;
+    }
+
     setDirty(false);
     setSelectedPlacementId(newPlacementId);
     setSelectedCourseId(newCourseId);
-  }
-}, [dirty, restoreBaseline]);
+    return true;
+  },
+  [dirty, restoreBaseline, selectedPlacementId, selectedCourseId]
+);
 
 // Keyboard handler för Delete-tangenten
 useEffect(() => {
@@ -8141,8 +8171,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           <button
             className="inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs font-semibold text-slate-900 transition active:translate-y-px hover:bg-slate-200 hover:border-slate-400"
             onClick={() => {
-              setSelectedPlacementId(certMenu.placement!.id);
-              setSelectedCourseId(null);
+              switchActivity(certMenu.placement!.id, null);
               openPreviewForBtGoals(certMenu.placement!);
               setCertMenu({
                 open: false,
@@ -8213,8 +8242,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 alert("Profil saknas – kan inte skapa intyget.");
                 return;
               }
-              setSelectedPlacementId(certMenu.placement!.id);
-              setSelectedCourseId(null);
+              switchActivity(certMenu.placement!.id, null);
               openPreviewForPlacement(certMenu.placement!);
               setCertMenu({
                 open: false,
