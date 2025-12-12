@@ -734,7 +734,16 @@ function ProfilePageInner() {
         <button onClick={() => router.push("/")} className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold hover:bg-slate-50">
           Avbryt
         </button>
-        <button onClick={saveProfile} className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white shadow hover:bg-sky-700">
+        <button 
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("[Button] Spara-knapp klickad");
+            saveProfile();
+          }} 
+          className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white shadow hover:bg-sky-700"
+        >
           Spara
         </button>
       </footer>
