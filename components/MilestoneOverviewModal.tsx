@@ -1684,6 +1684,11 @@ function StGrid({
                     <span>Kurs</span>
                     <span className="min-w-[1.2ch] text-right">{c}</span>
                   </button>
+                  
+                  {/* Planeringsstatus */}
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0 ml-1`}>
+                    {status.text}
+                  </span>
                 </div>
               </article>
             );
