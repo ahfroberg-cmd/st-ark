@@ -5349,33 +5349,39 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               if (isCore) {
                 if (goals2015) return "md:grid-cols-5";
                 if (goals2021) {
-                  // Kontrollera om BT-fasen är över
-                  const btStartISO: string | null = (profile as any)?.btStartDate || null;
-                  if (!btStartISO) return "md:grid-cols-5"; // Ingen BT-start = 5 kolumner
+                  // Kontrollera om BT-fasen är över - använd samma logik som för Fas-väljaren
+                  const prof: any = profile || {};
+                  const btISO: string | null = prof?.btStartDate || null;
+                  if (!btISO || !isValidISO(btISO)) return "md:grid-cols-5"; // Ingen BT-start = 5 kolumner
                   
-                  const btEndManual: string | null = (profile as any)?.btEndDate || null;
+                  const btEndManual: string | null = prof?.btEndDate || null;
                   let btEndISO: string | null = null;
                   if (btEndManual && isValidISO(btEndManual)) {
                     btEndISO = btEndManual;
                   } else {
                     try {
-                      const d = isoToDateSafe(btStartISO);
+                      const d = isoToDateSafe(btISO);
                       btEndISO = dateToISO(addMonths(d, 24)); // auto 24 månader
                     } catch {
                       return "md:grid-cols-5"; // fallback
                     }
                   }
                   
-                  // Kontrollera om aktiviteten är efter BT-slut
-                  const actStartISO = selAct.startDate || selAct.startISO;
-                  if (actStartISO && isValidISO(actStartISO)) {
-                    const actStartMs = Date.parse(actStartISO + "T00:00:00");
-                    const btEndMs = Date.parse(btEndISO + "T00:00:00");
-                    if (Number.isFinite(actStartMs) && Number.isFinite(btEndMs)) {
-                      // Om aktiviteten startar efter BT-slut → 5 kolumner (Fas-kolumnen försvinner)
-                      if (actStartMs >= btEndMs) return "md:grid-cols-5";
-                    }
-                  }
+                  if (!btEndISO || !isValidISO(btEndISO)) return "md:grid-cols-5";
+                  
+                  // Använd samma logik som för Fas-väljaren: aktiviteten måste ligga HELT mellan BT-start och BT-slut
+                  const btStartGlobal = dateToSlot(startYear, btISO, "start");
+                  const btEndSlot = dateToSlot(startYear, btEndISO, "end");
+                  const btEndGlobal = Number.isFinite(btEndSlot) ? btEndSlot : null;
+                  
+                  if (!Number.isFinite(btStartGlobal) || btEndGlobal == null) return "md:grid-cols-5";
+                  
+                  const s0 = selAct.startSlot;
+                  const e0 = selAct.startSlot + selAct.lengthSlots;
+                  const inBtWindow = s0 >= btStartGlobal && e0 <= btEndGlobal;
+                  
+                  // Om aktiviteten INTE ligger helt inom BT-fönstret → 5 kolumner (ST-fas)
+                  if (!inBtWindow) return "md:grid-cols-5";
                   
                   // BT-fasen är aktiv → 6 kolumner (inkluderar Fas-kolumnen)
                   return "md:grid-cols-6";
@@ -5465,35 +5471,46 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
                   }
                   if (goals2021) {
-                    // Kontrollera om BT-fasen är över
-                    const btStartISO: string | null = (profile as any)?.btStartDate || null;
-                    if (!btStartISO) {
+                    // Kontrollera om BT-fasen är över - använd samma logik som för Fas-väljaren
+                    const prof: any = profile || {};
+                    const btISO: string | null = prof?.btStartDate || null;
+                    if (!btISO || !isValidISO(btISO)) {
                       return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
                     }
                     
-                    const btEndManual: string | null = (profile as any)?.btEndDate || null;
+                    const btEndManual: string | null = prof?.btEndDate || null;
                     let btEndISO: string | null = null;
                     if (btEndManual && isValidISO(btEndManual)) {
                       btEndISO = btEndManual;
                     } else {
                       try {
-                        const d = isoToDateSafe(btStartISO);
+                        const d = isoToDateSafe(btISO);
                         btEndISO = dateToISO(addMonths(d, 24));
                       } catch {
                         return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
                       }
                     }
                     
-                    const actStartISO = selectedPlacement.startDate || selectedPlacement.startISO;
-                    if (actStartISO && isValidISO(actStartISO)) {
-                      const actStartMs = Date.parse(actStartISO + "T00:00:00");
-                      const btEndMs = Date.parse(btEndISO + "T00:00:00");
-                      if (Number.isFinite(actStartMs) && Number.isFinite(btEndMs)) {
-                        // Om aktiviteten startar efter BT-slut → 5 kolumner
-                        if (actStartMs >= btEndMs) {
-                          return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
-                        }
-                      }
+                    if (!btEndISO || !isValidISO(btEndISO)) {
+                      return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                    }
+                    
+                    // Använd samma logik som för Fas-väljaren: aktiviteten måste ligga HELT mellan BT-start och BT-slut
+                    const btStartGlobal = dateToSlot(startYear, btISO, "start");
+                    const btEndSlot = dateToSlot(startYear, btEndISO, "end");
+                    const btEndGlobal = Number.isFinite(btEndSlot) ? btEndSlot : null;
+                    
+                    if (!Number.isFinite(btStartGlobal) || btEndGlobal == null) {
+                      return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
+                    }
+                    
+                    const s0 = selectedPlacement.startSlot;
+                    const e0 = selectedPlacement.startSlot + selectedPlacement.lengthSlots;
+                    const inBtWindow = s0 >= btStartGlobal && e0 <= btEndGlobal;
+                    
+                    // Om aktiviteten INTE ligger helt inom BT-fönstret → 5 kolumner (ST-fas)
+                    if (!inBtWindow) {
+                      return { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" };
                     }
                     
                     // BT-fasen är aktiv → 6 kolumner
