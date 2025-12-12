@@ -622,13 +622,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
   };
 
   const handleSaveDetail = async (mid: string) => {
-    try {
-      setDetailSaving(true);
-      await savePlanForMilestone(mid, detailPlanText);
-      setDetailDirty(false);
-    } finally {
-      setDetailSaving(false);
-    }
+    await savePlanForMilestone(mid, detailPlanText);
   };
 
 
