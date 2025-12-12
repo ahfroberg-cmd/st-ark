@@ -7045,9 +7045,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   }`}
   onClick={(e) => {
     e.stopPropagation();
-    setSelectedPlacementId(a.id);
-    setSelectedCourseId(null);
-    // Förhandsvisa ”Delmål i BT” (Bilaga 2) med valda BT-delmål
+    switchActivity(a.id, null);
+    // Förhandsvisa "Delmål i BT" (Bilaga 2) med valda BT-delmål
     openPreviewForBtGoals(a);
   }}
   title="Delmål i bastjänstgöringen"
@@ -7379,8 +7378,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           alert("Profil saknas – kan inte skapa intyget.");
                           return;
                         }
-                        setSelectedCourseId(c.id);
-                        setSelectedPlacementId(null);
+                        switchActivity(null, c.id);
                         setCourseForModal(c);
                         setCourseModalOpen(true);
                       }}
@@ -8208,8 +8206,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 alert("Profil saknas – kan inte skapa intyget.");
                 return;
               }
-              setSelectedCourseId(c.id);
-              setSelectedPlacementId(null);
+              switchActivity(null, c.id);
               setCourseForModal(c);
               setCourseModalOpen(true);
               setCertMenu({
