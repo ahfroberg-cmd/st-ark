@@ -8322,7 +8322,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
         >
           <div
-            className="w-full max-w-[560px] rounded-lg border border-slate-200 bg-white shadow-lg"
+            className="w-full max-w-[520px] rounded-lg border border-slate-200 bg-white shadow-lg"
             style={{
               // Matcha webbläsarens native dialog-typsnitt så nära som möjligt
               fontFamily:
@@ -8330,17 +8330,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-5 text-left text-[14px] font-normal text-slate-900">
+            <div className="px-5 py-3 text-left text-[14px] font-normal text-slate-900">
               Du har osparade ändringar
             </div>
             <div className="h-px w-full bg-slate-200" />
 
-            <div className="flex items-center justify-end gap-2 px-4 py-3">
+            <div className="flex items-center justify-end gap-2 px-3 py-2">
               <button
                 type="button"
                 disabled={unsavedSaving}
                 onClick={() => setUnsavedPrompt(null)}
-                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
               >
                 Avbryt
               </button>
@@ -8364,7 +8364,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     }
                   }, 0);
                 }}
-                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
               >
                 Stäng utan att spara
               </button>
@@ -8396,7 +8396,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     setUnsavedSaving(false);
                   }
                 }}
-                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
               >
                 Spara och stäng
               </button>
