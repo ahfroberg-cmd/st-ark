@@ -687,9 +687,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         }
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, detailId, detailDirty, onClose]);
+    window.addEventListener("keydown", handleKeyDown, true); // Use capture phase to handle before IupModal
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [open, detailId, detailDirty, onClose, handleCloseDetail]);
 
   const savePlanForMilestone = async (mid: string, text: string) => {
     try {
