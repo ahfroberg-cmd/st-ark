@@ -1650,8 +1650,12 @@ function StGrid({
                         : (m.code ?? "")
                     ).toLowerCase()}
                   </span>
-                  <span className="truncate text-[12px] text-slate-900">
+                  <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
+                  </span>
+                  {/* Planeringsstatus - inuti knappen längst till höger */}
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0 ml-auto`}>
+                    {status.text}
                   </span>
                 </button>
 
@@ -1685,11 +1689,6 @@ function StGrid({
                     <span>Kurs</span>
                     <span className="min-w-[1.2ch] text-right">{c}</span>
                   </button>
-                  
-                  {/* Planeringsstatus */}
-                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0 ml-1`}>
-                    {status.text}
-                  </span>
                 </div>
               </article>
             );
@@ -1716,15 +1715,16 @@ function StGrid({
                         : (m.code ?? "")
                     ).toLowerCase()}
                   </span>
-                  <span className="truncate text-[12px] text-slate-900">
+                  <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
+                  </span>
+                  {/* Planeringsstatus - inuti knappen längst till höger */}
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0 ml-auto`}>
+                    {status.text}
                   </span>
                 </button>
 
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0`}>
-                    {status.text}
-                  </span>
                   {/* Klin-piller */}
                   <button
                     type="button"
@@ -1783,15 +1783,16 @@ function StGrid({
                         : (m.code ?? "")
                     ).toLowerCase()}
                   </span>
-                  <span className="truncate text-[12px] text-slate-900">
+                  <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
+                  </span>
+                  {/* Planeringsstatus - inuti knappen längst till höger */}
+                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0 ml-auto`}>
+                    {status.text}
                   </span>
                 </button>
 
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[11px] ${status.color} ${status.italic ? "italic" : ""} shrink-0`}>
-                    {status.text}
-                  </span>
                   {/* Klin-piller */}
                   <button
                     type="button"
