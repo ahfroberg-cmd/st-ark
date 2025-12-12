@@ -4707,9 +4707,7 @@ useEffect(() => {
     const currentFromArray = activities.find(a => a.id === selectedPlacementId);
     if (currentFromArray) {
       baselineRef.current = { placement: structuredClone(currentFromArray) };
-      // Spara också exactStartISO och exactEndISO från state
-      baselineRef.current.placement.exactStartISO = actStartISO;
-      baselineRef.current.placement.exactEndISO = actEndISO;
+      // exactStartISO och exactEndISO är redan i currentFromArray, behöver inte kopiera separat
     } else {
       baselineRef.current = null;
     }
@@ -4726,7 +4724,7 @@ useEffect(() => {
     baselineRef.current = null;
     setDirty(false);
   }
-}, [selectedPlacementId, selectedCourseId, activities, courses, actStartISO, actEndISO]);
+}, [selectedPlacementId, selectedCourseId, activities, courses]);
 
 // Funktion för att kontrollera om det finns ändringar
 const checkDirty = useCallback(() => {
@@ -4801,8 +4799,7 @@ const restoreBaseline = useCallback(() => {
     setActivities(prev => prev.map(a => 
       a.id === selectedPlacement.id ? { ...a, ...b } : a
     ));
-    setActStartISO(b.exactStartISO || "");
-    setActEndISO(b.exactEndISO || "");
+    // exactStartISO och exactEndISO är redan inkluderade i ...b spread
   } else if (baseline.course && selectedCourse) {
     const b = baseline.course;
     setCourses(prev => prev.map(c => 
@@ -6166,8 +6163,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         const updatedFromArray = activities.find(a => a.id === selectedPlacementId);
         if (updatedFromArray) {
           baselineRef.current = { placement: structuredClone(updatedFromArray) };
-          baselineRef.current.placement.exactStartISO = actStartISO;
-          baselineRef.current.placement.exactEndISO = actEndISO;
+          // exactStartISO och exactEndISO är redan inkluderade i updatedFromArray
         }
       }
       setDirty(false);
