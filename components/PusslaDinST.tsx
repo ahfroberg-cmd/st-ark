@@ -8323,6 +8323,11 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         >
           <div
             className="w-full max-w-[560px] rounded-lg border border-slate-200 bg-white shadow-lg"
+            style={{
+              // Matcha webbläsarens native dialog-typsnitt så nära som möjligt
+              fontFamily:
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 text-right text-[14px] font-normal text-slate-900">
@@ -8335,7 +8340,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 type="button"
                 disabled={unsavedSaving}
                 onClick={() => setUnsavedPrompt(null)}
-                className="rounded px-4 py-2 text-[16px] font-medium text-blue-600 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
               >
                 Avbryt
               </button>
@@ -8359,7 +8364,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     }
                   }, 0);
                 }}
-                className="rounded px-4 py-2 text-[16px] font-medium text-blue-600 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
               >
                 Stäng utan att spara
               </button>
@@ -8391,7 +8396,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     setUnsavedSaving(false);
                   }
                 }}
-                className="rounded px-4 py-2 text-[16px] font-medium text-blue-600 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded px-4 py-2 text-[14px] font-medium text-[#1a73e8] hover:bg-slate-100 disabled:opacity-50"
               >
                 Spara och stäng
               </button>
