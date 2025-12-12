@@ -3805,14 +3805,12 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
 
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
         }}
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setSelectedPlacementId(null);
-          setSelectedCourseId(c.id);
+          switchActivity(null, c.id);
 
 
           // BT-kurs i tidslinjen
