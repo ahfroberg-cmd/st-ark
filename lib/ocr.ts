@@ -1017,14 +1017,23 @@ export async function ocrImage(
 ): Promise<OcrResult> {
   // Försök med OCR.space API först (endast för File/Blob)
   if (image instanceof File || image instanceof Blob) {
-    const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
-    
-    if (ocrSpaceResult && ocrSpaceResult.text) {
-      console.log("[OCR] Använder OCR.space API (lyckades)");
-      return ocrSpaceResult;
+    try {
+      console.log("[OCR] Försöker använda OCR.space API...");
+      const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
+      
+      if (ocrSpaceResult && ocrSpaceResult.text && ocrSpaceResult.text.trim().length > 0) {
+        console.log("[OCR] ✅ OCR.space API lyckades! Textlängd:", ocrSpaceResult.text.length);
+        if (ocrSpaceResult.words && ocrSpaceResult.words.length > 0) {
+          console.log("[OCR] OCR.space returnerade", ocrSpaceResult.words.length, "words");
+        }
+        return ocrSpaceResult;
+      }
+      
+      console.log("[OCR] OCR.space returnerade tom text, använder Tesseract.js fallback");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn("[OCR] OCR.space kastade exception, använder Tesseract.js fallback:", errorMessage);
     }
-    
-    console.log("[OCR] OCR.space misslyckades eller returnerade tom text, använder Tesseract.js fallback");
   }
 
   // Fallback till Tesseract.js (befintlig implementation)
