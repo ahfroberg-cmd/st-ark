@@ -1160,7 +1160,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                 <div className="flex-1 overflow-y-auto px-5 py-5">
 
                   {m ? (
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)] md:items-start">
 
                       {/* Vänster: beskrivning från målfilen */}
                       <div className="space-y-4">
@@ -1204,7 +1204,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                       </div>
 
                       {/* Höger: plan + förslag */}
-                      <div className="space-y-3">
+                      <div className="flex flex-col space-y-3 md:h-full">
                         <div>
                           <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Planerade metoder och bedömningsinstrument
@@ -1221,11 +1221,11 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                           />
                         </div>
 
-                        <div className="flex h-full flex-col">
+                        <div className="flex flex-1 flex-col min-h-0">
                           <div className="mb-1 text-[13px] font-semibold text-slate-900">
                             Förslag
                           </div>
-                          <div className="max-h-[120px] flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+                          <div className="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2 min-h-0">
 
                             <ul className="space-y-1.5 text-[13px] text-slate-900">
                               {suggestionItems.map((s) => (
@@ -1241,7 +1241,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                               ))}
                             </ul>
                           </div>
-                          <div className="mt-2 flex justify-end">
+                          <div className="mt-2 flex justify-end shrink-0">
                             <button
                               type="button"
                               onClick={addSelectedSuggestions}
