@@ -940,8 +940,8 @@ async function ocrViaOcrSpace(
       ? process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY 
       : undefined;
     
-    if (finalApiKey) {
-      formData.append("apikey", finalApiKey);
+    if (apiKey) {
+      formData.append("apikey", apiKey);
     }
 
     const response = await fetch(apiUrl, {
