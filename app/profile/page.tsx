@@ -220,6 +220,12 @@ function ProfilePageInner() {
 
 
   async function saveProfile() {
+    try {
+      await db.open();
+    } catch (error) {
+      console.error("Error opening database:", error);
+      return;
+    }
     if (!form.name.trim() || !form.specialty.trim()) {
       alert("Fyll i minst Namn och Specialitet.");
       return;
