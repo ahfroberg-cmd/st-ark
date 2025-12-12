@@ -8335,12 +8335,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             </div>
             <div className="h-px w-full bg-slate-200" />
 
-            <div className="flex items-center justify-end gap-2 px-3 py-2">
+            <div className="flex items-center justify-end gap-2 px-3 py-1">
               <button
                 type="button"
                 disabled={unsavedSaving}
                 onClick={() => setUnsavedPrompt(null)}
-                className="rounded px-4 py-2 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
+                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
               >
                 Avbryt
               </button>
@@ -8364,7 +8364,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     }
                   }, 0);
                 }}
-                className="rounded px-4 py-2 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
+                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
               >
                 Stäng utan att spara
               </button>
@@ -8396,7 +8396,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     setUnsavedSaving(false);
                   }
                 }}
-                className="rounded px-4 py-2 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:bg-slate-100"
+                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
               >
                 Spara och stäng
               </button>
