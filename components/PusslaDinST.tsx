@@ -6161,8 +6161,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
       await refreshLists();
       // Uppdatera baseline efter sparning så att dirty blir false
-      if (selectedPlacement) {
-        baselineRef.current = { placement: structuredClone(selectedPlacement) };
+      // Hämta det uppdaterade objektet från activities array istället för selectedPlacement
+      if (selectedPlacementId) {
+        const updatedFromArray = activities.find(a => a.id === selectedPlacementId);
+        if (updatedFromArray) {
+          baselineRef.current = { placement: structuredClone(updatedFromArray) };
+          baselineRef.current.placement.exactStartISO = actStartISO;
+          baselineRef.current.placement.exactEndISO = actEndISO;
+        }
       }
       setDirty(false);
       // Stäng inte rutan efter sparning
@@ -6768,8 +6774,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
       await refreshLists();
       // Uppdatera baseline efter sparning så att dirty blir false
-      if (selectedCourse) {
-        baselineRef.current = { course: structuredClone(selectedCourse) };
+      // Hämta det uppdaterade objektet från courses array istället för selectedCourse
+      if (selectedCourseId) {
+        const updatedFromArray = courses.find(c => c.id === selectedCourseId);
+        if (updatedFromArray) {
+          baselineRef.current = { course: structuredClone(updatedFromArray) };
+        }
       }
       setDirty(false);
       // Stäng inte rutan efter sparning
