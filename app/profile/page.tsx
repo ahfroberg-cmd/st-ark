@@ -189,12 +189,19 @@ function ProfilePageInner() {
 
   useEffect(() => {
     (async () => {
-      const p = await db.profile.get("default");
-      if (p) {
-        setProfile(p as any);
-        setForm((prev: any) => ({ ...prev, ...(p as any) }));
-        setSupervisorHasOtherSite(Boolean((p as any)?.supervisorWorkplace));
-        setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
+      try {
+        // Vänta på att databasen är öppen
+        await db.open();
+        const p = await db.profile.get("default");
+        if (p) {
+          setProfile(p as any);
+          setForm((prev: any) => ({ ...prev, ...(p as any) }));
+          setSupervisorHasOtherSite(Boolean((p as any)?.supervisorWorkplace));
+          setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+        // Ignorera felet om databasen inte är redo ännu eller om det är ett IndexedDB-problem
       }
     })();
   }, []);
