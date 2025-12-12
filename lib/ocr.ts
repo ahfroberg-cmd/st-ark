@@ -805,49 +805,106 @@ export async function extractZonesFromImage<
         continue;
       }
       
-      // Förbättra rendering-kvalitet - ingen smoothing för skarpare text
-      ctx.imageSmoothingEnabled = false;
+      // Förbättra rendering-kvalitet - använd smoothing för bättre uppskalning
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       
-      // Öka upplösning för bättre OCR (minst 300 DPI motsvarande)
-      // Om zonen är för liten, skala upp den
-      const minWidth = 200; // Minimum bredd för bra OCR
-      const minHeight = 50; // Minimum höjd för bra OCR
-      const scale = Math.max(1, Math.min(3, Math.max(minWidth / w, minHeight / h)));
+      // Öka upplösning betydligt för bättre OCR (minst 300 DPI motsvarande)
+      // För små zoner, skala upp mer aggressivt
+      const minWidth = 400; // Ökad minimum bredd för bättre OCR
+      const minHeight = 100; // Ökad minimum höjd för bättre OCR
+      const scale = Math.max(2, Math.min(5, Math.max(minWidth / w, minHeight / h)));
       
       const scaledWidth = Math.round(w * scale);
       const scaledHeight = Math.round(h * scale);
       canvas.width = scaledWidth;
       canvas.height = scaledHeight;
       
-      // Rita zonen med uppskalning
+      // Rita zonen med uppskalning och hög kvalitet
       ctx.drawImage(
         imgElement,
         x, y, w, h,  // Source rectangle
         0, 0, scaledWidth, scaledHeight  // Destination rectangle (uppskalad)
       );
       
-      // Förbättra bildkvalitet med bildfilter
+      // Förbättra bildkvalitet med avancerad bildförbehandling
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
+      const width = canvas.width;
+      const height = canvas.height;
       
-      // Konvertera till gråskala och förbättra kontrast
+      // Steg 1: Konvertera till gråskala med bättre viktning
+      const grayscale: number[] = [];
       for (let i = 0; i < data.length; i += 4) {
-        // Gråskala (luminans-vektad)
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        
-        // Öka kontrast (mildare kontrast för bättre resultat)
-        const contrast = 1.3;
-        const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
-        let newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
-        
-        // Adaptive threshold istället för hård binarisering
-        // Behåll mer information men gör texten tydligare
-        const threshold = 140; // Lättare threshold
-        newGray = newGray > threshold ? 255 : Math.max(0, newGray * 0.7);
-        
-        data[i] = newGray;     // R
-        data[i + 1] = newGray; // G
-        data[i + 2] = newGray; // B
+        const gray = Math.round(
+          data[i] * 0.299 + 
+          data[i + 1] * 0.587 + 
+          data[i + 2] * 0.114
+        );
+        grayscale.push(gray);
+      }
+      
+      // Steg 2: Öka kontrast mer aggressivt
+      const contrast = 1.8; // Ökad kontrast
+      const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+      for (let i = 0; i < grayscale.length; i++) {
+        grayscale[i] = Math.max(0, Math.min(255, factor * (grayscale[i] - 128) + 128));
+      }
+      
+      // Steg 3: Unsharp masking för skärpa (lätt sharpening)
+      const sharpened = [...grayscale];
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+          const center = grayscale[idx];
+          const top = grayscale[(y - 1) * width + x];
+          const bottom = grayscale[(y + 1) * width + x];
+          const left = grayscale[y * width + (x - 1)];
+          const right = grayscale[y * width + (x + 1)];
+          
+          // Unsharp mask: center + (center - average) * strength
+          const average = (top + bottom + left + right) / 4;
+          const diff = center - average;
+          sharpened[idx] = Math.max(0, Math.min(255, center + diff * 0.3));
+        }
+      }
+      
+      // Steg 4: Adaptive threshold med större block size för små zoner
+      const blockSize = Math.max(15, Math.min(31, Math.floor(width / 10) | 1)); // Udda tal
+      const thresholded = [...sharpened];
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          
+          // Beräkna lokal threshold (enkel variant av adaptive threshold)
+          let sum = 0;
+          let count = 0;
+          const halfBlock = Math.floor(blockSize / 2);
+          
+          for (let dy = -halfBlock; dy <= halfBlock; dy++) {
+            for (let dx = -halfBlock; dx <= halfBlock; dx++) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                sum += sharpened[ny * width + nx];
+                count++;
+              }
+            }
+          }
+          
+          const localMean = sum / count;
+          const threshold = localMean * 0.85; // Lättare threshold för bättre textbevarande
+          thresholded[idx] = sharpened[idx] > threshold ? 255 : 0;
+        }
+      }
+      
+      // Steg 5: Applicera resultatet till canvas
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = thresholded[i / 4];
+        data[i] = gray;     // R
+        data[i + 1] = gray; // G
+        data[i + 2] = gray; // B
         // data[i + 3] behålls (alpha)
       }
       
@@ -855,14 +912,15 @@ export async function extractZonesFromImage<
       
       // OCR:a zonen med förbättrade inställningar
       try {
-        // Använd bättre Tesseract-inställningar för dokument
+        // Använd optimala Tesseract-inställningar för små textfält
         const { data } = await T.recognize(canvas, lang, {
           logger: (m: any) => {
             // Ignorera progress för individuella zoner
           },
-          // Förbättrade inställningar för bättre OCR-resultat
-          tessedit_pageseg_mode: '6', // Uniform block of text
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäö0123456789-.,:;()[]{} /\\',
+          // Optimala inställningar för bättre OCR-resultat på små zoner
+          tessedit_pageseg_mode: '7', // Treat the image as a single text line (bättre för små fält)
+          // Ta bort char_whitelist för att inte begränsa Tesseract
+          // tessedit_char_whitelist kan orsaka problem med svenska tecken
         });
         
         const text = (data?.text || "").trim();
