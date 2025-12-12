@@ -8330,7 +8330,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-5 text-right text-[14px] font-normal text-slate-900">
+            <div className="px-6 py-5 text-left text-[14px] font-normal text-slate-900">
               Du har osparade ändringar
             </div>
             <div className="h-px w-full bg-slate-200" />
