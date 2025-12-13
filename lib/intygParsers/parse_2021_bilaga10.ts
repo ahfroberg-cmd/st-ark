@@ -75,7 +75,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       n.includes("intygsutfardande") ||
       n.includes("namnteckning") ||
       n.includes("handledare") ||
-      n.includes("kursledare")
+      n.includes("kursledare") ||
+      // "Specialitet (gäller endast handledare)" är en rubrik, men ska inte stoppa beskrivningen
+      // eftersom den kommer EFTER beskrivningen
+      (n.includes("specialitet") && n.includes("galler") && n.includes("endast") && n.includes("handledare"))
     );
   };
 
