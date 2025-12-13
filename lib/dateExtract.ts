@@ -2,12 +2,22 @@
 // Robust datumextraktion och städning av "Tjänstgöringsställe".
 
 // Tillåt kombinationer av ., -, / och MELLANSLAG mellan komponenterna.
-// Exempel som stöds: 2018-03-02, 2018.03.02, 2018. 03. 02, 2018 03 02, 3/2-18, 03-02-2018, 3. 2. 2018
+// Exempel som stöds:
+// - 2018-03-02, 2018.03.02, 2018 03 02
+// - 3/2-18, 03-02-2018, 1/10 2024
+// - Kompakt: 20241001, 241001 (YYMMDD i ordningen år-månad-dag)
+//
+// Viktigt: vi ska INTE plocka personnummer (t.ex. 861027-4857 eller 19861027-4857) som datum.
 const SEP = "[.\\/\\-\\s]+";                        // minst en separator (punkt/streck/slash/space)
 const RANGE = "(?:[–—\\-−]|till|to)";               // en-dash, em-dash, minus, eller ord
 const YMD = String.raw`\b(\d{4})${SEP}(\d{1,2})${SEP}(\d{1,2})\b`;
 const DMY = String.raw`\b(\d{1,2})${SEP}(\d{1,2})${SEP}(\d{2,4})\b`;
-const DATE_TOKEN = `(?:${YMD}|${DMY})`;
+// Kompakt YYYYMMDD (men ej om följt av -dddd som i personnummer)
+const YMD8 = String.raw`\b(\d{4})(\d{2})(\d{2})\b(?!\s*[-+ ]\s*\d{4}\b)`;
+// Kompakt YYMMDD (men ej om följt av -dddd som i personnummer)
+const YMD6 = String.raw`\b(\d{2})(\d{2})(\d{2})\b(?!\s*[-+ ]\s*\d{4}\b)`;
+
+const DATE_TOKEN = `(?:${YMD}|${DMY}|${YMD8}|${YMD6})`;
 
 export function extractDates(text: string): { startISO?: string; endISO?: string } {
   const results: string[] = [];
@@ -33,8 +43,10 @@ export function splitClinicAndPeriod(line: string): {
   const intervalRe = new RegExp(`(${DATE_TOKEN})\\s*${RANGE}\\s*(${DATE_TOKEN})`, "i");
   const mi = intervalRe.exec(s);
   if (mi) {
-    const startISO = toIsoFromMatch(mi as unknown as RegExpExecArray, /*groupIndexOffset*/1);
-    const endISO   = toIsoFromMatch(mi as unknown as RegExpExecArray, /*groupIndexOffset*/0, /*second*/ true);
+    // mi[1] och mi[2] är hela datum-tokensträngarna (pga fångstparenteserna i intervalRe).
+    // Vi kör extractDates på varje token för att få ISO, vilket hanterar alla format.
+    const startISO = extractDates(String(mi[1] || "")).startISO;
+    const endISO = extractDates(String(mi[2] || "")).startISO;
     // Ta bort hela matchen ur kliniksträngen
     const cleaned = tidyClinic(s.replace(mi[0], " "));
     return { clean: cleaned, startISO, endISO };
@@ -48,10 +60,9 @@ export function splitClinicAndPeriod(line: string): {
 }
 
 // ---- Hjälpare ----
-function toIsoFromMatch(m: RegExpExecArray, groupIndexOffset = 0, second = false): string | undefined {
+function toIsoFromMatch(m: RegExpExecArray): string | undefined {
   // Match-strukturen kan vara YMD eller DMY pga alternation; hitta vilka grupper som slog.
   // Vi itererar över grupperna tre och tre och plockar den första tripeln som inte är undefined.
-  // För intervallmatchningen finns två datum; 'second' styr om vi tar den andra tripeln.
   const triples: Array<[number, number, number]> = [];
   const vals = m.slice(1); // hoppa över index 0 (hela matchen)
   for (let i = 0; i + 2 < vals.length; i += 3) {
@@ -62,8 +73,7 @@ function toIsoFromMatch(m: RegExpExecArray, groupIndexOffset = 0, second = false
   }
   if (!triples.length) return undefined;
 
-  const idx = second ? 1 : 0;
-  const [x, y, z] = triples[idx] ?? triples[0];
+  const [x, y, z] = triples[0];
 
   // Försök avgöra om det var YMD (a=YYYY) eller DMY (c=YY/YYYY)
   let year: number, month: number, day: number;
@@ -71,9 +81,22 @@ function toIsoFromMatch(m: RegExpExecArray, groupIndexOffset = 0, second = false
     // YMD
     year = x; month = y; day = z;
   } else {
-    // DMY
-    day = x; month = y; year = z;
-    if (year < 100) year += year < 50 ? 2000 : 1900;
+    // DMY eller YYMMDD.
+    // För DMY: z är år (2 eller 4 siffror).
+    // För YYMMDD: x är år (2 siffror), y månad, z dag.
+    if (String(z).length === 4 || z > 31) {
+      // DMY
+      day = x;
+      month = y;
+      year = z;
+      if (year < 100) year += year < 50 ? 2000 : 1900;
+    } else {
+      // YYMMDD (år-månad-dag)
+      year = x;
+      month = y;
+      day = z;
+      if (year < 100) year += year < 50 ? 2000 : 1900;
+    }
   }
 
   if (!validYMD(year, month, day)) return undefined;
