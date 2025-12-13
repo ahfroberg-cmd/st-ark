@@ -83,16 +83,30 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     const sameLine = lines[idx].split(":").slice(1).join(":").trim();
     if (sameLine) return sameLine;
 
-    // Annars: ta efterföljande rader tills nästa rubrik/stopp
-    const out: string[] = [];
-    for (let i = idx + 1; i < lines.length; i++) {
-      const l = lines[i];
-      if (!l) break;
-      if (isLabelLine(l)) break;
-      if (stopRes.some((re) => re.test(l))) break;
-      out.push(l);
+    // Annars: ta nästa rad (såvida det inte är en annan rubrik eller stopp-mönster)
+    // För beskrivningar kan det vara flera rader, så vi tar alla tills nästa rubrik
+    const isDescription = labelRe.source.includes("Beskrivning");
+    
+    if (isDescription) {
+      // För beskrivningar: ta alla rader tills nästa rubrik/stopp
+      const out: string[] = [];
+      for (let i = idx + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (!l) break;
+        if (isLabelLine(l)) break;
+        if (stopRes.some((re) => re.test(l))) break;
+        out.push(l);
+      }
+      return out.join("\n").trim() || undefined;
+    } else {
+      // För övriga fält: ta bara nästa rad
+      if (idx + 1 >= lines.length) return undefined;
+      const nextLine = lines[idx + 1];
+      if (!nextLine) return undefined;
+      if (isLabelLine(nextLine)) return undefined;
+      if (stopRes.some((re) => re.test(nextLine))) return undefined;
+      return nextLine.trim() || undefined;
     }
-    return out.join("\n").trim() || undefined;
   };
 
   // Bas (personnummer/delmål/period-range) som fallback om rubriker inte ger träff
@@ -171,13 +185,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
 
 /**
  * Stöd för manuellt annoterad OCR-text där:
- * - X    = rad som aldrig ska in i något fält
- * - R<n> = rubrikrad (ska aldrig in i textfält)
- * - T<n> = text kopplad till rubriken R<n>
+ * - X    = rad som alltid ska ignoreras (t.ex. huvudrubrik, bilagenummer)
+ * - R<n> = rubrikrad (samma som i app-fönstret) - nästa icke-X-rad är värdet
+ * - T<n> = explicit text kopplad till rubriken R<n> (används om användaren markerat det)
  *
- * Specialfall:
- * - R10 markerar kryssrutor Handledare/Kursledare. Om T10 innehåller "handledare" eller "kursledare" används det.
- *   Annars: om fält som tydligt säger "gäller endast handledare" har värden → handledare; annars default kursledare.
+ * Regler:
+ * 1. Efter en R-rad kommer värdet på nästa rad (såvida det inte är en X-rad)
+ * 2. Om nästa rad är X, hoppa över den och ta nästa icke-X-rad
+ * 3. Rubrikerna (R) matchar rubrikerna i app-fönstret
  */
 function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   const lines = raw
@@ -185,6 +200,7 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     .map((l) => l.trim())
     .filter(Boolean);
 
+  // Kontrollera om det finns tillräckligt med R/T/X-markeringar
   const rtCount = lines.filter((l) => /^[rRtT]\d+\b/.test(l)).length;
   const xCount = lines.filter((l) => /^[xX]\b/.test(l)).length;
   if (rtCount < 6 && xCount < 3) return null;
@@ -196,90 +212,139 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "");
 
-  type Bucket = { labels: string[]; values: string[] };
-  const buckets = new Map<number, Bucket>();
-  const getBucket = (n: number) => {
-    const b = buckets.get(n) ?? { labels: [], values: [] };
-    buckets.set(n, b);
-    return b;
-  };
+  // Mappa: rubrik-text → värde
+  const rubricToValue = new Map<string, string>();
 
-  for (const line of lines) {
+  // Iterera sekventiellt genom raderna
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Ignorera X-rader helt
     if (/^[xX]\b/.test(line)) continue;
 
-    const m = /^([rRtT])(\d+)\s*(.*)$/.exec(line);
-    if (!m) continue;
-    const tag = m[1].toLowerCase();
-    const id = Number(m[2]);
-    const rest = (m[3] || "").trim();
-    if (!Number.isFinite(id) || !rest) continue;
+    // Matcha R-rad (rubrik)
+    const rMatch = /^[Rr](\d+)\s*(.*)$/.exec(line);
+    if (rMatch) {
+      const rubricText = rMatch[2].trim();
+      if (!rubricText) continue;
 
-    const b = getBucket(id);
-    if (tag === "r") {
-      b.labels.push(rest);
-    } else {
-      b.values.push(rest);
+      // Hitta nästa icke-X-rad som värde
+      let value: string | undefined = undefined;
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        if (!nextLine) continue;
+
+        // Ignorera X-rader
+        if (/^[xX]\b/.test(nextLine)) continue;
+
+        // Ignorera nya R-rader (ny rubrik = stopp)
+        if (/^[Rr]\d+\b/.test(nextLine)) break;
+
+        // Om det är en T-rad med samma ID, använd den
+        const tMatch = /^[Tt](\d+)\s*(.*)$/.exec(nextLine);
+        if (tMatch && tMatch[1] === rMatch[1]) {
+          value = tMatch[2].trim();
+          break;
+        }
+
+        // Annars: första icke-X, icke-R rad är värdet
+        if (!/^[RrTt]\d+\b/.test(nextLine)) {
+          value = nextLine;
+          break;
+        }
+      }
+
+      // Om vi hittade ett värde, spara det
+      if (value) {
+        rubricToValue.set(norm(rubricText), value);
+      }
+      continue;
+    }
+
+    // Matcha T-rad (explicit text-värde) - kan användas om användaren markerat det
+    const tMatch = /^[Tt](\d+)\s*(.*)$/.exec(line);
+    if (tMatch) {
+      // T-rader hanteras ovan när vi hittar motsvarande R-rad
+      continue;
     }
   }
 
-  const findIdByLabel = (needle: string) => {
-    const nNeedle = norm(needle);
-    for (const [id, b] of buckets.entries()) {
-      if (!b.labels.length) continue;
-      if (b.labels.some((lab) => norm(lab).includes(nNeedle))) return id;
+  // Hjälpfunktion för att hitta värde baserat på rubrik-text
+  const findValueByRubric = (rubricVariants: string[]): string | undefined => {
+    for (const variant of rubricVariants) {
+      const nVariant = norm(variant);
+      for (const [rubricNorm, value] of rubricToValue.entries()) {
+        if (rubricNorm === nVariant || rubricNorm.includes(nVariant) || nVariant.includes(rubricNorm)) {
+          return value;
+        }
+      }
     }
-    return null;
+    return undefined;
   };
 
-  const valueFor = (id: number | null) => {
-    if (!id) return undefined;
-    const b = buckets.get(id);
-    if (!b || !b.values.length) return undefined;
-    return b.values.join("\n").trim() || undefined;
-  };
-
-  // Gemensamma fält från OCR (delmål/personnummer/period-range)
+  // Bas (personnummer/delmål/period-range) från hela texten
   const base = extractCommon(raw);
 
-  const courseTitle = valueFor(findIdByLabel("Kursens ämne")) || valueFor(findIdByLabel("Kursens amne"));
-  const description = valueFor(findIdByLabel("Beskrivning av kursen"));
+  // Extrahera fält baserat på rubriker
+  const courseTitle = findValueByRubric(["Kursens ämne", "Kursens amne"]);
+  const description = findValueByRubric(["Beskrivning av kursen", "Beskrivning av kursen"]);
+  
+  // Personnummer
+  const pnrValue = findValueByRubric(["Personnummer", "Person nummer"]);
+  const personnummer = pnrValue 
+    ? (pnrValue.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0]?.replace(/\s+/g, "")
+    : base.personnummer;
 
-  // Handledare/Kursledare: vi mappar till supervisor* (ScanIntygModal använder dessa till courseLeader*)
-  const supervisorName = valueFor(findIdByLabel("Namnförtydligande"));
-  const supervisorSpeciality = valueFor(findIdByLabel("Specialitet"));
-  const supervisorSite = valueFor(findIdByLabel("Tjänsteställe")) || valueFor(findIdByLabel("Tjanstestalle"));
+  // Delmål
+  const delmalValue = findValueByRubric(["Delmål som intyget avser", "Delmal som intyget avser"]);
+  const delmalCodes = delmalValue 
+    ? extractCommon(delmalValue).delmalCodes 
+    : base.delmalCodes;
 
-  // Datum för kurs (ofta "Ort och datum") → lägg i period.endISO så mapAndSaveKurs kan använda det som certificateDate
-  let period = base.period;
-  const placeDateRaw = valueFor(findIdByLabel("Ort och datum")) || "";
+  // Handledare/Kursledare
+  const supervisorName = findValueByRubric(["Namnförtydligande", "Namnfortydligande"]);
+  const supervisorSpeciality = findValueByRubric(["Specialitet"]);
+  const supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
+
+  // Datum (ofta "Ort och datum")
+  const placeDateRaw = findValueByRubric(["Ort och datum", "Ort och datum"]);
   const dateFromPlace = placeDateRaw ? extractDates(placeDateRaw).startISO : undefined;
+  let period = base.period;
   if (dateFromPlace && !period?.endISO) {
     period = { ...(period || {}), endISO: dateFromPlace };
   }
 
-  // R10 (kryssrutor): försök läsa T10 om användaren anger det, annars heuristik
+  // Kryssrutor handledare/kursledare
+  // Försök hitta R10 eller liknande som markerar checkbox-fältet
   let signingRole: "handledare" | "kursledare" | undefined;
-  {
-    const b10 = buckets.get(10);
-    const t10 = b10?.values?.join(" ").toLowerCase() || "";
-    if (t10.includes("kursled")) signingRole = "kursledare";
-    else if (t10.includes("handled")) signingRole = "handledare";
-    else {
-      // Heuristik: om ett fält som uttryckligen säger "gäller endast handledare" har värde → handledare
-      for (const [, b] of buckets.entries()) {
-        const labAll = b.labels.join(" ");
-        if (norm(labAll).includes(norm("galler endast handledare")) && b.values.length) {
-          signingRole = "handledare";
-          break;
-        }
-      }
-      if (!signingRole) signingRole = "kursledare";
+  const checkboxValue = findValueByRubric([
+    "Handledare", "Kursledare", 
+    "Jag intygar som handledare", "Jag intygar som kursledare"
+  ]);
+  
+  if (checkboxValue) {
+    const lower = checkboxValue.toLowerCase();
+    if (lower.includes("kursled") && !lower.includes("handled")) {
+      signingRole = "kursledare";
+    } else if (lower.includes("handled") && !lower.includes("kursled")) {
+      signingRole = "handledare";
+    }
+  }
+
+  // Heuristik: om handledare-fält verkar ifyllda → handledare
+  if (!signingRole) {
+    if (supervisorSpeciality || supervisorSite) {
+      signingRole = "handledare";
+    } else {
+      signingRole = "kursledare"; // Default
     }
   }
 
   // Returnera i format som ScanIntygModal redan hanterar
   return {
-    ...base,
+    personnummer,
+    delmalCodes,
+    period,
     type: "KURS",
     courseTitle: courseTitle || undefined,
     subject: courseTitle || undefined,
@@ -288,6 +353,5 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     supervisorSpeciality: supervisorSpeciality || undefined,
     supervisorSite: supervisorSite || undefined,
     signingRole,
-    period,
   };
 }
