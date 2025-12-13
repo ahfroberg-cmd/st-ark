@@ -193,14 +193,17 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
 
 /**
  * Stöd för manuellt annoterad OCR-text där:
- * - X    = rad som alltid ska ignoreras (t.ex. huvudrubrik, bilagenummer)
- * - R<n> = rubrikrad (samma som i app-fönstret) - nästa icke-X-rad är värdet
+ * - R<n> = rubrikrad (samma som i app-fönstret) - alla icke-X-rader tills nästa R är värdet
+ * - S    = checkbox ikryssad (S Handledare eller S Kursledare)
+ * - X    = rad som alltid ska ignoreras
  * - T<n> = explicit text kopplad till rubriken R<n> (används om användaren markerat det)
+ * - Allt utan R/S/X/T = ignoreras (kan behövas för OCR-identifiering)
  *
  * Regler:
- * 1. Efter en R-rad kommer värdet på nästa rad (såvida det inte är en X-rad)
- * 2. Om nästa rad är X, hoppa över den och ta nästa icke-X-rad
- * 3. Rubrikerna (R) matchar rubrikerna i app-fönstret
+ * 1. Efter en R-rad samlas alla icke-X-rader tills nästa R-rad (eller S-rad)
+ * 2. X-rader ignoreras helt
+ * 3. S-rad betyder checkbox ikryssad (S Handledare eller S Kursledare)
+ * 4. Obligatoriska fält valideras och smart matching används om något saknas
  */
 function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   const lines = raw
@@ -208,10 +211,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     .map((l) => l.trim())
     .filter(Boolean);
 
-  // Kontrollera om det finns tillräckligt med R/T/X-markeringar
-  const rtCount = lines.filter((l) => /^[rRtT]\d+\b/.test(l)).length;
+  // Kontrollera om det finns tillräckligt med R/S/X-markeringar
+  const rCount = lines.filter((l) => /^[Rr]\d*\s/.test(l)).length;
+  const sCount = lines.filter((l) => /^[Ss]\s/.test(l)).length;
   const xCount = lines.filter((l) => /^[xX]\b/.test(l)).length;
-  if (rtCount < 6 && xCount < 3) return null;
+  if (rCount < 6 && xCount < 3 && sCount === 0) return null;
 
   const norm = (s: string) =>
     s
@@ -220,8 +224,26 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "");
 
-  // Mappa: rubrik-text → värde
+  // Mappa: rubrik-text → värde (kan vara flerradigt)
   const rubricToValue = new Map<string, string>();
+  
+  // S-rad: checkbox ikryssad
+  let signingRole: "handledare" | "kursledare" | undefined;
+
+  // Obligatoriska fält för Bilaga 10
+  const requiredFields = [
+    { variants: ["Kurs"], key: "kurs" },
+    { variants: ["Förnamn", "Fornamn"], key: "fornamn" },
+    { variants: ["Efternamn"], key: "efternamn" },
+    { variants: ["Specialitet som ansökan avser", "Specialitet som ansokan avser"], key: "specialitet" },
+    { variants: ["Personnummer", "Person nummer"], key: "personnummer" },
+    { variants: ["Delmål som intyget avser", "Delmal som intyget avser"], key: "delmal" },
+    { variants: ["Kursens ämne", "Kursens amne"], key: "kursensamne" },
+    { variants: ["Beskrivning av kursen"], key: "beskrivning" },
+    { variants: ["Namnförtydligande", "Namnfortydligande"], key: "namnfortydligande" },
+    { variants: ["Specialitet"], key: "handledarspecialitet" },
+    { variants: ["Tjänsteställe", "Tjanstestalle"], key: "tjanstestalle" },
+  ];
 
   // Iterera sekventiellt genom raderna
   for (let i = 0; i < lines.length; i++) {
@@ -230,51 +252,68 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     // Ignorera X-rader helt
     if (/^[xX]\b/.test(line)) continue;
 
-    // Matcha R-rad (rubrik)
-    const rMatch = /^[Rr](\d+)\s*(.*)$/.exec(line);
+    // Matcha S-rad (checkbox ikryssad)
+    const sMatch = /^[Ss]\s+(.*)$/.exec(line);
+    if (sMatch) {
+      const sText = sMatch[1].trim().toLowerCase();
+      if (sText.includes("handledare") && !sText.includes("kursledare")) {
+        signingRole = "handledare";
+      } else if (sText.includes("kursledare") && !sText.includes("handledare")) {
+        signingRole = "kursledare";
+      }
+      continue;
+    }
+
+    // Matcha R-rad (rubrik) - kan vara "R <rubrik>" eller "R<n> <rubrik>"
+    const rMatch = /^[Rr](?:\d+)?\s+(.*)$/.exec(line);
     if (rMatch) {
-      const rubricText = rMatch[2].trim();
+      const rubricText = rMatch[1].trim();
       if (!rubricText) continue;
 
-      // Hitta nästa icke-X-rad som värde
-      let value: string | undefined = undefined;
+      // Samla alla icke-X-rader tills nästa R-rad eller S-rad
+      const valueLines: string[] = [];
       for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j].trim();
         if (!nextLine) continue;
 
+        // Stoppa vid nästa R-rad eller S-rad
+        if (/^[Rr](?:\d+)?\s/.test(nextLine) || /^[Ss]\s/.test(nextLine)) break;
+
         // Ignorera X-rader
         if (/^[xX]\b/.test(nextLine)) continue;
 
-        // Ignorera nya R-rader (ny rubrik = stopp)
-        if (/^[Rr]\d+\b/.test(nextLine)) break;
-
-        // Om det är en T-rad med samma ID, använd den
-        const tMatch = /^[Tt](\d+)\s*(.*)$/.exec(nextLine);
-        if (tMatch && tMatch[1] === rMatch[1]) {
-          value = tMatch[2].trim();
-          break;
+        // Om det är en T-rad med samma ID (om R hade ID), använd den och stoppa
+        const rIdMatch = /^[Rr](\d+)\s/.exec(line);
+        if (rIdMatch) {
+          const tMatch = /^[Tt](\d+)\s*(.*)$/.exec(nextLine);
+          if (tMatch && tMatch[1] === rIdMatch[1]) {
+            valueLines.push(tMatch[2].trim());
+            break;
+          }
         }
 
-        // Annars: första icke-X, icke-R rad är värdet
-        if (!/^[RrTt]\d+\b/.test(nextLine)) {
-          value = nextLine;
-          break;
+        // Annars: lägg till alla icke-X, icke-R, icke-S, icke-T rader
+        if (!/^[Rr](?:\d+)?\s/.test(nextLine) && !/^[Ss]\s/.test(nextLine) && !/^[Tt]\d+\b/.test(nextLine)) {
+          valueLines.push(nextLine);
         }
       }
 
-      // Om vi hittade ett värde, spara det
-      if (value) {
+      // Om vi hittade värden, samla dem till en sträng
+      if (valueLines.length > 0) {
+        const value = valueLines.join("\n").trim();
         rubricToValue.set(norm(rubricText), value);
       }
       continue;
     }
 
     // Matcha T-rad (explicit text-värde) - kan användas om användaren markerat det
-    const tMatch = /^[Tt](\d+)\s*(.*)$/.exec(line);
+    const tMatch = /^[Tt](\d*)\s*(.*)$/.exec(line);
     if (tMatch) {
       // T-rader hanteras ovan när vi hittar motsvarande R-rad
       continue;
     }
+    
+    // Allt utan R/S/X/T ignoreras (kan behövas för OCR-identifiering)
   }
 
   // Hjälpfunktion för att hitta värde baserat på rubrik-text
@@ -290,6 +329,34 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     return undefined;
   };
 
+  // Smart matching: om ett obligatoriskt fält saknas, försök hitta det via fuzzy matching
+  const smartMatchMissingField = (fieldKey: string, fieldVariants: string[]): string | undefined => {
+    // Försök hitta via partiell matchning i alla rubricToValue-nycklar
+    const nKey = norm(fieldKey);
+    for (const [rubricNorm, value] of rubricToValue.entries()) {
+      // Om rubrik-nyckeln liknar det vi letar efter
+      if (rubricNorm.includes(nKey) || nKey.includes(rubricNorm)) {
+        return value;
+      }
+    }
+    
+    // Försök hitta via variant-matchning
+    for (const variant of fieldVariants) {
+      const nVariant = norm(variant);
+      for (const [rubricNorm, value] of rubricToValue.entries()) {
+        // Partiell matchning (t.ex. "fornamn" matchar "fornamn" eller "fornamnnamn")
+        if (rubricNorm.length > 0 && (
+          rubricNorm.includes(nVariant.substring(0, Math.min(5, nVariant.length))) ||
+          nVariant.includes(rubricNorm.substring(0, Math.min(5, rubricNorm.length)))
+        )) {
+          return value;
+        }
+      }
+    }
+    
+    return undefined;
+  };
+
   // Bas (personnummer/delmål/period-range) från hela texten
   const base = extractCommon(raw);
 
@@ -300,30 +367,57 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     ? `${firstName.trim()} ${lastName.trim()}`.trim()
     : (firstName || lastName || undefined);
 
-  // Extrahera fält baserat på rubriker
-  const courseTitle = findValueByRubric(["Kursens ämne", "Kursens amne"]);
-  const description = findValueByRubric(["Beskrivning av kursen", "Beskrivning av kursen"]);
+  // Extrahera fält baserat på rubriker med smart matching
+  let courseTitle = findValueByRubric(["Kursens ämne", "Kursens amne"]);
+  if (!courseTitle) {
+    courseTitle = smartMatchMissingField("kursensamne", ["Kursens ämne", "Kursens amne"]);
+  }
+  
+  let description = findValueByRubric(["Beskrivning av kursen"]);
+  if (!description) {
+    description = smartMatchMissingField("beskrivning", ["Beskrivning av kursen"]);
+  }
   
   // Personnummer
-  const pnrValue = findValueByRubric(["Personnummer", "Person nummer"]);
+  let pnrValue = findValueByRubric(["Personnummer", "Person nummer"]);
+  if (!pnrValue) {
+    pnrValue = smartMatchMissingField("personnummer", ["Personnummer", "Person nummer"]);
+  }
   const personnummer = pnrValue 
     ? (pnrValue.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0]?.replace(/\s+/g, "")
     : base.personnummer;
 
   // Delmål
-  const delmalValue = findValueByRubric(["Delmål som intyget avser", "Delmal som intyget avser"]);
+  let delmalValue = findValueByRubric(["Delmål som intyget avser", "Delmal som intyget avser"]);
+  if (!delmalValue) {
+    delmalValue = smartMatchMissingField("delmal", ["Delmål som intyget avser", "Delmal som intyget avser"]);
+  }
   const delmalCodes = delmalValue 
     ? extractCommon(delmalValue).delmalCodes 
     : base.delmalCodes;
 
   // Specialitet som ansökan avser
-  const specialtyHeaderRaw = findValueByRubric(["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
+  let specialtyHeaderRaw = findValueByRubric(["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
+  if (!specialtyHeaderRaw) {
+    specialtyHeaderRaw = smartMatchMissingField("specialitet", ["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
+  }
   const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
 
   // Handledare/Kursledare
-  const supervisorName = findValueByRubric(["Namnförtydligande", "Namnfortydligande"]);
-  const supervisorSpeciality = findValueByRubric(["Specialitet"]);
-  const supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
+  let supervisorName = findValueByRubric(["Namnförtydligande", "Namnfortydligande"]);
+  if (!supervisorName) {
+    supervisorName = smartMatchMissingField("namnfortydligande", ["Namnförtydligande", "Namnfortydligande"]);
+  }
+  
+  let supervisorSpeciality = findValueByRubric(["Specialitet"]);
+  if (!supervisorSpeciality) {
+    supervisorSpeciality = smartMatchMissingField("handledarspecialitet", ["Specialitet"]);
+  }
+  
+  let supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
+  if (!supervisorSite) {
+    supervisorSite = smartMatchMissingField("tjanstestalle", ["Tjänsteställe", "Tjanstestalle"]);
+  }
 
   // Datum (ofta "Ort och datum")
   const placeDateRaw = findValueByRubric(["Ort och datum", "Ort och datum"]);
@@ -333,52 +427,8 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     period = { ...(period || {}), endISO: dateFromPlace };
   }
 
-  // Kryssrutor handledare/kursledare
-  // Specialfall: X efter R10 (eller liknande) betyder att checkboxen är ikryssad, inte att den ska ignoreras
-  // Sök efter R-rad som markerar checkbox-fältet, och kolla om nästa rad är X (dvs ikryssad)
-  let signingRole: "handledare" | "kursledare" | undefined;
-  
-  // Försök hitta R-rad för handledare/kursledare checkbox
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const rMatch = /^[Rr](\d+)\s*(.*)$/.exec(line);
-    if (!rMatch) continue;
-    
-    const rubricText = rMatch[2].trim().toLowerCase();
-    const isHandledareRubric = rubricText.includes("handledare") && !rubricText.includes("kursledare");
-    const isKursledareRubric = rubricText.includes("kursledare") && !rubricText.includes("handledare");
-    
-    if (isHandledareRubric || isKursledareRubric) {
-      // Kolla nästa rad - om det är X betyder det att checkboxen är ikryssad
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (/^[xX]\b/.test(nextLine)) {
-          // X-rad efter R = checkbox ikryssad
-          signingRole = isHandledareRubric ? "handledare" : "kursledare";
-          break;
-        }
-      }
-    }
-  }
-  
-  // Fallback: försök hitta via text-värde
-  if (!signingRole) {
-    const checkboxValue = findValueByRubric([
-      "Handledare", "Kursledare", 
-      "Jag intygar som handledare", "Jag intygar som kursledare"
-    ]);
-    
-    if (checkboxValue) {
-      const lower = checkboxValue.toLowerCase();
-      if (lower.includes("kursled") && !lower.includes("handled")) {
-        signingRole = "kursledare";
-      } else if (lower.includes("handled") && !lower.includes("kursled")) {
-        signingRole = "handledare";
-      }
-    }
-  }
-
-  // Heuristik: om handledare-fält verkar ifyllda → handledare
+  // Kryssrutor handledare/kursledare - använd S-rad om den finns
+  // Om ingen S-rad hittades, använd heuristik baserat på fält
   if (!signingRole) {
     if (supervisorSpeciality || supervisorSite) {
       signingRole = "handledare";
