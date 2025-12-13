@@ -106,13 +106,31 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       }
       return out.join("\n").trim() || undefined;
     } else {
-      // För övriga fält: ta bara nästa rad
-      if (idx + 1 >= lines.length) return undefined;
-      const nextLine = lines[idx + 1];
-      if (!nextLine) return undefined;
-      if (isLabelLine(nextLine)) return undefined;
-      if (stopRes.some((re) => re.test(nextLine))) return undefined;
-      return nextLine.trim() || undefined;
+      // För övriga fält: ta nästa rad (eller flera rader om det är flerradigt)
+      // För "Tjänsteställe" kan det vara flera rader, så vi tar alla tills nästa rubrik
+      const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
+      
+      if (isTjanstestalle) {
+        // För Tjänsteställe: ta alla rader tills nästa rubrik/stopp
+        const out: string[] = [];
+        for (let i = idx + 1; i < lines.length; i++) {
+          const l = lines[i];
+          if (!l) break;
+          // Stoppa vid nästa rubrik (men inte om det är samma rubrik igen)
+          if (isLabelLine(l) && !labelRe.test(l)) break;
+          if (stopRes.some((re) => re.test(l))) break;
+          out.push(l);
+        }
+        return out.join("\n").trim() || undefined;
+      } else {
+        // För övriga fält: ta bara nästa rad
+        if (idx + 1 >= lines.length) return undefined;
+        const nextLine = lines[idx + 1];
+        if (!nextLine) return undefined;
+        if (isLabelLine(nextLine)) return undefined;
+        if (stopRes.some((re) => re.test(nextLine))) return undefined;
+        return nextLine.trim() || undefined;
+      }
     }
   };
 
@@ -132,14 +150,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     valueAfter(/Kursens amne/i, [/Beskrivning av kursen/i, /Namnförtydligande/i]);
 
   // Stoppord för beskrivningen - standardtext från intyget
+  // OBS: "Tjänsteställe" ska INTE stoppa beskrivningen eftersom det kommer EFTER beskrivningen
   const descriptionStopPatterns = [
     /^Intygsutfärdande/i,
     /^Namnteckning/i,
     /^Ort och datum/i,
     /^Namnförtydligande/i,
     /^Namnfortydligande/i,
-    /^Tjänsteställe/i,
-    /^Tjanstestalle/i,
     /^Specialitet\s*\(gäller/i,
     /^Handledare\s*,?\s*Kursledare/i,
     /^Kursledare\s*,?\s*Handledare/i,

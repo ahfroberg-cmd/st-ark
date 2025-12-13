@@ -1275,24 +1275,22 @@ export default function ScanIntygModal({
                           />
                         </div>
                       )}
-                      {/* Tjänsteställe - visa endast när Handledare är valt för 2021-B10-KURS */}
-                      {(kind !== "2021-B10-KURS" || (parsed?.signingRole ?? "handledare") === "handledare") && (
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-slate-900">
-                            {kind === "2021-B10-KURS" ? "Tjänsteställe" : "Intygandes tjänsteställe"}
-                          </label>
-                          <input
-                            value={parsed?.supervisorSite ?? ""}
-                            onChange={(e) =>
-                              setParsed((p: any) => ({
-                                ...p,
-                                supervisorSite: e.target.value,
-                              }))
-                            }
-                            className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                          />
-                        </div>
-                      )}
+                      {/* Tjänsteställe - alltid synligt för 2021-B10-KURS (bara specialitet döljs vid kursledare) */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
+                          {kind === "2021-B10-KURS" ? "Tjänsteställe" : "Intygandes tjänsteställe"}
+                        </label>
+                        <input
+                          value={parsed?.supervisorSite ?? ""}
+                          onChange={(e) =>
+                            setParsed((p: any) => ({
+                              ...p,
+                              supervisorSite: e.target.value,
+                            }))
+                          }
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
