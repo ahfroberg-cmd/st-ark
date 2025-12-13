@@ -960,7 +960,11 @@ export default function ScanIntygModal({
               <div className="space-y-4">
                 <div className="text-base font-semibold text-slate-900">
                   Förhandsgranskning
-                  {titleLabel ? ` – ${titleLabel}` : ""}
+                  {kind === "2021-B10-KURS" && parsed?.courseTitle
+                    ? ` – ${parsed.courseTitle}`
+                    : titleLabel
+                    ? ` – ${titleLabel}`
+                    : ""}
                 </div>
 
                 <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
@@ -1273,7 +1277,7 @@ export default function ScanIntygModal({
                       </div>
                       <div className="space-y-2">
                         <label className="block text-xs font-medium text-slate-900">
-                          Intygandes tjänsteställe
+                          {kind === "2021-B10-KURS" ? "Tjänsteställe" : "Intygandes tjänsteställe"}
                         </label>
                         <input
                           value={parsed?.supervisorSite ?? ""}
