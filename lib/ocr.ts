@@ -901,80 +901,76 @@ export async function extractZonesFromImage<
 /**
  * OCR via OCR.space API (server-side proxy: /api/ocr-space).
  * - API-nyckeln ligger på servern (OCR_SPACE_API_KEY) och exponeras inte i klienten.
- * - Fallback till Tesseract.js om API misslyckas.
+ * - Inget "smart" fallback här: om OCR.space fallerar ska vi visa ett tydligt fel.
  */
 async function ocrViaOcrSpace(
   image: File | Blob,
   lang = "swe+eng"
-): Promise<OcrResult | null> {
-  try {
-    const fd = new FormData();
-    // OCR.space via vår server-route för att slippa CORS + hålla nyckeln hemlig
-    fd.append("lang", lang);
-    fd.append("file", image, "upload.jpg");
+): Promise<OcrResult> {
+  const fd = new FormData();
+  // OCR.space via vår server-route för att slippa CORS + hålla nyckeln hemlig
+  fd.append("lang", lang);
+  fd.append("file", image, "upload.jpg");
 
-    const response = await fetch("/api/ocr-space", {
-      method: "POST",
-      body: fd,
-    });
+  const response = await fetch("/api/ocr-space", {
+    method: "POST",
+    body: fd,
+  });
 
-    const result: any = await response.json().catch(() => null);
+  const result: any = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      const msg = result?.error ? String(result.error) : `OCR proxy error: ${response.status}`;
-      throw new Error(msg);
-    }
-
-    const text = String(result?.text || "").trim();
-    if (!text) return null;
-
-    const words: OcrWord[] | undefined = Array.isArray(result?.words)
-      ? (result.words as any[])
-          .map((w: any) => {
-            const t = String(w?.text ?? "").trim();
-            if (!t) return null;
-            return {
-              text: t,
-              x1: Number(w?.x1 ?? 0),
-              y1: Number(w?.y1 ?? 0),
-              x2: Number(w?.x2 ?? 0),
-              y2: Number(w?.y2 ?? 0),
-              confidence:
-                typeof w?.confidence === "number" ? (w.confidence as number) : undefined,
-            } as OcrWord;
-          })
-          .filter((x: any) => x !== null)
-      : undefined;
-
-    return {
-      text,
-      words: words && words.length > 0 ? words : undefined,
-      width: typeof result?.width === "number" ? (result.width as number) : undefined,
-      height: typeof result?.height === "number" ? (result.height as number) : undefined,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn("[OCR] OCR.space misslyckades, använder fallback:", errorMessage);
-    return null;
+  if (!response.ok) {
+    const msg = result?.error ? String(result.error) : `OCR proxy error: ${response.status}`;
+    throw new Error(msg);
   }
+
+  const text = String(result?.text || "").trim();
+  if (!text) {
+    throw new Error("OCR.space returnerade tom text.");
+  }
+
+  const words: OcrWord[] | undefined = Array.isArray(result?.words)
+    ? (result.words as any[])
+        .map((w: any) => {
+          const t = String(w?.text ?? "").trim();
+          if (!t) return null;
+          return {
+            text: t,
+            x1: Number(w?.x1 ?? 0),
+            y1: Number(w?.y1 ?? 0),
+            x2: Number(w?.x2 ?? 0),
+            y2: Number(w?.y2 ?? 0),
+            confidence:
+              typeof w?.confidence === "number" ? (w.confidence as number) : undefined,
+          } as OcrWord;
+        })
+        .filter((x: any) => x !== null)
+    : undefined;
+
+  return {
+    text,
+    words: words && words.length > 0 ? words : undefined,
+    width: typeof result?.width === "number" ? (result.width as number) : undefined,
+    height: typeof result?.height === "number" ? (result.height as number) : undefined,
+  };
 }
 
-/** OCR för en bild/canvas/blob/url med hybridlösning (OCR.space + Tesseract.js fallback) */
+/** OCR för en bild med OCR.space (ingen Tesseract/zon-fallback). */
 export async function ocrImage(
   image: File | Blob | HTMLCanvasElement | HTMLImageElement | string,
   lang = "swe+eng",
   onProgress?: (p: number) => void
 ): Promise<OcrResult> {
-  // Försök med OCR.space API först (endast för File/Blob via server-proxy)
-  if (image instanceof File || image instanceof Blob) {
-    const ocrSpaceResult = await ocrViaOcrSpace(image, lang);
-    if (ocrSpaceResult && ocrSpaceResult.text && ocrSpaceResult.text.trim().length > 0) {
-      return ocrSpaceResult;
-    }
+  // onProgress finns kvar i signaturen för kompatibilitet, men används inte av OCR.space.
+  void onProgress;
+
+  // OCR.space-proxyn kan bara ta emot File/Blob (FormData)
+  if (!(image instanceof File) && !(image instanceof Blob)) {
+    throw new Error("OCR.space kräver att du laddar upp en bildfil (File/Blob).");
   }
 
-  // Fallback till Tesseract.js (befintlig implementation)
-  const T = await getTesseract();
+  return await ocrViaOcrSpace(image, lang);
+  /*
 
   // Blob/File → blob-URL för maximal kompatibilitet
   let src: any = image;
@@ -1549,6 +1545,7 @@ export async function ocrImage(
   } finally {
     revoke?.();
   }
+  */
 }
 
 /** Rollback: PDF-OCR avaktiverad (för att undvika worker/CORS/CSP-strul). */

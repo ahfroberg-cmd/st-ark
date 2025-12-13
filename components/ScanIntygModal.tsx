@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { ocrImage, ocrPdf, extractZonesFromImage, getZonesForIntygKind } from "@/lib/ocr";
+import { ocrImage } from "@/lib/ocr";
 import { detectIntygKind, type IntygKind } from "@/lib/intygDetect";
 
 // 2015
@@ -101,7 +101,7 @@ export default function ScanIntygModal({
         return;
       }
 
-      // OCR (bild) — med words för zonlogik
+      // OCR (bild) — OCR.space ParsedText (utan zon-/Tesseract-fallback)
       const ocrTimeoutMs = 25000; // 25s max
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("ocr-timeout")), ocrTimeoutMs)
@@ -112,41 +112,10 @@ export default function ScanIntygModal({
         timeout,
       ]);
 
-      const { text, words, width, height } = ocrResult;
+      const { text, width, height } = ocrResult;
       lastOcrRaw = text || "";
 
-      // DEBUG: Logga alltid vad vi får från OCR
-      console.log("[OCR DEBUG] OCR-resultat:", {
-        hasText: !!text,
-        textLength: text?.length || 0,
-        hasWords: !!words,
-        wordsLength: words?.length || 0,
-        width,
-        height,
-      });
-
-      // Om words saknas, logga det också
-      if (!words || words.length === 0) {
-        console.warn("[ZONLOGIK] INGEN WORDS från OCR! Zonlogik kommer inte användas.");
-        console.log("[OCR DEBUG] ocrResult-struktur:", {
-          hasOcrResult: !!ocrResult,
-          keys: Object.keys(ocrResult || {}),
-          fullResult: ocrResult,
-        });
-      } else {
-        console.log("[ZONLOGIK] Words hittade! Antal:", words.length);
-        if (words.length > 0) {
-          console.log("[ZONLOGIK] Första ordet:", {
-            text: words[0].text,
-            x1: words[0].x1,
-            y1: words[0].y1,
-            x2: words[0].x2,
-            y2: words[0].y2,
-          });
-        }
-      }
-
-      // Validera bildstorlek/aspect ratio för bättre zonlogik
+      // Validera bildstorlek/aspect ratio (hjälper användaren ta bättre foto)
       if (width && height) {
         const expectedAspectRatio = 1057 / 1496; // A4-format
         const actualAspectRatio = width / height;
@@ -241,91 +210,20 @@ export default function ScanIntygModal({
       // Datum från OCR
       const dates = extractDates(content);
 
-      // Parser via registry, med säker fallback till din stabila 2015-KLIN
-      // Använd zonlogik om words finns (direktfotograferat dokument)
-      // Om words saknas men vi har identifierat intyg-kind, använd OpenCV-baserad zonparsning
+      // Parser via registry (OCR.space ParsedText som källa)
       let p: any = {};
       const parser = getParser(k || undefined);
-      const useZoneLogic = words && words.length > 0;
-      let useOpenCVZoneLogic = false;
-      let zonesFromImage: Record<string, string> | undefined = undefined;
-      
-      // Om words saknas men vi har identifierat intyg-kind, försök använda OpenCV-baserad zonparsning
-      if (!useZoneLogic && k && file) {
-        const zoneConfig = getZonesForIntygKind(k);
-        if (zoneConfig) {
-          console.log("[ZONLOGIK] Försöker använda OpenCV-baserad zonparsning för", k);
-          try {
-            // Använd extractZonesFromImage för att få zon-text direkt
-            zonesFromImage = await extractZonesFromImage(
-              file,
-              zoneConfig.zones,
-              zoneConfig.expectedSize,
-              "swe+eng",
-              (current, total) => {
-                // Uppdatera progress om det behövs
-                console.log(`[ZONLOGIK] OCR:ar zon ${current}/${total}`);
-              }
-            );
-            
-            useOpenCVZoneLogic = true;
-            console.log("[ZONLOGIK] OpenCV-zonparsning klar, använder", Object.keys(zonesFromImage).length, "zoner");
-          } catch (error) {
-            console.error("[ZONLOGIK] Fel vid OpenCV-baserad zonparsning:", error);
-            // Fallback till smart parsing
-          }
-        }
-      }
-      
-      // Debug: logga om zonlogik används
-      if (useZoneLogic) {
-        console.log("[ZONLOGIK] Använder zonlogik för", k, "med", words.length, "ord");
-        if (width && height) {
-          console.log("[ZONLOGIK] Bildstorlek:", width, "×", height);
-        }
-      } else if (useOpenCVZoneLogic) {
-        console.log("[ZONLOGIK] Använder OpenCV-baserad zonparsning för", k);
-      }
       
       if (parser) {
-        // Skicka words eller zonesFromImage till parser
-        if (useZoneLogic) {
-          p = parser(content, words);
-        } else if (useOpenCVZoneLogic && zonesFromImage) {
-          p = parser(content, undefined, zonesFromImage);
-        } else {
-          p = parser(content);
-        }
+        p = parser(content);
       } else if (k === "2015-B4-KLIN") {
         // Fallback för säkerhets skull om registry saknas
-        if (useZoneLogic) {
-          p = parse_2015_bilaga4(content, words);
-        } else if (useOpenCVZoneLogic && zonesFromImage) {
-          p = parse_2015_bilaga4(content, undefined, zonesFromImage);
-        } else {
-          p = parse_2015_bilaga4(content);
-        }
+        p = parse_2015_bilaga4(content);
       } else {
         setWarning(
           "Kunde inte identifiera intygsmallen automatiskt. Du kan fylla fälten manuellt."
         );
         p = {};
-      }
-
-      // Debug: logga resultat
-      if (useZoneLogic || useOpenCVZoneLogic) {
-        console.log("[ZONLOGIK] Parsat resultat:", {
-          fullName: p.fullName,
-          clinic: p.clinic,
-          description: p.description?.substring(0, 50) + "...",
-        });
-      }
-
-      // Om zonlogik används, hoppa över improveParsedFromOcr (zonlogik är redan robust)
-      // Annars använd smart logik som fallback
-      if (!useZoneLogic && !useOpenCVZoneLogic) {
-        const improved = improveParsedFromOcr(content, p, k as IntygKind | null);
-        p = improved;
       }
 
 
@@ -434,7 +332,16 @@ export default function ScanIntygModal({
       setStep("review");
     } catch (e) {
       console.error("[OCR ERROR]", e);
-      setWarning("OCR misslyckades.");
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === "ocr-timeout") {
+        setWarning("OCR tog för lång tid (timeout). Prova igen med en tydligare bild.");
+      } else if (/OCR_SPACE_API_KEY/i.test(msg)) {
+        setWarning(
+          `OCR.space är inte konfigurerat på servern: ${msg} (lägg in OCR_SPACE_API_KEY i Vercel).`
+        );
+      } else {
+        setWarning(`OCR.space misslyckades: ${msg}`);
+      }
     } finally {
       setBusy(false);
     }
