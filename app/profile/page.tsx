@@ -1,7 +1,7 @@
 // ============================ app/profile/page.tsx ============================
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback, useRef } from "react";
 
 
 
@@ -136,6 +136,7 @@ function ProfilePageInner() {
   const isSetupMode = params.get("setup") === "1";
 
   const [, setProfile] = useState<Profile | null>(null);
+  const resetAttemptedRef = useRef(false);
 
   const [form, setForm] = useState<any>({
 
@@ -199,11 +200,33 @@ function ProfilePageInner() {
           setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
         }
       } catch (error) {
+        // Ibland kan IndexedDB/Dexie hamna i ett trasigt läge (Safari kan vara extra känsligt).
+        // Vid "Ny arbetsyta" vill vi hellre hjälpa användaren att komma vidare än att fastna.
+        const errAny = error as any;
         console.error("Error loading profile:", error);
-        // Ignorera felet om databasen inte är redo ännu eller om det är ett IndexedDB-problem
+
+        if (isSetupMode && !resetAttemptedRef.current) {
+          resetAttemptedRef.current = true;
+          const ok = window.confirm(
+            "Det verkar vara problem med lokal lagring (IndexedDB).\n\nVill du rensa lokal data och skapa en ny arbetsyta?"
+          );
+          if (!ok) return;
+
+          try {
+            await db.delete();
+            // Efter delete kan Dexie öppna en ny tom databas vid nästa query.
+            // Ladda om sidan för att få en helt ren start.
+            window.location.reload();
+          } catch (e2) {
+            console.error("Kunde inte rensa lokal data:", e2);
+            alert(
+              "Kunde inte rensa lokal data automatiskt.\n\nProva att rensa webbplatsdata/IndexedDB i webbläsaren och ladda om sidan."
+            );
+          }
+        }
       }
     })();
-  }, []);
+  }, [isSetupMode]);
 
     // (Input och Labeled definieras på toppnivå, utanför komponenten)
 
