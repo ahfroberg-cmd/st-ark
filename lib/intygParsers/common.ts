@@ -34,7 +34,7 @@ export function extractPersonnummer(text: string): string | undefined {
 export function extractFullNameBlock(text: string): { fullName?: string, firstName?: string, lastName?: string } {
   // Heuristik: leta efter block med "Efternamn" + "Förnamn" på samma område
   // eller rader som "Fröberg Andreas".
-  // Vi gör enkelt: hitta rad med båda orden "Efternamn" och "Förnamn", ta nästa rad(er).
+  // OBS: fullName ska vara "Förnamn Efternamn" (förnamn först)
   const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const i = lines.findIndex(l => /efternamn/i.test(l) && /förnamn/i.test(l));
   if (i >= 0 && lines[i+1]) {
@@ -42,12 +42,18 @@ export function extractFullNameBlock(text: string): { fullName?: string, firstNa
     if (parts.length >= 2) {
       const lastName = parts[0];
       const firstName = parts.slice(1).join(" ");
-      return { fullName: `${lastName} ${firstName}`.trim(), firstName, lastName };
+      // fullName: förnamn först
+      return { fullName: `${firstName} ${lastName}`.trim(), firstName, lastName };
     }
   }
   // fallback: första rad som ser ut som "Efternamn Förnamn"
   const m = text.match(/\n([A-ZÅÄÖ][a-zåäö]+)\s+([A-ZÅÄÖ][a-zåäö]+)\b/);
-  if (m) return { fullName: `${m[1]} ${m[2]}`, firstName: m[2], lastName: m[1] };
+  if (m) {
+    const lastName = m[1];
+    const firstName = m[2];
+    // fullName: förnamn först
+    return { fullName: `${firstName} ${lastName}`, firstName, lastName };
+  }
   return {};
 }
 

@@ -138,6 +138,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
   const personnummer =
     (pnrText.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0] || base.personnummer;
 
+  // Specialitet som ansökan avser
+  const specialtyHeaderRaw = valueAfter(/Specialitet som ansökan avser/i, [
+    /Delmål som intyget avser/i,
+    /Kursens ämne/i,
+  ]);
+  const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
+
   // Intygare (handledare/kursledare)
   const supervisorName = valueAfter(/Namnförtydligande/i);
   const supervisorSpeciality = valueAfter(/Specialitet/i);
@@ -173,6 +180,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     delmalCodes,
     period,
     type: "KURS",
+    specialtyHeader: specialtyHeader || undefined,
     courseTitle: subject || undefined,
     subject: subject || undefined,
     description: description || undefined,
@@ -285,6 +293,13 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   // Bas (personnummer/delmål/period-range) från hela texten
   const base = extractCommon(raw);
 
+  // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
+  const lastName = findValueByRubric(["Efternamn"]);
+  const firstName = findValueByRubric(["Förnamn", "Fornamn"]);
+  const fullName = firstName && lastName 
+    ? `${firstName.trim()} ${lastName.trim()}`.trim()
+    : (firstName || lastName || undefined);
+
   // Extrahera fält baserat på rubriker
   const courseTitle = findValueByRubric(["Kursens ämne", "Kursens amne"]);
   const description = findValueByRubric(["Beskrivning av kursen", "Beskrivning av kursen"]);
@@ -301,6 +316,10 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     ? extractCommon(delmalValue).delmalCodes 
     : base.delmalCodes;
 
+  // Specialitet som ansökan avser
+  const specialtyHeaderRaw = findValueByRubric(["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
+  const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
+
   // Handledare/Kursledare
   const supervisorName = findValueByRubric(["Namnförtydligande", "Namnfortydligande"]);
   const supervisorSpeciality = findValueByRubric(["Specialitet"]);
@@ -315,19 +334,47 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   }
 
   // Kryssrutor handledare/kursledare
-  // Försök hitta R10 eller liknande som markerar checkbox-fältet
+  // Specialfall: X efter R10 (eller liknande) betyder att checkboxen är ikryssad, inte att den ska ignoreras
+  // Sök efter R-rad som markerar checkbox-fältet, och kolla om nästa rad är X (dvs ikryssad)
   let signingRole: "handledare" | "kursledare" | undefined;
-  const checkboxValue = findValueByRubric([
-    "Handledare", "Kursledare", 
-    "Jag intygar som handledare", "Jag intygar som kursledare"
-  ]);
   
-  if (checkboxValue) {
-    const lower = checkboxValue.toLowerCase();
-    if (lower.includes("kursled") && !lower.includes("handled")) {
-      signingRole = "kursledare";
-    } else if (lower.includes("handled") && !lower.includes("kursled")) {
-      signingRole = "handledare";
+  // Försök hitta R-rad för handledare/kursledare checkbox
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const rMatch = /^[Rr](\d+)\s*(.*)$/.exec(line);
+    if (!rMatch) continue;
+    
+    const rubricText = rMatch[2].trim().toLowerCase();
+    const isHandledareRubric = rubricText.includes("handledare") && !rubricText.includes("kursledare");
+    const isKursledareRubric = rubricText.includes("kursledare") && !rubricText.includes("handledare");
+    
+    if (isHandledareRubric || isKursledareRubric) {
+      // Kolla nästa rad - om det är X betyder det att checkboxen är ikryssad
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim();
+        if (/^[xX]\b/.test(nextLine)) {
+          // X-rad efter R = checkbox ikryssad
+          signingRole = isHandledareRubric ? "handledare" : "kursledare";
+          break;
+        }
+      }
+    }
+  }
+  
+  // Fallback: försök hitta via text-värde
+  if (!signingRole) {
+    const checkboxValue = findValueByRubric([
+      "Handledare", "Kursledare", 
+      "Jag intygar som handledare", "Jag intygar som kursledare"
+    ]);
+    
+    if (checkboxValue) {
+      const lower = checkboxValue.toLowerCase();
+      if (lower.includes("kursled") && !lower.includes("handled")) {
+        signingRole = "kursledare";
+      } else if (lower.includes("handled") && !lower.includes("kursled")) {
+        signingRole = "handledare";
+      }
     }
   }
 
@@ -346,6 +393,10 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     delmalCodes,
     period,
     type: "KURS",
+    fullName: fullName || undefined,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    specialtyHeader: specialtyHeader || undefined,
     courseTitle: courseTitle || undefined,
     subject: courseTitle || undefined,
     description: description || undefined,

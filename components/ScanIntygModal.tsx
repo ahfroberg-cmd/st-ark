@@ -637,7 +637,11 @@ export default function ScanIntygModal({
       switch (kind) {
         // 2021 – kurs
         case "2021-B10-KURS":
-          await mapAndSaveKurs(parsed);
+          await mapAndSaveKurs({
+            ...parsed,
+            showOnTimeline: !!(parsed as any)?.showOnTimeline,
+            showAsInterval: !!(parsed as any)?.showAsInterval,
+          });
           await ensureCourseOnTimeline();
           break;
 
@@ -788,7 +792,7 @@ export default function ScanIntygModal({
     // HSLF-FS 2021:8 – Bilaga 10 (Kurs)
     case "2021-B10-KURS":
       titleLabel = "Kursens ämne (rubrikform)";
-      clinicLabel = "Kursens plats (ort/tjänstgöringsställe)";
+      clinicLabel = ""; // Ingen plats för 2021 kurser
       descriptionLabel = "Beskrivning av kursen";
       break;
 
@@ -995,38 +999,40 @@ export default function ScanIntygModal({
                   </div>
 
                   {/* Rad 2: Specialitet + Tjänstgöringsställe */}
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className={`grid grid-cols-1 gap-3 ${clinicLabel ? "md:grid-cols-2" : ""}`}>
                     <div className="space-y-2">
                       <label className="block text-xs font-medium text-slate-900">
                         Specialitet som ansökan avser
                       </label>
                       <input
-                        value={parsed?.specialtyHeader ?? ""}
+                        value={parsed?.specialtyHeader?.trim() ?? ""}
                         onChange={(e) =>
                           setParsed((p: any) => ({
                             ...p,
-                            specialtyHeader: e.target.value,
+                            specialtyHeader: e.target.value.trim() || undefined,
                           }))
                         }
-                        placeholder="Psykiatri"
+                        placeholder={parsed?.specialtyHeader?.trim() ? undefined : "Psykiatri"}
                         className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-medium text-slate-900">
-                        {clinicLabel}
-                      </label>
-                      <input
-                        value={parsed?.clinic ?? ""}
-                        onChange={(e) =>
-                          setParsed((p: any) => ({
-                            ...p,
-                            clinic: e.target.value,
-                          }))
-                        }
-                        className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                      />
-                    </div>
+                    {clinicLabel && (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-900">
+                          {clinicLabel}
+                        </label>
+                        <input
+                          value={parsed?.clinic ?? ""}
+                          onChange={(e) =>
+                            setParsed((p: any) => ({
+                              ...p,
+                              clinic: e.target.value,
+                            }))
+                          }
+                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Rad 3: Delmål */}
@@ -1050,8 +1056,8 @@ export default function ScanIntygModal({
                     />
                   </div>
 
-                  {/* Rad 4: Start / Slut */}
-                  {!isNoDates && (
+                  {/* Rad 4: Start / Slut (eller för 2021 kurser: kryssruta + conditional date pickers) */}
+                  {!isNoDates && kind !== "2021-B10-KURS" && (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div>
                         <CalendarDatePicker
@@ -1085,6 +1091,91 @@ export default function ScanIntygModal({
                           align="right"
                         />
                       </div>
+                    </div>
+                  )}
+                  {/* För 2021 kurser: kryssruta + conditional date pickers */}
+                  {kind === "2021-B10-KURS" && (
+                    <div className="space-y-3">
+                      <label className="inline-flex items-center gap-2 text-sm text-slate-900">
+                        <input
+                          type="checkbox"
+                          checked={!!(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setParsed((p: any) => {
+                              if (!checked) {
+                                // Ta bort datum när kryssrutan avmarkeras
+                                return {
+                                  ...p,
+                                  period: undefined,
+                                  showOnTimeline: false,
+                                  showAsInterval: false,
+                                };
+                              }
+                              return {
+                                ...p,
+                                showOnTimeline: true,
+                              };
+                            });
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-300"
+                        />
+                        <span>Ange kursdatum för placering i Tidslinjen</span>
+                      </label>
+                      {(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline) && (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 pl-6">
+                          <div>
+                            <CalendarDatePicker
+                              label="Start"
+                              value={parsed?.period?.startISO ?? ""}
+                              onChange={(iso) =>
+                                setParsed((p: any) => ({
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    startISO: iso,
+                                  },
+                                }))
+                              }
+                              align="left"
+                            />
+                          </div>
+                          <div>
+                            <CalendarDatePicker
+                              label="Slut"
+                              value={parsed?.period?.endISO ?? ""}
+                              onChange={(iso) =>
+                                setParsed((p: any) => ({
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    endISO: iso,
+                                  },
+                                }))
+                              }
+                              align="right"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-900 mb-1">
+                              Visa i tidslinjen
+                            </label>
+                            <select
+                              value={(parsed as any)?.showAsInterval ? "interval" : "date"}
+                              onChange={(e) =>
+                                setParsed((p: any) => ({
+                                  ...p,
+                                  showAsInterval: e.target.value === "interval",
+                                }))
+                              }
+                              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                            >
+                              <option value="date">Enbart slutdatum</option>
+                              <option value="interval">Start till slut</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -19,15 +19,21 @@ async function activeGoalsMap() {
 export async function mapAndSaveKurs(parsed: {
   courseTitle?: string;
   description?: string;
-  period?: { endISO?: string };
+  period?: { startISO?: string; endISO?: string };
   delmalCodes?: string[];
+  showOnTimeline?: boolean;
+  showAsInterval?: boolean;
 }) {
-  const course: Course = {
+  const course: any = {
     id: crypto.randomUUID(),
     title: parsed.courseTitle ?? "Kurs",
     city: undefined,
     certificateDate: parsed.period?.endISO ?? undefined,
+    startDate: parsed.period?.startISO ?? undefined,
+    endDate: parsed.period?.endISO ?? undefined,
     note: parsed.description ?? "",
+    showOnTimeline: parsed.showOnTimeline ?? false,
+    showAsInterval: parsed.showAsInterval ?? false,
   };
   await db.courses.add(course);
 

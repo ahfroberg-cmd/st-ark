@@ -31,10 +31,10 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromIma
   
   if (Object.keys(zones).length > 0) {
     
-    // Kombinera förnamn och efternamn
+    // Kombinera förnamn och efternamn (förnamn först)
     const firstName = zones.applicantFirstName?.trim() || "";
     const lastName = zones.applicantLastName?.trim() || "";
-    const fullName = `${lastName} ${firstName}`.trim() || undefined;
+    const fullName = `${firstName} ${lastName}`.trim() || undefined;
     
     // Extrahera personnummer från zon
     const personnummer = zones.personnummer?.trim().replace(/\s+/g, "") || undefined;
@@ -181,8 +181,9 @@ function parseByHeadings(raw: string): ParsedIntyg | null {
 
   const lastName = takeValueAfter(findLabelIndex(labelEfternamn));
   const firstName = takeValueAfter(findLabelIndex(labelFornamn));
+  // fullName: förnamn först
   const fullName =
-    `${(lastName || "").trim()} ${(firstName || "").trim()}`.trim() || undefined;
+    `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim() || undefined;
 
   const specialtyHeader = takeValueAfter(findLabelIndex(labelSpecialitet));
 
@@ -403,7 +404,8 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
 
   const lastName = valueFor(findIdByLabel("Efternamn"));
   const firstName = valueFor(findIdByLabel("Förnamn")) || valueFor(findIdByLabel("Fornamn"));
-  const fullName = `${(lastName || "").trim()} ${(firstName || "").trim()}`.trim() || undefined;
+  // fullName: förnamn först
+  const fullName = `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim() || undefined;
 
   // Sökandens personnummer: rubriken brukar vara "Personnummer" nära toppen.
   // Vi tar första personnummer vi hittar i T-values om möjligt.
