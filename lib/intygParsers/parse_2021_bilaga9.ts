@@ -13,6 +13,8 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromIma
 
   // 1) Rubrik-baserad parsing (funkar väldigt bra för OCR.space-texter där rubrikerna ligger på egna rader)
   // Kör först och använd den om vi får en "hög" träffsäkerhet.
+  const annotatedParsed = parseByAnnotatedMarkers(text);
+  if (annotatedParsed) return annotatedParsed;
   const headingParsed = parseByHeadings(text);
   if (headingParsed) return headingParsed;
   
@@ -289,6 +291,179 @@ function parseByHeadings(raw: string): ParsedIntyg | null {
     clinic: clinic || undefined,
     period: period || fallbackPeriod(raw),
     description: description || extractBlockAfterLabel(raw, /Beskrivning av den kliniska tjänstgöringen/i),
+    supervisorName: supervisorName || undefined,
+    supervisorSpeciality: supervisorSpeciality || undefined,
+    supervisorSite: supervisorSite || undefined,
+  };
+}
+
+/**
+ * Stöd för manuellt annoterad OCR-text där:
+ * - R<n> = rubrikrad (ska aldrig in i textfält)
+ * - T<n> = text kopplad till rubriken R<n>
+ * - X    = rad som aldrig ska in i något fält
+ *
+ * Ex: "R1 Efternamn" + "T1 Fröberg"
+ */
+function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
+  const kind = "2021-B9-KLIN";
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const rtCount = lines.filter((l) => /^[RT]\d+\b/.test(l)).length;
+  const xCount = lines.filter((l) => /^X\b/.test(l)).length;
+  // Kör bara denna logik om det tydligt ser annoterat ut
+  if (rtCount < 6 && xCount < 3) return null;
+
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "");
+
+  type Bucket = { label?: string; values: string[] };
+  const buckets = new Map<number, Bucket>();
+
+  const getBucket = (n: number) => {
+    const b = buckets.get(n) ?? { values: [] };
+    buckets.set(n, b);
+    return b;
+  };
+
+  const looksLikeValue = (s: string) => {
+    const t = s.trim();
+    if (!t) return false;
+    // personnummer/datum/period
+    if (/\d{6}[-+ ]?\d{4}\b/.test(t)) return true;
+    if (/\b\d{6}\s*[-–—]\s*\d{6}\b/.test(t)) return true;
+    if (/\b\d{6}-\d{6}\b/.test(t)) return true;
+    if (/\b\d{2,4}\D?\d{2}\D?\d{2}\b/.test(t)) return true;
+    // annars: en "vanlig" text kan också vara value
+    return true;
+  };
+
+  for (const line of lines) {
+    // X-rader ska alltid ignoreras
+    if (/^X\b/.test(line)) continue;
+
+    const m = /^([RT])(\d+)\s*(.*)$/.exec(line);
+    if (!m) continue;
+
+    const tag = m[1];
+    const id = Number(m[2]);
+    const rest = (m[3] || "").trim();
+    if (!Number.isFinite(id)) continue;
+
+    const b = getBucket(id);
+
+    // Om rest råkar vara tomt, inget att göra
+    if (!rest) continue;
+
+    if (tag === "R") {
+      // Ibland kan OCR/handpåläggning råka skriva value som R-rad (t.ex. "R2 861027-4857").
+      // Om vi redan har label för id, eller rest ser ut som värde, lägg den som value.
+      if (b.label && looksLikeValue(rest)) {
+        b.values.push(rest);
+      } else {
+        // Annars är det rubriken
+        b.label = rest;
+      }
+      continue;
+    }
+
+    // tag === "T"
+    // Om T-raden råkar innehålla rubrikord (t.ex. "T7 Beskrivning") – ignorera den.
+    if (b.label) {
+      const nRest = norm(rest);
+      const nLab = norm(b.label);
+      if (nRest === nLab) continue;
+    }
+    b.values.push(rest);
+  }
+
+  const findIdByLabel = (needle: string) => {
+    const nNeedle = norm(needle);
+    for (const [id, b] of buckets.entries()) {
+      if (!b.label) continue;
+      const n = norm(b.label);
+      if (n === nNeedle || n.includes(nNeedle)) return id;
+    }
+    return null;
+  };
+
+  const valueFor = (id: number | null) => {
+    if (!id) return undefined;
+    const b = buckets.get(id);
+    if (!b || !b.values.length) return undefined;
+    return b.values.join("\n").trim() || undefined;
+  };
+
+  const lastName = valueFor(findIdByLabel("Efternamn"));
+  const firstName = valueFor(findIdByLabel("Förnamn")) || valueFor(findIdByLabel("Fornamn"));
+  const fullName = `${(lastName || "").trim()} ${(firstName || "").trim()}`.trim() || undefined;
+
+  // Sökandens personnummer: rubriken brukar vara "Personnummer" nära toppen.
+  // Vi tar första personnummer vi hittar i T-values om möjligt.
+  let personnummer: string | undefined;
+  {
+    const pId = findIdByLabel("Personnummer");
+    const v = valueFor(pId);
+    const m = v ? v.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) : null;
+    personnummer = m?.[0]?.replace(/\s+/g, "") || undefined;
+    if (!personnummer) {
+      // fallback: första personnummer i hela texten (kan råka vara handledaren, men oftast kommer sökanden först)
+      const all = Array.from(buckets.values()).flatMap((b) => b.values);
+      const m2 = all.join("\n").match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/);
+      personnummer = m2?.[0]?.replace(/\s+/g, "") || undefined;
+    }
+  }
+
+  const specialtyHeader = valueFor(findIdByLabel("Specialitet som ansökan avser"));
+  const clinic = valueFor(findIdByLabel("Tjänstgöringsställe för klinisk tjänstgöring"));
+
+  const delmalRaw = valueFor(findIdByLabel("Delmål som intyget avser")) || "";
+  const delmalCodes = extractDelmalCodes(delmalRaw);
+
+  const periodText = valueFor(findIdByLabel("Period")) || "";
+  const period = extractPeriodFromZoneText(periodText) || fallbackPeriod(raw);
+
+  // Beskrivning: i din mall är T7 bara ordet "Beskrivning" (rubrik) och ska ignoreras.
+  // Om det finns fler rader i samma bucket tar vi dem.
+  let description = valueFor(findIdByLabel("Beskrivning av den kliniska tjänstgöringen"));
+  if (description) {
+    const d = description.trim();
+    if (norm(d) === norm("Beskrivning")) description = undefined;
+  }
+
+  const supervisorName = valueFor(findIdByLabel("Namnförtydligande"));
+  const supervisorSpeciality = valueFor(findIdByLabel("Specialitet"));
+  const supervisorSite = valueFor(findIdByLabel("Tjänsteställe"));
+
+  // Kräver minst grundfält för att acceptera
+  const score =
+    (fullName ? 1 : 0) +
+    (personnummer ? 1 : 0) +
+    (specialtyHeader ? 1 : 0) +
+    (clinic ? 1 : 0) +
+    (period?.startISO || period?.endISO ? 1 : 0) +
+    (delmalCodes.length ? 1 : 0);
+
+  if (score < 4) return null;
+
+  return {
+    kind,
+    fullName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    personnummer,
+    specialtyHeader: specialtyHeader || undefined,
+    delmalCodes: delmalCodes.length ? delmalCodes : undefined,
+    clinic: clinic || undefined,
+    period,
+    description: description || undefined,
     supervisorName: supervisorName || undefined,
     supervisorSpeciality: supervisorSpeciality || undefined,
     supervisorSite: supervisorSite || undefined,
