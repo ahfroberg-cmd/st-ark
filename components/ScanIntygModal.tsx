@@ -864,17 +864,14 @@ export default function ScanIntygModal({
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
                   <div className="font-semibold mb-2">Viktigt för bästa resultat:</div>
                   <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><strong>Fotografera dokumentet direkt</strong> - inte en skannad bild eller screenshot</li>
-                    <li>Håll kameran rakt ovanför dokumentet, undvik vinkling</li>
+                    <li><strong>Allra bäst resultat får du vid scanning</strong> av dokumentet</li>
+                    <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
+                    <li>Beskär bilden så att endast dokumentet syns – ta bort tomma ytor runt omkring</li>
                     <li>Se till att hela dokumentet syns i bilden</li>
                     <li>Fotografera i gott ljus, helst dagsljus eller stark belysning</li>
                     <li>Undvik skuggor och reflektioner</li>
                     <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
                   </ul>
-                  <div className="mt-3 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
-                    <strong>OBS:</strong> Systemet fungerar bäst med direktfotograferade dokument. 
-                    Skannade bilder eller screenshots kan ge sämre resultat.
-                  </div>
                 </div>
 
                 {/* Input */}

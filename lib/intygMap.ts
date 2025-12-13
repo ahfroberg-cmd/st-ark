@@ -24,16 +24,23 @@ export async function mapAndSaveKurs(parsed: {
   showOnTimeline?: boolean;
   showAsInterval?: boolean;
 }) {
+  // Logik för datum baserat på showAsInterval:
+  // - Om showAsInterval är false (Enbart slutdatum): använd bara endDate
+  // - Om showAsInterval är true (Start till slut): använd både startDate och endDate
+  const isInterval = parsed.showAsInterval ?? false;
+  const endDate = parsed.period?.endISO;
+  const startDate = isInterval ? parsed.period?.startISO : undefined; // Bara om intervall-läge
+  
   const course: any = {
     id: crypto.randomUUID(),
     title: parsed.courseTitle ?? "Kurs",
     city: undefined,
-    certificateDate: parsed.period?.endISO ?? undefined,
-    startDate: parsed.period?.startISO ?? undefined,
-    endDate: parsed.period?.endISO ?? undefined,
+    certificateDate: endDate ?? undefined,
+    startDate: startDate ?? undefined,
+    endDate: endDate ?? undefined,
     note: parsed.description ?? "",
     showOnTimeline: parsed.showOnTimeline ?? false,
-    showAsInterval: parsed.showAsInterval ?? false,
+    showAsInterval: isInterval,
   };
   await db.courses.add(course);
 
