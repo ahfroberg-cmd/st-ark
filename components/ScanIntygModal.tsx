@@ -1264,9 +1264,7 @@ export default function ScanIntygModal({
                       {(kind !== "2021-B10-KURS" || (parsed?.signingRole ?? "handledare") === "handledare") && (
                         <div className="space-y-2">
                           <label className="block text-xs font-medium text-slate-900">
-                            {kind === "2021-B10-KURS" 
-                              ? "Specialitet (gäller endast handledare)" 
-                              : "Intygandes specialitet"}
+                            Intygandes specialitet
                           </label>
                           <input
                             value={parsed?.supervisorSpeciality ?? ""}

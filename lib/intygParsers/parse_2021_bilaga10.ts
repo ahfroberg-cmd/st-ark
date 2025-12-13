@@ -167,7 +167,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
 
   // Intygare (handledare/kursledare)
   const supervisorName = valueAfter(/Namnförtydligande/i);
-  const supervisorSpeciality = valueAfter(/Specialitet/i);
+  // För handledare: leta efter "Specialitet (gäller endast handledare)" eller bara "Specialitet"
+  const supervisorSpeciality = 
+    valueAfter(/Specialitet\s*\(gäller\s+endast\s+handledare\)/i) ||
+    valueAfter(/Specialitet\s*\(galler\s+endast\s+handledare\)/i) ||
+    valueAfter(/Specialitet/i);
   const supervisorSite = valueAfter(/Tjänsteställe/i) || valueAfter(/Tjanstestalle/i);
 
   // Datum (ofta "Ort och datum") → lägg i period.endISO så mapAndSaveKurs kan använda som certificateDate
@@ -445,9 +449,16 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     supervisorName = smartMatchMissingField("namnfortydligande", ["Namnförtydligande", "Namnfortydligande"]);
   }
   
-  let supervisorSpeciality = findValueByRubric(["Specialitet"]);
+  // För handledare: leta efter "Specialitet (gäller endast handledare)" eller bara "Specialitet"
+  let supervisorSpeciality = 
+    findValueByRubric(["Specialitet (gäller endast handledare)", "Specialitet (galler endast handledare)"]) ||
+    findValueByRubric(["Specialitet"]);
   if (!supervisorSpeciality) {
-    supervisorSpeciality = smartMatchMissingField("handledarspecialitet", ["Specialitet"]);
+    supervisorSpeciality = smartMatchMissingField("handledarspecialitet", [
+      "Specialitet (gäller endast handledare)",
+      "Specialitet (galler endast handledare)",
+      "Specialitet"
+    ]);
   }
   
   let supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
