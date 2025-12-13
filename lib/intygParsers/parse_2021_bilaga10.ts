@@ -71,7 +71,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       n.includes("beskrivning av kursen") ||
       n.includes("namnfortydligande") ||
       n.includes("tjanstestalle") ||
-      n.includes("ort och datum")
+      n.includes("ort och datum") ||
+      n.includes("intygsutfardande") ||
+      n.includes("namnteckning") ||
+      n.includes("handledare") ||
+      n.includes("kursledare")
     );
   };
 
