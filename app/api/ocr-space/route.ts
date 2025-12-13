@@ -114,9 +114,18 @@ export async function POST(req: Request) {
     }
 
     if (!resp.ok) {
-      const msg = json?.ErrorMessage
+      const errorMsgRaw = json?.ErrorMessage
         ? (Array.isArray(json.ErrorMessage) ? json.ErrorMessage.join(", ") : String(json.ErrorMessage))
-        : `OCR.space API error: ${resp.status}`;
+        : "";
+      
+      // 403 = ogiltig API-nyckel eller gräns nådd
+      if (resp.status === 403) {
+        const msg = errorMsgRaw || "OCR.space API-nyckel är ogiltig eller användningsgränsen är nådd. Kontrollera OCR_SPACE_API_KEY i miljövariabler.";
+        console.error("[OCR.space] 403 Forbidden:", msg);
+        return Response.json({ error: msg }, { status: 403 });
+      }
+      
+      const msg = errorMsgRaw || `OCR.space API error: ${resp.status}`;
       return Response.json({ error: msg }, { status: 502 });
     }
 

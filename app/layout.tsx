@@ -1,5 +1,5 @@
 // app/layout.tsx
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SWRegister from "./sw-register";
 import { TitleOverride } from "./TitleOverride";
@@ -19,11 +19,14 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icons/icon-192.png" }],
   },
-  themeColor: "#0ea5e9",
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0ea5e9",
 };
 
 export default function RootLayout({

@@ -69,11 +69,11 @@ async function tryLoadRawJsonAsync(
     }
   }
 
-  // Fallback till bundlade filer
-  try { return require("@/lib/psykiatri.json"); } catch {}
-  try { return require("@/lib/psykiatri_sv.json"); } catch {}
-  try { return require("@/lib/lexicon/psykiatri.json"); } catch {}
-  try { return require("@/lib/lexicon/psykiatri_sv.json"); } catch {}
+  // Fallback till bundlade filer (kommenterat ut - filerna finns inte längre)
+  // try { return require("@/lib/psykiatri.json"); } catch {}
+  // try { return require("@/lib/psykiatri_sv.json"); } catch {}
+  // try { return require("@/lib/lexicon/psykiatri.json"); } catch {}
+  // try { return require("@/lib/lexicon/psykiatri_sv.json"); } catch {}
 
   return null;
 }
