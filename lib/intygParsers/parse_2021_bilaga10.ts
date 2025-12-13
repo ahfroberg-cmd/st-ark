@@ -245,12 +245,26 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     { variants: ["Tjänsteställe", "Tjanstestalle"], key: "tjanstestalle" },
   ];
 
+  // Förtryckta texter som alltid ska ignoreras (finns på intyget men ska inte sparas)
+  const alwaysIgnorePhrases = [
+    /^rens[a]$/i,
+    /^bilaga\s+nr?:/i,
+    /^intyg$/i,
+    /^om genomförd utbildningsaktivitet/i,
+    /^skriv ut$/i,
+    /^sökande$/i,
+    /^hslf-fs\s+2021:8/i,
+  ];
+
   // Iterera sekventiellt genom raderna
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
     // Ignorera X-rader helt
     if (/^[xX]\b/.test(line)) continue;
+    
+    // Ignorera förtryckta texter (även om de inte har X framför sig)
+    if (alwaysIgnorePhrases.some(phrase => phrase.test(line))) continue;
 
     // Matcha S-rad (checkbox ikryssad)
     const sMatch = /^[Ss]\s+(.*)$/.exec(line);
@@ -270,6 +284,43 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
       const rubricText = rMatch[1].trim();
       if (!rubricText) continue;
 
+      // Rubriker som INTE ska samla in innehåll (förtryckta rubriker)
+      const ignoreRubrics = [
+        "Namnteckning",
+        "Ort och datum",
+        "Personnummer (gäller endast handledare)",
+        "Personnummer gäller endast handledare",
+      ];
+      
+      const shouldIgnore = ignoreRubrics.some(ignoreRubric => {
+        const nRubric = norm(rubricText);
+        const nIgnore = norm(ignoreRubric);
+        return nRubric === nIgnore || nRubric.includes(nIgnore) || nIgnore.includes(nRubric);
+      });
+      
+      if (shouldIgnore) {
+        // Ignorera denna rubrik och hoppa över innehållet
+        continue;
+      }
+
+      // Förtryckta texter som indikerar att vi ska stoppa samlingen
+      // Dessa är förtryckta på intyget och ska aldrig sparas
+      const stopPhrases = [
+        /^intygsutfärdande/i,
+        /^namnteckning/i,
+        /^ort och datum/i,
+        /^hslf-fs\s+2021:8/i,
+        /^bilaga\s+nr?:/i,
+        /^intyg$/i,
+        /^om genomförd utbildningsaktivitet/i,
+        /^skriv ut$/i,
+        /^sökande$/i,
+        /^personnummer\s*\(gäller endast handledare\)/i,
+        /^personnummer\s*gäller endast handledare/i,
+        /^handledare\s*,?\s*kursledare$/i,
+        /^rens[a]$/i,
+      ];
+
       // Samla alla icke-X-rader tills nästa R-rad eller S-rad
       const valueLines: string[] = [];
       for (let j = i + 1; j < lines.length; j++) {
@@ -278,6 +329,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
 
         // Stoppa vid nästa R-rad eller S-rad
         if (/^[Rr](?:\d+)?\s/.test(nextLine) || /^[Ss]\s/.test(nextLine)) break;
+
+        // Stoppa vid förtryckta texter
+        if (stopPhrases.some(phrase => phrase.test(nextLine))) {
+          break;
+        }
 
         // Ignorera X-rader
         if (/^[xX]\b/.test(nextLine)) continue;
