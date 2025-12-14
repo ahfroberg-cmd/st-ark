@@ -40,6 +40,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     /^\*{3,}\s*result\s+for\s+image\/page/i,
     /^\*{3,}/,
     /^\s*(page|sida)\s*\d+\s*$/i,
+    /^HSLF/i, // Blockera alla rader som börjar med "HSLF"
     /\bHSLF[-\s]?FS\b/i, // Matchar "HSLF- FS", "HSLF FS", etc.
     /\bHSLF[-\s]?FS\s+\d{4}:\d+/i, // Matchar "HSLF- FS 2021:81"
     /\bHSLF[-\s]?FS\s+\d{4}:\d+\s*\(/i, // Matchar "HSLF- FS 2021:81 ("
@@ -87,6 +88,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
   // Kontrollera om en rad ska ignoreras (inklusive HSLF- FS-mönster)
   const shouldIgnoreLine = (l: string): boolean => {
     if (!l) return true;
+    // Blockera alla rader som börjar med "HSLF"
+    if (/^HSLF/i.test(l.trim())) return true;
     const n = norm(l);
     // Kontrollera IGNORE-mönster
     if (IGNORE.some((re) => re.test(l))) return true;
@@ -445,6 +448,8 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   // Hjälpfunktion för att kontrollera om en rad ska ignoreras (inklusive HSLF- FS-mönster)
   const shouldIgnoreLineAnnotated = (l: string): boolean => {
     if (!l) return true;
+    // Blockera alla rader som börjar med "HSLF"
+    if (/^HSLF/i.test(l.trim())) return true;
     // Ignorera HSLF- FS med siffror och kolon
     if (/\bHSLF[-\s]?FS\s+\d{4}:\d+/.test(l)) return true;
     return false;
