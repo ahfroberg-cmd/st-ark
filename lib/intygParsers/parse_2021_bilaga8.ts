@@ -238,13 +238,31 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       return out.join("\n").trim() || undefined;
     } else {
       // För ALLA övriga fält: ta BARA nästa rad (inte flera rader)
-      if (idx + 1 >= lines.length) return undefined;
+      if (idx + 1 >= lines.length) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Ingen nästa rad för', labelRe.source);
+        return undefined;
+      }
       const nextLine = lines[idx + 1];
-      if (!nextLine) return undefined;
-      if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
-      if (isLabelLine(nextLine)) return undefined;
-      if (stopRes.some((re) => re.test(nextLine))) return undefined;
-      return nextLine.trim() || undefined;
+      console.warn('[Bilaga 8 Parser] valueAfter: Nästa rad för', labelRe.source, ':', nextLine);
+      if (!nextLine) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Nästa rad är tom');
+        return undefined;
+      }
+      if (shouldIgnoreLine(nextLine)) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Nästa rad ska ignoreras:', nextLine);
+        return undefined;
+      }
+      if (isLabelLine(nextLine)) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Nästa rad är en rubrik, stoppar:', nextLine);
+        return undefined;
+      }
+      if (stopRes.some((re) => re.test(nextLine))) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Nästa rad matchar stopp-mönster');
+        return undefined;
+      }
+      const result = nextLine.trim() || undefined;
+      console.warn('[Bilaga 8 Parser] valueAfter: Returnerar:', result);
+      return result;
     }
   };
 
