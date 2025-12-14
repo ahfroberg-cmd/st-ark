@@ -246,11 +246,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     const isDescription = labelRe.source.includes("Beskrivning");
     
     if (isDescription) {
+      // För Beskrivning: samla alla rader tills nästa rubrik
+      // VIKTIGT: Använd INTE shouldIgnoreLine här - innehåll kan innehålla ord som tidigare ignorerats
       const out: string[] = [];
       for (let i = idx + 1; i < lines.length; i++) {
         const l = lines[i];
         if (!l) break;
-        if (shouldIgnoreLine(l)) continue;
+        // Stoppa bara vid rubriker eller stopp-mönster, INTE vid IGNORE-listan
         if (isLabelLine(l)) break;
         if (stopRes.some((re) => re.test(l))) break;
         out.push(l);
@@ -261,7 +263,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       if (idx + 1 >= lines.length) return undefined;
       const nextLine = lines[idx + 1];
       if (!nextLine) return undefined;
-      if (shouldIgnoreLine(nextLine)) return undefined;
+      // VIKTIGT: Använd INTE shouldIgnoreLine här - innehåll kan innehålla ord som tidigare ignorerats
+      // Stoppa bara om det är en rubrik eller stopp-mönster
       if (isLabelLine(nextLine)) return undefined;
       if (stopRes.some((re) => re.test(nextLine))) return undefined;
       
@@ -270,9 +273,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
                               labelRe.source.includes("Tjanstestalle");
       if (isTjanstestalle) {
         const trimmed = nextLine.trim();
-        const fsMatch = trimmed.match(/^(.+?)(?:\s+FS\s+|\s+HSLF)/i);
-        if (fsMatch) {
-          return fsMatch[1].trim() || undefined;
+        // Stoppa om raden innehåller "FS" eller "HSLF" (för att undvika "FS 2021:81 (1)")
+        if (/FS|HSLF/i.test(trimmed)) {
+          const fsMatch = trimmed.match(/^(.+?)(?:\s+FS\s+|\s+HSLF)/i);
+          if (fsMatch) {
+            return fsMatch[1].trim() || undefined;
+          }
+          return undefined;
         }
         return trimmed || undefined;
       }
