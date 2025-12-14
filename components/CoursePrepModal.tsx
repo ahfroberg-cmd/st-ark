@@ -186,32 +186,67 @@ export default function CoursePrepModal({
         const initialKSite = savedKSite || courseKSite;
         const initialKSpec = savedKSpec || courseKSpec;
 
+        // För 2021: läs signingRole från sparad kurs
+        const savedSigningRole = (saved as any)?.signingRole;
+        const savedSupervisorName = (saved as any)?.supervisorName;
+        const savedSupervisorSite = (saved as any)?.supervisorSite;
+        const savedSupervisorSpeciality = (saved as any)?.supervisorSpeciality;
+
+        // Om signingRole finns, använd den för att sätta signerType och fält
+        let finalSignerType: SignerType = "KURSLEDARE";
+        let finalHName = initialHName;
+        let finalHSite = initialHSite;
+        let finalHSpec = initialHSpec;
+        let finalHPn = initialHPn;
+        let finalKName = initialKName;
+        let finalKSite = initialKSite;
+        let finalKSpec = initialKSpec;
+        
+        if (savedSigningRole === "handledare" || savedSigningRole === "kursledare") {
+          finalSignerType = savedSigningRole.toUpperCase() as SignerType;
+          
+          // Om det är handledare, använd supervisor-fält
+          if (savedSigningRole === "handledare" && savedSupervisorName) {
+            finalHName = savedSupervisorName;
+            finalHSite = savedSupervisorSite || "";
+            finalHSpec = savedSupervisorSpeciality || "";
+          }
+          // Om det är kursledare, använd supervisor-fält som courseLeader-fält
+          else if (savedSigningRole === "kursledare" && savedSupervisorName) {
+            finalKName = savedSupervisorName;
+            finalKSite = savedSupervisorSite || "";
+            finalKSpec = ""; // Kursledare har ingen specialitet för 2021
+          }
+        } else {
+          // Fallback: använd befintlig logik
+          finalSignerType = ((saved as any)?.signerType as SignerType) || "KURSLEDARE";
+        }
+
         setHSource(initialHSource);
-        setHName(initialHName);
-        setHSite(initialHSite);
-        setHSpec(initialHSpec);
-        setHPn(initialHPn);
+        setHName(finalHName);
+        setHSite(finalHSite);
+        setHSpec(finalHSpec);
+        setHPn(finalHPn);
+        setKName(finalKName);
+        setKSite(finalKSite);
+        setKSpec(finalKSpec);
+        setSignerType(finalSignerType);
 
-
-        setKName(initialKName);
-        setKSite(initialKSite);
-        setKSpec(initialKSpec);
-
-        const initialSignerType: SignerType =
+        const initialSignerType: SignerType = finalSignerType;
           ((saved as any)?.signerType as SignerType) || "KURSLEDARE";
 
         setSignerType(initialSignerType);
 
         snapshotRef.current = {
-          signerType: initialSignerType,
+          signerType: finalSignerType,
           hSource: initialHSource,
-          hName: initialHName,
-          hSite: initialHSite,
-          hSpec: initialHSpec,
-          hPn: initialHPn,
-          kName: initialKName,
-          kSite: initialKSite,
-          kSpec: initialKSpec,
+          hName: finalHName,
+          hSite: finalHSite,
+          hSpec: finalHSpec,
+          hPn: finalHPn,
+          kName: finalKName,
+          kSite: finalKSite,
+          kSpec: finalKSpec,
         };
         setDirty(false);
       } catch (e) {
@@ -319,6 +354,9 @@ const handleSave = async () => {
     // Hämta eventuell befintlig rad så vi inte tappar andra fält (t.ex. certificateDate)
     const existing = (await db.courses.get(id)) as any;
 
+    // För 2021: spara signingRole baserat på signerType
+    const signingRole = signerType === "HANDLEDARE" ? "handledare" : "kursledare";
+
     const updated = {
       ...(existing || {}),
       id,
@@ -329,16 +367,19 @@ const handleSave = async () => {
         (course as any)?.certificateDate ??
         "",
 
+      // För 2021: spara signingRole
+      signingRole: profile.goalsVersion === "2021" ? signingRole : undefined,
+
       // Handledare
-      supervisorName: hName,
-      supervisorSite: hSite,
-      supervisorSpeciality: hSpec,
-      supervisorPersonalNumber: hPn,
+      supervisorName: signerType === "HANDLEDARE" ? hName : (existing?.supervisorName || ""),
+      supervisorSite: signerType === "HANDLEDARE" ? hSite : (existing?.supervisorSite || ""),
+      supervisorSpeciality: signerType === "HANDLEDARE" ? hSpec : (existing?.supervisorSpeciality || ""),
+      supervisorPersonalNumber: signerType === "HANDLEDARE" ? hPn : (existing?.supervisorPersonalNumber || ""),
 
       // Kursledare
-      courseLeaderName: kName,
-      courseLeaderSite: site,
-      courseLeaderSpeciality: spec,
+      courseLeaderName: signerType === "KURSLEDARE" ? kName : (existing?.courseLeaderName || ""),
+      courseLeaderSite: signerType === "KURSLEDARE" ? site : (existing?.courseLeaderSite || ""),
+      courseLeaderSpeciality: profile.goalsVersion === "2015" ? spec : undefined, // Endast för 2015
     };
 
     // put = insert eller update beroende på om raden finns
@@ -494,7 +535,7 @@ const handleSave = async () => {
                     checked={signerType === "HANDLEDARE"}
                     onChange={() => {
                       setSignerType("HANDLEDARE");
-                      // signerType sparas inte i DB, påverkar inte dirty
+                      markDirty({ signerType: "HANDLEDARE" });
                     }}
                   />
                   <span>Handledare</span>
@@ -507,7 +548,7 @@ const handleSave = async () => {
                     checked={signerType === "KURSLEDARE"}
                     onChange={() => {
                       setSignerType("KURSLEDARE");
-                      // signerType sparas inte i DB, påverkar inte dirty
+                      markDirty({ signerType: "KURSLEDARE" });
                     }}
                   />
                   <span>Kursledare</span>
@@ -657,22 +698,23 @@ const handleSave = async () => {
 
                   </div>
 
-                  {/* Kursledare – specialitet */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700">
-                      Kursledares specialitet
-                    </label>
-                    <input
-                      className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
-                      value={kSpec ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setKSpec(v);
-                        markDirty({ kSpec: v });
-                      }}
-                    />
-
-                  </div>
+                  {/* Kursledare – specialitet - visas endast för 2015 */}
+                  {profile.goalsVersion === "2015" && (
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700">
+                        Kursledares specialitet
+                      </label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1 text-sm"
+                        value={kSpec ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setKSpec(v);
+                          markDirty({ kSpec: v });
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

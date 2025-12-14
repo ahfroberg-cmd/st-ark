@@ -614,6 +614,12 @@ export default function ScanIntygModal({
               (parsed as any)?.notes ??
               last.note ??
               "",
+            // För 2021: spara signingRole och relaterade fält
+            signingRole: (parsed as any)?.signingRole ?? (last as any).signingRole ?? undefined,
+            supervisorName: (parsed as any)?.supervisorName ?? (last as any).supervisorName ?? undefined,
+            supervisorSite: (parsed as any)?.supervisorSite ?? (last as any).supervisorSite ?? undefined,
+            supervisorSpeciality: (parsed as any)?.supervisorSpeciality ?? (parsed as any)?.supervisorSpeciality ?? (last as any).supervisorSpeciality ?? undefined,
+            // För kompatibilitet: spara även som courseLeader-fält
             courseLeaderName:
               (parsed as any)?.supervisorName ??
               (last as any).courseLeaderName ??
@@ -866,10 +872,8 @@ export default function ScanIntygModal({
                   <ul className="list-disc list-inside space-y-1 text-xs">
                     <li>Allra bäst resultat får du vid scanning av dokumentet</li>
                     <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
-                    <li>Beskär bilden så att endast dokumentet syns – ta bort tomma ytor runt omkring</li>
-                    <li>Se till att hela dokumentet syns i bilden</li>
-                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning</li>
-                    <li>Undvik skuggor och reflektioner</li>
+                    <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
+                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
                     <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
                   </ul>
                 </div>
@@ -1209,7 +1213,7 @@ export default function ScanIntygModal({
                           <label className="inline-flex items-center gap-1 text-sm text-slate-800">
                             <input
                               type="radio"
-                              className="h-4 w-4"
+                              className="h-4 w-4.5"
                               checked={
                                 (parsed?.signingRole ?? "handledare") ===
                                 "kursledare"
@@ -1226,7 +1230,7 @@ export default function ScanIntygModal({
                           <label className="inline-flex items-center gap-1 text-sm text-slate-800">
                             <input
                               type="radio"
-                              className="h-4 w-4"
+                              className="h-4 w-4.5"
                               checked={
                                 (parsed?.signingRole ?? "handledare") ===
                                 "handledare"

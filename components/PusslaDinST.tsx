@@ -6336,7 +6336,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           const prof: any = profile || {};
           const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
           const btISO: string | null = prof?.btStartDate || null;
-          if (!is2021 || !btISO || !isValidISO(btISO)) return "md:grid-cols-6";
+          if (!is2021 || !btISO || !isValidISO(btISO)) return "md:grid-cols-5";
 
           // Effektivt BT-slut: manuellt fält eller 24 månader efter BT-start
           const btEndManual: string | null = prof?.btEndDate || null;
@@ -6351,18 +6351,18 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               btEndISO = null;
             }
           }
-          if (!btEndISO) return "md:grid-cols-6";
+          if (!btEndISO) return "md:grid-cols-5";
 
           const startISO =
             selCourse.startDate || selCourse.endDate || "";
-          if (!startISO || !isValidISO(startISO)) return "md:grid-cols-6";
+          if (!startISO || !isValidISO(startISO)) return "md:grid-cols-5";
 
           // Inom BT-fönstret om startdatum ligger mellan BT-start och Slutdatum för BT
           const inBtWindow =
             startISO >= btISO &&
             startISO <= btEndISO;
 
-          return inBtWindow ? "md:grid-cols-7" : "md:grid-cols-6";
+          return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
         })(),
       ].join(" ")}
     >
@@ -6478,23 +6478,31 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         );
       })()}
 
-      {/* Ort */}
-      <div>
-        <label className="block text-sm text-slate-700">Ort</label>
-        <input
-          value={selCourse.city || ""}
-          onChange={(e) =>
-            setCourses((prev) =>
-              prev.map((c) =>
-                c.id === selCourse.id
-                  ? { ...c, city: e.target.value }
-                  : c
-              )
-            )
-          }
-          className="w-full h-10 rounded-lg border px-3"
-        />
-      </div>
+      {/* Ort - visas endast för 2015 */}
+      {(() => {
+        const prof: any = profile || {};
+        const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
+        if (is2021) return null;
+        
+        return (
+          <div>
+            <label className="block text-sm text-slate-700">Ort</label>
+            <input
+              value={selCourse.city || ""}
+              onChange={(e) =>
+                setCourses((prev) =>
+                  prev.map((c) =>
+                    c.id === selCourse.id
+                      ? { ...c, city: e.target.value }
+                      : c
+                  )
+                )
+              }
+              className="w-full h-10 rounded-lg border px-3"
+            />
+          </div>
+        );
+      })()}
 
       {/* Kursledare */}
       <div>

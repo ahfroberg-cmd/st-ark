@@ -23,6 +23,10 @@ export async function mapAndSaveKurs(parsed: {
   delmalCodes?: string[];
   showOnTimeline?: boolean;
   showAsInterval?: boolean;
+  signingRole?: "handledare" | "kursledare";
+  supervisorName?: string;
+  supervisorSite?: string;
+  supervisorSpeciality?: string;
 }) {
   // Logik för datum baserat på showAsInterval:
   // - Om showAsInterval är false (Enbart slutdatum): använd bara endDate
@@ -41,6 +45,14 @@ export async function mapAndSaveKurs(parsed: {
     note: parsed.description ?? "",
     showOnTimeline: parsed.showOnTimeline ?? false,
     showAsInterval: isInterval,
+    // För 2021: spara signingRole och relaterade fält
+    signingRole: parsed.signingRole,
+    supervisorName: parsed.supervisorName,
+    supervisorSite: parsed.supervisorSite,
+    supervisorSpeciality: parsed.supervisorSpeciality,
+    // För kompatibilitet: spara även som courseLeader-fält om det är kursledare
+    courseLeaderName: parsed.signingRole === "kursledare" ? parsed.supervisorName : undefined,
+    courseLeaderSite: parsed.signingRole === "kursledare" ? parsed.supervisorSite : undefined,
   };
   await db.courses.add(course);
 
