@@ -199,10 +199,26 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     /Kursens amne/i,
     /Beskrivning av kursen/i,
   ]);
-  const rawDelmalCodes =
-    (delmalText ? extractCommon(delmalText).delmalCodes : undefined) ?? base.delmalCodes;
+  console.warn('[Bilaga 10 Parser] delmalText:', delmalText);
+  
+  // Använd extractDelmalCodes direkt från common.ts istället för extractCommon
+  // eftersom extractDelmalCodes är mer robust och hanterar alla varianter
+  let rawDelmalCodes: string[] | undefined;
+  if (delmalText) {
+    rawDelmalCodes = extractDelmalCodes(delmalText);
+    console.warn('[Bilaga 10 Parser] rawDelmalCodes från delmalText:', rawDelmalCodes);
+  }
+  // Fallback till base.delmalCodes om inget hittades
+  if (!rawDelmalCodes || rawDelmalCodes.length === 0) {
+    rawDelmalCodes = extractDelmalCodes(raw);
+    console.warn('[Bilaga 10 Parser] rawDelmalCodes från hela texten:', rawDelmalCodes);
+  }
+  
   // Normalisera och sortera delmål för 2021
-  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
+  const delmalCodes = rawDelmalCodes && rawDelmalCodes.length > 0 
+    ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) 
+    : undefined;
+  console.warn('[Bilaga 10 Parser] delmalCodes (normaliserade):', delmalCodes);
 
   // Personnummer (rubrikfält eller fallback)
   const pnrText = valueAfter(/Personnummer/i) || lines.join(" ");
