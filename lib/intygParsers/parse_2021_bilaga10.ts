@@ -294,21 +294,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
         // Om vi hittar rubriken men inte har värdet, försök hämta det
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1];
-          if (nextLine && !isLabelLine(nextLine)) {
-            // Ta alla rader tills nästa rubrik eller HSLF
-            const valueLines: string[] = [];
-            for (let j = i + 1; j < lines.length; j++) {
-              const l = lines[j];
-              if (!l) break;
-              if (shouldIgnoreLine(l)) {
-                // Om det är HSLF, stoppa här (men inkludera inte HSLF-raden)
-                if (/^HSLF/i.test(l.trim())) break;
-                continue; // Hoppa över andra ignorerbara rader
-              }
-              if (isLabelLine(l) && !/tjanstestalle/i.test(l)) break;
-              valueLines.push(l);
-            }
-            const candidate = valueLines.join("\n").trim();
+          if (nextLine && !isLabelLine(nextLine) && !shouldIgnoreLine(nextLine)) {
+            // Ta BARA nästa rad (inte flera rader) och stanna där
+            // Stoppa också om raden innehåller "FS" eller "HSLF" (för att undvika "FS 2021:81 (1)")
+            const trimmed = nextLine.trim();
+            // Om raden innehåller "FS" eller "HSLF", ta bara delen före det
+            const fsMatch = trimmed.match(/^(.+?)(?:\s+FS\s+|\s+HSLF)/i);
+            const candidate = fsMatch ? fsMatch[1].trim() : trimmed;
             if (candidate && candidate.length > 2) {
               finalSupervisorSite = candidate;
               break;
