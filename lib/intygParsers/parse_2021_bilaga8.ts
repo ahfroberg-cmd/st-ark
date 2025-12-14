@@ -268,7 +268,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Tjänstgöringsställe för auskultation - gör mer flexibel
   const clinic = valueAfter(/Tjänstgöringsställe\s+för\s+auskultation/i) ||
                  valueAfter(/Tjanstgoringsstalle\s+for\s+auskultation/i) ||
-                 valueAfter(/Tjänstgöringsställe.*?auskultation/i);
+                 valueAfter(/Tjänstgöringsställe.*?auskultation/i) ||
+                 valueAfter(/Tjanstgoringsstalle.*?auskultation/i);
+  
+  console.warn('[Bilaga 8 Parser] clinic:', clinic);
 
   // Period - gör mer flexibel
   const periodText = valueAfter(/Period/i) ||
@@ -287,10 +290,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Tjanstestalle/i,
   ];
   
-  // Beskrivning - gör mer flexibel
+  // Beskrivning - gör mer flexibel, måste samla flera rader tills nästa rubrik
   const description = valueAfter(/Beskrivning\s+av\s+auskultationen/i, descriptionStopPatterns) ||
                       valueAfter(/Beskrivning\s+av\s+auskultation/i, descriptionStopPatterns) ||
                       valueAfter(/Beskrivning.*?auskultation/i, descriptionStopPatterns);
+  
+  console.warn('[Bilaga 8 Parser] description:', description);
 
   // Delmål (försök rubrikfält först, annars fallback från hela texten)
   const delmalText = valueAfter(/Delmål\s+som\s+intyget\s+avser/i) ||
@@ -309,38 +314,61 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     (pnrText.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0] || base.personnummer;
 
   // Specialitet som ansökan avser - gör mer flexibel
+  // VIKTIGT: Måste matcha EXAKT "Specialitet som ansökan avser", INTE bara "Specialitet"
   const specialtyHeaderRaw = valueAfter(/Specialitet\s+som\s+ansökan\s+avser/i) ||
                              valueAfter(/Specialitet\s+som\s+ansokan\s+avser/i) ||
                              valueAfter(/Specialitet.*?ansökan.*?avser/i);
   const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
+  
+  console.warn('[Bilaga 8 Parser] specialtyHeader (ansökan avser):', specialtyHeader);
 
   // Intygare - gör mer flexibel
   const supervisorName = valueAfter(/Namnförtydligande/i) ||
                         valueAfter(/Namnfortydligande/i) ||
                         valueAfter(/Namn.*?fortydligande/i);
-  // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
+  
+  // OBS: "Specialitet" (handledarens specialitet) ska INTE matcha "Specialitet som ansökan avser"
+  // Vi måste explicit leta efter "Specialitet" som INTE följs av "som ansökan avser"
   const supervisorSpeciality = (() => {
-    // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
-    // Försök först med valueAfter för att få samma logik
-    const specialityValue = valueAfter(/\bSpecialitet\b/i, [
-      /Specialitet\s+som\s+ansökan/i,
-      /Specialitet\s+som\s+ansokan/i,
-    ]);
-    if (specialityValue) return specialityValue;
+    // Först: leta efter en rad som innehåller "Specialitet" men INTE "som ansökan avser"
+    // Vi måste hitta rubriken "Specialitet" som kommer EFTER "Specialitet som ansökan avser"
+    let foundSpecialitetSomAnsokanIdx = -1;
+    let foundSpecialitetIdx = -1;
     
-    // Fallback: leta direkt i lines
-    const idx = lines.findIndex((l) => {
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
       const n = norm(l);
-      return n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
-    });
-    if (idx < 0) return undefined;
+      
+      // Hitta "Specialitet som ansökan avser" först
+      if (n.includes("specialitet") && (n.includes("ansokan") || n.includes("ansökan")) && n.includes("avser")) {
+        foundSpecialitetSomAnsokanIdx = i;
+      }
+      
+      // Hitta "Specialitet" som INTE är "Specialitet som ansökan avser"
+      // Denna måste komma EFTER "Specialitet som ansökan avser"
+      if (n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan") && !n.includes("avser")) {
+        // Om vi redan hittat "Specialitet som ansökan avser", så är detta förmodligen handledarens specialitet
+        if (foundSpecialitetSomAnsokanIdx >= 0 && i > foundSpecialitetSomAnsokanIdx) {
+          foundSpecialitetIdx = i;
+          break;
+        }
+        // Om vi inte hittat "Specialitet som ansökan avser" ännu, spara detta som kandidat
+        if (foundSpecialitetSomAnsokanIdx < 0 && foundSpecialitetIdx < 0) {
+          foundSpecialitetIdx = i;
+        }
+      }
+    }
+    
+    if (foundSpecialitetIdx < 0) return undefined;
     
     // Ta nästa rad (inte flera)
-    if (idx + 1 >= lines.length) return undefined;
-    const nextLine = lines[idx + 1];
+    if (foundSpecialitetIdx + 1 >= lines.length) return undefined;
+    const nextLine = lines[foundSpecialitetIdx + 1];
     if (!nextLine || shouldIgnoreLine(nextLine) || isLabelLine(nextLine)) return undefined;
     return nextLine.trim() || undefined;
   })();
+  
+  console.warn('[Bilaga 8 Parser] supervisorSpeciality (handledarens):', supervisorSpeciality);
   // Tjänsteställe: bara FÖLJANDE RAD ska inkluderas
   const supervisorSite = valueAfter(/\bTjänsteställe\b/i) ||
                          valueAfter(/\bTjanstestalle\b/i) ||
