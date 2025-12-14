@@ -192,12 +192,12 @@ function ProfilePageInner() {
     (async () => {
       try {
         // Dexie öppnar databasen automatiskt vid första query
-        const p = await db.profile.get("default");
-        if (p) {
-          setProfile(p as any);
-          setForm((prev: any) => ({ ...prev, ...(p as any) }));
-          setSupervisorHasOtherSite(Boolean((p as any)?.supervisorWorkplace));
-          setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
+      const p = await db.profile.get("default");
+      if (p) {
+        setProfile(p as any);
+        setForm((prev: any) => ({ ...prev, ...(p as any) }));
+        setSupervisorHasOtherSite(Boolean((p as any)?.supervisorWorkplace));
+        setStudyDirectorHasOtherSite(Boolean((p as any)?.studyDirectorWorkplace));
         }
       } catch (error) {
         // Ibland kan IndexedDB/Dexie hamna i ett trasigt läge (Safari kan vara extra känsligt).
@@ -245,11 +245,11 @@ function ProfilePageInner() {
     console.log("[saveProfile] Startar sparning...");
     try {
       // Validering
-      if (!form.name.trim() || !form.specialty.trim()) {
+    if (!form.name.trim() || !form.specialty.trim()) {
         console.log("[saveProfile] Validering misslyckades: namn eller specialitet saknas");
-        alert("Fyll i minst Namn och Specialitet.");
-        return;
-      }
+      alert("Fyll i minst Namn och Specialitet.");
+      return;
+    }
       // Validering beroende på målversion
       if (form.goalsVersion === "2021") {
         if (!form.btStartDate) {
@@ -259,21 +259,21 @@ function ProfilePageInner() {
         }
       } else {
         // 2015: kräver stStartDate
-        if (!form.stStartDate) {
+    if (!form.stStartDate) {
           console.log("[saveProfile] Validering misslyckades: stStartDate saknas");
-          alert("Fyll i startdatum för ST.");
-          return;
-        }
+      alert("Fyll i startdatum för ST.");
+        return;
       }
+    }
 
       console.log("[saveProfile] Validering OK, sparar till databas...");
       // Dexie öppnar databasen automatiskt vid första query
-      const parts = (form.name ?? "").trim().split(/\s+/);
-      const firstName = parts[0] ?? "";
-      const lastName = parts.slice(1).join(" ") ?? "";
-      const newProfile = { ...form, firstName, lastName, locked: true } as any;
+    const parts = (form.name ?? "").trim().split(/\s+/);
+    const firstName = parts[0] ?? "";
+    const lastName = parts.slice(1).join(" ") ?? "";
+    const newProfile = { ...form, firstName, lastName, locked: true } as any;
 
-      await db.profile.put(newProfile);
+    await db.profile.put(newProfile);
       console.log("[saveProfile] Profil sparad, navigerar...", { isSetupMode });
       
       if (isSetupMode) {

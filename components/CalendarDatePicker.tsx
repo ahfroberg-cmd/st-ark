@@ -123,19 +123,19 @@ export default function CalendarDatePicker({
               if (forceDirection) {
                 setDirection(forceDirection);
               } else {
-                const rect = rootRef.current.getBoundingClientRect();
-                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+              const rect = rootRef.current.getBoundingClientRect();
+              const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
 
-                // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
-                const calendarHeight = 340;
+              // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
+              const calendarHeight = 340;
 
-                const spaceBelow = viewportHeight - rect.bottom;
-                const spaceAbove = rect.top;
+              const spaceBelow = viewportHeight - rect.bottom;
+              const spaceAbove = rect.top;
 
-                if (spaceBelow < calendarHeight && spaceAbove > spaceBelow) {
-                  setDirection("up");
-                } else {
-                  setDirection("down");
+              if (spaceBelow < calendarHeight && spaceAbove > spaceBelow) {
+                setDirection("up");
+              } else {
+                setDirection("down");
                 }
               }
             }
@@ -194,8 +194,8 @@ export default function CalendarDatePicker({
                 rootRef.current &&
                 !rootRef.current.contains(target)
               ) {
-                e.stopPropagation();
-                setOpen(false);
+              e.stopPropagation();
+              setOpen(false);
               }
             }}
           />

@@ -38,19 +38,19 @@ export async function loadOpenCV(): Promise<typeof globalThis.cv> {
         script.async = true;
         script.onload = () => {
           // Vänta på cv.Mat
-          const start = Date.now();
-          (function waitForCv() {
-            const cv = (window as any).cv;
-            if (cv && cv.Mat) {
-              resolve();
-              return;
-            }
-            if (Date.now() - start > 15000) {
+      const start = Date.now();
+      (function waitForCv() {
+        const cv = (window as any).cv;
+        if (cv && cv.Mat) {
+          resolve();
+          return;
+        }
+        if (Date.now() - start > 15000) {
               reject(new Error("OpenCV timed out waiting for cv.Mat (15s)."));
-              return;
-            }
-            setTimeout(waitForCv, 50);
-          })();
+          return;
+        }
+        setTimeout(waitForCv, 50);
+      })();
         };
         script.onerror = (err) => {
           // Om lokal fil misslyckas, försök CDN

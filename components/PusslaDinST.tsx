@@ -2869,8 +2869,8 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
       return;
     } else {
       // Annars skapa ny kurs
-      setSelectedPlacementId(null);
-      createCourseAt(defaultISO);
+    setSelectedPlacementId(null);
+    createCourseAt(defaultISO);
     }
   }}
 />
@@ -6270,15 +6270,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
                     <button
-                      disabled={!dirty}
-                      onClick={async () => {
-                        if (!dirty) return;
+  disabled={!dirty}
+  onClick={async () => {
+    if (!dirty) return;
                         await savePlacementToDb(selAct);
                       }}
-                      className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      Spara
-                    </button>
+  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+>
+  Spara
+</button>
 
 
           <button
@@ -6817,15 +6817,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
           <button
-            disabled={!dirty}
-            onClick={async () => {
-              if (!dirty) return;
+  disabled={!dirty}
+  onClick={async () => {
+    if (!dirty) return;
               await saveCourseToDb(selCourse);
-            }}
-            className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-          >
-            Spara
-          </button>
+  }}
+  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+>
+  Spara
+</button>
 
 
 
