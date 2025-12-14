@@ -266,10 +266,25 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     : (firstName || lastName || undefined);
 
   // Tjänstgöringsställe för auskultation - gör mer flexibel
-  const clinic = valueAfter(/Tjänstgöringsställe\s+för\s+auskultation/i) ||
-                 valueAfter(/Tjanstgoringsstalle\s+for\s+auskultation/i) ||
-                 valueAfter(/Tjänstgöringsställe.*?auskultation/i) ||
-                 valueAfter(/Tjanstgoringsstalle.*?auskultation/i);
+  let clinic = valueAfter(/Tjänstgöringsställe\s+för\s+auskultation/i) ||
+               valueAfter(/Tjanstgoringsstalle\s+for\s+auskultation/i) ||
+               valueAfter(/Tjänstgöringsställe.*?auskultation/i) ||
+               valueAfter(/Tjanstgoringsstalle.*?auskultation/i);
+  
+  // Fallback: leta direkt i lines om valueAfter misslyckades
+  if (!clinic) {
+    const clinicIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      return (n.includes("tjanstgoringsstalle") || n.includes("tjanstgoringsstalle")) && 
+             (n.includes("auskultation") || n.includes("auskultationen"));
+    });
+    if (clinicIdx >= 0 && clinicIdx + 1 < lines.length) {
+      const nextLine = lines[clinicIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        clinic = nextLine.trim();
+      }
+    }
+  }
   
   console.warn('[Bilaga 8 Parser] clinic:', clinic);
 
