@@ -32,10 +32,15 @@ export function extractPersonnummer(text: string): string | undefined {
 }
 
 export function extractFullNameBlock(text: string): { fullName?: string, firstName?: string, lastName?: string } {
+  // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn"
+  const normalizedText = text
+    .replace(/\bFömamn\b/gi, "Förnamn")
+    .replace(/\bEftemamn\b/gi, "Efternamn");
+  
   // Heuristik: leta efter block med "Efternamn" + "Förnamn" på samma område
   // eller rader som "Fröberg Andreas".
   // OBS: fullName ska vara "Förnamn Efternamn" (förnamn först)
-  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const lines = normalizedText.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   const i = lines.findIndex(l => /efternamn/i.test(l) && /förnamn/i.test(l));
   if (i >= 0 && lines[i+1]) {
     const parts = lines[i+1].split(/\s+/);
@@ -47,7 +52,7 @@ export function extractFullNameBlock(text: string): { fullName?: string, firstNa
     }
   }
   // fallback: första rad som ser ut som "Efternamn Förnamn"
-  const m = text.match(/\n([A-ZÅÄÖ][a-zåäö]+)\s+([A-ZÅÄÖ][a-zåäö]+)\b/);
+  const m = normalizedText.match(/\n([A-ZÅÄÖ][a-zåäö]+)\s+([A-ZÅÄÖ][a-zåäö]+)\b/);
   if (m) {
     const lastName = m[1];
     const firstName = m[2];

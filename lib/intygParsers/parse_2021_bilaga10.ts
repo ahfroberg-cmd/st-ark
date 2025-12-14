@@ -31,7 +31,12 @@ export function parse_2021_bilaga10(text: string, words?: OcrWord[]): ParsedKurs
 }
 
 function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
-  const linesAll = raw
+  // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn"
+  const normalizedRaw = raw
+    .replace(/\bFömamn\b/gi, "Förnamn")
+    .replace(/\bEftemamn\b/gi, "Efternamn");
+  
+  const linesAll = normalizedRaw
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
@@ -406,7 +411,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
  * 4. Obligatoriska fält valideras och smart matching används om något saknas
  */
 function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
-  const lines = raw
+  // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn"
+  const normalizedRaw = raw
+    .replace(/\bFömamn\b/gi, "Förnamn")
+    .replace(/\bEftemamn\b/gi, "Efternamn");
+  
+  const lines = normalizedRaw
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
