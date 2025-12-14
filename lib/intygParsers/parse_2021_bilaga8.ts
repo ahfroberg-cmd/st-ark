@@ -371,8 +371,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
             console.warn('[Bilaga 8 Parser] Ignorerar rad', i, ':', l);
             continue;
           }
-          if (isLabelLine(l)) {
+          // För beskrivning: stoppa INTE vid "Period" om det är första raden efter rubriken
+          // Vi vill ha med beskrivningen även om nästa rad är "Period"
+          const isPeriodLine = n.includes("period") || lLower.includes("period");
+          if (isLabelLine(l) && !isPeriodLine) {
             console.warn('[Bilaga 8 Parser] Stoppar vid rubrik på rad', i, ':', l);
+            break;
+          }
+          // Om det är "Period" och vi redan har samlat något, stoppa
+          if (isPeriodLine && out.length > 0) {
+            console.warn('[Bilaga 8 Parser] Stoppar vid Period på rad', i, ':', l);
             break;
           }
           if (descriptionStopPatterns.some((re) => re.test(l))) {
