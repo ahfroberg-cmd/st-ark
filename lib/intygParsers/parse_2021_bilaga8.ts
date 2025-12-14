@@ -161,17 +161,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    // Först: försök hitta via isLabelLine (mer robust mot OCR-fel)
-    let idx = lines.findIndex((l) => {
-      if (!isLabelLine(l)) return false;
-      return labelRe.test(l);
-    });
-    
-    // Om inte hittat, försök direkt matchning
-    if (idx < 0) {
-      idx = lines.findIndex((l) => labelRe.test(l));
-    }
-    
+    const idx = lines.findIndex((l) => labelRe.test(l));
     if (idx < 0) return undefined;
 
     // "Label: value" på samma rad
