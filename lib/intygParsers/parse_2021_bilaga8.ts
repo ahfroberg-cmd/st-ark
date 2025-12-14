@@ -224,10 +224,23 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Tjänstgöringsställe för auskultation
   const clinic = valueAfter(/Tjänstgöringsställe för auskultation/i, [
     /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Tjanstgoringsstalle for auskultation/i, [
+    /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Tjänstgöringsställe för auskultationen/i, [
+    /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Tjanstgoringsstalle for auskultationen/i, [
+    /Beskrivning av auskultationen/i,
   ]);
 
   // Period
-  const periodText = valueAfter(/Period/i, [
+  const periodText = valueAfter(/Period\s*\(ååmmdd\s*—\s*ååmmdd\)/i, [
+    /Namnförtydligande/i,
+    /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Period/i, [
     /Namnförtydligande/i,
     /Beskrivning av auskultationen/i,
   ]);
@@ -245,10 +258,19 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Tjanstestalle/i,
   ];
   
-  const description = valueAfter(/Beskrivning av auskultationen/i, descriptionStopPatterns);
+  const description = valueAfter(/Beskrivning av auskultationen/i, descriptionStopPatterns) ||
+                      valueAfter(/Beskrivning av auskultation/i, descriptionStopPatterns);
 
   // Delmål (försök rubrikfält först, annars fallback från hela texten)
-  const delmalText = valueAfter(/Delmål som intyget avser/i, [
+  const delmalText = valueAfter(/Delmål som intyget avser\s*\(t\.ex\.\s*STa1,\s*STb1,\s*STc1\)/i, [
+    /Tjänstgöringsställe för auskultation/i,
+    /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Delmål som intyget avser/i, [
+    /Tjänstgöringsställe för auskultation/i,
+    /Beskrivning av auskultationen/i,
+  ]) ||
+  valueAfter(/Delmal som intyget avser/i, [
     /Tjänstgöringsställe för auskultation/i,
     /Beskrivning av auskultationen/i,
   ]);
@@ -271,7 +293,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
 
   // Intygare
-  const supervisorName = valueAfter(/Namnförtydligande/i);
+  const supervisorName = valueAfter(/Namnförtydligande/i) ||
+                         valueAfter(/Namnfortydligande/i);
   // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   const supervisorSpeciality = (() => {
     // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
