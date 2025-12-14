@@ -123,10 +123,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   ];
 
   const lines = linesAll.filter((l) => !IGNORE.some((re) => re.test(l)));
-  console.log('[Bilaga 8 Parser] Lines after IGNORE filter:', lines.length);
-  console.log('[Bilaga 8 Parser] First 30 lines after filter:', lines.slice(0, 30));
+  console.warn('[Bilaga 8 Parser] Lines after IGNORE filter:', lines.length);
+  console.warn('[Bilaga 8 Parser] First 30 lines after filter:', lines.slice(0, 30));
+  // Logga även alla rader för att se exakt vad som finns
+  console.warn('[Bilaga 8 Parser] ALL lines:', lines);
   if (lines.length < 5) {
-    console.log('[Bilaga 8 Parser] RETURNERAR NULL - för få rader efter filter');
+    console.warn('[Bilaga 8 Parser] RETURNERAR NULL - för få rader efter filter');
     return null;
   }
 
@@ -179,10 +181,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     // Exakt samma logik som Bilaga 11 - direkt matchning utan extra kontroller
     const idx = lines.findIndex((l) => labelRe.test(l));
     if (idx < 0) {
-      console.log('[Bilaga 8 Parser] valueAfter: Hittade INTE rubrik:', labelRe.source);
+      console.warn('[Bilaga 8 Parser] valueAfter: Hittade INTE rubrik:', labelRe.source);
+      // Försök hitta med mer flexibel matchning
+      const flexibleIdx = lines.findIndex((l) => {
+        const lower = l.toLowerCase();
+        const pattern = labelRe.source.toLowerCase().replace(/\\b/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return lower.includes(pattern);
+      });
+      if (flexibleIdx >= 0) {
+        console.warn('[Bilaga 8 Parser] valueAfter: Hittade med flexibel matchning på rad', flexibleIdx, ':', lines[flexibleIdx]);
+        // Använd den flexibla matchningen istället
+        const nextLine = lines[flexibleIdx + 1];
+        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+          return nextLine.trim() || undefined;
+        }
+      }
       return undefined;
     }
-    console.log('[Bilaga 8 Parser] valueAfter: Hittade rubrik:', labelRe.source, 'på rad', idx, ':', lines[idx]);
+    console.warn('[Bilaga 8 Parser] valueAfter: Hittade rubrik:', labelRe.source, 'på rad', idx, ':', lines[idx]);
 
     // "Label: value" på samma rad
     const sameLine = lines[idx].split(":").slice(1).join(":").trim();
