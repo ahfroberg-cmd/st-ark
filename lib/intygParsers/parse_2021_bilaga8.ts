@@ -163,30 +163,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    // Försök hitta rubriken - först via isLabelLine, sedan direkt matchning
-    let idx = lines.findIndex((l) => {
-      // Om det är en rubrik-rad och matchar mönstret
-      if (isLabelLine(l) && labelRe.test(l)) return true;
-      // Annars, testa direkt matchning
-      if (labelRe.test(l)) return true;
-      // Testa med normaliserad text
-      const n = norm(l);
-      const labelStr = labelRe.source;
-      // Skapa en normaliserad version av regex (ta bort word boundaries, normalisera mellanslag)
-      const normalizedLabelStr = labelStr
-        .replace(/\\b/g, "")
-        .replace(/\s+/g, "\\s+")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s]/g, "");
-      if (normalizedLabelStr) {
-        const normalizedLabelRe = new RegExp(normalizedLabelStr, "i");
-        if (normalizedLabelRe.test(n)) return true;
-      }
-      return false;
-    });
-    
+    // Exakt samma logik som Bilaga 11 - direkt matchning utan extra kontroller
+    const idx = lines.findIndex((l) => labelRe.test(l));
     if (idx < 0) return undefined;
 
     // "Label: value" på samma rad
