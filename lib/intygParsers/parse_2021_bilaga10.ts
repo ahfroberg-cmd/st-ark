@@ -2,7 +2,7 @@
 import { ExtractedCommon, extractCommon } from "../fieldExtract";
 import type { OcrWord } from "@/lib/ocr";
 import { extractDates } from "@/lib/dateExtract";
-import { normalizeAndSortDelmalCodes2021 } from "./common";
+import { normalizeAndSortDelmalCodes2021, extractDelmalCodes } from "./common";
 
 export type ParsedKurs2021 = ExtractedCommon & {
   type: "KURS";
