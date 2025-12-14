@@ -76,18 +76,20 @@ export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
     // Ta bort alla separerare
     const cleaned = code.trim();
     
-    // Matcha olika format: a1, A1, sta1, Sta1, STA1, STa1, etc.
-    // Förbättrad regex som också hanterar OCR-fel där "1" kan bli "l" eller "I"
-    let match = cleaned.match(/^ST?([abcABC])(\d+)$/i);
+    // Först: försök med OCR-fel-hantering: "al" -> "a1", "bl" -> "b1", etc.
+    let cleanedFixed = cleaned
+      .replace(/^([abcABC])l$/i, '$11')  // "al" -> "a1", "bl" -> "b1", etc.
+      .replace(/^([abcABC])I$/i, '$11')   // "aI" -> "a1", "bI" -> "b1", etc.
+      .replace(/^ST([abcABC])l$/i, 'ST$11')  // "STal" -> "STa1", etc.
+      .replace(/^ST([abcABC])I$/i, 'ST$11'); // "STaI" -> "STa1", etc.
     
-    // Om ingen match, försök med OCR-fel-hantering: "al" -> "a1", "bl" -> "b1", etc.
+    // Matcha olika format: a1, A1, sta1, Sta1, STA1, STa1, etc.
+    // Uppdaterad regex som matchar både med och utan ST-prefix
+    let match = cleanedFixed.match(/^ST?([abcABC])(\d+)$/i);
+    
+    // Om ingen match med ST-prefix, försök utan (bara bokstav + siffra)
     if (!match) {
-      const ocrFixed = cleaned
-        .replace(/^([abcABC])l$/i, '$11')  // "al" -> "a1", "bl" -> "b1", etc.
-        .replace(/^([abcABC])I$/i, '$11')   // "aI" -> "a1", "bI" -> "b1", etc.
-        .replace(/^ST([abcABC])l$/i, 'ST$11')  // "STal" -> "STa1", etc.
-        .replace(/^ST([abcABC])I$/i, 'ST$11'); // "STaI" -> "STa1", etc.
-      match = ocrFixed.match(/^ST?([abcABC])(\d+)$/i);
+      match = cleanedFixed.match(/^([abcABC])(\d+)$/i);
     }
     
     if (match) {
