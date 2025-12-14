@@ -376,7 +376,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   })();
 
   // Om vi fick åtminstone några fält så anser vi att rubrik-parsning lyckades
-  const ok = Boolean(clinic || description || supervisorName || personnummer);
+  // För Bilaga 8: acceptera även om vi bara har delmål eller period
+  const ok = Boolean(clinic || description || supervisorName || personnummer || delmalCodes || period?.startISO || period?.endISO);
   if (!ok) return null;
 
   // Validera och förbättra parsning för tomma fält
