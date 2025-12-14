@@ -20,24 +20,33 @@ export function extractPeriodFromZoneText(periodText: string): { startISO?: stri
 // Delmålkoder: a1..a7, b1.., c1.. (2015) samt STa1..STa7, STb1.., STc1.. (2021)
 export function extractDelmalCodes(text: string): string[] {
   const res = new Set<string>();
-  // Matcha både med och utan ST-prefix: a1, A1, STa1, STA1, etc.
+  // Matcha både med och utan ST-prefix: a1, A1, STa1, STA1, sta1, Sta1, etc.
   // Använd två regex: en för med ST och en för utan ST
-  // Uppdatera för att matcha både versaler och gemener
+  // Uppdatera för att matcha både versaler och gemener, med eller utan ST
   const reWithST = /\b(ST[abcABC][0-9]{1,2})\b/gi;
   // Matcha utan ST: a1, A1, b2, B2, etc. - både versaler och gemener
-  const reWithoutST = /(?:^|[^A-Za-z])([abcABC][0-9]{1,2})(?![A-Za-z0-9])/gi;
+  // Förbättrad regex som matchar även när de är separerade med komma, semikolon eller mellanslag
+  const reWithoutST = /\b([abcABC][0-9]{1,2})\b/gi;
   
   let m: RegExpExecArray | null;
   // Först: matcha med ST-prefix (både versaler och gemener)
   while ((m = reWithST.exec(text))) {
-    res.add(m[1].toUpperCase());
+    res.add(m[1]); // Behåll original (normalizeAndSortDelmalCodes2021 hanterar normalisering)
   }
   // Sedan: matcha utan ST-prefix (men inte om de redan matchats med ST)
   while ((m = reWithoutST.exec(text))) {
-    const code = m[1].toUpperCase();
-    // Kontrollera att det inte redan finns med ST-prefix
-    const withST = `ST${code}`;
-    if (!res.has(withST)) {
+    const code = m[1];
+    // Kontrollera att det inte redan finns med ST-prefix (case-insensitive)
+    const codeUpper = code.toUpperCase();
+    const withSTUpper = `ST${codeUpper}`;
+    let alreadyExists = false;
+    for (const existing of res) {
+      if (existing.toUpperCase() === withSTUpper) {
+        alreadyExists = true;
+        break;
+      }
+    }
+    if (!alreadyExists) {
       res.add(code); // Lägg till utan ST, normalizeAndSortDelmalCodes2021 lägger till ST
     }
   }

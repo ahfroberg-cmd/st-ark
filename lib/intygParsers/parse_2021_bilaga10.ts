@@ -134,14 +134,22 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
       
       if (isTjanstestalle) {
-        // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
+        // För Tjänsteställe: ta BARA nästa rad (inte flera rader) och stanna där
         if (idx + 1 >= lines.length) return undefined;
         const nextLine = lines[idx + 1];
         if (!nextLine) return undefined;
         if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
         if (isLabelLine(nextLine)) return undefined;
         if (stopRes.some((re) => re.test(nextLine))) return undefined;
-        return nextLine.trim() || undefined;
+        // Ta bara första raden, även om det finns fler rader efter
+        // Stoppa också om nästa rad innehåller "FS" eller "HSLF" (för att undvika "FS 2021:81 (1)")
+        const trimmed = nextLine.trim();
+        // Om raden innehåller "FS" eller "HSLF", ta bara delen före det
+        const fsMatch = trimmed.match(/^(.+?)(?:\s+FS\s+|\s+HSLF)/i);
+        if (fsMatch) {
+          return fsMatch[1].trim() || undefined;
+        }
+        return trimmed || undefined;
       } else {
         // För övriga fält: ta bara nästa rad
         if (idx + 1 >= lines.length) return undefined;
