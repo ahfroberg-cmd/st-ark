@@ -178,27 +178,43 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    // Exakt samma logik som Bilaga 11 - direkt matchning utan extra kontroller
-    const idx = lines.findIndex((l) => labelRe.test(l));
+    // Försök hitta rubriken - testa både direkt matchning och flexibel matchning
+    let idx = lines.findIndex((l) => labelRe.test(l));
+    
+    // Om inte hittat, försök med mer flexibel matchning (ta bort word boundaries och specialtecken)
+    if (idx < 0) {
+      const patternStr = labelRe.source
+        .replace(/\\b/g, '')
+        .replace(/[.*+?^${}()|[\]\\]/g, '')
+        .replace(/\\s\+/g, '\\s*')
+        .toLowerCase();
+      const flexibleRe = new RegExp(patternStr, 'i');
+      idx = lines.findIndex((l) => flexibleRe.test(l));
+    }
+    
     if (idx < 0) {
       console.warn('[Bilaga 8 Parser] valueAfter: Hittade INTE rubrik:', labelRe.source);
-      // Försök hitta med mer flexibel matchning
-      const flexibleIdx = lines.findIndex((l) => {
-        const lower = l.toLowerCase();
-        const pattern = labelRe.source.toLowerCase().replace(/\\b/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return lower.includes(pattern);
-      });
-      if (flexibleIdx >= 0) {
-        console.warn('[Bilaga 8 Parser] valueAfter: Hittade med flexibel matchning på rad', flexibleIdx, ':', lines[flexibleIdx]);
-        // Använd den flexibla matchningen istället
-        const nextLine = lines[flexibleIdx + 1];
-        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-          return nextLine.trim() || undefined;
+      // Ytterligare försök: leta efter delar av mönstret
+      const patternWords = labelRe.source
+        .replace(/[.*+?^${}()|[\]\\]/g, ' ')
+        .replace(/\\b|\\s\+/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 2)
+        .map(w => w.toLowerCase());
+      if (patternWords.length > 0) {
+        const firstWord = patternWords[0];
+        idx = lines.findIndex((l) => {
+          const lower = l.toLowerCase();
+          return lower.includes(firstWord) && patternWords.every(w => lower.includes(w));
+        });
+        if (idx >= 0) {
+          console.warn('[Bilaga 8 Parser] valueAfter: Hittade med ord-baserad matchning på rad', idx, ':', lines[idx]);
         }
       }
-      return undefined;
+      if (idx < 0) return undefined;
+    } else {
+      console.warn('[Bilaga 8 Parser] valueAfter: Hittade rubrik:', labelRe.source, 'på rad', idx, ':', lines[idx]);
     }
-    console.warn('[Bilaga 8 Parser] valueAfter: Hittade rubrik:', labelRe.source, 'på rad', idx, ':', lines[idx]);
 
     // "Label: value" på samma rad
     const sameLine = lines[idx].split(":").slice(1).join(":").trim();
@@ -724,3 +740,4 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
     supervisorSite: supervisorSite || undefined,
   };
 }
+
