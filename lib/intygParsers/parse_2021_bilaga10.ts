@@ -133,12 +133,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
       
       if (isTjanstestalle) {
-        // För Tjänsteställe: ta alla rader tills nästa rubrik/stopp
+        // För Tjänsteställe: ta alla rader tills nästa rubrik/stopp eller HSLF
         const out: string[] = [];
         for (let i = idx + 1; i < lines.length; i++) {
           const l = lines[i];
           if (!l) break;
-          if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
+          if (shouldIgnoreLine(l)) {
+            // Om det är HSLF, stoppa här (men inkludera inte HSLF-raden)
+            if (/^HSLF/i.test(l.trim())) break;
+            continue; // Hoppa över andra ignorerbara rader
+          }
           // Stoppa vid nästa rubrik (men inte om det är samma rubrik igen)
           if (isLabelLine(l) && !labelRe.test(l)) break;
           if (stopRes.some((re) => re.test(l))) break;
@@ -274,12 +278,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1];
           if (nextLine && !isLabelLine(nextLine)) {
-            // Ta alla rader tills nästa rubrik
+            // Ta alla rader tills nästa rubrik eller HSLF
             const valueLines: string[] = [];
             for (let j = i + 1; j < lines.length; j++) {
               const l = lines[j];
               if (!l) break;
-              if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
+              if (shouldIgnoreLine(l)) {
+                // Om det är HSLF, stoppa här (men inkludera inte HSLF-raden)
+                if (/^HSLF/i.test(l.trim())) break;
+                continue; // Hoppa över andra ignorerbara rader
+              }
               if (isLabelLine(l) && !/tjanstestalle/i.test(l)) break;
               valueLines.push(l);
             }
@@ -493,11 +501,18 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
       const rubricText = rMatch[1].trim();
       if (!rubricText) continue;
 
+      // Kolla om detta är "Tjänsteställe" (sista rubriken, ska stanna vid HSLF)
+      const nRubric = norm(rubricText);
+      const isTjanstestalleRubric = nRubric.includes("tjanstestalle");
+
       // Samla alla icke-X-rader tills nästa R-rad eller S-rad
       const valueLines: string[] = [];
       for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j].trim();
         if (!nextLine) continue;
+
+        // För Tjänsteställe: stoppa vid HSLF (men inkludera inte HSLF-raden)
+        if (isTjanstestalleRubric && /^HSLF/i.test(nextLine.trim())) break;
 
         // Stoppa vid nästa R-rad eller S-rad
         if (/^[Rr](?:\d+)?\s/.test(nextLine) || /^[Ss]\s/.test(nextLine)) break;
@@ -505,7 +520,7 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
         // Ignorera X-rader
         if (/^[xX]\b/.test(nextLine)) continue;
         
-        // Ignorera HSLF- FS-rader
+        // Ignorera HSLF- FS-rader (men för Tjänsteställe har vi redan stoppat ovan)
         if (shouldIgnoreLineAnnotated(nextLine)) continue;
 
         // Om det är en T-rad med samma ID (om R hade ID), använd den och stoppa
@@ -753,8 +768,12 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
               continue;
             }
             
-            // Ignorera HSLF- FS-rader
-            if (shouldIgnoreLineAnnotated(line)) continue;
+            // Ignorera HSLF- FS-rader (stoppa vid HSLF för Tjänsteställe)
+            if (shouldIgnoreLineAnnotated(line)) {
+              // Om det är HSLF, stoppa här (men inkludera inte HSLF-raden)
+              if (/^HSLF/i.test(line.trim())) break;
+              continue;
+            }
             
             // Om raden ser ut som ett värde (inte för kort, inte för lång)
             if (line.length > 2 && line.length < 100 && !/^\d+$/.test(line)) {
