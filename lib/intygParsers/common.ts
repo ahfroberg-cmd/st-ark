@@ -20,13 +20,15 @@ export function extractPeriodFromZoneText(periodText: string): { startISO?: stri
 // Delmålkoder: a1..a7, b1.., c1.. (2015) samt STa1..STa7, STb1.., STc1.. (2021)
 export function extractDelmalCodes(text: string): string[] {
   const res = new Set<string>();
-  // Matcha både med och utan ST-prefix: a1, A1, STa1, STa1, etc.
+  // Matcha både med och utan ST-prefix: a1, A1, STa1, STA1, etc.
   // Använd två regex: en för med ST och en för utan ST
-  const reWithST = /\b(ST[abc][0-9]{1,2})\b/gi;
-  const reWithoutST = /(?:^|[^A-Za-z])([abc][0-9]{1,2})(?![A-Za-z0-9])/gi;
+  // Uppdatera för att matcha både versaler och gemener
+  const reWithST = /\b(ST[abcABC][0-9]{1,2})\b/gi;
+  // Matcha utan ST: a1, A1, b2, B2, etc. - både versaler och gemener
+  const reWithoutST = /(?:^|[^A-Za-z])([abcABC][0-9]{1,2})(?![A-Za-z0-9])/gi;
   
   let m: RegExpExecArray | null;
-  // Först: matcha med ST-prefix
+  // Först: matcha med ST-prefix (både versaler och gemener)
   while ((m = reWithST.exec(text))) {
     res.add(m[1].toUpperCase());
   }
