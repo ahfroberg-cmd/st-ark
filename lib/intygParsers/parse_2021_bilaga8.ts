@@ -3,7 +3,16 @@ import { ExtractedCommon, extractCommon } from "../fieldExtract";
 import type { OcrWord } from "@/lib/ocr";
 import { extractDates } from "@/lib/dateExtract";
 import type { ParsedIntyg } from "./types";
-import { normalizeAndSortDelmalCodes2021 } from "./common";
+import { 
+  normalizeAndSortDelmalCodes2021,
+  extractDelmalCodes,
+  extractPersonnummer,
+  extractFullNameBlock,
+  extractSpecialty,
+  extractBlockAfterLabel,
+  extractClinicAndPeriodFromLine,
+  fallbackPeriod
+} from "./common";
 
 export function parse_2021_bilaga8(text: string, words?: OcrWord[]): ParsedIntyg {
   // 1) Om användaren har annoterat med X/R/T, använd det först (mycket mer robust).
@@ -43,81 +52,6 @@ export function parse_2021_bilaga8(text: string, words?: OcrWord[]): ParsedIntyg
 function matchLine(text: string, re: RegExp): string {
   const m = text.split(/\r?\n/).find(l => re.test(l));
   return m ?? "";
-}
-
-function extractDelmalCodes(text: string): string[] {
-  const res = new Set<string>();
-  const re = /\b(ST?[abc][0-9]{1,2})\b/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) res.add(m[1].toUpperCase());
-  return Array.from(res);
-}
-
-function extractPersonnummer(text: string): string | undefined {
-  const m = text.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/);
-  return m ? m[0].replace(/\s+/g, "") : undefined;
-}
-
-function extractFullNameBlock(text: string): { fullName?: string, firstName?: string, lastName?: string } {
-  // Normalisera vanliga OCR-fel för Förnamn/Efternamn
-  const normalizedText = text
-    .replace(/Fömamn/gi, "Förnamn")
-    .replace(/Eftemamn/gi, "Efternamn");
-
-  const lines = normalizedText.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  
-  let firstName: string | undefined;
-  let lastName: string | undefined;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const n = norm(line);
-    
-    if (n.includes("fornamn") && !n.includes("efternamn")) {
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (nextLine && !isLabelLine(nextLine)) {
-          firstName = nextLine;
-        }
-      }
-    }
-    
-    if (n.includes("efternamn") && !n.includes("fornamn")) {
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        if (nextLine && !isLabelLine(nextLine)) {
-          lastName = nextLine;
-        }
-      }
-    }
-  }
-
-  const fullName = firstName && lastName 
-    ? `${firstName.trim()} ${lastName.trim()}`.trim()
-    : (firstName || lastName || undefined);
-
-  return { fullName, firstName, lastName };
-}
-
-function extractSpecialty(text: string): string | undefined {
-  const m = text.match(/Specialitet\s+som\s+ansökan\s+avser[^\n]*\n([^\n]+)/i);
-  return m ? m[1].trim() : undefined;
-}
-
-function extractBlockAfterLabel(text: string, labelRe: RegExp): string | undefined {
-  const m = text.match(new RegExp(labelRe.source + "[^\n]*\n([\\s\\S]+?)(?=\\n\\s*(?:Namnteckning|Ort och datum|Personnummer|Intygsutfärdande|Namnförtydligande|Specialitet|Tjänsteställe|$))", "i"));
-  return m ? m[1].trim() : undefined;
-}
-
-function extractClinicAndPeriodFromLine(line: string): { clinic?: string, period?: { startISO?: string, endISO?: string } } {
-  const clinicMatch = line.match(/Tjänstgöringsställe[^\n]*:\s*([^\n]+)/i);
-  const clinic = clinicMatch ? clinicMatch[1].trim() : undefined;
-  const period = extractDates(line);
-  return { clinic, period };
-}
-
-function fallbackPeriod(text: string): { startISO?: string, endISO?: string } | undefined {
-  return extractDates(text);
 }
 
 function norm(s: string): string {
