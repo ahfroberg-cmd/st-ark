@@ -496,6 +496,20 @@ export default function ScanIntygModal({
     setBusy(true);
 
     try {
+      // För Bilaga 10 och 11: kontrollera att datum är valt
+      if (kind === "2021-B10-KURS" || kind === "2021-B11-UTV") {
+        const hasStartDate = !!(parsed as any)?.period?.startISO;
+        const hasEndDate = !!(parsed as any)?.period?.endISO;
+        
+        if (!hasStartDate && !hasEndDate) {
+          setWarning(
+            "Du måste ange datum för placering i tidslinjen innan du kan spara intyget."
+          );
+          setBusy(false);
+          return; // Stoppa sparandet och stäng inte fönstret
+        }
+      }
+
       // Kontrollera överlappande datum innan sparandet
       const overlapCheck = await checkOverlappingDates();
       if (overlapCheck.hasOverlap) {
@@ -1265,155 +1279,110 @@ export default function ScanIntygModal({
                       </div>
                     </div>
                   )}
-                  {/* För 2021 kurser: kryssruta + conditional date pickers */}
+                  {/* För 2021 kurser: alltid visa date pickers */}
                   {kind === "2021-B10-KURS" && (
                     <div className="space-y-3">
-                      <label className="inline-flex items-center gap-2 text-sm text-slate-900">
-                        <input
-                          type="checkbox"
-                          checked={!!(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setParsed((p: any) => {
-                              if (!checked) {
-                                // Ta bort datum när kryssrutan avmarkeras
-                                return {
-                                  ...p,
-                                  period: undefined,
-                                  showOnTimeline: false,
-                                  showAsInterval: false,
-                                };
-                              }
-                              return {
-                                ...p,
-                                showOnTimeline: true,
-                              };
-                            });
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-300"
-                        />
-                        <span>Ange kursdatum för placering i Tidslinjen</span>
+                      <label className="block text-sm font-medium text-slate-900">
+                        Ange datum för placering i Tidslinjen
                       </label>
-                      {(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline) && (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 pl-6">
-                          <div>
-                            <CalendarDatePicker
-                              label="Start"
-                              value={parsed?.period?.startISO ?? ""}
-                              onChange={(iso) =>
-                                setParsed((p: any) => ({
-                                  ...p,
-                                  period: {
-                                    ...(p?.period ?? {}),
-                                    startISO: iso,
-                                  },
-                                }))
-                              }
-                              align="left"
-                            />
-                          </div>
-                          <div>
-                            <CalendarDatePicker
-                              label="Slut"
-                              value={parsed?.period?.endISO ?? ""}
-                              onChange={(iso) =>
-                                setParsed((p: any) => ({
-                                  ...p,
-                                  period: {
-                                    ...(p?.period ?? {}),
-                                    endISO: iso,
-                                  },
-                                }))
-                              }
-                              align="right"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-900 mb-1">
-                              Visa i tidslinjen
-                            </label>
-                            <select
-                              value={(parsed as any)?.showAsInterval ? "interval" : "date"}
-                              onChange={(e) =>
-                                setParsed((p: any) => ({
-                                  ...p,
-                                  showAsInterval: e.target.value === "interval",
-                                }))
-                              }
-                              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                            >
-                              <option value="date">Enbart slutdatum</option>
-                              <option value="interval">Start till slut</option>
-                            </select>
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div>
+                          <CalendarDatePicker
+                            label="Start"
+                            value={parsed?.period?.startISO ?? ""}
+                            onChange={(iso) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                period: {
+                                  ...(p?.period ?? {}),
+                                  startISO: iso,
+                                },
+                                showOnTimeline: true,
+                              }))
+                            }
+                            align="left"
+                          />
                         </div>
-                      )}
+                        <div>
+                          <CalendarDatePicker
+                            label="Slut"
+                            value={parsed?.period?.endISO ?? ""}
+                            onChange={(iso) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                period: {
+                                  ...(p?.period ?? {}),
+                                  endISO: iso,
+                                },
+                                showOnTimeline: true,
+                              }))
+                            }
+                            align="right"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-900 mb-1">
+                            Visa i tidslinjen
+                          </label>
+                          <select
+                            value={(parsed as any)?.showAsInterval ? "interval" : "date"}
+                            onChange={(e) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                showAsInterval: e.target.value === "interval",
+                              }))
+                            }
+                            className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                          >
+                            <option value="date">Enbart slutdatum</option>
+                            <option value="interval">Start till slut</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   )}
-                  {/* För 2021 utvecklingsarbete: kryssruta + conditional date pickers (utan rullista) */}
+                  {/* För 2021 utvecklingsarbete: alltid visa date pickers */}
                   {kind === "2021-B11-UTV" && (
                     <div className="space-y-3">
-                      <label className="inline-flex items-center gap-2 text-sm text-slate-900">
-                        <input
-                          type="checkbox"
-                          checked={!!(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setParsed((p: any) => {
-                              if (!checked) {
-                                // Ta bort datum när kryssrutan avmarkeras
-                                return {
-                                  ...p,
-                                  period: undefined,
-                                  showOnTimeline: false,
-                                };
-                              }
-                              return {
-                                ...p,
-                                showOnTimeline: true,
-                              };
-                            });
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-300"
-                        />
-                        <span>Ange datum för placering i Tidslinjen</span>
+                      <label className="block text-sm font-medium text-slate-900">
+                        Ange datum för placering i Tidslinjen
                       </label>
-                      {(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline) && (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 pl-6">
-                          <div>
-                            <CalendarDatePicker
-                              label="Start"
-                              value={parsed?.period?.startISO ?? ""}
-                              onChange={(iso) =>
-                                setParsed((p: any) => ({
-                                  ...p,
-                                  period: {
-                                    ...(p?.period ?? {}),
-                                    startISO: iso,
-                                  },
-                                }))
-                              }
-                              align="left"
-                            />
-                          </div>
-                          <div>
-                            <CalendarDatePicker
-                              label="Slut"
-                              value={parsed?.period?.endISO ?? ""}
-                              onChange={(iso) =>
-                                setParsed((p: any) => ({
-                                  ...p,
-                                  period: {
-                                    ...(p?.period ?? {}),
-                                    endISO: iso,
-                                  },
-                                }))
-                              }
-                              align="right"
-                            />
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                          <CalendarDatePicker
+                            label="Start"
+                            value={parsed?.period?.startISO ?? ""}
+                            onChange={(iso) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                period: {
+                                  ...(p?.period ?? {}),
+                                  startISO: iso,
+                                },
+                                showOnTimeline: true,
+                              }))
+                            }
+                            align="left"
+                          />
                         </div>
-                      )}
+                        <div>
+                          <CalendarDatePicker
+                            label="Slut"
+                            value={parsed?.period?.endISO ?? ""}
+                            onChange={(iso) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                period: {
+                                  ...(p?.period ?? {}),
+                                  endISO: iso,
+                                },
+                                showOnTimeline: true,
+                              }))
+                            }
+                            align="right"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
