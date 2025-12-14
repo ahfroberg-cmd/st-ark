@@ -271,22 +271,38 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
                valueAfter(/Tjänstgöringsställe.*?auskultation/i) ||
                valueAfter(/Tjanstgoringsstalle.*?auskultation/i);
   
+  console.warn('[Bilaga 8 Parser] clinic efter valueAfter:', clinic);
+  
   // Fallback: leta direkt i lines om valueAfter misslyckades
   if (!clinic) {
-    const clinicIdx = lines.findIndex((l) => {
-      const n = norm(l);
-      return (n.includes("tjanstgoringsstalle") || n.includes("tjanstgoringsstalle")) && 
-             (n.includes("auskultation") || n.includes("auskultationen"));
-    });
-    if (clinicIdx >= 0 && clinicIdx + 1 < lines.length) {
-      const nextLine = lines[clinicIdx + 1];
-      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-        clinic = nextLine.trim();
+    console.warn('[Bilaga 8 Parser] Försöker fallback för clinic...');
+    // Försök hitta rubriken med olika varianter
+    const clinicPatterns = [
+      /tjanstgoringsstalle.*?auskultation/i,
+      /tjanstgoringsstalle.*?auskultationen/i,
+      /tjanstgoringsstalle.*?for.*?auskultation/i,
+    ];
+    
+    for (const pattern of clinicPatterns) {
+      const clinicIdx = lines.findIndex((l) => pattern.test(l));
+      if (clinicIdx >= 0) {
+        console.warn('[Bilaga 8 Parser] Hittade clinic-rubrik på rad', clinicIdx, ':', lines[clinicIdx]);
+        if (clinicIdx + 1 < lines.length) {
+          const nextLine = lines[clinicIdx + 1];
+          console.warn('[Bilaga 8 Parser] Nästa rad:', nextLine);
+          if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+            clinic = nextLine.trim();
+            console.warn('[Bilaga 8 Parser] Clinic satt till:', clinic);
+            break;
+          } else {
+            console.warn('[Bilaga 8 Parser] Nästa rad ignoreras eller är en rubrik');
+          }
+        }
       }
     }
   }
   
-  console.warn('[Bilaga 8 Parser] clinic:', clinic);
+  console.warn('[Bilaga 8 Parser] clinic slutgiltigt:', clinic);
 
   // Period - gör mer flexibel
   const periodText = valueAfter(/Period/i) ||
@@ -310,30 +326,52 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
                     valueAfter(/Beskrivning\s+av\s+auskultation/i, descriptionStopPatterns) ||
                     valueAfter(/Beskrivning.*?auskultation/i, descriptionStopPatterns);
   
+  console.warn('[Bilaga 8 Parser] description efter valueAfter:', description);
+  
   // Fallback: leta direkt i lines om valueAfter misslyckades
   if (!description) {
-    const descIdx = lines.findIndex((l) => {
-      const n = norm(l);
-      return n.includes("beskrivning") && (n.includes("auskultation") || n.includes("auskultationen"));
-    });
-    if (descIdx >= 0) {
-      // Samla alla rader tills nästa rubrik
-      const out: string[] = [];
-      for (let i = descIdx + 1; i < lines.length; i++) {
-        const l = lines[i];
-        if (!l) break;
-        if (shouldIgnoreLine(l)) continue;
-        if (isLabelLine(l)) break;
-        if (descriptionStopPatterns.some((re) => re.test(l))) break;
-        out.push(l);
-      }
-      if (out.length > 0) {
-        description = out.join("\n").trim();
+    console.warn('[Bilaga 8 Parser] Försöker fallback för description...');
+    // Försök hitta rubriken med olika varianter
+    const descPatterns = [
+      /beskrivning.*?auskultationen/i,
+      /beskrivning.*?auskultation/i,
+      /beskrivning.*?av.*?auskultation/i,
+    ];
+    
+    for (const pattern of descPatterns) {
+      const descIdx = lines.findIndex((l) => pattern.test(l));
+      if (descIdx >= 0) {
+        console.warn('[Bilaga 8 Parser] Hittade description-rubrik på rad', descIdx, ':', lines[descIdx]);
+        // Samla alla rader tills nästa rubrik
+        const out: string[] = [];
+        for (let i = descIdx + 1; i < lines.length; i++) {
+          const l = lines[i];
+          if (!l) break;
+          if (shouldIgnoreLine(l)) {
+            console.warn('[Bilaga 8 Parser] Ignorerar rad', i, ':', l);
+            continue;
+          }
+          if (isLabelLine(l)) {
+            console.warn('[Bilaga 8 Parser] Stoppar vid rubrik på rad', i, ':', l);
+            break;
+          }
+          if (descriptionStopPatterns.some((re) => re.test(l))) {
+            console.warn('[Bilaga 8 Parser] Stoppar vid stoppmönster på rad', i, ':', l);
+            break;
+          }
+          out.push(l);
+          console.warn('[Bilaga 8 Parser] Lägger till rad', i, ':', l);
+        }
+        if (out.length > 0) {
+          description = out.join("\n").trim();
+          console.warn('[Bilaga 8 Parser] Description satt till:', description);
+          break;
+        }
       }
     }
   }
   
-  console.warn('[Bilaga 8 Parser] description:', description);
+  console.warn('[Bilaga 8 Parser] description slutgiltigt:', description);
 
   // Delmål (försök rubrikfält först, annars fallback från hela texten)
   const delmalText = valueAfter(/Delmål\s+som\s+intyget\s+avser/i) ||
