@@ -116,7 +116,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /\bRensa\b/i,
     /\bom\s+genomförd\s+utbildningsaktivitet/i,
     /\bSökande\b/i,
-    /\bAuskultation\b/i,
+    /^Auskultation\s*$/i, // Bara rader som BÖRJAR med "Auskultation" (rubrik), inte rader som innehåller "auskultation" i texten
     /\bIntygsutfärdande\s+handledare/i,
     /\bintygar\s+att\s+sökanden/i,
     /\bbedömer\s+att\s+han\s+eller\s+hon/i,
