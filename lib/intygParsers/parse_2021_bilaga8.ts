@@ -206,19 +206,23 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       return nextLine.trim() || undefined;
     }
 
-    // För övriga fält: ta alla rader tills nästa rubrik
-    const out: string[] = [];
-    for (let i = idx + 1; i < lines.length; i++) {
-      const l = lines[i];
-      if (!l) break;
-      if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
-      // Stoppa vid nästa rubrik
-      if (isLabelLine(l)) break;
-      // Stoppa vid stoppord
-      if (stopBefore.some((re) => re.test(l))) break;
-      out.push(l);
-    }
-    return out.join("\n").trim() || undefined;
+      // Kontrollera om rubriken ska ignoreras
+      const shouldIgnoreRubric = ignoredRubrics.some((re) => re.test(lines[idx]));
+      if (shouldIgnoreRubric) return undefined;
+
+      // För övriga fält: ta alla rader tills nästa rubrik
+      const out: string[] = [];
+      for (let i = idx + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (!l) break;
+        if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
+        // Stoppa vid nästa rubrik
+        if (isLabelLine(l)) break;
+        // Stoppa vid stoppord
+        if (stopBefore.some((re) => re.test(l))) break;
+        out.push(l);
+      }
+      return out.join("\n").trim() || undefined;
   };
 
   // Stoppord för beskrivningen
@@ -229,6 +233,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Namnförtydligande/i,
     /^Specialitet/i,
     /^Tjänsteställe/i,
+  ];
+
+  // Rubriker som ska ignoreras (inte inkluderas i formuläret)
+  const ignoredRubrics = [
+    /^Namnteckning/i,
+    /^Ort och datum/i,
+    /^Personnummer\s*\(gäller endast handledare\)/i,
   ];
 
   // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
