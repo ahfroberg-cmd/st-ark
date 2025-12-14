@@ -3,6 +3,7 @@ import { ExtractedCommon, extractCommon } from "../fieldExtract";
 import type { OcrWord } from "@/lib/ocr";
 import { extractDates } from "@/lib/dateExtract";
 import type { ParsedIntyg } from "./types";
+import { normalizeAndSortDelmalCodes2021 } from "./common";
 
 export function parse_2021_bilaga11(text: string, words?: OcrWord[]): ParsedIntyg {
   // 1) Om användaren har annoterat med X/R/T, använd det först (mycket mer robust).
@@ -190,8 +191,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /Utvecklingsarbetets amne/i,
     /Beskrivning av ST-läkarens deltagande/i,
   ]);
-  const delmalCodes =
+  const rawDelmalCodes =
     (delmalText ? extractCommon(delmalText).delmalCodes : undefined) ?? base.delmalCodes;
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
 
   // Personnummer (rubrikfält eller fallback) - men ignorera om det är en rubrik-rad
   const pnrText = valueAfter(/Personnummer/i) || lines.join(" ");
@@ -207,8 +210,38 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Intygare
   const supervisorName = valueAfter(/Namnförtydligande/i);
-  const supervisorSpeciality = valueAfter(/Specialitet/i, [/Tjänsteställe/i, /Tjanstestalle/i]);
-  const supervisorSite = valueAfter(/Tjänsteställe/i) || valueAfter(/Tjanstestalle/i);
+  // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
+  const supervisorSpeciality = (() => {
+    // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+    const idx = lines.findIndex((l) => {
+      const n = norm(l);
+      return n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+    });
+    if (idx < 0) return undefined;
+    
+    // Ta nästa rad (inte flera)
+    if (idx + 1 >= lines.length) return undefined;
+    const nextLine = lines[idx + 1];
+    if (!nextLine || shouldIgnoreLine(nextLine) || isLabelLine(nextLine)) return undefined;
+    return nextLine.trim() || undefined;
+  })();
+  // Tjänsteställe: bara FÖLJANDE RAD ska inkluderas
+  const supervisorSite = (() => {
+    const idx = lines.findIndex((l) => /Tjänsteställe/i.test(l) || /Tjanstestalle/i.test(l));
+    if (idx < 0) return undefined;
+    
+    // Ta BARA nästa rad (inte flera)
+    if (idx + 1 >= lines.length) return undefined;
+    const nextLine = lines[idx + 1];
+    if (!nextLine) return undefined;
+    if (shouldIgnoreLine(nextLine)) {
+      // Om nästa rad är HSLF, returnera undefined
+      if (/^HSLF/i.test(nextLine.trim())) return undefined;
+      return undefined;
+    }
+    if (isLabelLine(nextLine)) return undefined;
+    return nextLine.trim() || undefined;
+  })();
 
   // Om vi fick åtminstone titel/subject eller beskrivning så anser vi att rubrik-parsning lyckades
   const ok = Boolean(subject || description || supervisorName || personnummer);
@@ -375,7 +408,28 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
       const rubricText = rMatch[1].trim();
       if (!rubricText) continue;
 
-      // Samla alla icke-X-rader tills nästa R-rad
+      // Kolla om detta är "Tjänsteställe" (bara FÖLJANDE RAD ska inkluderas)
+      const nRubric = norm(rubricText);
+      const isTjanstestalleRubric = nRubric.includes("tjanstestalle");
+
+      // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
+      if (isTjanstestalleRubric) {
+        if (i + 1 < lines.length) {
+          const nextLine = lines[i + 1].trim();
+          if (nextLine && !/^[Rr](?:\d+)?\s/.test(nextLine) && !/^[xX]\b/.test(nextLine)) {
+            // Om nästa rad är HSLF, hoppa över
+            if (/^HSLF/i.test(nextLine.trim())) {
+              continue;
+            }
+            if (!shouldIgnoreLineAnnotated(nextLine)) {
+              rubricToValue.set(norm(rubricText), nextLine);
+            }
+          }
+        }
+        continue;
+      }
+
+      // För övriga rubriker: samla alla icke-X-rader tills nästa R-rad
       const valueLines: string[] = [];
       for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j].trim();
@@ -463,9 +517,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
 
   // Delmål
   let delmalValue = findValueByRubric(["Delmål som intyget avser", "Delmal som intyget avser"]);
-  const delmalCodes = delmalValue 
+  const rawDelmalCodes = delmalValue 
     ? extractCommon(delmalValue).delmalCodes 
     : base.delmalCodes;
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
 
   // Specialitet som ansökan avser
   let specialtyHeaderRaw = findValueByRubric(["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
@@ -473,8 +529,56 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
 
   // Intygare
   const supervisorName = findValueByRubric(["Namnförtydligande", "Namnfortydligande"]);
-  const supervisorSpeciality = findValueByRubric(["Specialitet"]);
-  const supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
+  // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
+  const supervisorSpeciality = (() => {
+    // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+    for (const [rubricNorm, value] of rubricToValue.entries()) {
+      if (
+        (rubricNorm.includes("specialitet") && !rubricNorm.includes("ansokan") && !rubricNorm.includes("ansökan")) ||
+        rubricNorm === "specialitet"
+      ) {
+        return value;
+      }
+    }
+    return undefined;
+  })();
+  // Tjänsteställe: bara FÖLJANDE RAD ska inkluderas
+  const supervisorSite = (() => {
+    // Hitta rubriken "Tjänsteställe" i rubricToValue
+    for (const [rubricNorm, value] of rubricToValue.entries()) {
+      if (rubricNorm.includes("tjanstestalle")) {
+        // För Tjänsteställe: ta bara första raden (inte flera rader)
+        const firstLine = value.split(/\r?\n/)[0]?.trim();
+        return firstLine || undefined;
+      }
+    }
+    // Om inte hittat i rubricToValue, leta i råtexten
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^[Rr](?:\d+)?\s/.test(line)) {
+        const rMatch = /^[Rr](?:\d+)?\s+(.*)$/.exec(line);
+        if (rMatch) {
+          const rubricText = rMatch[1].trim();
+          const n = norm(rubricText);
+          if (n.includes("tjanstestalle")) {
+            // Ta BARA nästa rad (inte flera)
+            if (i + 1 < lines.length) {
+              const nextLine = lines[i + 1].trim();
+              if (nextLine && !/^[Rr](?:\d+)?\s/.test(nextLine) && !/^[xX]\b/.test(nextLine)) {
+                if (shouldIgnoreLineAnnotated(nextLine)) {
+                  // Om nästa rad är HSLF, returnera undefined
+                  if (/^HSLF/i.test(nextLine.trim())) return undefined;
+                  continue;
+                }
+                return nextLine;
+              }
+            }
+          }
+        }
+      }
+    }
+    return undefined;
+  })();
 
   return {
     kind: "2021-B11-UTV",

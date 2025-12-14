@@ -4,7 +4,7 @@ import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, 
-  fallbackPeriod, extractPeriodFromZoneText
+  fallbackPeriod, extractPeriodFromZoneText, normalizeAndSortDelmalCodes2021
 } from "./common";
 import { extractZonesFromWords, zones_2021_B9_KLIN } from "@/lib/ocr";
 
@@ -40,7 +40,9 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromIma
     const personnummer = zones.personnummer?.trim().replace(/\s+/g, "") || undefined;
     
     // Extrahera delmål från zon
-    const delmalCodes = extractDelmalCodes(zones.delmal || "");
+    const rawDelmalCodes = extractDelmalCodes(zones.delmal || "");
+    // Normalisera och sortera delmål för 2021
+    const delmalCodes = rawDelmalCodes.length > 0 ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
     
     // Extrahera period från period-zon
     const period = extractPeriodFromZoneText(zones.period || "");
@@ -66,7 +68,7 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromIma
       lastName: lastName || undefined,
       personnummer,
       specialtyHeader,
-      delmalCodes: delmalCodes.length > 0 ? delmalCodes : undefined,
+      delmalCodes,
       clinic,
       period: period || fallbackPeriod(text),
       description,
@@ -77,7 +79,9 @@ export function parse_2021_bilaga9(text: string, words?: OcrWord[], zonesFromIma
   }
   
   // Fallback till smart logik om inga words finns (bakåtkompatibilitet)
-  const delmalCodes = extractDelmalCodes(text);
+  const rawDelmalCodes = extractDelmalCodes(text);
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes.length > 0 ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
   const { fullName, firstName, lastName } = extractFullNameBlock(text);
   const personnummer = extractPersonnummer(text);
   const specialtyHeader = extractSpecialty(text);
@@ -208,7 +212,7 @@ function parseByHeadings(raw: string): ParsedIntyg | null {
       buff.push(l);
     }
     const codes = extractDelmalCodes(buff.join(" "));
-    if (codes.length) delmalCodes = codes;
+    if (codes.length) delmalCodes = normalizeAndSortDelmalCodes2021(codes);
   }
 
   const clinic = takeValueAfter(findLabelIndex(labelClinic));
@@ -427,7 +431,9 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
   const clinic = valueFor(findIdByLabel("Tjänstgöringsställe för klinisk tjänstgöring"));
 
   const delmalRaw = valueFor(findIdByLabel("Delmål som intyget avser")) || "";
-  const delmalCodes = extractDelmalCodes(delmalRaw);
+  const rawDelmalCodes = extractDelmalCodes(delmalRaw);
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes.length > 0 ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : [];
 
   const periodText = valueFor(findIdByLabel("Period")) || "";
   const period = extractPeriodFromZoneText(periodText) || fallbackPeriod(raw);

@@ -2,6 +2,7 @@
 import { ExtractedCommon, extractCommon } from "../fieldExtract";
 import type { OcrWord } from "@/lib/ocr";
 import { extractDates } from "@/lib/dateExtract";
+import { normalizeAndSortDelmalCodes2021 } from "./common";
 
 export type ParsedKurs2021 = ExtractedCommon & {
   type: "KURS";
@@ -133,22 +134,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
       
       if (isTjanstestalle) {
-        // För Tjänsteställe: ta alla rader tills nästa rubrik/stopp eller HSLF
-        const out: string[] = [];
-        for (let i = idx + 1; i < lines.length; i++) {
-          const l = lines[i];
-          if (!l) break;
-          if (shouldIgnoreLine(l)) {
-            // Om det är HSLF, stoppa här (men inkludera inte HSLF-raden)
-            if (/^HSLF/i.test(l.trim())) break;
-            continue; // Hoppa över andra ignorerbara rader
-          }
-          // Stoppa vid nästa rubrik (men inte om det är samma rubrik igen)
-          if (isLabelLine(l) && !labelRe.test(l)) break;
-          if (stopRes.some((re) => re.test(l))) break;
-          out.push(l);
-        }
-        return out.join("\n").trim() || undefined;
+        // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
+        if (idx + 1 >= lines.length) return undefined;
+        const nextLine = lines[idx + 1];
+        if (!nextLine) return undefined;
+        if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
+        if (isLabelLine(nextLine)) return undefined;
+        if (stopRes.some((re) => re.test(nextLine))) return undefined;
+        return nextLine.trim() || undefined;
       } else {
         // För övriga fält: ta bara nästa rad
         if (idx + 1 >= lines.length) return undefined;
@@ -198,8 +191,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     /Kursens amne/i,
     /Beskrivning av kursen/i,
   ]);
-  const delmalCodes =
+  const rawDelmalCodes =
     (delmalText ? extractCommon(delmalText).delmalCodes : undefined) ?? base.delmalCodes;
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
 
   // Personnummer (rubrikfält eller fallback)
   const pnrText = valueAfter(/Personnummer/i) || lines.join(" ");
@@ -216,10 +211,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
   // Intygare (handledare/kursledare)
   const supervisorName = valueAfter(/Namnförtydligande/i);
   // För handledare: leta efter "Specialitet (gäller endast handledare)" eller bara "Specialitet"
+  // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   const supervisorSpeciality = 
     valueAfter(/Specialitet\s*\(gäller\s+endast\s+handledare\)/i) ||
     valueAfter(/Specialitet\s*\(galler\s+endast\s+handledare\)/i) ||
-    valueAfter(/Specialitet/i);
+    (() => {
+      // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+      const idx = lines.findIndex((l) => {
+        const n = norm(l);
+        return n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+      });
+      if (idx < 0) return undefined;
+      
+      // Ta nästa rad (inte flera)
+      if (idx + 1 >= lines.length) return undefined;
+      const nextLine = lines[idx + 1];
+      if (!nextLine || shouldIgnoreLine(nextLine) || isLabelLine(nextLine)) return undefined;
+      return nextLine.trim() || undefined;
+    })();
   const supervisorSite = valueAfter(/Tjänsteställe/i) || valueAfter(/Tjanstestalle/i);
 
   // Datum (ofta "Ort och datum") → lägg i period.endISO så mapAndSaveKurs kan använda som certificateDate
@@ -501,18 +510,32 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
       const rubricText = rMatch[1].trim();
       if (!rubricText) continue;
 
-      // Kolla om detta är "Tjänsteställe" (sista rubriken, ska stanna vid HSLF)
+      // Kolla om detta är "Tjänsteställe" (bara FÖLJANDE RAD ska inkluderas)
       const nRubric = norm(rubricText);
       const isTjanstestalleRubric = nRubric.includes("tjanstestalle");
 
-      // Samla alla icke-X-rader tills nästa R-rad eller S-rad
+      // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
+      if (isTjanstestalleRubric) {
+        if (i + 1 < lines.length) {
+          const nextLine = lines[i + 1].trim();
+          if (nextLine && !/^[Rr](?:\d+)?\s/.test(nextLine) && !/^[Ss]\s/.test(nextLine) && !/^[xX]\b/.test(nextLine)) {
+            // Om nästa rad är HSLF, hoppa över
+            if (/^HSLF/i.test(nextLine.trim())) {
+              continue;
+            }
+            if (!shouldIgnoreLineAnnotated(nextLine)) {
+              rubricToValue.set(norm(rubricText), nextLine);
+            }
+          }
+        }
+        continue;
+      }
+
+      // För övriga rubriker: samla alla icke-X-rader tills nästa R-rad eller S-rad
       const valueLines: string[] = [];
       for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j].trim();
         if (!nextLine) continue;
-
-        // För Tjänsteställe: stoppa vid HSLF (men inkludera inte HSLF-raden)
-        if (isTjanstestalleRubric && /^HSLF/i.test(nextLine.trim())) break;
 
         // Stoppa vid nästa R-rad eller S-rad
         if (/^[Rr](?:\d+)?\s/.test(nextLine) || /^[Ss]\s/.test(nextLine)) break;
@@ -520,7 +543,7 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
         // Ignorera X-rader
         if (/^[xX]\b/.test(nextLine)) continue;
         
-        // Ignorera HSLF- FS-rader (men för Tjänsteställe har vi redan stoppat ovan)
+        // Ignorera HSLF- FS-rader
         if (shouldIgnoreLineAnnotated(nextLine)) continue;
 
         // Om det är en T-rad med samma ID (om R hade ID), använd den och stoppa
@@ -633,9 +656,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   if (!delmalValue) {
     delmalValue = smartMatchMissingField("delmal", ["Delmål som intyget avser", "Delmal som intyget avser"]);
   }
-  const delmalCodes = delmalValue 
+  const rawDelmalCodes = delmalValue 
     ? extractCommon(delmalValue).delmalCodes 
     : base.delmalCodes;
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
 
   // Specialitet som ansökan avser
   let specialtyHeaderRaw = findValueByRubric(["Specialitet som ansökan avser", "Specialitet som ansokan avser"]);
@@ -651,9 +676,21 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
   }
   
   // För handledare: leta efter "Specialitet (gäller endast handledare)" eller bara "Specialitet"
+  // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   let supervisorSpeciality = 
     findValueByRubric(["Specialitet (gäller endast handledare)", "Specialitet (galler endast handledare)"]) ||
-    findValueByRubric(["Specialitet"]);
+    (() => {
+      // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+      for (const [rubricNorm, value] of rubricToValue.entries()) {
+        if (
+          (rubricNorm.includes("specialitet") && !rubricNorm.includes("ansokan") && !rubricNorm.includes("ansökan")) ||
+          rubricNorm === "specialitet"
+        ) {
+          return value;
+        }
+      }
+      return undefined;
+    })();
   if (!supervisorSpeciality) {
     supervisorSpeciality = smartMatchMissingField("handledarspecialitet", [
       "Specialitet (gäller endast handledare)",
@@ -662,7 +699,44 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     ]);
   }
   
-  let supervisorSite = findValueByRubric(["Tjänsteställe", "Tjanstestalle", "Tjänstestalle"]);
+  // Tjänsteställe: bara FÖLJANDE RAD ska inkluderas
+  let supervisorSite = (() => {
+    // Hitta rubriken "Tjänsteställe" i rubricToValue
+    for (const [rubricNorm, value] of rubricToValue.entries()) {
+      if (rubricNorm.includes("tjanstestalle")) {
+        // För Tjänsteställe: ta bara första raden (inte flera rader)
+        const firstLine = value.split(/\r?\n/)[0]?.trim();
+        return firstLine || undefined;
+      }
+    }
+    // Om inte hittat i rubricToValue, leta i råtexten
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^[Rr](?:\d+)?\s/.test(line)) {
+        const rMatch = /^[Rr](?:\d+)?\s+(.*)$/.exec(line);
+        if (rMatch) {
+          const rubricText = rMatch[1].trim();
+          const n = norm(rubricText);
+          if (n.includes("tjanstestalle")) {
+            // Ta BARA nästa rad (inte flera)
+            if (i + 1 < lines.length) {
+              const nextLine = lines[i + 1].trim();
+              if (nextLine && !/^[Rr](?:\d+)?\s/.test(nextLine) && !/^[Ss]\s/.test(nextLine) && !/^[xX]\b/.test(nextLine)) {
+                if (shouldIgnoreLineAnnotated(nextLine)) {
+                  // Om nästa rad är HSLF, returnera undefined
+                  if (/^HSLF/i.test(nextLine.trim())) return undefined;
+                  continue;
+                }
+                return nextLine;
+              }
+            }
+          }
+        }
+      }
+    }
+    return undefined;
+  })();
+  
   if (!supervisorSite) {
     supervisorSite = smartMatchMissingField("tjanstestalle", ["Tjänsteställe", "Tjanstestalle"]);
   }

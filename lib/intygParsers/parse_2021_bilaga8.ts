@@ -4,12 +4,14 @@ import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractBlockAfterLabel, extractSubjectAfterLabel,
-  extractClinicAndPeriodFromLine, fallbackPeriod
+  extractClinicAndPeriodFromLine, fallbackPeriod, normalizeAndSortDelmalCodes2021
 } from "./common";
 
 export function parse_2021_bilaga8(text: string, words?: OcrWord[]): ParsedIntyg {
   const kind = "2021-B8-AUSK";
-  const delmalCodes = extractDelmalCodes(text);
+  const rawDelmalCodes = extractDelmalCodes(text);
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes.length > 0 ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
   const { fullName, firstName, lastName } = extractFullNameBlock(text);
   const personnummer = extractPersonnummer(text);
   const specialtyHeader = extractSpecialty(text);

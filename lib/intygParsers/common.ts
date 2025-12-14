@@ -26,6 +26,67 @@ export function extractDelmalCodes(text: string): string[] {
   return Array.from(res);
 }
 
+/**
+ * Normalisera och sortera delmål för 2021:
+ * - Normalisera alla varianter (a1, A1, sta1, Sta1, STA1) till STa1-format
+ * - Sortera i ordning: STa1-STa7, STb1-STb4, STc1-STc14
+ * - Exkludera delmål utanför detta (t.ex. STc19)
+ */
+export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
+  const validCodes = new Set<string>();
+  
+  // Definiera giltiga delmål för 2021
+  const validDelmal = new Set<string>();
+  // STa1-STa7
+  for (let i = 1; i <= 7; i++) validDelmal.add(`STA${i}`);
+  // STb1-STb4
+  for (let i = 1; i <= 4; i++) validDelmal.add(`STB${i}`);
+  // STc1-STc14
+  for (let i = 1; i <= 14; i++) validDelmal.add(`STC${i}`);
+  
+  // Normalisera varje kod
+  for (const code of codes) {
+    // Ta bort alla separerare och normalisera
+    const cleaned = code.trim().toUpperCase();
+    
+    // Matcha olika format: a1, A1, sta1, Sta1, STA1, STa1, etc.
+    const match = cleaned.match(/^ST?([ABC])(\d+)$/);
+    if (match) {
+      const letter = match[1];
+      const number = parseInt(match[2], 10);
+      const normalized = `ST${letter}${number}`;
+      
+      // Kontrollera om det är ett giltigt delmål
+      if (validDelmal.has(normalized)) {
+        validCodes.add(normalized);
+      }
+    }
+  }
+  
+  // Sortera i ordning: STa1-STa7, STb1-STb4, STc1-STc14
+  const sorted = Array.from(validCodes).sort((a, b) => {
+    // Extrahera bokstav och nummer
+    const aMatch = a.match(/^ST([ABC])(\d+)$/);
+    const bMatch = b.match(/^ST([ABC])(\d+)$/);
+    if (!aMatch || !bMatch) return 0;
+    
+    const aLetter = aMatch[1];
+    const bLetter = bMatch[1];
+    const aNum = parseInt(aMatch[2], 10);
+    const bNum = parseInt(bMatch[2], 10);
+    
+    // Först sortera på bokstav (A < B < C)
+    if (aLetter !== bLetter) {
+      return aLetter.localeCompare(bLetter);
+    }
+    
+    // Sedan på nummer
+    return aNum - bNum;
+  });
+  
+  return sorted;
+}
+
 export function extractPersonnummer(text: string): string | undefined {
   const m = PNR.exec(text.replace(/\s+/g, " "));
   return m?.[0]?.replace(/\s+/g, "") ?? undefined;
