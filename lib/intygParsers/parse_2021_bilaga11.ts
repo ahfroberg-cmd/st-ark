@@ -125,26 +125,18 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       return out.join("\n").trim() || undefined;
     } else {
       // För övriga fält: ta nästa rad (eller flera rader om det är flerradigt)
-      // För "Tjänsteställe" kan det vara flera rader, så vi tar alla tills nästa rubrik eller HSLF
+      // För "Tjänsteställe": bara FÖLJANDE RAD ska inkluderas
       const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
       
       if (isTjanstestalle) {
-        // För Tjänsteställe: ta alla rader tills nästa rubrik/stopp eller HSLF
-        const out: string[] = [];
-        for (let i = idx + 1; i < lines.length; i++) {
-          const l = lines[i];
-          if (!l) break;
-          if (shouldIgnoreLine(l)) {
-            // Om det är HSLF, stoppa här
-            if (/^HSLF/i.test(l.trim())) break;
-            continue; // Hoppa över andra ignorerbara rader
-          }
-          // Stoppa vid nästa rubrik (men inte om det är samma rubrik igen)
-          if (isLabelLine(l) && !labelRe.test(l)) break;
-          if (stopRes.some((re) => re.test(l))) break;
-          out.push(l);
-        }
-        return out.join("\n").trim() || undefined;
+        // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
+        if (idx + 1 >= lines.length) return undefined;
+        const nextLine = lines[idx + 1];
+        if (!nextLine) return undefined;
+        if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
+        if (isLabelLine(nextLine)) return undefined;
+        if (stopRes.some((re) => re.test(nextLine))) return undefined;
+        return nextLine.trim() || undefined;
       } else {
         // För övriga fält: ta bara nästa rad
         if (idx + 1 >= lines.length) return undefined;
@@ -270,19 +262,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1];
           if (nextLine && !isLabelLine(nextLine)) {
-            // Ta alla rader tills nästa rubrik eller HSLF
-            const valueLines: string[] = [];
-            for (let j = i + 1; j < lines.length; j++) {
-              const l = lines[j];
-              if (!l) break;
-              if (shouldIgnoreLine(l)) {
-                if (/^HSLF/i.test(l.trim())) break;
-                continue;
-              }
-              if (isLabelLine(l) && !/tjanstestalle/i.test(l)) break;
-              valueLines.push(l);
+            // Ta BARA nästa rad (inte flera rader)
+            if (shouldIgnoreLine(nextLine)) {
+              // Om nästa rad är HSLF, hoppa över
+              if (/^HSLF/i.test(nextLine.trim())) continue;
+              continue;
             }
-            const candidate = valueLines.join("\n").trim();
+            const candidate = nextLine.trim();
             if (candidate && candidate.length > 2) {
               finalSupervisorSite = candidate;
               break;

@@ -1199,6 +1199,72 @@ export default function ScanIntygModal({
                       )}
                     </div>
                   )}
+                  {/* För 2021 utvecklingsarbete: kryssruta + conditional date pickers (utan rullista) */}
+                  {kind === "2021-B11-UTV" && (
+                    <div className="space-y-3">
+                      <label className="inline-flex items-center gap-2 text-sm text-slate-900">
+                        <input
+                          type="checkbox"
+                          checked={!!(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setParsed((p: any) => {
+                              if (!checked) {
+                                // Ta bort datum när kryssrutan avmarkeras
+                                return {
+                                  ...p,
+                                  period: undefined,
+                                  showOnTimeline: false,
+                                };
+                              }
+                              return {
+                                ...p,
+                                showOnTimeline: true,
+                              };
+                            });
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-300"
+                        />
+                        <span>Ange datum för placering i Tidslinjen</span>
+                      </label>
+                      {(parsed?.period?.startISO || parsed?.period?.endISO || (parsed as any)?.showOnTimeline) && (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 pl-6">
+                          <div>
+                            <CalendarDatePicker
+                              label="Start"
+                              value={parsed?.period?.startISO ?? ""}
+                              onChange={(iso) =>
+                                setParsed((p: any) => ({
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    startISO: iso,
+                                  },
+                                }))
+                              }
+                              align="left"
+                            />
+                          </div>
+                          <div>
+                            <CalendarDatePicker
+                              label="Slut"
+                              value={parsed?.period?.endISO ?? ""}
+                              onChange={(iso) =>
+                                setParsed((p: any) => ({
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    endISO: iso,
+                                  },
+                                }))
+                              }
+                              align="right"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Rad 5: Beskrivning */}
                   <div className="space-y-2">
