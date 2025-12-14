@@ -291,9 +291,32 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   ];
   
   // Beskrivning - gör mer flexibel, måste samla flera rader tills nästa rubrik
-  const description = valueAfter(/Beskrivning\s+av\s+auskultationen/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning\s+av\s+auskultation/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning.*?auskultation/i, descriptionStopPatterns);
+  let description = valueAfter(/Beskrivning\s+av\s+auskultationen/i, descriptionStopPatterns) ||
+                    valueAfter(/Beskrivning\s+av\s+auskultation/i, descriptionStopPatterns) ||
+                    valueAfter(/Beskrivning.*?auskultation/i, descriptionStopPatterns);
+  
+  // Fallback: leta direkt i lines om valueAfter misslyckades
+  if (!description) {
+    const descIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      return n.includes("beskrivning") && (n.includes("auskultation") || n.includes("auskultationen"));
+    });
+    if (descIdx >= 0) {
+      // Samla alla rader tills nästa rubrik
+      const out: string[] = [];
+      for (let i = descIdx + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (!l) break;
+        if (shouldIgnoreLine(l)) continue;
+        if (isLabelLine(l)) break;
+        if (descriptionStopPatterns.some((re) => re.test(l))) break;
+        out.push(l);
+      }
+      if (out.length > 0) {
+        description = out.join("\n").trim();
+      }
+    }
+  }
   
   console.warn('[Bilaga 8 Parser] description:', description);
 
