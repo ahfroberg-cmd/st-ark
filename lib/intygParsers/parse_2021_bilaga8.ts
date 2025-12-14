@@ -163,9 +163,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    // Försök hitta rubriken - använd norm-funktionen för att matcha mot normaliserad text
+    // Försök hitta rubriken - först via isLabelLine, sedan direkt matchning
     let idx = lines.findIndex((l) => {
-      // Testa direkt
+      // Om det är en rubrik-rad och matchar mönstret
+      if (isLabelLine(l) && labelRe.test(l)) return true;
+      // Annars, testa direkt matchning
       if (labelRe.test(l)) return true;
       // Testa med normaliserad text
       const n = norm(l);
@@ -178,8 +180,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9\s]/g, "");
-      const normalizedLabelRe = new RegExp(normalizedLabelStr, "i");
-      return normalizedLabelRe.test(n);
+      if (normalizedLabelStr) {
+        const normalizedLabelRe = new RegExp(normalizedLabelStr, "i");
+        if (normalizedLabelRe.test(n)) return true;
+      }
+      return false;
     });
     
     if (idx < 0) return undefined;
