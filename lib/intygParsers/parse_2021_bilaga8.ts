@@ -163,7 +163,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    const idx = lines.findIndex((l) => labelRe.test(l));
+    // Försök hitta rubriken - gör regex mer tolerant genom att matcha även om det finns extra tecken
+    let idx = lines.findIndex((l) => {
+      // Normalisera raden för matchning (ta bort extra mellanslag, etc.)
+      const normalized = l.trim().replace(/\s+/g, " ");
+      return labelRe.test(normalized) || labelRe.test(l);
+    });
+    
+    // Om inte hittat, försök med normaliserad version av regex
+    if (idx < 0) {
+      const labelStr = labelRe.source;
+      // Ta bort word boundaries och gör mer flexibel
+      const flexibleRe = new RegExp(labelStr.replace(/\\b/g, "").replace(/\s+/g, "\\s+"), "i");
+      idx = lines.findIndex((l) => {
+        const normalized = l.trim().replace(/\s+/g, " ");
+        return flexibleRe.test(normalized) || flexibleRe.test(l);
+      });
+    }
+    
     if (idx < 0) return undefined;
 
     // "Label: value" på samma rad
