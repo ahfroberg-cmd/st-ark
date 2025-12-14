@@ -53,6 +53,7 @@ export function detectIntygKind(raw: string): Detected {
 
   // Vanliga nyckelord (ASCII-mappade)
   const kAUSK = has(/\bauskultation\b/);
+  const kB8 = has(/\bbilaga\s+8\b/i);
   const kKLIN = has(/\bklinisk[a]?\s+tjanstgor/);
   const kKURS = has(/\bkurs(?!plan)\b/);
   const kUTV  = has(/\bkvalitets[- ]?|\butvecklingsarbet|\bdeltagande\s+i\s+utvecklingsarbete/);
@@ -91,7 +92,7 @@ export function detectIntygKind(raw: string): Detected {
 
     // Nyckelordsfallback
     const cands = [
-      { kind: "2021-B8-AUSK",        sc: score(kAUSK, 3), why: "2021 + (auskultation)" },
+      { kind: "2021-B8-AUSK",        sc: score(kAUSK, 3) + score(kB8, 2), why: "2021 + (auskultation + bilaga 8)" },
       { kind: "2021-B9-KLIN",        sc: score(kKLIN, 3) + score(has(/\bbeskrivning\s+av\s+(den\s+)?(kliniska\s+)?tjanstgor/)), why: "2021 + (klinisk tjänstgöring)" },
       { kind: "2021-B10-KURS",       sc: score(kKURS, 3) + score(has(/\bintygas?\b|\bkurstid\b/)), why: "2021 + (kurs)" },
       { kind: "2021-B11-UTV",        sc: score(kUTV, 3) + score(has(/\bdeltagande\s+i\s+utvecklingsarbete/)), why: "2021 + (deltagande i utvecklingsarbete)" },
