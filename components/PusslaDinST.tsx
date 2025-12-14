@@ -6389,13 +6389,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 const nextShowAsInterval =
                   typeof existingFlag === "boolean" ? existingFlag : isPsyTitle;
 
+                // Om det redan finns milestones från intyget, behåll dem
+                // Annars använd METIS-mappningen
+                const existingMilestones = c.milestones || [];
+                const shouldKeepMilestones = existingMilestones.length > 0 && nextTitle !== "Annan kurs";
+
                 return {
                   ...c,
                   title: nextTitle,
-                  // Alltid sätt milestones utifrån METIS-mappningen
-                  // (tom lista om kursen inte är METIS eller ingen mappning finns)
-                  // MEN: om det redan finns milestones från intyget, behåll dem
-                  milestones: nextTitle === "Annan kurs" ? (c.milestones || []) : autoMilestones,
+                  // Om det redan finns milestones från intyget, behåll dem
+                  // Annars använd METIS-mappningen
+                  milestones: shouldKeepMilestones ? existingMilestones : autoMilestones,
                   showAsInterval: nextShowAsInterval,
                 };
               })
