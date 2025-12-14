@@ -122,8 +122,19 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /\bbedömer\s+att\s+han\s+eller\s+hon/i,
   ];
 
-  const lines = linesAll.filter((l) => !IGNORE.some((re) => re.test(l)));
+  // Logga vilka rader som filtreras bort
+  const filteredOut: Array<{line: string; reason: string}> = [];
+  const lines = linesAll.filter((l) => {
+    for (const re of IGNORE) {
+      if (re.test(l)) {
+        filteredOut.push({line: l, reason: re.source});
+        return false;
+      }
+    }
+    return true;
+  });
   console.warn('[Bilaga 8 Parser] Lines after IGNORE filter:', lines.length);
+  console.warn('[Bilaga 8 Parser] Filtered out lines:', filteredOut);
   console.warn('[Bilaga 8 Parser] First 30 lines after filter:', lines.slice(0, 30));
   // Logga även alla rader för att se exakt vad som finns
   console.warn('[Bilaga 8 Parser] ALL lines:', lines);
