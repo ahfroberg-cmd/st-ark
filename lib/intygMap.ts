@@ -18,6 +18,7 @@ async function activeGoalsMap() {
 /** 2021 Bilaga 10 – Kurs (och liknande) */
 export async function mapAndSaveKurs(parsed: {
   courseTitle?: string;
+  title?: string; // För förbestämda kurser eller "Annan kurs"
   description?: string;
   period?: { startISO?: string; endISO?: string };
   delmalCodes?: string[];
@@ -37,7 +38,8 @@ export async function mapAndSaveKurs(parsed: {
   
   const course: any = {
     id: crypto.randomUUID(),
-    title: parsed.courseTitle ?? "Kurs",
+    title: parsed.title ?? parsed.courseTitle ?? "Kurs",
+    courseTitle: parsed.courseTitle, // Spara även courseTitle separat för "Annan kurs"
     city: undefined,
     certificateDate: endDate ?? undefined,
     startDate: startDate ?? undefined,

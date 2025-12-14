@@ -6362,12 +6362,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             startISO >= btISO &&
             startISO <= btEndISO;
 
+          const isAnnanKurs = selCourse.title === "Annan kurs";
+          // Om "Annan kurs" är vald, lägg till en kolumn
+          if (isAnnanKurs) {
+            return inBtWindow ? "md:grid-cols-7" : "md:grid-cols-6";
+          }
           return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
         })(),
       ].join(" ")}
     >
       {/* Kurs */}
-      <div>
+      <div className={selCourse.title === "Annan kurs" ? "" : ""}>
         <label className="block text-sm text-slate-700">Kurs</label>
         <select
           value={selCourse.title || ""}
@@ -6389,7 +6394,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   title: nextTitle,
                   // Alltid sätt milestones utifrån METIS-mappningen
                   // (tom lista om kursen inte är METIS eller ingen mappning finns)
-                  milestones: autoMilestones,
+                  // MEN: om det redan finns milestones från intyget, behåll dem
+                  milestones: nextTitle === "Annan kurs" ? (c.milestones || []) : autoMilestones,
                   showAsInterval: nextShowAsInterval,
                 };
               })
@@ -6419,6 +6425,27 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           </optgroup>
         </select>
       </div>
+
+      {/* Kursens titel - visas endast när "Annan kurs" är vald */}
+      {selCourse.title === "Annan kurs" && (
+        <div>
+          <label className="block text-sm text-slate-700">Kursens titel</label>
+          <input
+            value={(selCourse as any)?.courseTitle || selCourse.title || ""}
+            onChange={(e) => {
+              setCourses((prev) =>
+                prev.map((c) =>
+                  c.id === selCourse.id
+                    ? { ...c, courseTitle: e.target.value }
+                    : c
+                )
+              );
+            }}
+            className="w-full h-10 rounded-lg border px-3"
+            placeholder="Ange kursens titel"
+          />
+        </div>
+      )}
 
       {/* Fas BT/ST – visas endast om kursens startdatum ligger mellan BT-start och Slutdatum för BT */}
       {(() => {

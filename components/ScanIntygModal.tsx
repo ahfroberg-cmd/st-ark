@@ -231,6 +231,64 @@ export default function ScanIntygModal({
         (p as any).clinic = (p as any).subject;
       }
 
+      // För Bilaga 10: matcha courseTitle mot förbestämda kurser
+      if (k === "2021-B10-KURS" && (p as any)?.courseTitle) {
+        const courseTitle = (p as any).courseTitle.trim();
+        // Lista över alla förbestämda kurser (METIS + övriga)
+        const predefinedCourses = [
+          "Akutpsykiatri",
+          "Psykiatrisk diagnostik",
+          "Psykiatrisk juridik",
+          "Psykofarmakologi",
+          "Suicidologi",
+          "Levnadsvanor vid psykisk sjukdom",
+          "Beroendelära",
+          "Affektiva sjukdomar",
+          "BUP för vuxenpsykiatriker",
+          "Konsultationspsykiatri och psykosomatik",
+          "Neuropsykiatri",
+          "Personlighetssyndrom",
+          "Psykossjukdomar",
+          "Ätstörningar",
+          "OCD- och relaterade syndrom",
+          "Ångest-, trauma- och stressrelaterade syndrom",
+          "Äldrepsykiatri",
+          "Kritisk läkemedelsvärdering inom psykofarmakologi",
+          "Medicinsk vetenskap",
+          "Psykiatrisk neurovetenskap",
+          "Psykiatri & samhälle",
+          "Rättspsykiatri",
+          "Sexualmedicin och könsdysfori",
+          "Transkulturell psykiatri",
+          "Psykoterapi",
+          "Ledarskap",
+          "Handledning",
+          "Palliativ medicin",
+        ];
+        
+        // Matcha courseTitle mot förbestämda kurser (case-insensitive, partial match)
+        const matchedCourse = predefinedCourses.find(
+          (predefined) => 
+            predefined.toLowerCase() === courseTitle.toLowerCase() ||
+            courseTitle.toLowerCase().includes(predefined.toLowerCase()) ||
+            predefined.toLowerCase().includes(courseTitle.toLowerCase())
+        );
+        
+        if (matchedCourse) {
+          // Om matchning hittades, sätt title till den matchade kursen
+          // Men behåll courseTitle för att visa i "Kursens titel" om "Annan kurs" väljs
+          (p as any).title = matchedCourse;
+          // Behåll courseTitle om det skiljer sig från den matchade kursen
+          if (matchedCourse.toLowerCase() !== courseTitle.toLowerCase()) {
+            (p as any).courseTitle = courseTitle;
+          }
+        } else {
+          // Om ingen matchning hittades, sätt title till "Annan kurs" och behåll courseTitle
+          (p as any).title = "Annan kurs";
+          (p as any).courseTitle = courseTitle;
+        }
+      }
+
 
       // Endast för mallar med datum
       if (k && !noDatesKinds.has(k)) {
