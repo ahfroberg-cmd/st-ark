@@ -410,11 +410,103 @@ export default function ScanIntygModal({
     }
   }
 
+  // Funktion för att kontrollera överlappande datum
+  async function checkOverlappingDates(): Promise<{ hasOverlap: boolean; overlappingItems: string[] }> {
+    const anyDb: any = db as any;
+    const overlappingItems: string[] = [];
+
+    // Hämta datum från parsed
+    const parsedPeriod = (parsed as any)?.period;
+    let startISO: string = (parsedPeriod?.startISO as string | undefined) || "";
+    let endISO: string = (parsedPeriod?.endISO as string | undefined) || "";
+
+    // Om inget intervall är angivet, använd certificateDate som punktdatum
+    if (!startISO && !endISO) {
+      const certRaw = (parsed as any)?.certificateDate || "";
+      const certISO = typeof certRaw === "string" && certRaw ? certRaw : "";
+      if (certISO) {
+        startISO = certISO;
+        endISO = certISO;
+      }
+    }
+
+    // Om bara ena änden finns, spegla den
+    if (startISO && !endISO) {
+      endISO = startISO;
+    } else if (!startISO && endISO) {
+      startISO = endISO;
+    }
+
+    if (!startISO || !endISO) {
+      return { hasOverlap: false, overlappingItems: [] };
+    }
+
+    // Hjälpfunktion för att kontrollera om två datumintervall överlappar
+    const datesOverlap = (
+      start1: string,
+      end1: string,
+      start2: string,
+      end2: string
+    ): boolean => {
+      return start1 <= end2 && start2 <= end1;
+    };
+
+    // Kontrollera kurser
+    if (anyDb?.courses?.toArray) {
+      const allCourses = await anyDb.courses.toArray();
+      for (const course of allCourses) {
+        if (!course.showOnTimeline) continue;
+        
+        const courseStart = course.startDate || course.endDate || course.certificateDate || "";
+        const courseEnd = course.endDate || course.startDate || course.certificateDate || "";
+        
+        if (courseStart && courseEnd && datesOverlap(startISO, endISO, courseStart, courseEnd)) {
+          const title = course.title || "Kurs";
+          overlappingItems.push(`${title} (${courseStart} - ${courseEnd})`);
+        }
+      }
+    }
+
+    // Kontrollera placeringar
+    if (anyDb?.placements?.toArray) {
+      const allPlacements = await anyDb.placements.toArray();
+      for (const placement of allPlacements) {
+        if (!placement.showOnTimeline) continue;
+        
+        const placementStart = placement.startDate || placement.endDate || placement.certificateDate || "";
+        const placementEnd = placement.endDate || placement.startDate || placement.certificateDate || "";
+        
+        if (placementStart && placementEnd && datesOverlap(startISO, endISO, placementStart, placementEnd)) {
+          const type = placement.type || "Placering";
+          const clinic = placement.clinic || placement.title || "";
+          const label = clinic ? `${type}: ${clinic}` : type;
+          overlappingItems.push(`${label} (${placementStart} - ${placementEnd})`);
+        }
+      }
+    }
+
+    return {
+      hasOverlap: overlappingItems.length > 0,
+      overlappingItems,
+    };
+  }
+
   async function handleSave() {
     if (!parsed) return;
     setBusy(true);
 
     try {
+      // Kontrollera överlappande datum innan sparandet
+      const overlapCheck = await checkOverlappingDates();
+      if (overlapCheck.hasOverlap) {
+        const itemsList = overlapCheck.overlappingItems.join("\n");
+        setWarning(
+          `Det finns redan aktiviteter på tidslinjen med överlappande datum:\n\n${itemsList}\n\nVänligen kontrollera datumen innan du sparar.`
+        );
+        setBusy(false);
+        return; // Stoppa sparandet och stäng inte fönstret
+      }
+
       let createdKind: "placement" | "course" | null = null;
       let createdId: string | number | null = null;
 
