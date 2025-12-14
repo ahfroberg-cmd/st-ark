@@ -226,6 +226,11 @@ export default function ScanIntygModal({
         p = {};
       }
 
+      // För Bilaga 11: mappa subject till clinic så att "Utvecklingsarbetets ämne" visas korrekt
+      if (k === "2021-B11-UTV" && (p as any)?.subject && !(p as any)?.clinic) {
+        (p as any).clinic = (p as any).subject;
+      }
+
 
       // Endast för mallar med datum
       if (k && !noDatesKinds.has(k)) {
@@ -657,6 +662,16 @@ export default function ScanIntygModal({
           await ensureCourseOnTimeline();
           break;
 
+        // 2021 – utvecklingsarbete (Bilaga 11)
+        case "2021-B11-UTV":
+          // Mappa subject till clinic för att spara "Utvecklingsarbetets ämne"
+          await mapAndSavePlacement2015({
+            ...parsed,
+            clinic: (parsed as any)?.subject || (parsed as any)?.clinic,
+          });
+          await ensurePlacementOnTimeline();
+          break;
+
         // 2015 – klinisk tjänstgöring / auskultation / utvecklings- och skriftligt arbete
         case "2015-B3-AUSK":
         case "2015-B4-KLIN":
@@ -805,7 +820,7 @@ export default function ScanIntygModal({
     // HSLF-FS 2021:8 – Bilaga 11 (Utvecklingsarbete)
     case "2021-B11-UTV":
       titleLabel = "Utvecklingsarbetets ämne (rubrikform)";
-      clinicLabel = "Utvecklingsarbetets ämne (rubrikform)";
+      clinicLabel = "Utvecklingsarbetets ämne";
       descriptionLabel =
         "Beskrivning av ST-läkarens deltagande i utvecklingsarbetet";
       break;
@@ -960,12 +975,13 @@ export default function ScanIntygModal({
             {step === "review" && (
               <div className="space-y-4">
                 <div className="text-base font-semibold text-slate-900">
-                  Förhandsgranskning
-                  {kind === "2021-B10-KURS" && parsed?.courseTitle
-                    ? ` – ${parsed.courseTitle}`
+                  {kind === "2021-B11-UTV"
+                    ? "Förhandsgranskning - Utvecklingsarbete"
+                    : kind === "2021-B10-KURS" && parsed?.courseTitle
+                    ? `Förhandsgranskning – ${parsed.courseTitle}`
                     : titleLabel
-                    ? ` – ${titleLabel}`
-                    : ""}
+                    ? `Förhandsgranskning – ${titleLabel}`
+                    : "Förhandsgranskning"}
                 </div>
 
                 <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
