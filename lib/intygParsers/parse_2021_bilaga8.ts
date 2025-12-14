@@ -94,7 +94,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     .map((l) => l.trim())
     .filter(Boolean);
 
-  // Ignorera boilerplate-rader
+  // Ignorera boilerplate-rader - dessa är fast text på alla intyg och ska ALDRIG inkluderas i textfält
   const IGNORE = [
     /^Rensa$/i,
     /^Bilaga\s+nr:/i,
@@ -104,16 +104,31 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Sökande$/i,
     /^Auskultation$/i,
     /^Intygsutfärdande\s+handledare\s+intygar\s+att\s+sökanden\s+har\s+genomfört\s+utbildningsaktiviteten\s+och/i,
+    /^Intygsutfärdande\s+handledare\s+intygar\s+att\s+sökanden\s+har\s+genomfört/i,
     /^bedömer\s+att\s+han\s+eller\s+hon\s+har\s+uppfyllt\s+kompetenskrav\s+i\s+delmålet/i,
+    /^bedömer\s+att\s+han\s+eller\s+hon\s+har\s+uppfyllt\s+kompetenskrav/i,
     /^HSLF[- ]?FS\s+2021:8\s+Bilaga\s+8/i,
     /^HSLF/i, // Blockera alla rader som börjar med HSLF
   ];
 
   const shouldIgnoreLine = (l: string): boolean => {
     if (!l) return true;
+    const trimmed = l.trim();
     // Blockera alla rader som börjar med HSLF
-    if (/^HSLF/i.test(l.trim())) return true;
-    return IGNORE.some((re) => re.test(l));
+    if (/^HSLF/i.test(trimmed)) return true;
+    // Kontrollera alla IGNORE-mönster
+    if (IGNORE.some((re) => re.test(trimmed))) return true;
+    // Ytterligare kontroller för partiella matchningar
+    if (/^Rensa\s*$/i.test(trimmed)) return true;
+    if (/^Bilaga\s+nr\s*:/i.test(trimmed)) return true;
+    if (/^INTYG\s*$/i.test(trimmed)) return true;
+    if (/om\s+genomförd\s+utbildningsaktivitet/i.test(trimmed)) return true;
+    if (/^Skriv\s+ut\s*$/i.test(trimmed)) return true;
+    if (/^Sökande\s*$/i.test(trimmed)) return true;
+    if (/^Auskultation\s*$/i.test(trimmed)) return true;
+    if (/Intygsutfärdande\s+handledare\s+intygar/i.test(trimmed)) return true;
+    if (/bedömer\s+att\s+han\s+eller\s+hon\s+har\s+uppfyllt\s+kompetenskrav/i.test(trimmed)) return true;
+    return false;
   };
 
   // Hjälpfunktion för att hitta värde efter en rubrik
@@ -289,18 +304,20 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
   // Hjälpfunktion för att kontrollera om en rad ska ignoreras
   const shouldIgnoreLineAnnotated = (l: string): boolean => {
     if (!l) return true;
+    const trimmed = l.trim();
     // Blockera alla rader som börjar med "HSLF"
-    if (/^HSLF/i.test(l.trim())) return true;
-    // Ignorera boilerplate
-    if (/^Rensa$/i.test(l)) return true;
-    if (/^Bilaga\s+nr:/i.test(l)) return true;
-    if (/^INTYG$/i.test(l)) return true;
-    if (/^om\s+genomförd\s+utbildningsaktivitet/i.test(l)) return true;
-    if (/^Skriv\s+ut$/i.test(l)) return true;
-    if (/^Sökande$/i.test(l)) return true;
-    if (/^Auskultation$/i.test(l)) return true;
-    if (/^Intygsutfärdande\s+handledare/i.test(l)) return true;
-    if (/^HSLF[- ]?FS\s+2021:8\s+Bilaga\s+8/i.test(l)) return true;
+    if (/^HSLF/i.test(trimmed)) return true;
+    // Ignorera boilerplate - dessa är fast text på alla intyg och ska ALDRIG inkluderas
+    if (/^Rensa\s*$/i.test(trimmed)) return true;
+    if (/^Bilaga\s+nr\s*:/i.test(trimmed)) return true;
+    if (/^INTYG\s*$/i.test(trimmed)) return true;
+    if (/om\s+genomförd\s+utbildningsaktivitet/i.test(trimmed)) return true;
+    if (/^Skriv\s+ut\s*$/i.test(trimmed)) return true;
+    if (/^Sökande\s*$/i.test(trimmed)) return true;
+    if (/^Auskultation\s*$/i.test(trimmed)) return true;
+    if (/Intygsutfärdande\s+handledare\s+intygar/i.test(trimmed)) return true;
+    if (/bedömer\s+att\s+han\s+eller\s+hon\s+har\s+uppfyllt\s+kompetenskrav/i.test(trimmed)) return true;
+    if (/^HSLF[- ]?FS\s+2021:8\s+Bilaga\s+8/i.test(trimmed)) return true;
     return false;
   };
 
