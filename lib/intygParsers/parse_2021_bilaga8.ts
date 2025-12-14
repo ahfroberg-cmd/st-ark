@@ -360,8 +360,30 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   })();
 
   // Om vi fick åtminstone några fält så anser vi att rubrik-parsning lyckades
-  // För Bilaga 8: acceptera även om vi bara har delmål eller period
+      // För Bilaga 8: acceptera även om vi bara har delmål eller period
   const ok = Boolean(clinic || description || supervisorName || personnummer || delmalCodes || period?.startISO || period?.endISO);
+  
+  // Debug: logga vad vi hittade
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('[Bilaga 8 Parser] Parsed fields:', {
+      fullName,
+      firstName,
+      lastName,
+      personnummer,
+      delmalCodes,
+      clinic,
+      description,
+      specialtyHeader,
+      supervisorName,
+      supervisorSpeciality,
+      supervisorSite,
+      period,
+      ok
+    });
+    console.log('[Bilaga 8 Parser] Lines count:', lines.length);
+    console.log('[Bilaga 8 Parser] First 10 lines:', lines.slice(0, 10));
+  }
+  
   if (!ok) return null;
 
   // Validera och förbättra parsning för tomma fält
