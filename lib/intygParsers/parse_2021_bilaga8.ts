@@ -83,6 +83,10 @@ function isLabelLine(line: string): boolean {
 }
 
 function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
+  console.log('[Bilaga 8 Parser] ====== PARSER STARTAR ======');
+  console.log('[Bilaga 8 Parser] Raw input length:', raw.length);
+  console.log('[Bilaga 8 Parser] Raw input first 500 chars:', raw.substring(0, 500));
+  
   // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn", "fömamn" -> "Förnamn", "eftemamn" -> "Efternamn"
   const normalizedRaw = raw
     .replace(/\bFömamn\b/gi, "Förnamn")
@@ -94,6 +98,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
+  
+  console.log('[Bilaga 8 Parser] Total lines after split:', linesAll.length);
 
   const IGNORE: RegExp[] = [
     /^\*{3,}\s*result\s+for\s+image\/page/i,
@@ -117,7 +123,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   ];
 
   const lines = linesAll.filter((l) => !IGNORE.some((re) => re.test(l)));
-  if (lines.length < 5) return null;
+  console.log('[Bilaga 8 Parser] Lines after IGNORE filter:', lines.length);
+  console.log('[Bilaga 8 Parser] First 30 lines after filter:', lines.slice(0, 30));
+  if (lines.length < 5) {
+    console.log('[Bilaga 8 Parser] RETURNERAR NULL - för få rader efter filter');
+    return null;
+  }
 
   const norm = (s: string) =>
     s
@@ -167,7 +178,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
     // Exakt samma logik som Bilaga 11 - direkt matchning utan extra kontroller
     const idx = lines.findIndex((l) => labelRe.test(l));
-    if (idx < 0) return undefined;
+    if (idx < 0) {
+      console.log('[Bilaga 8 Parser] valueAfter: Hittade INTE rubrik:', labelRe.source);
+      return undefined;
+    }
+    console.log('[Bilaga 8 Parser] valueAfter: Hittade rubrik:', labelRe.source, 'på rad', idx, ':', lines[idx]);
 
     // "Label: value" på samma rad
     const sameLine = lines[idx].split(":").slice(1).join(":").trim();
@@ -313,28 +328,29 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       // För Bilaga 8: acceptera även om vi bara har delmål eller period
   const ok = Boolean(clinic || description || supervisorName || personnummer || delmalCodes || period?.startISO || period?.endISO);
   
-  // Debug: logga vad vi hittade
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('[Bilaga 8 Parser] Parsed fields:', {
-      fullName,
-      firstName,
-      lastName,
-      personnummer,
-      delmalCodes,
-      clinic,
-      description,
-      specialtyHeader,
-      supervisorName,
-      supervisorSpeciality,
-      supervisorSite,
-      period,
-      ok
-    });
-    console.log('[Bilaga 8 Parser] Lines count:', lines.length);
-    console.log('[Bilaga 8 Parser] First 10 lines:', lines.slice(0, 10));
-  }
+  // Debug: logga vad vi hittade - ALLTID, inte bara i development
+  console.log('[Bilaga 8 Parser] ====== PARSER RESULTAT ======');
+  console.log('[Bilaga 8 Parser] fullName:', fullName);
+  console.log('[Bilaga 8 Parser] firstName:', firstName);
+  console.log('[Bilaga 8 Parser] lastName:', lastName);
+  console.log('[Bilaga 8 Parser] personnummer:', personnummer);
+  console.log('[Bilaga 8 Parser] delmalCodes:', delmalCodes);
+  console.log('[Bilaga 8 Parser] clinic:', clinic);
+  console.log('[Bilaga 8 Parser] description:', description);
+  console.log('[Bilaga 8 Parser] specialtyHeader:', specialtyHeader);
+  console.log('[Bilaga 8 Parser] supervisorName:', supervisorName);
+  console.log('[Bilaga 8 Parser] supervisorSpeciality:', supervisorSpeciality);
+  console.log('[Bilaga 8 Parser] supervisorSite:', supervisorSite);
+  console.log('[Bilaga 8 Parser] period:', period);
+  console.log('[Bilaga 8 Parser] ok:', ok);
+  console.log('[Bilaga 8 Parser] Lines count:', lines.length);
+  console.log('[Bilaga 8 Parser] First 20 lines:', lines.slice(0, 20));
+  console.log('[Bilaga 8 Parser] ============================');
   
-  if (!ok) return null;
+  if (!ok) {
+    console.log('[Bilaga 8 Parser] RETURNERAR NULL - ok check misslyckades');
+    return null;
+  }
 
   // Validera och förbättra parsning för tomma fält
   let finalSupervisorSite = supervisorSite;
