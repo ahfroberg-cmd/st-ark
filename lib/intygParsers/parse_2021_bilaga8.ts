@@ -301,8 +301,20 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       const lLower = l.toLowerCase();
       
       // Kolla om raden innehåller både "tjänstgöringsställe" och "auskultation"
-      if ((n.includes("tjanstgoringsstalle") || lLower.includes("tjänstgöringsställe") || lLower.includes("tjanstgoringsstalle")) &&
-          (n.includes("auskultation") || lLower.includes("auskultation") || lLower.includes("auskultationen"))) {
+      // Testa både normaliserad text och originaltext
+      const hasTjanstgoringsstalle = n.includes("tjanstgoringsstalle") || 
+                                     lLower.includes("tjänstgöringsställe") || 
+                                     lLower.includes("tjanstgoringsstalle") ||
+                                     l.includes("Tjänstgöringsställe") ||
+                                     l.includes("Tjanstgoringsstalle");
+      const hasAuskultation = n.includes("auskultation") || 
+                             lLower.includes("auskultation") || 
+                             lLower.includes("auskultationen") ||
+                             l.includes("auskultation");
+      
+      console.warn('[Bilaga 8 Parser] Rad', i, ':', l, '- hasTjanstgoringsstalle:', hasTjanstgoringsstalle, 'hasAuskultation:', hasAuskultation);
+      
+      if (hasTjanstgoringsstalle && hasAuskultation) {
         console.warn('[Bilaga 8 Parser] Hittade clinic-rubrik på rad', i, ':', l);
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1];
