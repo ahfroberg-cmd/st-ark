@@ -125,9 +125,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     labelRe: RegExp,
     stopBefore: RegExp[] = []
   ): string | undefined => {
+    // Hitta rubriken - rubriker ska INTE ignoreras, bara innehållet efter dem
     const idx = lines.findIndex((l) => {
-      if (shouldIgnoreLine(l)) return false;
-      return labelRe.test(l);
+      // Kontrollera om det är en rubrik-rad (isLabelLine) OCH matchar labelRe
+      if (isLabelLine(l) && labelRe.test(l)) return true;
+      // Annars, om det matchar labelRe direkt (för flexibilitet)
+      if (labelRe.test(l)) return true;
+      return false;
     });
     if (idx < 0) return undefined;
 
@@ -229,10 +233,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   const supervisorSpeciality = (() => {
     // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+    // Rubriker ska INTE ignoreras när vi letar efter dem
     const idx = lines.findIndex((l) => {
-      if (shouldIgnoreLine(l)) return false;
       const n = norm(l);
-      return n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+      // Kontrollera om det är en rubrik-rad som matchar "Specialitet" men INTE "Specialitet som ansökan avser"
+      if (isLabelLine(l) && n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan")) return true;
+      // Annars, om det matchar direkt
+      if (n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan")) return true;
+      return false;
     });
     if (idx < 0) return undefined;
     
