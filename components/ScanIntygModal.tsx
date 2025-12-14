@@ -1271,6 +1271,7 @@ export default function ScanIntygModal({
                         <CalendarDatePicker
                           label="Slut"
                           value={parsed?.period?.endISO ?? ""}
+                          minDate={parsed?.period?.startISO || undefined}
                           onChange={(iso) =>
                             setParsed((p: any) => ({
                               ...p,
@@ -1319,6 +1320,7 @@ export default function ScanIntygModal({
                           <CalendarDatePicker
                             label="Slut"
                             value={parsed?.period?.endISO ?? ""}
+                            minDate={parsed?.period?.startISO || undefined}
                             onChange={(iso) =>
                               setParsed((p: any) => ({
                                 ...p,
@@ -1387,6 +1389,7 @@ export default function ScanIntygModal({
                           <CalendarDatePicker
                             label="Slut"
                             value={parsed?.period?.endISO ?? ""}
+                            minDate={parsed?.period?.startISO || undefined}
                             onChange={(iso) =>
                               setParsed((p: any) => ({
                                 ...p,

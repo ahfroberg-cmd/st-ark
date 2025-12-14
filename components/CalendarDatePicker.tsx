@@ -9,6 +9,7 @@ type Props = {
   label?: string;
   minYear?: number;              // default 1990
   maxYear?: number;              // default currentYear+10
+  minDate?: string;              // ISO: "YYYY-MM-DD" - minimum datum som kan väljas
   weekStartsOn?: 0 | 1;          // 0=söndag, 1=måndag (default 1)
   align?: "left" | "right";      // popover-placering, default "left"
   className?: string;            // extra klasser för trigger-knappen
@@ -21,6 +22,7 @@ export default function CalendarDatePicker({
   label,
   minYear = 1990,
   maxYear,
+  minDate,
   weekStartsOn = 1,
   align = "left",
   className,
@@ -307,7 +309,7 @@ export default function CalendarDatePicker({
                         }}
                         className={[
                           "h-9 select-none rounded-md bg-white text-sm transition",
-                          inMonth ? "hover:bg-slate-50 focus:bg-slate-50" : "cursor-default opacity-40",
+                          inMonth && !isBeforeMinDate ? "hover:bg-slate-50 focus:bg-slate-50" : "cursor-default opacity-40",
                           isSelected ? "ring-2 ring-sky-500" : "",
                         ].join(" ")}
                       >
