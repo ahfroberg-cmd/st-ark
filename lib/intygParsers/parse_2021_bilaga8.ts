@@ -215,65 +215,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const base = extractCommon(raw);
 
   // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
-  // Använd mer flexibla regex-mönster för att hantera OCR-fel
-  const lastName = valueAfter(/Efternamn/i, [/Förnamn/i, /Fornamn/i]) || 
-                    valueAfter(/Efter namn/i, [/Förnamn/i, /Fornamn/i]) ||
-                    valueAfter(/Efternam/i, [/Förnamn/i, /Fornamn/i]);
-  const firstName = valueAfter(/Förnamn/i, [/Efternamn/i]) || 
-                    valueAfter(/Fornamn/i, [/Efternamn/i]) ||
-                    valueAfter(/For namn/i, [/Efternamn/i]) ||
-                    valueAfter(/Fornam/i, [/Efternamn/i]);
+  const lastName = valueAfter(/Efternamn/i, [/Förnamn/i, /Fornamn/i]);
+  const firstName = valueAfter(/Förnamn/i, [/Efternamn/i]) || valueAfter(/Fornamn/i, [/Efternamn/i]);
   const fullName = firstName && lastName 
     ? `${firstName.trim()} ${lastName.trim()}`.trim()
     : (firstName || lastName || undefined);
 
-  // Delmål (försök rubrikfält först, annars fallback från hela texten)
-  const delmalText = valueAfter(/Delmål som intyget avser/i, [
-    /Tjänstgöringsställe för auskultation/i,
-    /Beskrivning av auskultationen/i,
-  ]) ||
-  valueAfter(/Delmal som intyget avser/i, [
-    /Tjänstgöringsställe för auskultation/i,
-    /Beskrivning av auskultationen/i,
-  ]) ||
-  valueAfter(/Delmål/i, [
-    /Tjänstgöringsställe för auskultation/i,
-    /Beskrivning av auskultationen/i,
-  ]);
-  const rawDelmalCodes =
-    (delmalText ? extractCommon(delmalText).delmalCodes : undefined) ?? base.delmalCodes;
-  // Normalisera och sortera delmål för 2021
-  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
-
-  // Personnummer (rubrikfält eller fallback) - men ignorera om det är en rubrik-rad
-  const pnrText = valueAfter(/Personnummer/i) || 
-                  valueAfter(/Person nummer/i) ||
-                  valueAfter(/Personnum/i) ||
-                  lines.join(" ");
-  const personnummer =
-    (pnrText.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0] || base.personnummer;
-
-  // Specialitet som ansökan avser
-  const specialtyHeaderRaw = valueAfter(/Specialitet som ansökan avser/i, [
-    /Delmål som intyget avser/i,
-    /Tjänstgöringsställe för auskultation/i,
-    /Beskrivning av auskultationen/i,
-  ]) ||
-  valueAfter(/Specialitet som ansokan avser/i, [
-    /Delmål som intyget avser/i,
-    /Tjänstgöringsställe för auskultation/i,
-    /Beskrivning av auskultationen/i,
-  ]);
-  const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
-
   // Tjänstgöringsställe för auskultation
   const clinic = valueAfter(/Tjänstgöringsställe för auskultation/i, [
-    /Beskrivning av auskultationen/i,
-  ]) ||
-  valueAfter(/Tjanstgoringsstalle for auskultation/i, [
-    /Beskrivning av auskultationen/i,
-  ]) ||
-  valueAfter(/Tjänstgöringsställe/i, [
     /Beskrivning av auskultationen/i,
   ]);
 
@@ -296,14 +245,33 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Tjanstestalle/i,
   ];
   
-  const description = valueAfter(/Beskrivning av auskultationen/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning av auskultation/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning/i, descriptionStopPatterns);
+  const description = valueAfter(/Beskrivning av auskultationen/i, descriptionStopPatterns);
+
+  // Delmål (försök rubrikfält först, annars fallback från hela texten)
+  const delmalText = valueAfter(/Delmål som intyget avser/i, [
+    /Tjänstgöringsställe för auskultation/i,
+    /Beskrivning av auskultationen/i,
+  ]);
+  const rawDelmalCodes =
+    (delmalText ? extractCommon(delmalText).delmalCodes : undefined) ?? base.delmalCodes;
+  // Normalisera och sortera delmål för 2021
+  const delmalCodes = rawDelmalCodes ? normalizeAndSortDelmalCodes2021(rawDelmalCodes) : undefined;
+
+  // Personnummer (rubrikfält eller fallback) - men ignorera om det är en rubrik-rad
+  const pnrText = valueAfter(/Personnummer/i) || lines.join(" ");
+  const personnummer =
+    (pnrText.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) || [])[0] || base.personnummer;
+
+  // Specialitet som ansökan avser
+  const specialtyHeaderRaw = valueAfter(/Specialitet som ansökan avser/i, [
+    /Delmål som intyget avser/i,
+    /Tjänstgöringsställe för auskultation/i,
+    /Beskrivning av auskultationen/i,
+  ]);
+  const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
 
   // Intygare
-  const supervisorName = valueAfter(/Namnförtydligande/i) ||
-                         valueAfter(/Namnfortydligande/i) ||
-                         valueAfter(/Namnfortydlig/i);
+  const supervisorName = valueAfter(/Namnförtydligande/i);
   // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   const supervisorSpeciality = (() => {
     // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
@@ -338,7 +306,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   })();
 
   // Om vi fick åtminstone några fält så anser vi att rubrik-parsning lyckades
-  const ok = Boolean(fullName || personnummer || delmalCodes || clinic || description || supervisorName);
+  const ok = Boolean(clinic || description || supervisorName || personnummer);
   if (!ok) return null;
 
   // Validera och förbättra parsning för tomma fält
