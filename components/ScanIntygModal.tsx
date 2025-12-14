@@ -215,7 +215,11 @@ export default function ScanIntygModal({
       const parser = getParser(k || undefined);
       
       if (parser) {
+        console.log('[ScanIntygModal] Anropar parser för kind:', k);
+        console.log('[ScanIntygModal] OCR content length:', content.length);
+        console.log('[ScanIntygModal] OCR content first 500 chars:', content.substring(0, 500));
         p = parser(content);
+        console.log('[ScanIntygModal] Parser resultat:', p);
       } else if (k === "2015-B4-KLIN") {
         // Fallback för säkerhets skull om registry saknas
         p = parse_2015_bilaga4(content);
