@@ -214,11 +214,17 @@ export default function ScanIntygModal({
       let p: any = {};
       const parser = getParser(k || undefined);
       
+      // Debug: alltid logga, även i production
       console.log('[ScanIntygModal] ====== PARSER ANROP ======');
       console.log('[ScanIntygModal] Detected kind:', k);
       console.log('[ScanIntygModal] Parser function:', parser ? 'FINNS' : 'SAKNAS');
       console.log('[ScanIntygModal] OCR content length:', content.length);
       console.log('[ScanIntygModal] OCR content first 500 chars:', content.substring(0, 500));
+      
+      // Visa även i UI om det är Bilaga 8
+      if (k === "2021-B8-AUSK") {
+        setWarning(`DEBUG: Parsar Bilaga 8. Kind: ${k}, Parser: ${parser ? 'FINNS' : 'SAKNAS'}, Content length: ${content.length}`);
+      }
       
       if (parser) {
         console.log('[ScanIntygModal] Anropar parser för kind:', k);
