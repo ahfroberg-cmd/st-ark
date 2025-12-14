@@ -1023,8 +1023,9 @@ export default function ScanIntygModal({
 
         <div className="flex-1 overflow-y-auto p-5">
             {warning && (
-              <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
-                {warning}
+              <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="font-semibold mb-2">Varning:</div>
+                <div className="whitespace-pre-line">{warning}</div>
               </div>
             )}
 
