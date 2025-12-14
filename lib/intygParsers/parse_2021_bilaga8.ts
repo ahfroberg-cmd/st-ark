@@ -134,14 +134,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("specialitet som ansokan avser") ||
       n.includes("delmal som intyget avser") ||
       n.includes("tjanstgoringsstalle for auskultation") ||
+      n.includes("tjanstgoringsstalle for auskultationen") ||
       n.includes("beskrivning av auskultationen") ||
+      n.includes("beskrivning av auskultation") ||
       n.includes("period") ||
       n.includes("namnfortydligande") ||
       n.includes("tjanstestalle") ||
       n.includes("ort och datum") ||
       n.includes("intygsutfardande") ||
       n.includes("namnteckning") ||
-      n.includes("specialitet") && !n.includes("ansokan")
+      (n.includes("specialitet") && !n.includes("ansokan"))
     );
   };
 
