@@ -1250,13 +1250,19 @@ export default function ScanIntygModal({
                           label="Start"
                           value={parsed?.period?.startISO ?? ""}
                           onChange={(iso) =>
-                            setParsed((p: any) => ({
-                              ...p,
-                              period: {
-                                ...(p?.period ?? {}),
-                                startISO: iso,
-                              },
-                            }))
+                            setParsed((p: any) => {
+                              const currentEnd = p?.period?.endISO || "";
+                              // Om slutdatum är tidigare än startdatum, sätt det till samma som startdatum
+                              const newEnd = iso && currentEnd && currentEnd < iso ? iso : currentEnd;
+                              return {
+                                ...p,
+                                period: {
+                                  ...(p?.period ?? {}),
+                                  startISO: iso,
+                                  endISO: newEnd || p?.period?.endISO,
+                                },
+                              };
+                            })
                           }
                           align="left"
                         />
@@ -1291,14 +1297,20 @@ export default function ScanIntygModal({
                             label="Start"
                             value={parsed?.period?.startISO ?? ""}
                             onChange={(iso) =>
-                              setParsed((p: any) => ({
-                                ...p,
-                                period: {
-                                  ...(p?.period ?? {}),
-                                  startISO: iso,
-                                },
-                                showOnTimeline: true,
-                              }))
+                              setParsed((p: any) => {
+                                const currentEnd = p?.period?.endISO || "";
+                                // Om slutdatum är tidigare än startdatum, sätt det till samma som startdatum
+                                const newEnd = iso && currentEnd && currentEnd < iso ? iso : currentEnd;
+                                return {
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    startISO: iso,
+                                    endISO: newEnd || p?.period?.endISO,
+                                  },
+                                  showOnTimeline: true,
+                                };
+                              })
                             }
                             align="left"
                           />
@@ -1353,14 +1365,20 @@ export default function ScanIntygModal({
                             label="Start"
                             value={parsed?.period?.startISO ?? ""}
                             onChange={(iso) =>
-                              setParsed((p: any) => ({
-                                ...p,
-                                period: {
-                                  ...(p?.period ?? {}),
-                                  startISO: iso,
-                                },
-                                showOnTimeline: true,
-                              }))
+                              setParsed((p: any) => {
+                                const currentEnd = p?.period?.endISO || "";
+                                // Om slutdatum är tidigare än startdatum, sätt det till samma som startdatum
+                                const newEnd = iso && currentEnd && currentEnd < iso ? iso : currentEnd;
+                                return {
+                                  ...p,
+                                  period: {
+                                    ...(p?.period ?? {}),
+                                    startISO: iso,
+                                    endISO: newEnd || p?.period?.endISO,
+                                  },
+                                  showOnTimeline: true,
+                                };
+                              })
                             }
                             align="left"
                           />
