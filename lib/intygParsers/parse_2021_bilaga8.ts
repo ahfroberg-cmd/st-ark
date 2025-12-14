@@ -163,23 +163,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   };
 
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
-    // Försök hitta rubriken - gör regex mer tolerant genom att matcha även om det finns extra tecken
+    // Försök hitta rubriken - använd norm-funktionen för att matcha mot normaliserad text
     let idx = lines.findIndex((l) => {
-      // Normalisera raden för matchning (ta bort extra mellanslag, etc.)
-      const normalized = l.trim().replace(/\s+/g, " ");
-      return labelRe.test(normalized) || labelRe.test(l);
-    });
-    
-    // Om inte hittat, försök med normaliserad version av regex
-    if (idx < 0) {
+      // Testa direkt
+      if (labelRe.test(l)) return true;
+      // Testa med normaliserad text
+      const n = norm(l);
       const labelStr = labelRe.source;
-      // Ta bort word boundaries och gör mer flexibel
-      const flexibleRe = new RegExp(labelStr.replace(/\\b/g, "").replace(/\s+/g, "\\s+"), "i");
-      idx = lines.findIndex((l) => {
-        const normalized = l.trim().replace(/\s+/g, " ");
-        return flexibleRe.test(normalized) || flexibleRe.test(l);
-      });
-    }
+      // Skapa en normaliserad version av regex (ta bort word boundaries, normalisera mellanslag)
+      const normalizedLabelStr = labelStr
+        .replace(/\\b/g, "")
+        .replace(/\s+/g, "\\s+")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, "");
+      const normalizedLabelRe = new RegExp(normalizedLabelStr, "i");
+      return normalizedLabelRe.test(n);
+    });
     
     if (idx < 0) return undefined;
 
