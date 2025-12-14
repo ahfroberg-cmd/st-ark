@@ -232,6 +232,124 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
   const ok = Boolean(subject || description || supervisorName || personnummer);
   if (!ok) return null;
 
+  // Validera och förbättra parsning för tomma fält
+  let finalSupervisorSite = supervisorSite;
+  
+  // Om Tjänsteställe saknas men andra fält är ifyllda, leta extra noga
+  if (!finalSupervisorSite) {
+    // Räkna igenom alla rubriker i texten och matcha mot obligatoriska fält
+    const foundRubrics = new Set<string>();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const n = norm(line);
+      
+      // Identifiera rubriker
+      if (n.includes("tjanstestalle") || n.includes("tjanstestalle")) {
+        foundRubrics.add("tjanstestalle");
+        // Om vi hittar rubriken men inte har värdet, försök hämta det
+        if (i + 1 < lines.length) {
+          const nextLine = lines[i + 1];
+          if (nextLine && !isLabelLine(nextLine)) {
+            // Ta alla rader tills nästa rubrik
+            const valueLines: string[] = [];
+            for (let j = i + 1; j < lines.length; j++) {
+              const l = lines[j];
+              if (!l) break;
+              if (isLabelLine(l) && !/tjanstestalle/i.test(l)) break;
+              valueLines.push(l);
+            }
+            const candidate = valueLines.join("\n").trim();
+            if (candidate && candidate.length > 2) {
+              finalSupervisorSite = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Om fortfarande tomt, försök smart matching: om alla andra fält är ifyllda,
+    // leta efter rader som ser ut som rubriker men inte matchade något annat fält
+    if (!finalSupervisorSite) {
+      const filledFields = {
+        firstName: !!firstName,
+        lastName: !!lastName,
+        personnummer: !!personnummer,
+        specialtyHeader: !!specialtyHeader,
+        subject: !!subject,
+        description: !!description,
+        supervisorName: !!supervisorName,
+        supervisorSpeciality: !!supervisorSpeciality,
+      };
+      
+      // Räkna antal ifyllda fält
+      const filledCount = Object.values(filledFields).filter(Boolean).length;
+      
+      // Om de flesta fält är ifyllda, leta extra noga efter Tjänsteställe
+      if (filledCount >= 5) {
+        // Leta efter rader som innehåller "tjänst" eller liknande men inte matchade andra fält
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const n = norm(line);
+          
+          // Om raden innehåller "tjänst" eller "ställe" men inte är en känd rubrik för andra fält
+          if (
+            (n.includes("tjanst") || n.includes("stalle")) &&
+            !n.includes("specialitet") &&
+            !n.includes("namnfortydligande") &&
+            !n.includes("ort och datum")
+          ) {
+            // Kolla om nästa rad ser ut som ett värde
+            if (i + 1 < lines.length) {
+              const nextLine = lines[i + 1];
+              if (nextLine && !isLabelLine(nextLine)) {
+                const candidate = nextLine.trim();
+                if (candidate && candidate.length > 2 && candidate.length < 100) {
+                  finalSupervisorSite = candidate;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Om fortfarande tomt, leta efter rader EFTER "Namnförtydligande" eller "Specialitet"
+        // som inte matchade något annat fält
+        if (!finalSupervisorSite) {
+          const supervisorNameIdx = lines.findIndex((l) => /namnfortydligande/i.test(l));
+          const supervisorSpecialityIdx = lines.findIndex((l) => 
+            /specialitet\s*\(galler\s+endast\s+handledare\)/i.test(l) ||
+            /specialitet/i.test(l)
+          );
+          
+          // Leta efter rader efter dessa rubriker som kan vara Tjänsteställe
+          const searchStartIdx = Math.max(supervisorNameIdx, supervisorSpecialityIdx);
+          if (searchStartIdx >= 0) {
+            for (let i = searchStartIdx + 1; i < lines.length; i++) {
+              const line = lines[i];
+              if (!line) break;
+              if (isLabelLine(line)) break; // Stoppa vid nästa rubrik
+              
+              const n = norm(line);
+              // Om raden ser ut som ett värde (inte för kort, inte för lång, inte bara siffror)
+              if (
+                line.length > 2 &&
+                line.length < 100 &&
+                !/^\d+$/.test(line) &&
+                !n.includes("ort och datum") &&
+                !n.includes("intygsutfardande")
+              ) {
+                // Detta kan vara Tjänsteställe
+                finalSupervisorSite = line.trim();
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return {
     personnummer,
     delmalCodes,
@@ -246,7 +364,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     description: description || undefined,
     supervisorName: supervisorName || undefined,
     supervisorSpeciality: supervisorSpeciality || undefined,
-    supervisorSite: supervisorSite || undefined,
+    supervisorSite: finalSupervisorSite || undefined,
     signingRole,
   };
 }
@@ -504,6 +622,109 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     }
   }
 
+  // Validera och förbättra parsning för tomma fält
+  let finalSupervisorSite = supervisorSite;
+  
+  // Om Tjänsteställe saknas men andra fält är ifyllda, leta extra noga
+  if (!finalSupervisorSite) {
+    // Räkna antal ifyllda fält
+    const filledFields = {
+      firstName: !!firstName,
+      lastName: !!lastName,
+      personnummer: !!personnummer,
+      specialtyHeader: !!specialtyHeader,
+      courseTitle: !!courseTitle,
+      description: !!description,
+      supervisorName: !!supervisorName,
+      supervisorSpeciality: !!supervisorSpeciality,
+    };
+    
+    const filledCount = Object.values(filledFields).filter(Boolean).length;
+    
+    // Om de flesta fält är ifyllda, leta extra noga efter Tjänsteställe
+    if (filledCount >= 5) {
+      // Räkna igenom alla rubriker i rubricToValue och se om någon kan vara Tjänsteställe
+      for (const [rubricNorm, value] of rubricToValue.entries()) {
+        // Om rubriken innehåller "tjänst" eller "ställe" men inte matchade andra fält
+        if (
+          (rubricNorm.includes("tjanst") || rubricNorm.includes("stalle")) &&
+          !rubricNorm.includes("specialitet") &&
+          !rubricNorm.includes("namnfortydligande") &&
+          !rubricNorm.includes("ort") &&
+          value &&
+          value.length > 2 &&
+          value.length < 100
+        ) {
+          finalSupervisorSite = value.trim();
+          break;
+        }
+      }
+      
+      // Om fortfarande tomt, leta i råtexten efter rader som kan vara Tjänsteställe
+      if (!finalSupervisorSite) {
+        // Hitta index för Namnförtydligande och Specialitet
+        let supervisorNameIdx = -1;
+        let supervisorSpecialityIdx = -1;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (/^[Rr](?:\d+)?\s/.test(line)) {
+            const rMatch = /^[Rr](?:\d+)?\s+(.*)$/.exec(line);
+            if (rMatch) {
+              const rubricText = rMatch[1].trim();
+              const n = norm(rubricText);
+              if (n.includes("namnfortydligande")) {
+                supervisorNameIdx = i;
+              } else if (n.includes("specialitet") && !n.includes("ansokan")) {
+                supervisorSpecialityIdx = i;
+              }
+            }
+          }
+        }
+        
+        // Leta efter rader efter dessa rubriker som kan vara Tjänsteställe
+        const searchStartIdx = Math.max(supervisorNameIdx, supervisorSpecialityIdx);
+        if (searchStartIdx >= 0) {
+          // Hitta nästa R-rad efter searchStartIdx
+          let nextRIdx = -1;
+          for (let i = searchStartIdx + 1; i < lines.length; i++) {
+            if (/^[Rr](?:\d+)?\s/.test(lines[i])) {
+              nextRIdx = i;
+              break;
+            }
+          }
+          
+          // Om vi hittade en nästa R-rad, kolla raderna mellan dem
+          const endIdx = nextRIdx >= 0 ? nextRIdx : lines.length;
+          for (let i = searchStartIdx + 1; i < endIdx; i++) {
+            const line = lines[i];
+            if (!line) continue;
+            
+            // Ignorera X-rader, R-rader, S-rader, T-rader
+            if (/^[xX]\b/.test(line) || /^[Rr](?:\d+)?\s/.test(line) || /^[Ss]\s/.test(line) || /^[Tt]\d+\b/.test(line)) {
+              continue;
+            }
+            
+            // Om raden ser ut som ett värde (inte för kort, inte för lång)
+            if (line.length > 2 && line.length < 100 && !/^\d+$/.test(line)) {
+              const n = norm(line);
+              // Om raden inte innehåller kända stoppord
+              if (
+                !n.includes("ort och datum") &&
+                !n.includes("intygsutfardande") &&
+                !n.includes("namnteckning")
+              ) {
+                // Detta kan vara Tjänsteställe
+                finalSupervisorSite = line.trim();
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Returnera i format som ScanIntygModal redan hanterar
   return {
     personnummer,
@@ -519,7 +740,7 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     description: description || undefined,
     supervisorName: supervisorName || undefined,
     supervisorSpeciality: supervisorSpeciality || undefined,
-    supervisorSite: supervisorSite || undefined,
+    supervisorSite: finalSupervisorSite || undefined,
     signingRole,
   };
 }
