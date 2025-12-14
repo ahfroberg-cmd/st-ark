@@ -214,12 +214,21 @@ export default function ScanIntygModal({
       let p: any = {};
       const parser = getParser(k || undefined);
       
+      console.log('[ScanIntygModal] ====== PARSER ANROP ======');
+      console.log('[ScanIntygModal] Detected kind:', k);
+      console.log('[ScanIntygModal] Parser function:', parser ? 'FINNS' : 'SAKNAS');
+      console.log('[ScanIntygModal] OCR content length:', content.length);
+      console.log('[ScanIntygModal] OCR content first 500 chars:', content.substring(0, 500));
+      
       if (parser) {
         console.log('[ScanIntygModal] Anropar parser för kind:', k);
-        console.log('[ScanIntygModal] OCR content length:', content.length);
-        console.log('[ScanIntygModal] OCR content first 500 chars:', content.substring(0, 500));
-        p = parser(content);
-        console.log('[ScanIntygModal] Parser resultat:', p);
+        try {
+          p = parser(content);
+          console.log('[ScanIntygModal] Parser resultat:', JSON.stringify(p, null, 2));
+        } catch (error) {
+          console.error('[ScanIntygModal] Parser error:', error);
+          p = {};
+        }
       } else if (k === "2015-B4-KLIN") {
         // Fallback för säkerhets skull om registry saknas
         p = parse_2015_bilaga4(content);
