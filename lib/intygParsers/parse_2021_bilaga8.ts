@@ -724,6 +724,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
   const periodText = findValueByRubric(["Period"]);
   const period = periodText ? extractDates(periodText) : undefined;
 
+  // Om vi inte hittade några R/T/X-annotationer, returnera null så att parseByOcrSpaceHeadings körs
+  if (rubricToValue.size === 0) {
+    return null;
+  }
+
   return {
     kind: "2021-B8-AUSK",
     personnummer,
