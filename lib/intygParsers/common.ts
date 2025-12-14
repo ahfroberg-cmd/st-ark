@@ -28,31 +28,31 @@ export function extractDelmalCodes(text: string): string[] {
 
 /**
  * Normalisera och sortera delmål för 2021:
- * - Normalisera alla varianter (a1, A1, sta1, Sta1, STA1) till STa1-format
+ * - Normalisera alla varianter (a1, A1, sta1, Sta1, STA1) till STa1-format (ST stora, typ liten, nummer)
  * - Sortera i ordning: STa1-STa7, STb1-STb4, STc1-STc14
  * - Exkludera delmål utanför detta (t.ex. STc19)
  */
 export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
   const validCodes = new Set<string>();
   
-  // Definiera giltiga delmål för 2021
+  // Definiera giltiga delmål för 2021 (med liten bokstav för typen)
   const validDelmal = new Set<string>();
   // STa1-STa7
-  for (let i = 1; i <= 7; i++) validDelmal.add(`STA${i}`);
+  for (let i = 1; i <= 7; i++) validDelmal.add(`STa${i}`);
   // STb1-STb4
-  for (let i = 1; i <= 4; i++) validDelmal.add(`STB${i}`);
+  for (let i = 1; i <= 4; i++) validDelmal.add(`STb${i}`);
   // STc1-STc14
-  for (let i = 1; i <= 14; i++) validDelmal.add(`STC${i}`);
+  for (let i = 1; i <= 14; i++) validDelmal.add(`STc${i}`);
   
   // Normalisera varje kod
   for (const code of codes) {
-    // Ta bort alla separerare och normalisera
-    const cleaned = code.trim().toUpperCase();
+    // Ta bort alla separerare
+    const cleaned = code.trim();
     
     // Matcha olika format: a1, A1, sta1, Sta1, STA1, STa1, etc.
-    const match = cleaned.match(/^ST?([ABC])(\d+)$/);
+    const match = cleaned.match(/^ST?([abcABC])(\d+)$/i);
     if (match) {
-      const letter = match[1];
+      const letter = match[1].toLowerCase(); // Alltid liten bokstav
       const number = parseInt(match[2], 10);
       const normalized = `ST${letter}${number}`;
       
@@ -66,8 +66,8 @@ export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
   // Sortera i ordning: STa1-STa7, STb1-STb4, STc1-STc14
   const sorted = Array.from(validCodes).sort((a, b) => {
     // Extrahera bokstav och nummer
-    const aMatch = a.match(/^ST([ABC])(\d+)$/);
-    const bMatch = b.match(/^ST([ABC])(\d+)$/);
+    const aMatch = a.match(/^ST([abc])(\d+)$/);
+    const bMatch = b.match(/^ST([abc])(\d+)$/);
     if (!aMatch || !bMatch) return 0;
     
     const aLetter = aMatch[1];
@@ -75,7 +75,7 @@ export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
     const aNum = parseInt(aMatch[2], 10);
     const bNum = parseInt(bMatch[2], 10);
     
-    // Först sortera på bokstav (A < B < C)
+    // Först sortera på bokstav (a < b < c)
     if (aLetter !== bLetter) {
       return aLetter.localeCompare(bLetter);
     }

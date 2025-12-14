@@ -73,6 +73,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("specialitet som ansokan avser") ||
       n.includes("delmal som intyget avser") ||
       n.includes("utvecklingsarbetets amne") ||
+      n.includes("utvecklingsarbetets amne (anges i rubrikform)") ||
       n.includes("beskrivning av st-lakarens deltagande") ||
       n.includes("namnfortydligande") ||
       n.includes("tjanstestalle") ||
@@ -169,6 +170,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Ämne + beskrivning
   const subject =
+    valueAfter(/Utvecklingsarbetets ämne\s*\(anges i rubrikform\)/i, [/Beskrivning av ST-läkarens deltagande/i, /Namnförtydligande/i]) ||
+    valueAfter(/Utvecklingsarbetets amne\s*\(anges i rubrikform\)/i, [/Beskrivning av ST-läkarens deltagande/i, /Namnförtydligande/i]) ||
     valueAfter(/Utvecklingsarbetets ämne/i, [/Beskrivning av ST-läkarens deltagande/i, /Namnförtydligande/i]) ||
     valueAfter(/Utvecklingsarbetets amne/i, [/Beskrivning av ST-läkarens deltagande/i, /Namnförtydligande/i]);
 
@@ -187,6 +190,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Delmål (försök rubrikfält först, annars fallback från hela texten)
   const delmalText = valueAfter(/Delmål som intyget avser/i, [
+    /Utvecklingsarbetets ämne\s*\(anges i rubrikform\)/i,
+    /Utvecklingsarbetets amne\s*\(anges i rubrikform\)/i,
     /Utvecklingsarbetets ämne/i,
     /Utvecklingsarbetets amne/i,
     /Beskrivning av ST-läkarens deltagande/i,
@@ -204,6 +209,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Specialitet som ansökan avser
   const specialtyHeaderRaw = valueAfter(/Specialitet som ansökan avser/i, [
     /Delmål som intyget avser/i,
+    /Utvecklingsarbetets ämne\s*\(anges i rubrikform\)/i,
+    /Utvecklingsarbetets amne\s*\(anges i rubrikform\)/i,
     /Utvecklingsarbetets ämne/i,
   ]);
   const specialtyHeader = specialtyHeaderRaw?.trim() || undefined;
@@ -506,7 +513,12 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
     : (firstName || lastName || undefined);
 
   // Extrahera fält baserat på rubriker
-  const subject = findValueByRubric(["Utvecklingsarbetets ämne", "Utvecklingsarbetets amne"]);
+  const subject = findValueByRubric([
+    "Utvecklingsarbetets ämne (anges i rubrikform)",
+    "Utvecklingsarbetets amne (anges i rubrikform)",
+    "Utvecklingsarbetets ämne",
+    "Utvecklingsarbetets amne"
+  ]);
   const description = findValueByRubric(["Beskrivning av ST-läkarens deltagande i utvecklingsarbetet"]);
   
   // Personnummer
