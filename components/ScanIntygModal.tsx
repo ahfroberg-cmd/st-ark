@@ -862,9 +862,9 @@ export default function ScanIntygModal({
               <div className="space-y-4">
                 {/* Tips för bästa resultat */}
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
-                  <div className="font-semibold mb-2">Viktigt för bästa resultat:</div>
+                  <div className="font-semibold mb-2">För bästa resultat:</div>
                   <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li><strong>Allra bäst resultat får du vid scanning</strong> av dokumentet</li>
+                    <li>Allra bäst resultat får du vid scanning av dokumentet</li>
                     <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
                     <li>Beskär bilden så att endast dokumentet syns – ta bort tomma ytor runt omkring</li>
                     <li>Se till att hela dokumentet syns i bilden</li>
