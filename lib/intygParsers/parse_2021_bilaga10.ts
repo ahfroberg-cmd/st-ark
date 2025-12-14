@@ -40,7 +40,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     /^\*{3,}\s*result\s+for\s+image\/page/i,
     /^\*{3,}/,
     /^\s*(page|sida)\s*\d+\s*$/i,
-    /\bHSLF[-\s]?FS\b/i,
+    /\bHSLF[-\s]?FS\b/i, // Matchar "HSLF- FS", "HSLF FS", etc.
+    /\bHSLF[-\s]?FS\s+\d{4}:\d+/i, // Matchar "HSLF- FS 2021:81"
+    /\bHSLF[-\s]?FS\s+\d{4}:\d+\s*\(/i, // Matchar "HSLF- FS 2021:81 ("
     /\bBilaga\s*10\b/i,
     /\bBilaga\s*nr\b/i,
     /^\s*INTYG\b/i,
@@ -82,6 +84,17 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
     );
   };
 
+  // Kontrollera om en rad ska ignoreras (inklusive HSLF- FS-mönster)
+  const shouldIgnoreLine = (l: string): boolean => {
+    if (!l) return true;
+    const n = norm(l);
+    // Kontrollera IGNORE-mönster
+    if (IGNORE.some((re) => re.test(l))) return true;
+    // Ytterligare kontroll för HSLF- FS med siffror och kolon
+    if (/\bHSLF[-\s]?FS\s+\d{4}:\d+/.test(l)) return true;
+    return false;
+  };
+
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
     const idx = lines.findIndex((l) => labelRe.test(l));
     if (idx < 0) return undefined;
@@ -100,6 +113,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
       for (let i = idx + 1; i < lines.length; i++) {
         const l = lines[i];
         if (!l) break;
+        if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
         if (isLabelLine(l)) break;
         if (stopRes.some((re) => re.test(l))) break;
         out.push(l);
@@ -116,6 +130,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
         for (let i = idx + 1; i < lines.length; i++) {
           const l = lines[i];
           if (!l) break;
+          if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
           // Stoppa vid nästa rubrik (men inte om det är samma rubrik igen)
           if (isLabelLine(l) && !labelRe.test(l)) break;
           if (stopRes.some((re) => re.test(l))) break;
@@ -127,6 +142,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
         if (idx + 1 >= lines.length) return undefined;
         const nextLine = lines[idx + 1];
         if (!nextLine) return undefined;
+        if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
         if (isLabelLine(nextLine)) return undefined;
         if (stopRes.some((re) => re.test(nextLine))) return undefined;
         return nextLine.trim() || undefined;
@@ -255,6 +271,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
             for (let j = i + 1; j < lines.length; j++) {
               const l = lines[j];
               if (!l) break;
+              if (shouldIgnoreLine(l)) continue; // Hoppa över rader som ska ignoreras
               if (isLabelLine(l) && !/tjanstestalle/i.test(l)) break;
               valueLines.push(l);
             }
@@ -302,7 +319,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
             // Kolla om nästa rad ser ut som ett värde
             if (i + 1 < lines.length) {
               const nextLine = lines[i + 1];
-              if (nextLine && !isLabelLine(nextLine)) {
+              if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
                 const candidate = nextLine.trim();
                 if (candidate && candidate.length > 2 && candidate.length < 100) {
                   finalSupervisorSite = candidate;
@@ -329,6 +346,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedKurs2021 | null {
               const line = lines[i];
               if (!line) break;
               if (isLabelLine(line)) break; // Stoppa vid nästa rubrik
+              
+              if (shouldIgnoreLine(line)) continue; // Hoppa över rader som ska ignoreras
               
               const n = norm(line);
               // Om raden ser ut som ett värde (inte för kort, inte för lång, inte bara siffror)
@@ -423,12 +442,23 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
     { variants: ["Tjänsteställe", "Tjanstestalle"], key: "tjanstestalle" },
   ];
 
+  // Hjälpfunktion för att kontrollera om en rad ska ignoreras (inklusive HSLF- FS-mönster)
+  const shouldIgnoreLineAnnotated = (l: string): boolean => {
+    if (!l) return true;
+    // Ignorera HSLF- FS med siffror och kolon
+    if (/\bHSLF[-\s]?FS\s+\d{4}:\d+/.test(l)) return true;
+    return false;
+  };
+
   // Iterera sekventiellt genom raderna
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
     // Ignorera X-rader helt
     if (/^[xX]\b/.test(line)) continue;
+    
+    // Ignorera HSLF- FS-rader
+    if (shouldIgnoreLineAnnotated(line)) continue;
 
     // Matcha S-rad (checkbox ikryssad)
     const sMatch = /^[Ss]\s+(.*)$/.exec(line);
@@ -459,6 +489,9 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
 
         // Ignorera X-rader
         if (/^[xX]\b/.test(nextLine)) continue;
+        
+        // Ignorera HSLF- FS-rader
+        if (shouldIgnoreLineAnnotated(nextLine)) continue;
 
         // Om det är en T-rad med samma ID (om R hade ID), använd den och stoppa
         const rIdMatch = /^[Rr](\d+)\s/.exec(line);
@@ -704,6 +737,9 @@ function parseByAnnotatedMarkers(raw: string): ParsedKurs2021 | null {
             if (/^[xX]\b/.test(line) || /^[Rr](?:\d+)?\s/.test(line) || /^[Ss]\s/.test(line) || /^[Tt]\d+\b/.test(line)) {
               continue;
             }
+            
+            // Ignorera HSLF- FS-rader
+            if (shouldIgnoreLineAnnotated(line)) continue;
             
             // Om raden ser ut som ett värde (inte för kort, inte för lång)
             if (line.length > 2 && line.length < 100 && !/^\d+$/.test(line)) {
