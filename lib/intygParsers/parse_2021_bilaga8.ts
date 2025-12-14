@@ -318,6 +318,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // OBS: "Specialitet" ska INTE matcha "Specialitet som ansökan avser"
   const supervisorSpeciality = (() => {
     // Leta efter "Specialitet" men INTE "Specialitet som ansökan avser"
+    // Försök först med valueAfter för att få samma logik
+    const specialityValue = valueAfter(/\bSpecialitet\b/i, [
+      /Specialitet\s+som\s+ansökan/i,
+      /Specialitet\s+som\s+ansokan/i,
+    ]);
+    if (specialityValue) return specialityValue;
+    
+    // Fallback: leta direkt i lines
     const idx = lines.findIndex((l) => {
       const n = norm(l);
       return n.includes("specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
@@ -331,7 +339,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     return nextLine.trim() || undefined;
   })();
   // Tjänsteställe: bara FÖLJANDE RAD ska inkluderas
-  const supervisorSite = (() => {
+  const supervisorSite = valueAfter(/\bTjänsteställe\b/i) ||
+                         valueAfter(/\bTjanstestalle\b/i) ||
+                         (() => {
     const idx = lines.findIndex((l) => /Tjänsteställe/i.test(l) || /Tjanstestalle/i.test(l));
     if (idx < 0) return undefined;
     
