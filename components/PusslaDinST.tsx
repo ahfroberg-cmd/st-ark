@@ -6435,7 +6435,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <div>
           <label className="block text-sm text-slate-700">Kursens titel</label>
           <input
-            value={(selCourse as any)?.courseTitle || selCourse.title || ""}
+            value={(selCourse as any)?.courseTitle || ""}
             onChange={(e) => {
               setCourses((prev) =>
                 prev.map((c) =>
