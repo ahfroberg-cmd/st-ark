@@ -83,10 +83,12 @@ function isLabelLine(line: string): boolean {
 }
 
 function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
-  // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn"
+  // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn", "fömamn" -> "Förnamn", "eftemamn" -> "Efternamn"
   const normalizedRaw = raw
     .replace(/\bFömamn\b/gi, "Förnamn")
-    .replace(/\bEftemamn\b/gi, "Efternamn");
+    .replace(/\bEftemamn\b/gi, "Efternamn")
+    .replace(/\bfömamn\b/gi, "Förnamn")
+    .replace(/\beftemamn\b/gi, "Efternamn");
   
   const linesAll = normalizedRaw
     .split(/\r?\n/)
@@ -188,29 +190,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       }
       return out.join("\n").trim() || undefined;
     } else {
-      // För övriga fält: ta nästa rad (eller flera rader om det är flerradigt)
-      // För "Tjänsteställe": bara FÖLJANDE RAD ska inkluderas
-      const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || labelRe.source.includes("Tjanstestalle");
-      
-      if (isTjanstestalle) {
-        // För Tjänsteställe: ta BARA nästa rad (inte flera rader)
-        if (idx + 1 >= lines.length) return undefined;
-        const nextLine = lines[idx + 1];
-        if (!nextLine) return undefined;
-        if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
-        if (isLabelLine(nextLine)) return undefined;
-        if (stopRes.some((re) => re.test(nextLine))) return undefined;
-        return nextLine.trim() || undefined;
-      } else {
-        // För övriga fält: ta bara nästa rad
-        if (idx + 1 >= lines.length) return undefined;
-        const nextLine = lines[idx + 1];
-        if (!nextLine) return undefined;
-        if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
-        if (isLabelLine(nextLine)) return undefined;
-        if (stopRes.some((re) => re.test(nextLine))) return undefined;
-        return nextLine.trim() || undefined;
-      }
+      // För ALLA övriga fält: ta BARA nästa rad (inte flera rader)
+      if (idx + 1 >= lines.length) return undefined;
+      const nextLine = lines[idx + 1];
+      if (!nextLine) return undefined;
+      if (shouldIgnoreLine(nextLine)) return undefined; // Ignorera om raden ska ignoreras
+      if (isLabelLine(nextLine)) return undefined;
+      if (stopRes.some((re) => re.test(nextLine))) return undefined;
+      return nextLine.trim() || undefined;
     }
   };
 
@@ -218,8 +205,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const base = extractCommon(raw);
 
   // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
-  const lastName = valueAfter(/Efternamn/i, [/Förnamn/i, /Fornamn/i]);
-  const firstName = valueAfter(/Förnamn/i, [/Efternamn/i]) || valueAfter(/Fornamn/i, [/Efternamn/i]);
+  // Hantera OCR-fel: "Eftemamn" och "Fömamn"
+  const lastName = valueAfter(/Efternamn/i, [/Förnamn/i, /Fornamn/i]) ||
+                   valueAfter(/Eftemamn/i, [/Förnamn/i, /Fornamn/i]);
+  const firstName = valueAfter(/Förnamn/i, [/Efternamn/i]) || 
+                   valueAfter(/Fornamn/i, [/Efternamn/i]) ||
+                   valueAfter(/Fömamn/i, [/Efternamn/i]);
   const fullName = firstName && lastName 
     ? `${firstName.trim()} ${lastName.trim()}`.trim()
     : (firstName || lastName || undefined);
