@@ -133,7 +133,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       (n.includes("tjanst") && n.includes("stalle")) ||
       (n.includes("tjanst") && n.includes("ställe")) ||
       (n.includes("tjänst") && n.includes("stalle")) ||
-      (n.includes("tjänst") && n.includes("ställe"))
+      (n.includes("tjänst") && n.includes("ställe")) ||
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
       n === norm("Intygande") ||
