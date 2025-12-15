@@ -353,15 +353,23 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     if (namnfortydligandeIdx >= 0 && namnfortydligandeIdx + 1 < lines.length) {
       const nextLine = lines[namnfortydligandeIdx + 1];
       if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-        supervisorName = nextLine.trim();
+        // Filtrera bort om det ser ut som ett nummer eller parenteser (t.ex. "1 (1)")
+        const trimmed = nextLine.trim();
+        if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
+          supervisorName = trimmed;
+        }
       }
     }
   }
   
   // Om inte hittat via "Handledare", försök direkt med "Namnförtydligande"
   if (!supervisorName) {
-    supervisorName = valueAfter(/Namnförtydligande/i) ||
-                    valueAfter(/Namnfortydligande/i);
+    const nameFromValueAfter = valueAfter(/Namnförtydligande/i) ||
+                              valueAfter(/Namnfortydligande/i);
+    // Filtrera bort om det ser ut som ett nummer eller parenteser
+    if (nameFromValueAfter && !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim())) {
+      supervisorName = nameFromValueAfter;
+    }
   }
   
   // Handledarens specialitet (inte sökandens)
