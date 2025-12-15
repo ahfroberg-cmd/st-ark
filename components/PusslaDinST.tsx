@@ -588,6 +588,14 @@ for (let i = 0; i < edus.length - 1; i++) {
 
 // =================== /Varningskomponent för glapp ======================
 
+// Hjälpfunktion för att få rätt visningstitel för en kurs
+function getCourseDisplayTitle(c: TLcourse | any): string {
+  if (c.title === "Annan kurs") {
+    return (c as any)?.courseTitle?.trim() || "Kurs";
+  }
+  return c.title || (c as any)?.provider || "Kurs";
+}
+
 export default function PusslaDinST({
   initialStartYear,
   initialCourses,
@@ -3225,7 +3233,7 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
       )
       .map((c: any) => ({
         id: (c as any).linkedCourseId || c.id,
-        title: c.title || (c as any).provider || "Kurs",
+        title: getCourseDisplayTitle(c),
         period: [
           c.city,
           ((c as any).certificateDate || c.endDate || c.startDate || "") as string,
@@ -3648,7 +3656,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           left: `${clampedCenterPx}px`,
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
-        title={`${c.title || "Kurs"} start — ${c.startDate || c.certificateDate}`}
+        title={`${getCourseDisplayTitle(c)} start — ${c.startDate || c.certificateDate}`}
 
         onClick={(e) => {
           e.stopPropagation();
@@ -3681,7 +3689,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
             const dummyActivity: Activity = {
               id: c.id,
               type: "Kurs",
-              label: c.title || "Kurs",
+              label: getCourseDisplayTitle(c),
               startSlot: 0,
               lengthSlots: 1,
               hue: 0,
@@ -3730,7 +3738,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           };
         }}
       >
-        <span className="max-w-[24ch] truncate">{(c.title || "Kurs") + " start"}</span>
+        <span className="max-w-[24ch] truncate">{getCourseDisplayTitle(c) + " start"}</span>
 
       </div>
 
@@ -3813,7 +3821,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           left: `${clampedCenterPx}px`,
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
-        title={`${c.title || "Kurs"} slut — ${c.endDate || c.certificateDate}`}
+        title={`${getCourseDisplayTitle(c)} slut — ${c.endDate || c.certificateDate}`}
 
         onClick={(e) => {
           e.stopPropagation();
@@ -3845,7 +3853,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
             const dummyActivity: Activity = {
               id: c.id,
               type: "Kurs",
-              label: c.title || "Kurs",
+              label: getCourseDisplayTitle(c),
               startSlot: 0,
               lengthSlots: 1,
               hue: 0,
@@ -3894,7 +3902,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           };
         }}
       >
-        <span className="max-w-[24ch] truncate">{(c.title || "Kurs") + " slut"}</span>
+        <span className="max-w-[24ch] truncate">{getCourseDisplayTitle(c) + " slut"}</span>
 
       </div>
 
@@ -3994,7 +4002,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           left: `${clampedCenterPx}px`,
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
-        title={c.title || "Kurs"}
+        title={getCourseDisplayTitle(c)}
         onClick={(e) => {
           e.stopPropagation();
           switchActivity(null, c.id);
@@ -4024,7 +4032,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
             const dummyActivity: Activity = {
               id: c.id,
               type: "Kurs",
-              label: c.title || "Kurs",
+              label: getCourseDisplayTitle(c),
               startSlot: 0,
               lengthSlots: 1,
               hue: 0,
@@ -4077,7 +4085,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           };
         }}
       >
-        <span className="max-w-[24ch] truncate">{c.title || "Kurs"}</span>
+        <span className="max-w-[24ch] truncate">{getCourseDisplayTitle(c)}</span>
       </div>
 
 
@@ -4364,7 +4372,7 @@ function roundToAnchors(iso: string, which: "start" | "end") {
     const q = new URLSearchParams({
       fromTimeline: "1",
       timeline: "1",
-      title: c.title || "Kurs",
+      title: getCourseDisplayTitle(c),
       certificateDate: c.certificateDate,
     });
     router.push(`/kurser?${q.toString()}`);
@@ -4453,8 +4461,26 @@ function SaveInfoModal({
     try {
       const { exportAll, downloadJson } = await import("@/lib/backup");
       const bundle = await exportAll();
-      const d = new Date().toISOString().slice(0, 10);
-      await downloadJson(bundle, `st-intyg-backup-${d}.json`);
+      
+      // Hämta namn från profilen
+      const profileName = bundle.profile?.name || 
+                         (bundle.profile?.firstName && bundle.profile?.lastName 
+                           ? `${bundle.profile.firstName} ${bundle.profile.lastName}`.trim()
+                           : "Användare");
+      
+      // Gör namnet filsystem-säkert (ersätt specialtecken med bindestreck)
+      const safeName = profileName
+        .replace(/[^a-zA-Z0-9åäöÅÄÖ\s-]/g, '') // Ta bort ogiltiga tecken
+        .replace(/\s+/g, '-') // Ersätt mellanslag med bindestreck
+        .replace(/-+/g, '-') // Ta bort dubbla bindestreck
+        .replace(/^-|-$/g, ''); // Ta bort bindestreck i början/slutet
+      
+      // Datum i format YYMMDD
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const d = dateStr.slice(2, 4) + dateStr.slice(5, 7) + dateStr.slice(8, 10);
+      
+      const filename = `ST-ARK-${safeName}-${d}.json`;
+      await downloadJson(bundle, filename);
       onClose();
     } catch (e) {
       console.error(e);
@@ -4667,7 +4693,7 @@ async function openPreviewForCourse(c: TLcourse) {
     const gv = normalizeGoalsVersion((profile as any).goalsVersion);
 
     const act: any = {
-      title: c.title || "Kurs",
+      title: getCourseDisplayTitle(c),
       site: (c as any).site || "",
       clinic: (c as any).site || "",
       startDate: c.startDate || c.endDate || c.certificateDate,
@@ -6021,20 +6047,22 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       {!(selAct.type === "Forskning" || isLeave(selAct.type)) && (
         <div>
           <label className="block text-sm text-slate-700">Syss.%</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={5}
+          <select
             value={selAct.attendance ?? 100}
             onChange={(e) => {
-              const v = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+              const v = Number(e.target.value);
               setActivities((prev) =>
                 prev.map((a) => (a.id === selAct.id ? { ...a, attendance: v } : a))
               );
             }}
-            className="w-full h-10 rounded-lg border px-3"
-          />
+            className="w-full h-10 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+          >
+            {Array.from({ length: 21 }, (_, i) => i * 5).map((val) => (
+              <option key={val} value={val}>
+                {val}%
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>
@@ -7056,7 +7084,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       )
       .map((c: any) => ({
         id: c.linkedCourseId || c.id,
-        title: c.title || c.provider || "Kurs",
+        title: getCourseDisplayTitle(c),
         period: [
           c.city,
           (c.certificateDate || c.endDate || c.startDate || "") as string,
@@ -7239,7 +7267,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             )
             .map((c: any) => ({
               id: (c as any).linkedCourseId || c.id,
-              title: c.title || (c as any).provider || "Kurs",
+              title: getCourseDisplayTitle(c),
               period: [
                 c.city,
                 ((c as any).certificateDate ||
@@ -7355,7 +7383,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     const dummyActivity: Activity = {
                       id: c.id,
                       type: "Kurs",
-                      label: c.title || "Kurs",
+                      label: getCourseDisplayTitle(c),
                       startSlot: 0,
                       lengthSlots: 1,
                       hue: 0,
@@ -7423,7 +7451,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           const dummyActivity: Activity = {
                             id: c.id,
                             type: "Klinisk tjänstgöring",
-                            label: c.title || "Kurs",
+                            label: getCourseDisplayTitle(c),
                             startSlot: 0,
                             lengthSlots: 1,
                             hue: 0,
@@ -8242,7 +8270,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               const dummyActivity: Activity = {
                 id: c.id,
                 type: "Kurs",
-                label: c.title || "Kurs",
+                label: getCourseDisplayTitle(c),
                 startSlot: 0,
                 lengthSlots: 1,
                 hue: 0,

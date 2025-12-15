@@ -54,17 +54,23 @@ export function labelsFor(kind: IntygKind | null | undefined) {
 case "2015-B7-SKRIFTLIGT":
   return {
     ...base,
-    title: "Självständigt skriftligt arbete",
-    clinicLabel: "Ämne (rubrik)",
+    title: "Självständigt skriftligt arbete enligt vetenskapliga principer",
+    clinicLabel: "Ämne",
     descriptionLabel: "Beskrivning av det självständiga skriftliga arbetet",
   };
 
     case "2015-B6-UTV":
+      return {
+        ...base,
+        title: "Kvalitets- och utvecklingsarbete",
+        clinicLabel: "Ämne",
+        descriptionLabel: "Beskrivning av kvalitets- och utvecklingsarbetet",
+      };
     case "2021-B11-UTV":
       return {
         ...base,
         title: "Intyg för kvalitets- och utvecklingsarbete",
-        descriptionLabel: "Beskrivning av kvalitets- och utvecklingsarbete",
+        descriptionLabel: "Beskrivning av kvalitets- och utvecklingsarbetet",
       };
     case "2015-B4-KLIN":
     case "2021-B9-KLIN":

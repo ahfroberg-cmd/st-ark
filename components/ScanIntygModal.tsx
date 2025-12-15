@@ -1022,18 +1022,16 @@ export default function ScanIntygModal({
 
     // SOSFS 2015:8 – Bilaga 6 (Kvalitets- och utvecklingsarbete)
     case "2015-B6-UTV":
-      titleLabel =
-        "Ämne för kvalitets- och utvecklingsarbete (rubrikform)";
-      clinicLabel = "Tjänstgöringsställe";
+      titleLabel = "Kvalitets- och utvecklingsarbete";
+      clinicLabel = "Ämne";
       descriptionLabel =
         "Beskrivning av kvalitets- och utvecklingsarbetet";
       break;
 
     // SOSFS 2015:8 – Bilaga 7 (Självständigt skriftligt arbete)
     case "2015-B7-SKRIFTLIGT":
-      titleLabel =
-        "Ämne för självständigt skriftligt arbete (rubrikform)";
-      clinicLabel = "Ämne (rubrik)";
+      titleLabel = "Självständigt skriftligt arbete enligt vetenskapliga principer";
+      clinicLabel = "Ämne";
       descriptionLabel =
         "Beskrivning av det självständiga skriftliga arbetet";
       break;
@@ -1437,7 +1435,7 @@ export default function ScanIntygModal({
                     </div>
                   )}
                   {/* För 2021 utvecklingsarbete: alltid visa date pickers */}
-                  {kind === "2021-B11-UTV" && (
+                  {(kind === "2021-B11-UTV" || kind === "2015-B6-UTV" || kind === "2015-B7-SKRIFTLIGT") && (
                     <div className="space-y-3">
                       <label className="block text-sm font-medium text-slate-900">
                         Ange datum för placering i Tidslinjen

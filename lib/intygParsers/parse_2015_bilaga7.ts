@@ -115,8 +115,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("specialitet som ansökan avser") ||
       n.includes("delmal som intyget avser") ||
       n.includes("delmål som intyget avser") ||
-      n.includes("amne for sjalvstandigt skriftligt arbete") ||
-      n.includes("ämne för självständigt skriftligt arbete") ||
+      (n.includes("amne for sjalvstandigt skriftligt arbete") || n.includes("amne for sjalvstandigt skriftligt arbete (i rubrikform)")) ||
+      (n.includes("ämne för självständigt skriftligt arbete") || n.includes("ämne för självständigt skriftligt arbete (i rubrikform)")) ||
       // Bara matcha exakt rubrik "Beskrivning av det självständiga skriftliga arbetet", inte bara om "beskrivning" finns
       n.includes("beskrivning av det sjalvstandiga skriftliga arbetet") ||
       n.includes("beskrivning av det självständiga skriftliga arbetet") ||
@@ -156,8 +156,19 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Extrahera värde efter rubrik
   const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
+    // Debug: logga om vi letar efter ämne
+    const isAmne = labelRe.source.includes("ämne") || labelRe.source.includes("amne");
+    if (isAmne) {
+      console.warn('[Bilaga 7 Parser] Letar efter ämne med regex:', labelRe.source);
+      console.warn('[Bilaga 7 Parser] Första 10 raderna:', lines.slice(0, 10));
+    }
+    
     // Försök hitta rubriken
     let idx = lines.findIndex((l) => labelRe.test(l));
+    
+    if (isAmne && idx >= 0) {
+      console.warn('[Bilaga 7 Parser] Hittade ämne-rubrik på index:', idx, 'rad:', lines[idx]);
+    }
     
     // Om inte hittat, försök med mer flexibel matchning
     if (idx < 0) {
@@ -168,9 +179,18 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         .replace(/\\s\*/g, '\\s*');
       const flexibleRe = new RegExp(patternStr, 'i');
       idx = lines.findIndex((l) => flexibleRe.test(norm(l)));
+      
+      if (isAmne && idx >= 0) {
+        console.warn('[Bilaga 7 Parser] Hittade ämne-rubrik med flexibel matchning på index:', idx, 'rad:', lines[idx]);
+      }
     }
     
-    if (idx < 0) return undefined;
+    if (idx < 0) {
+      if (isAmne) {
+        console.warn('[Bilaga 7 Parser] Kunde INTE hitta ämne-rubrik');
+      }
+      return undefined;
+    }
 
     // "Label: value" på samma rad
     const sameLine = lines[idx].split(":").slice(1).join(":").trim();
@@ -210,18 +230,47 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       return out.join("\n").trim() || undefined;
     } else {
       // För ALLA övriga fält: ta BARA nästa rad (inte flera rader)
-      if (idx + 1 >= lines.length) return undefined;
+      if (idx + 1 >= lines.length) {
+        if (isAmne) {
+          console.warn('[Bilaga 7 Parser] Ingen nästa rad efter ämne-rubrik (idx + 1 >= lines.length)');
+        }
+        return undefined;
+      }
       const nextLine = lines[idx + 1];
-      if (!nextLine) return undefined;
+      if (!nextLine) {
+        if (isAmne) {
+          console.warn('[Bilaga 7 Parser] Nästa rad är tom');
+        }
+        return undefined;
+      }
       
       // Stoppa om nästa rad är en rubrik
-      if (isLabelLine(nextLine)) return undefined;
+      if (isLabelLine(nextLine)) {
+        if (isAmne) {
+          console.warn('[Bilaga 7 Parser] Nästa rad efter ämne-rubrik är en rubrik:', nextLine);
+        }
+        return undefined;
+      }
       
       // Stoppa om nästa rad ska ignoreras (t.ex. "Namnteckning", "Ort och datum", "Personnummer")
-      if (shouldIgnoreLine(nextLine)) return undefined;
+      if (shouldIgnoreLine(nextLine)) {
+        if (isAmne) {
+          console.warn('[Bilaga 7 Parser] Nästa rad efter ämne-rubrik ska ignoreras:', nextLine);
+        }
+        return undefined;
+      }
       
       // Stoppa vid stopp-mönster
-      if (stopRes.some((re) => re.test(nextLine))) return undefined;
+      if (stopRes.some((re) => re.test(nextLine))) {
+        if (isAmne) {
+          console.warn('[Bilaga 7 Parser] Nästa rad efter ämne-rubrik matchar stopp-mönster:', nextLine);
+        }
+        return undefined;
+      }
+      
+      if (isAmne) {
+        console.warn('[Bilaga 7 Parser] Returnerar nästa rad som ämne:', nextLine);
+      }
       
       // För "Tjänsteställe": ta bara nästa rad och stopp om den innehåller "SOSFS" eller liknande
       const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || 
@@ -293,10 +342,17 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Ämne för självständigt skriftligt arbete (i rubrikform)
   // Detta ska sparas i clinic-fältet
-  const subject = valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i) ||
+  // Rubriken kan vara "Ämne för självständigt skriftligt arbete (i rubrikform)" eller kortare
+  const subject = valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete\s*\(i\s*rubrikform\)/i) ||
+                  valueAfter(/Amne\s+for\s+sjalvstandigt\s+skriftligt\s+arbete\s*\(i\s*rubrikform\)/i) ||
+                  valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i) ||
                   valueAfter(/Amne\s+for\s+sjalvstandigt\s+skriftligt\s+arbete/i) ||
                   valueAfter(/Ämne\s+för\s+självständigt/i) ||
                   valueAfter(/Amne\s+for\s+sjalvstandigt/i);
+  
+  console.warn('[Bilaga 7 Parser] ====== ÄMNE EXTRAHERING ======');
+  console.warn('[Bilaga 7 Parser] subject:', subject);
+  console.warn('[Bilaga 7 Parser] ====== SLUT ÄMNE ======');
 
   // Beskrivning av det självständiga skriftliga arbetet
   // Stoppa vid: Handledare, Namnförtydligande, Specialitet, Tjänsteställe, Namnteckning, Ort och datum
