@@ -128,6 +128,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       (n === norm("Specialitet") && !n.includes("ansokan")) ||
       n === norm("Tjänsteställe") ||
       n === norm("Tjanstestalle") ||
+      n.includes("tjanstestalle") || // OCR kan skriva med "i" istället för "ä"
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
       n === norm("Intygande") ||
