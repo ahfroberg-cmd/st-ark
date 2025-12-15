@@ -519,6 +519,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       // 2. Om bara "Kursledare" finns, så är det kursledare som signerar
       // 3. Om bara "Handledare" finns, eller om "Handledare" kommer EFTER "Beskrivning" (och "Kursledare" inte finns),
       //    så är det handledare som signerar
+      // Prioriteringsordning: Kontrollera "Kursledare före Handledare" FÖRST
       if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
         // Om "Kursledare" kommer FÖRE "Handledare", så är det troligen kursledare som signerar
         // (eftersom "Kursledare" är den första rubriken, och om den är ikryssad så är det kursledare)
@@ -531,20 +532,20 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         signingRole = "kursledare";
         kursledLine = lines[kursledIdx];
         console.log('[Bilaga 5 Parser] Bara Kursledare finns - kursledare signerar');
+      } else if (handledIdx >= 0 && kursledIdx < 0) {
+        // Om bara "Handledare" finns (ingen "Kursledare"), så är det handledare som signerar
+        signingRole = "handledare";
+        handledLine = lines[handledIdx];
+        console.log('[Bilaga 5 Parser] Bara Handledare finns - handledare signerar');
       } else if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
         // Om "Handledare" kommer EFTER "Beskrivning", så är det troligen handledare som signerar
-        // (men bara om "Kursledare" INTE kommer före "Handledare")
+        // (men bara om "Kursledare" INTE kommer före "Handledare" - vilket redan är hanterat ovan)
         signingRole = "handledare";
         handledLine = lines[handledIdx];
         if (kursledIdx >= 0) {
           kursledLine = lines[kursledIdx];
         }
         console.log('[Bilaga 5 Parser] Handledare kommer efter Beskrivning - handledare signerar');
-      } else if (handledIdx >= 0 && kursledIdx < 0) {
-        // Om bara "Handledare" finns (ingen "Kursledare"), så är det handledare som signerar
-        signingRole = "handledare";
-        handledLine = lines[handledIdx];
-        console.log('[Bilaga 5 Parser] Bara Handledare finns - handledare signerar');
       }
     }
   }
