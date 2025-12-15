@@ -471,12 +471,21 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   supervisorSite = siteFromValueAfter1 || siteFromValueAfter2;
   
   // Om inte hittat via valueAfter, försök direkt i lines-arrayen
-  if (!supervisorSite && handledareIdx >= 0) {
-    console.warn('[Bilaga 3 Parser] Försöker hitta Tjänsteställe direkt i lines-arrayen efter Handledare');
+  if (!supervisorSite) {
+    console.warn('[Bilaga 3 Parser] Försöker hitta Tjänsteställe direkt i lines-arrayen');
+    // Sök efter "Tjänsteställe" i hela arrayen, men prioritera efter "Handledare" om det finns
+    let searchStartIdx = 0;
+    if (handledareIdx >= 0) {
+      searchStartIdx = handledareIdx;
+      console.warn('[Bilaga 3 Parser] Söker efter Tjänsteställe efter Handledare (index', handledareIdx, ')');
+    } else {
+      console.warn('[Bilaga 3 Parser] Handledare inte hittad, söker i hela arrayen');
+    }
+    
     const tjänsteställeIdx = lines.findIndex((l, idx) => {
-      if (idx <= handledareIdx) return false;
+      if (idx < searchStartIdx) return false;
       const n = norm(l);
-      const isMatch = n === norm("Tjänsteställe") || n === norm("Tjanstestalle");
+      const isMatch = n === norm("Tjänsteställe") || n === norm("Tjanstestalle") || n.includes("tjanstestalle");
       if (isMatch) {
         console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l);
       }
