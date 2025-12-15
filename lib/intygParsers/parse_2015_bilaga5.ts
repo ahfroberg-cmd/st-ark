@@ -550,30 +550,45 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   console.log('[Bilaga 5 Parser] namnfortydligandeIdx:', namnfortydligandeIdx);
   
   if (namnfortydligandeIdx >= 0) {
+    console.log('[Bilaga 5 Parser] Namnförtydligande hittades på index:', namnfortydligandeIdx);
     // Ta nästa rad efter "Namnförtydligande"
     let candidateIdx = namnfortydligandeIdx + 1;
     
     // Om nästa rad ser ut som en rubrik (t.ex. "Namn Handledare"), ta nästa rad istället
     if (candidateIdx < lines.length) {
       const candidateLine = lines[candidateIdx];
+      console.log('[Bilaga 5 Parser] Kandidat-rad efter Namnförtydligande:', candidateLine);
       const candidateNorm = norm(candidateLine);
       // Om raden innehåller både "namn" och "handledare" eller "kursledare", är det troligen en rubrik, inte värdet
       if ((candidateNorm.includes("namn") && candidateNorm.includes("handledare")) ||
           (candidateNorm.includes("namn") && candidateNorm.includes("kursledare"))) {
+        console.log('[Bilaga 5 Parser] Kandidat-rad ser ut som rubrik, hoppar över den');
         candidateIdx++;
       }
     }
     
     if (candidateIdx < lines.length) {
       const nextLine = lines[candidateIdx];
+      console.log('[Bilaga 5 Parser] Nästa rad att använda:', nextLine);
+      console.log('[Bilaga 5 Parser] shouldIgnoreLine:', shouldIgnoreLine(nextLine));
+      console.log('[Bilaga 5 Parser] isLabelLine:', isLabelLine(nextLine));
       if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
         // Filtrera bort om det ser ut som ett nummer eller parenteser (t.ex. "1 (1)")
         const trimmed = nextLine.trim();
         if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
           supervisorName = trimmed;
+          console.log('[Bilaga 5 Parser] supervisorName satt till:', supervisorName);
+        } else {
+          console.log('[Bilaga 5 Parser] Nästa rad ser ut som nummer, filtreras bort');
         }
+      } else {
+        console.log('[Bilaga 5 Parser] Nästa rad ignoreras eller är en rubrik');
       }
+    } else {
+      console.log('[Bilaga 5 Parser] Ingen nästa rad finns');
     }
+  } else {
+    console.log('[Bilaga 5 Parser] Namnförtydligande hittades INTE');
   }
   
   // Om inte hittat, försök direkt med valueAfter (men hoppa över checkbox-raderna)
@@ -641,24 +656,48 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // VIKTIGT: Hitta "Tjänsteställe" som kommer EFTER checkbox-raderna
   let supervisorSite: string | undefined = undefined;
   
-  // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
-  // Men se till att vi hittar rätt "Tjänsteställe" (efter checkbox-raderna)
-  const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
-  const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
-  const siteFromValueAfter3 = valueAfter(/T[ji]änsteställe/i);
-  const siteFromValueAfter4 = valueAfter(/T[ji]anstestalle/i);
-  // Mer flexibel: matcha om raden innehåller "tjanst" och "stalle" men INTE "görings" eller "göring"
-  const siteFromValueAfter5 = valueAfter(/T[ji]än?st(?!.*göring).*?st[äa]lle/i);
+  console.log('[Bilaga 5 Parser] Letar efter Tjänsteställe efter index:', checkboxEndIdx);
   
-  // Filtrera bort om värdet är checkbox-raden
-  const candidates = [siteFromValueAfter1, siteFromValueAfter2, siteFromValueAfter3, siteFromValueAfter4, siteFromValueAfter5];
-  for (const candidate of candidates) {
-    if (candidate && 
-        !markRe.test(candidate) && 
-        !/^(kursledare|handledare)$/i.test(candidate.trim())) {
-      supervisorSite = candidate;
-      break;
+  // Först: hitta index för "Tjänsteställe" som kommer EFTER checkbox-raderna
+  const tjänsteställeRubrikIdx = lines.findIndex((l, idx) => {
+    if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
+    const n = norm(l);
+    // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+    // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+    const isMatch = 
+      n === norm("Tjänsteställe") || 
+      n === norm("Tjanstestalle") || 
+      (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring"));
+    if (isMatch) {
+      console.log(`[Bilaga 5 Parser] Hittade Tjänsteställe på index ${idx}: "${l}"`);
     }
+    return isMatch;
+  });
+  console.log('[Bilaga 5 Parser] tjänsteställeRubrikIdx:', tjänsteställeRubrikIdx);
+  
+  if (tjänsteställeRubrikIdx >= 0 && tjänsteställeRubrikIdx + 1 < lines.length) {
+    const nextLine = lines[tjänsteställeRubrikIdx + 1];
+    console.log('[Bilaga 5 Parser] Nästa rad efter Tjänsteställe:', nextLine);
+    if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+      const trimmed = nextLine.trim();
+      // Stoppa om raden innehåller "SOSFS" eller "Bilaga"
+      if (/SOSFS|Bilaga/i.test(trimmed)) {
+        const match = trimmed.match(/^(.+?)(?:\s+SOSFS|\s+Bilaga)/i);
+        if (match) {
+          supervisorSite = match[1].trim() || undefined;
+        }
+      } else {
+        supervisorSite = trimmed;
+      }
+      console.log('[Bilaga 5 Parser] supervisorSite satt till:', supervisorSite);
+    } else {
+      console.log('[Bilaga 5 Parser] Nästa rad efter Tjänsteställe ignoreras eller är en rubrik');
+    }
+  } else {
+    console.log('[Bilaga 5 Parser] Ingen Tjänsteställe hittades efter checkbox-raderna eller ingen nästa rad');
   }
   
   // Om inte hittat via valueAfter, försök direkt i lines-arrayen (efter checkbox-raderna)
