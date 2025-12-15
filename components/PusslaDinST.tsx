@@ -6336,7 +6336,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           const prof: any = profile || {};
           const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
           const btISO: string | null = prof?.btStartDate || null;
-          if (!is2021 || !btISO || !isValidISO(btISO)) return "md:grid-cols-5";
+          
+          // För 2015: om "Annan kurs" är vald, använd 6 kolumner
+          if (!is2021) {
+            const isAnnanKurs = selCourse.title === "Annan kurs";
+            return isAnnanKurs ? "md:grid-cols-6" : "md:grid-cols-5";
+          }
+          
+          if (!btISO || !isValidISO(btISO)) return "md:grid-cols-5";
 
           // Effektivt BT-slut: manuellt fält eller 24 månader efter BT-start
           const btEndManual: string | null = prof?.btEndDate || null;

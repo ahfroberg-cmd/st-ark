@@ -711,8 +711,8 @@ export default function ScanIntygModal({
         if (!all || !all.length) return;
 
         const parsedCert = (parsed as any)?.certificateDate || "";
-        const parsedTitle =
-          ((parsed as any)?.title || (parsed as any)?.courseTitle || "").trim();
+        const parsedTitleRaw =
+          ((parsed as any)?.title || (parsed as any)?.courseTitle || (parsed as any)?.subject || "").trim();
 
         // Försök först hitta en kurs som ännu inte visas i tidslinjen
         const hidden = all.filter((c: any) => !c.showOnTimeline);
@@ -722,9 +722,9 @@ export default function ScanIntygModal({
           if (!c.showOnTimeline) s += 1;
           if (parsedCert && String(c.certificateDate || "") === parsedCert) s += 4;
           if (
-            parsedTitle &&
+            parsedTitleRaw &&
             typeof c.title === "string" &&
-            c.title.trim() === parsedTitle
+            c.title.trim() === parsedTitleRaw
           ) {
             s += 2;
           }
@@ -765,14 +765,74 @@ export default function ScanIntygModal({
           extraGoals.fulfillsStGoals = true;
         }
 
+        // För 2015: matcha kursens titel mot förinställda kurser
+        let finalTitle = parsedTitleRaw || last.title || "";
+        let finalCourseTitle = "";
+        
+        if (goalsVersion === "2015" && parsedTitleRaw) {
+          // Lista över alla förinställda kurser (METIS + övriga)
+          const predefinedCourses = [
+            "Akutpsykiatri",
+            "Psykiatrisk diagnostik",
+            "Psykiatrisk juridik",
+            "Psykofarmakologi",
+            "Suicidologi",
+            "Levnadsvanor vid psykisk sjukdom",
+            "Beroendelära",
+            "Affektiva sjukdomar",
+            "BUP för vuxenpsykiatriker",
+            "Konsultationspsykiatri och psykosomatik",
+            "Neuropsykiatri",
+            "Personlighetssyndrom",
+            "Psykossjukdomar",
+            "Ätstörningar",
+            "OCD- och relaterade syndrom",
+            "Ångest-, trauma- och stressrelaterade syndrom",
+            "Äldrepsykiatri",
+            "Kritisk läkemedelsvärdering inom psykofarmakologi",
+            "Medicinsk vetenskap",
+            "Psykiatrisk neurovetenskap",
+            "Psykiatri & samhälle",
+            "Rättspsykiatri",
+            "Sexualmedicin och könsdysfori",
+            "Transkulturell psykiatri",
+            "Psykoterapi",
+            "Ledarskap",
+            "Handledning",
+            "Palliativ medicin",
+          ];
+          
+          // Normalisera för jämförelse (ta bort diakritiska tecken, gör små bokstäver)
+          const normalize = (s: string) => s
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+          
+          const normalizedParsed = normalize(parsedTitleRaw);
+          
+          // Hitta match (exakt match eller delvis match)
+          const exactMatch = predefinedCourses.find(c => normalize(c) === normalizedParsed);
+          const partialMatch = predefinedCourses.find(c => 
+            normalize(c).includes(normalizedParsed) || normalizedParsed.includes(normalize(c))
+          );
+          
+          if (exactMatch) {
+            finalTitle = exactMatch;
+          } else if (partialMatch) {
+            finalTitle = partialMatch;
+          } else {
+            // Ingen match → välj "Annan kurs" och spara titeln i courseTitle
+            finalTitle = "Annan kurs";
+            finalCourseTitle = parsedTitleRaw;
+          }
+        }
+        
         try {
           await anyDb.courses.update(last.id, {
             showOnTimeline: true,
-            title:
-              (parsed as any)?.title ||
-              (parsed as any)?.courseTitle ||
-              last.title ||
-              "",
+            title: finalTitle,
+            courseTitle: finalCourseTitle || (last as any)?.courseTitle || undefined,
             site:
               (parsed as any)?.clinic ??
               (last as any).site ??
