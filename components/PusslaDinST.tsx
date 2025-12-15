@@ -8396,7 +8396,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className="px-5 py-3 text-left text-[14px] font-normal text-slate-900"
+              className="px-5 py-4 text-center text-base text-slate-900"
               style={{
                 // Försök matcha “smalare” (condensed) rubrik som i native-dialoger.
                 // Faller tillbaka till systemfont om condensed-varianten saknas.
