@@ -186,7 +186,7 @@ export default function CoursePrepModal({
         const initialKSite = savedKSite || courseKSite;
         const initialKSpec = savedKSpec || courseKSpec;
 
-        // För 2021: läs signingRole från sparad kurs
+        // För 2015 och 2021: läs signingRole från sparad kurs
         const savedSigningRole = (saved as any)?.signingRole;
         const savedSupervisorName = (saved as any)?.supervisorName;
         const savedSupervisorSite = (saved as any)?.supervisorSite;
@@ -206,16 +206,33 @@ export default function CoursePrepModal({
           finalSignerType = savedSigningRole.toUpperCase() as SignerType;
           
           // Om det är handledare, använd supervisor-fält
-          if (savedSigningRole === "handledare" && savedSupervisorName) {
-            finalHName = savedSupervisorName;
-            finalHSite = savedSupervisorSite || "";
-            finalHSpec = savedSupervisorSpeciality || "";
+          if (savedSigningRole === "handledare") {
+            if (savedSupervisorName) {
+              finalHName = savedSupervisorName;
+            }
+            if (savedSupervisorSite) {
+              finalHSite = savedSupervisorSite;
+            }
+            if (savedSupervisorSpeciality) {
+              finalHSpec = savedSupervisorSpeciality;
+            }
           }
           // Om det är kursledare, använd supervisor-fält som courseLeader-fält
-          else if (savedSigningRole === "kursledare" && savedSupervisorName) {
-            finalKName = savedSupervisorName;
-            finalKSite = savedSupervisorSite || "";
-            finalKSpec = ""; // Kursledare har ingen specialitet för 2021
+          else if (savedSigningRole === "kursledare") {
+            // För 2015 och 2021: använd supervisor-fält som courseLeader-fält
+            if (savedSupervisorName) {
+              finalKName = savedSupervisorName;
+            }
+            if (savedSupervisorSite) {
+              finalKSite = savedSupervisorSite;
+            }
+            // För 2015: kursledare kan ha specialitet, för 2021 inte
+            const is2015 = String((profile as any)?.goalsVersion || "").trim() === "2015";
+            if (is2015 && savedSupervisorSpeciality) {
+              finalKSpec = savedSupervisorSpeciality;
+            } else {
+              finalKSpec = ""; // Kursledare har ingen specialitet för 2021
+            }
           }
         } else {
           // Fallback: använd befintlig logik

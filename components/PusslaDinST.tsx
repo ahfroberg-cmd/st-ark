@@ -108,6 +108,7 @@ interface TLcourse {
   endDate?: string;   // (2015) slut = punkt för kurs i tidslinjen
   certificateDate?: string;
   note?: string;
+  courseTitle?: string; // För "Annan kurs" - den anpassade kursens titel
 
   // Om kursen ska visas som intervall (psykoterapi-logiken) i tidslinjen
   showAsInterval?: boolean;
@@ -1614,6 +1615,8 @@ const lastEndRef = useRef<string | null>(null);
                 typeof (c as any)?.showAsInterval === "boolean"
                   ? !!(c as any).showAsInterval
                   : undefined,
+              // Lägg till courseTitle för "Annan kurs"
+              courseTitle: (c as any)?.courseTitle || undefined,
             };
           });
 
@@ -4941,6 +4944,7 @@ const saveCourseToDb = useCallback(
         endDate: end || "",
         certificateDate: cert || "",
         note: selCourse.note || "",
+        courseTitle: (selCourse as any)?.courseTitle || undefined, // För "Annan kurs"
         showOnTimeline: true,
 
         // Extra fält som ska sparas centralt
@@ -5149,6 +5153,7 @@ const persistTimelineToDb = async () => {
           startDate: c.startDate || "",
           endDate: c.endDate || "",
           note: c.note || "",
+          courseTitle: (c as any)?.courseTitle || undefined, // För "Annan kurs"
           phase: c.phase || "ST",
           btMilestones: ((c as any)?.btMilestones || []) as string[],
           fulfillsStGoals: !!(c as any)?.fulfillsStGoals,
@@ -6383,9 +6388,29 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <label className="block text-sm text-slate-700">Kurs</label>
         <select
           value={selCourse.title || ""}
-          onChange={(e) => {
+          onChange={async (e) => {
             const nextTitle = e.target.value;
             const autoMilestones = mapMetisGoalsToMilestoneIds(nextTitle, profile);
+
+            // Kontrollera om det finns befintliga delmål och om nästa kurs är en METIS-kurs
+            const existingMilestones = selCourse.milestones || [];
+            const isMetisCourse = METIS_COURSES.includes(nextTitle) || 
+                                  ["Psykoterapi", "Ledarskap", "Handledning", "Palliativ medicin"].includes(nextTitle);
+            
+            let shouldKeepMilestones = false;
+            
+            // Om det finns befintliga delmål OCH nästa kurs är en METIS-kurs, fråga användaren
+            if (existingMilestones.length > 0 && isMetisCourse && nextTitle !== "Annan kurs") {
+              const keepExisting = confirm(
+                "Vill du behålla valda delmål eller ändra till METIS-kursens förinställda?\n\n" +
+                "Klicka OK för att behålla valda delmål.\n" +
+                "Klicka Avbryt för att ändra till METIS-kursens förinställda delmål."
+              );
+              shouldKeepMilestones = keepExisting;
+            } else {
+              // Annars: behåll befintliga om de finns, annars använd METIS-mappningen
+              shouldKeepMilestones = existingMilestones.length > 0 && nextTitle !== "Annan kurs";
+            }
 
             setCourses((prev) =>
               prev.map((c) => {
@@ -6396,15 +6421,10 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 const nextShowAsInterval =
                   typeof existingFlag === "boolean" ? existingFlag : isPsyTitle;
 
-                // Om det redan finns milestones från intyget, behåll dem
-                // Annars använd METIS-mappningen
-                const existingMilestones = c.milestones || [];
-                const shouldKeepMilestones = existingMilestones.length > 0 && nextTitle !== "Annan kurs";
-
                 return {
                   ...c,
                   title: nextTitle,
-                  // Om det redan finns milestones från intyget, behåll dem
+                  // Om användaren valde att behålla befintliga delmål, behåll dem
                   // Annars använd METIS-mappningen
                   milestones: shouldKeepMilestones ? existingMilestones : autoMilestones,
                   showAsInterval: nextShowAsInterval,
