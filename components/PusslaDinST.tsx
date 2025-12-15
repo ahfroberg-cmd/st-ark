@@ -892,7 +892,7 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
   }
   useEffect(() => { refreshLists(); }, []);
 
-// Scan-intyg modal (öppnas via knappen i rubriken)
+// Skanna-intyg modal (öppnas via knappen i rubriken)
   const [scanOpen, setScanOpen] = useState(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
   const [btModalOpen, setBtModalOpen] = useState(false);
@@ -1807,7 +1807,7 @@ const lastEndRef = useRef<string | null>(null);
         const allActivities = [...mergedActs, ...draftOnlyActs];
         const allCourses = [...mergedCourses, ...draftOnlyCourses];
 
-        // Auto-selektion efter scan-intyg (om vi har en väntande selektion)
+        // Auto-selektion efter skanna-intyg (om vi har en väntande selektion)
         const pending = pendingScanSelectionRef.current;
         if (pending && pending.dbId != null) {
           if (pending.kind === "placement") {
@@ -7714,7 +7714,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   onClose={() => setMilestoneOverviewOpen(false)}
 />
 
-{/* Scan-intyg modal */}
+{/* Skanna-intyg modal */}
 <ScanIntygModal
   open={scanOpen}
   onClose={() => setScanOpen(false)}
