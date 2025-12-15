@@ -343,12 +343,35 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Ämne för självständigt skriftligt arbete (i rubrikform)
   // Detta ska sparas i clinic-fältet
   // Rubriken kan vara "Ämne för självständigt skriftligt arbete (i rubrikform)" eller kortare
-  const subject = valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete\s*\(i\s*rubrikform\)/i) ||
-                  valueAfter(/Amne\s+for\s+sjalvstandigt\s+skriftligt\s+arbete\s*\(i\s*rubrikform\)/i) ||
-                  valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i) ||
-                  valueAfter(/Amne\s+for\s+sjalvstandigt\s+skriftligt\s+arbete/i) ||
-                  valueAfter(/Ämne\s+för\s+självständigt/i) ||
-                  valueAfter(/Amne\s+for\s+sjalvstandigt/i);
+  // Hantera OCR-fel: "siälvständiat" -> "självständigt", "skriftliat" -> "skriftligt"
+  // Först försök med regex-mönster
+  let subject = valueAfter(/Ämne\s+för\s+sj[äa]lvst[äa]ndi[at]t\s+skriftli[at]t\s+arbete\s*\(i\s*rubrikform\)/i) ||
+                 valueAfter(/Amne\s+for\s+s[ij][äa]lvst[äa]ndi[at]t\s+skriftli[at]t\s+arbete\s*\(i\s*rubrikform\)/i) ||
+                 valueAfter(/Ämne\s+för\s+sj[äa]lvst[äa]ndi[at]t\s+skriftli[at]t\s+arbete/i) ||
+                 valueAfter(/Amne\s+for\s+s[ij][äa]lvst[äa]ndi[at]t\s+skriftli[at]t\s+arbete/i) ||
+                 valueAfter(/Ämne\s+för\s+sj[äa]lvst[äa]ndi[at]t\s+skriftli[at]t/i) ||
+                 valueAfter(/Amne\s+for\s+s[ij][äa]lvst[äa]ndi[at]t\s+skriftli[at]t/i) ||
+                 valueAfter(/Ämne\s+för\s+sj[äa]lvst[äa]ndi[at]t/i) ||
+                 valueAfter(/Amne\s+for\s+s[ij][äa]lvst[äa]ndi[at]t/i);
+  
+  // Om inte hittat, använd mer flexibel matchning baserat på isLabelLine-logik
+  if (!subject) {
+    const amneIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      // Matcha om raden innehåller "amne", "for"/"för", "sjalvstand"/"självständ"/"sialvstand"/"siälvständ", "skrift", "arbete"
+      return n.includes("amne") && 
+             (n.includes("for") || n.includes("för")) &&
+             (n.includes("sjalvstand") || n.includes("självständ") || n.includes("sialvstand") || n.includes("siälvständ")) &&
+             (n.includes("skrift") || n.includes("skriftli")) &&
+             n.includes("arbete");
+    });
+    if (amneIdx >= 0 && amneIdx + 1 < lines.length) {
+      const nextLine = lines[amneIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        subject = nextLine.trim() || undefined;
+      }
+    }
+  }
   
   console.warn('[Bilaga 7 Parser] ====== ÄMNE EXTRAHERING ======');
   console.warn('[Bilaga 7 Parser] subject:', subject);
