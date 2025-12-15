@@ -175,6 +175,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       .trim();
 
   // Identifiera rubriker
+  // VIKTIGT: Var specifik - matcha bara exakta rubriker, inte bara om ordet finns i raden
   const isLabelLine = (l: string) => {
     const n = norm(l);
     return (
@@ -189,9 +190,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("delmål som intyget avser") ||
       n.includes("tjanstgoringsstalle for klinisk tjanstgoring") ||
       n.includes("tjanstgoringsstalle") ||
+      // Bara matcha exakt rubrik "Beskrivning av den kliniska tjänstgöringen", inte bara om "beskrivning" finns
       n.includes("beskrivning av den kliniska tjanstgoringen") ||
-      n.includes("beskrivning") ||
-      n.includes("period") ||
+      // Matcha "Period" som rubrik, inte bara om ordet finns
+      (n === norm("Period") || n.includes("period (aammdd")) ||
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
       (n === norm("Specialitet") && !n.includes("ansokan")) ||
