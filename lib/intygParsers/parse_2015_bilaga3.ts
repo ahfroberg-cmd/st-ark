@@ -56,6 +56,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   if (linesAll.length === 0) return null;
 
   // IGNORE-lista: exakta rader som ska filtreras bort
+  // VIKTIGT: "Handledare" ska INTE filtreras bort - det är en rubrik vi behöver!
   const IGNORE_EXACT: string[] = [
     "Skriv ut",
     "Sökande",
@@ -66,7 +67,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     "uppfyllda kompetenskrav",
     "Intygande",
     "Sökanden har genomfört utbildningsaktiviteten och uppfyllt kompetenskrav i delmålet/-en.",
-    "Handledare",
+    // "Handledare" - TA BORT FRÅN IGNORE! Vi behöver den som rubrik
     "SOSFS 2015:8 - Bilaga 3",
   ];
 
@@ -85,7 +86,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Auskultation\s*$/i, // Bara exakt rubrik, inte när det ingår i texten
     /\bIntygande\b/i,
     /\bSökanden\s+har\s+genomfört/i,
-    /\bHandledare\s*$/i, // Bara exakt "Handledare" (enskild rad)
+    // "Handledare" - TA BORT FRÅN IGNORE! Vi behöver den som rubrik
   ];
 
   // Filtrera bort rader som matchar IGNORE-listan (bara initial filtrering)
