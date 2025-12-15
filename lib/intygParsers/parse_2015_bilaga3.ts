@@ -471,6 +471,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
   console.warn('[Bilaga 3 Parser] siteFromValueAfter1 (Tjänsteställe):', siteFromValueAfter1);
   console.warn('[Bilaga 3 Parser] siteFromValueAfter2 (Tjanstestalle):', siteFromValueAfter2);
+  console.warn('[Bilaga 3 Parser] siteFromValueAfter3 (T[ji]änsteställe):', siteFromValueAfter3);
+  console.warn('[Bilaga 3 Parser] siteFromValueAfter4 (T[ji]anstestalle):', siteFromValueAfter4);
+  console.warn('[Bilaga 3 Parser] siteFromValueAfter5 (flexibel):', siteFromValueAfter5);
   
   supervisorSite = siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
   
