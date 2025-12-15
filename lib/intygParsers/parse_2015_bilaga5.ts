@@ -470,12 +470,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // (detta betyder att den andra har checkbox)
   if (!handledLine && !kursledLine) {
     console.log('[Bilaga 5 Parser] Inga checkbox-rader hittades direkt, letar efter par...');
-    // Leta efter "Kursledare" utan checkbox (betyder att handledare har checkbox)
+    // Leta efter "Kursledare" och "Handledare" utan checkbox
     const kursledWithoutMark = lines.find((l) => {
       const lower = l.toLowerCase();
       return /^kursledare\s*$/i.test(l) && !markRe.test(l);
     });
-    // Leta efter "Handledare" utan checkbox (betyder att kursledare har checkbox)
     const handledWithoutMark = lines.find((l) => {
       const lower = l.toLowerCase();
       return /^handledare\s*$/i.test(l) && !markRe.test(l);
@@ -484,21 +483,52 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     console.log('[Bilaga 5 Parser] kursledWithoutMark:', kursledWithoutMark);
     console.log('[Bilaga 5 Parser] handledWithoutMark:', handledWithoutMark);
     
-    if (kursledWithoutMark) {
+    // Logik för checkbox-par:
+    // "X Kursledare" + "Handledare" (utan X) = Kursledare signerar
+    // "Kursledare" (utan X) + "X Handledare" = Handledare signerar
+    // Om båda är utan X, använd position: om "Kursledare" kommer FÖRE "Handledare", 
+    // så betyder det troligen att "Kursledare" har checkbox (eftersom den är först)
+    
+    if (kursledWithoutMark && handledWithoutMark) {
+      // Båda finns utan checkbox - använd position-logik
+      const kursledIdx = lines.findIndex(l => l === kursledWithoutMark);
+      const handledIdx = lines.findIndex(l => l === handledWithoutMark);
+      
+      if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
+        // "Kursledare" kommer FÖRE "Handledare" = "Kursledare" har checkbox
+        signingRole = "kursledare";
+        kursledLine = kursledWithoutMark;
+        handledLine = handledWithoutMark;
+        console.log('[Bilaga 5 Parser] Båda utan X, Kursledare före Handledare = Kursledare signerar');
+      } else if (handledIdx >= 0 && kursledIdx >= 0 && handledIdx < kursledIdx) {
+        // "Handledare" kommer FÖRE "Kursledare" = "Handledare" har checkbox
+        signingRole = "handledare";
+        handledLine = handledWithoutMark;
+        kursledLine = kursledWithoutMark;
+        console.log('[Bilaga 5 Parser] Båda utan X, Handledare före Kursledare = Handledare signerar');
+      }
+    } else if (kursledWithoutMark) {
       // "Kursledare" utan checkbox + "X Handledare" = handledare signerar
       handledLine = lines.find((l) => {
         const lower = l.toLowerCase();
         return /handledare/i.test(lower) && markRe.test(l);
       });
-      console.log('[Bilaga 5 Parser] Hittade handledLine via par:', handledLine);
-    }
-    if (handledWithoutMark) {
+      if (handledLine) {
+        signingRole = "handledare";
+        kursledLine = kursledWithoutMark;
+        console.log('[Bilaga 5 Parser] Hittade handledLine via par (X Handledare):', handledLine);
+      }
+    } else if (handledWithoutMark) {
       // "Handledare" utan checkbox + "X Kursledare" = kursledare signerar
       kursledLine = lines.find((l) => {
         const lower = l.toLowerCase();
         return /kursledare/i.test(lower) && markRe.test(l);
       });
-      console.log('[Bilaga 5 Parser] Hittade kursledLine via par:', kursledLine);
+      if (kursledLine) {
+        signingRole = "kursledare";
+        handledLine = handledWithoutMark;
+        console.log('[Bilaga 5 Parser] Hittade kursledLine via par (X Kursledare):', kursledLine);
+      }
     }
     
     // Om vi fortfarande inte hittade checkbox-rader, använd position/logik:
@@ -717,7 +747,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   let supervisorSpeciality: string | undefined = undefined;
   console.log('[Bilaga 5 Parser] Letar efter Specialitet efter index:', checkboxEndIdx);
   const supSpecIdx = lines.findIndex((l, idx) => {
-    if (checkboxEndIdx >= 0 && idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna (om checkboxEndIdx är satt)
+    // Hoppa över checkbox-raderna (om checkboxEndIdx är satt)
+    // Men inkludera rad 19 om checkboxEndIdx är 19 (eftersom "Specialitet" kan vara på samma rad)
+    if (checkboxEndIdx >= 0 && idx < checkboxEndIdx) return false;
     const n = norm(l);
     // Matcha "Specialitet" men INTE "Specialitet som ansökan avser"
     // Mer flexibel: matcha om raden innehåller "specialitet" men INTE "ansokan" eller "ansökan"
