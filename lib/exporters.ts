@@ -809,18 +809,6 @@ export async function exportThirdCountryCertificate(
   const supervisorSpeciality = (prof as any)?.specialty || (prof as any)?.speciality || "";
   const supervisorSite = (prof as any)?.supervisorWorkplace || (prof as any)?.homeClinic || "";
 
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const ortDatum = `Ort och datum: ${todayISO}`;
-
-  drawText({
-    page: page2,
-    text: ortDatum,
-    x: coords2021Bil13.ortDatum.x,
-    y: coords2021Bil13.ortDatum.y,
-    size,
-    font,
-  });
-
   drawText({
     page: page2,
     text: supervisorName,
