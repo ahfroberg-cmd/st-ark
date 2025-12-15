@@ -412,9 +412,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     }
   }
 
+  // Kryssrutor handledare/kursledare
+  // VIKTIGT: Det finns två rader:
+  // - Om kursledare ska signera: "X Kursledare" + "Handledare" (utan X)
+  // - Om handledare ska signera: "Kursledare" (utan X) + "X Handledare"
+  // Båda raderna kan innehålla "Kursledare", så vi måste vara försiktiga
+  // Deklarera markRe här så att den kan användas i descriptionStopPatterns
+  const markRe = /(☒|✓|✗|☑|\bx\b|\bX\b)/i;
+  
   // Beskrivning av kursen
   // VIKTIGT: Stoppa vid checkbox-raderna också
-  // markRe deklareras senare i checkbox-logiken
   const descriptionStopPatterns = [
     /^Intygande/i,
     /^Specialitet/i,
@@ -430,13 +437,6 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   ];
   const description = valueAfter(/Beskrivning\s+av\s+kursen/i, descriptionStopPatterns) ||
                       valueAfter(/Beskrivning\s+av\s+kurs/i, descriptionStopPatterns);
-
-  // Kryssrutor handledare/kursledare
-  // VIKTIGT: Det finns två rader:
-  // - Om kursledare ska signera: "X Kursledare" + "Handledare" (utan X)
-  // - Om handledare ska signera: "Kursledare" (utan X) + "X Handledare"
-  // Båda raderna kan innehålla "Kursledare", så vi måste vara försiktiga
-  const markRe = /(☒|✓|✗|☑|\bx\b|\bX\b)/i;
   
   // Leta efter checkbox-raderna
   // Först: hitta rader som innehåller checkbox-tecken och "Kursledare" eller "Handledare"
