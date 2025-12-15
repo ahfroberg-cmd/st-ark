@@ -514,53 +514,58 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       
       // VIKTIGT: Om "Kursledare" kommer FÖRE "Handledare" (och båda finns), 
       // så är det troligen kursledare som signerar (eftersom "Kursledare" är den första rubriken)
-      if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
-        // Om "Kursledare" kommer FÖRE "Handledare", så är det troligen kursledare som signerar
-        signingRole = "kursledare";
-        kursledLine = lines[kursledIdx];
-        handledLine = lines[handledIdx]; // Sätt också handledLine för att beräkna checkboxEndIdx
-        console.log('[Bilaga 5 Parser] signingRole satt till kursledare (position-logik: Kursledare före Handledare)');
-      } else if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
+      // MEN: Om "Handledare" kommer EFTER "Beskrivning", så är det troligen handledare som signerar
+      // (eftersom handledare-rubriken kommer efter beskrivningen i intyget)
+      if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
         // Om "Handledare" kommer EFTER "Beskrivning", så är det troligen handledare som signerar
-        signingRole = "handledare";
-        // Sätt handledLine och kursledLine för att beräkna checkboxEndIdx korrekt
+        // Detta är den vanligaste situationen när handledare signerar
+        // signingRole kommer att sättas senare (efter deklarationen)
         handledLine = lines[handledIdx];
         if (kursledIdx >= 0) {
           kursledLine = lines[kursledIdx];
         }
-        console.log('[Bilaga 5 Parser] signingRole satt till handledare (position-logik: Handledare efter Beskrivning)');
+        console.log('[Bilaga 5 Parser] Handledare kommer efter Beskrivning - handledare signerar (signingRole sätts senare)');
+      } else if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
+        // Om "Kursledare" kommer FÖRE "Handledare", så är det troligen kursledare som signerar
+        // signingRole kommer att sättas senare (efter deklarationen)
+        kursledLine = lines[kursledIdx];
+        handledLine = lines[handledIdx]; // Sätt också handledLine för att beräkna checkboxEndIdx
+        console.log('[Bilaga 5 Parser] Kursledare kommer före Handledare - kursledare signerar (signingRole sätts senare)');
       } else if (kursledIdx >= 0 && handledIdx < 0) {
         // Om bara "Kursledare" finns (ingen "Handledare"), så är det kursledare som signerar
-        signingRole = "kursledare";
         kursledLine = lines[kursledIdx];
-        console.log('[Bilaga 5 Parser] signingRole satt till kursledare (position-logik: Bara Kursledare finns)');
+        console.log('[Bilaga 5 Parser] Bara Kursledare finns - kursledare signerar (signingRole sätts senare)');
       } else if (handledIdx >= 0 && kursledIdx < 0) {
         // Om bara "Handledare" finns (ingen "Kursledare"), så är det handledare som signerar
-        signingRole = "handledare";
         handledLine = lines[handledIdx];
-        console.log('[Bilaga 5 Parser] signingRole satt till handledare (position-logik: Bara Handledare finns)');
+        console.log('[Bilaga 5 Parser] Bara Handledare finns - handledare signerar (signingRole sätts senare)');
       }
+    }
+  }
+  
+  // Bestäm signingRole baserat på handledLine/kursledLine (som kan ha satts av position-logiken)
+  if (handledLine && !kursledLine) {
+    signingRole = "handledare";
+    console.log('[Bilaga 5 Parser] signingRole satt till: handledare (handledLine finns, ingen kursledLine)');
+  } else if (kursledLine && !handledLine) {
+    signingRole = "kursledare";
+    console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (kursledLine finns, ingen handledLine)');
+  } else if (kursledLine && handledLine) {
+    // Om båda finns, använd position-logik: om handledare kommer efter beskrivning, så är det handledare
+    const beskrivningIdx = lines.findIndex((l) => /beskrivning/i.test(l));
+    const handledIdx = lines.findIndex(l => l === handledLine);
+    if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
+      signingRole = "handledare";
+      console.log('[Bilaga 5 Parser] signingRole satt till: handledare (båda finns, men Handledare efter Beskrivning)');
+    } else {
+      // Annars: kursledare (eftersom "Kursledare" är den första rubriken)
+      signingRole = "kursledare";
+      console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (båda finns, Kursledare är första rubriken)');
     }
   }
   
   console.log('[Bilaga 5 Parser] handledLine:', handledLine);
   console.log('[Bilaga 5 Parser] kursledLine:', kursledLine);
-  
-  // Bestäm signingRole baserat på checkbox-raderna eller position-logik
-  let signingRole: "handledare" | "kursledare" | undefined;
-  if (handledLine && !kursledLine) {
-    signingRole = "handledare";
-    console.log('[Bilaga 5 Parser] signingRole satt till: handledare (från checkbox)');
-  } else if (kursledLine && !handledLine) {
-    signingRole = "kursledare";
-    console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (från checkbox)');
-  } else {
-    // Om position-logiken redan har satt signingRole, använd det
-    // Annars: heuristik kommer att sättas senare när vi har supervisorSpeciality och supervisorSite
-    if (!signingRole) {
-      console.log('[Bilaga 5 Parser] signingRole kunde inte bestämmas från checkbox-raderna eller position-logik');
-    }
-  }
 
   // Intygande person - leta efter "Namnförtydligande"
   // VIKTIGT: Hitta "Namnförtydligande" som kommer EFTER checkbox-raderna
@@ -597,11 +602,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // OCR kan skriva "Namnförtydliaande" istället för "Namnförtydligande"
   console.log('[Bilaga 5 Parser] Letar efter Namnförtydligande efter index:', checkboxEndIdx);
   const namnfortydligandeIdx = lines.findIndex((l, idx) => {
-    if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
+    if (checkboxEndIdx >= 0 && idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna (om checkboxEndIdx är satt)
     const n = norm(l);
     // Mer flexibel matchning för OCR-fel: "namnförtydligande", "namnfortydligande", "namnförtydliaande", etc.
     // OCR kan skriva "namnförtydliaande" (med "ia" istället för "ig")
-    const matches = (n.includes("namn") && (n.includes("fortydlig") || n.includes("fortydlia"))) ||
+    // Testa olika varianter: "fortydlig", "fortydlia", "fortydliande", etc.
+    const matches = (n.includes("namn") && (n.includes("fortydlig") || n.includes("fortydlia") || n.includes("fortydliande"))) ||
                     n === norm("Namnförtydligande") || 
                     n === norm("Namnfortydligande");
     if (matches) {
@@ -659,10 +665,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     // Hitta första förekomsten av "Namnförtydligande" som kommer EFTER checkbox-raderna
     // Använd mer flexibel matchning för OCR-fel
     const firstNamnfortydligandeIdx = lines.findIndex((l, idx) => {
-      if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
+      if (checkboxEndIdx >= 0 && idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna (om checkboxEndIdx är satt)
       const n = norm(l);
-      return (n.includes("namn") && n.includes("fortydlig")) || 
-             (n.includes("namn") && n.includes("fortydlia")) ||
+      return (n.includes("namn") && (n.includes("fortydlig") || n.includes("fortydlia") || n.includes("fortydliande"))) || 
              n === norm("Namnförtydligande") || 
              n === norm("Namnfortydligande");
     });
@@ -701,7 +706,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   let supervisorSpeciality: string | undefined = undefined;
   console.log('[Bilaga 5 Parser] Letar efter Specialitet efter index:', checkboxEndIdx);
   const supSpecIdx = lines.findIndex((l, idx) => {
-    if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
+    if (checkboxEndIdx >= 0 && idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna (om checkboxEndIdx är satt)
     const n = norm(l);
     // Matcha "Specialitet" men INTE "Specialitet som ansökan avser"
     // Mer flexibel: matcha om raden innehåller "specialitet" men INTE "ansokan" eller "ansökan"
