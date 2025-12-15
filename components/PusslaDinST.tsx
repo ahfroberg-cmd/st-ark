@@ -4836,6 +4836,7 @@ const checkDirty = useCallback(() => {
       b.endDate !== current.endDate ||
       b.certificateDate !== current.certificateDate ||
       b.note !== current.note ||
+      ((b as any)?.courseTitle || "") !== ((current as any)?.courseTitle || "") ||
       JSON.stringify((b as any)?.milestones || []) !== JSON.stringify((current as any)?.milestones || []) ||
       JSON.stringify((b as any)?.btMilestones || []) !== JSON.stringify((current as any)?.btMilestones || []) ||
       (b as any)?.fulfillsStGoals !== (current as any)?.fulfillsStGoals ||
@@ -8412,12 +8413,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             </div>
             <div className="h-px w-full bg-slate-200" />
 
-            <div className="flex items-center justify-end gap-2 px-3 py-1">
+            <div className="flex items-center justify-end gap-2 px-4 pb-3">
               <button
                 type="button"
                 disabled={unsavedSaving}
                 onClick={() => setUnsavedPrompt(null)}
-                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
+                className="rounded px-4 py-1.5 text-sm font-normal text-sky-600 bg-white hover:bg-slate-50 disabled:opacity-50 active:translate-y-px"
               >
                 Avbryt
               </button>
@@ -8441,7 +8442,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     }
                   }, 0);
                 }}
-                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
+                className="rounded px-4 py-1.5 text-sm font-normal text-sky-600 bg-white hover:bg-slate-50 disabled:opacity-50 active:translate-y-px"
               >
                 Stäng utan att spara
               </button>
@@ -8473,7 +8474,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     setUnsavedSaving(false);
                   }
                 }}
-                className="rounded px-4 py-1 text-[14px] font-normal text-[#1a73e8] disabled:opacity-50 active:text-[#1967d2]"
+                className="rounded px-4 py-1.5 text-sm font-normal text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-50 active:translate-y-px"
               >
                 Spara och stäng
               </button>
