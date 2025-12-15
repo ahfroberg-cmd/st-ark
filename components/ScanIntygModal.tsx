@@ -956,7 +956,7 @@ export default function ScanIntygModal({
     // SOSFS 2015:8 – Bilaga 5 (Kurs)
     case "2015-B5-KURS":
       titleLabel = "Kursens ämne (rubrikform)";
-      clinicLabel = "Kursens plats (ort/tjänstgöringsställe)";
+      clinicLabel = ""; // Ingen plats för 2015 kurser
       descriptionLabel = "Beskrivning av kursen";
       break;
 
@@ -1163,6 +1163,8 @@ export default function ScanIntygModal({
                     ? "Förhandsgranskning - Utvecklingsarbete"
                     : kind === "2021-B10-KURS" && parsed?.courseTitle
                     ? `Förhandsgranskning – ${parsed.courseTitle}`
+                    : kind === "2015-B5-KURS" && parsed?.subject
+                    ? `Förhandsgranskning – Kurs: ${parsed.subject}`
                     : titleLabel
                     ? `Förhandsgranskning – ${titleLabel}`
                     : "Förhandsgranskning"}
@@ -1206,7 +1208,7 @@ export default function ScanIntygModal({
                   {/* Rad 2: Specialitet + Tjänstgöringsställe */}
                   <div className={`grid grid-cols-1 gap-3 ${clinicLabel ? "md:grid-cols-2" : ""}`}>
                     <div className="space-y-2">
-                      <label className="block text-xs font-medium text-slate-900">
+                      <label className="block text-xs fonDt-medium text-slate-900">
                         Specialitet som ansökan avser
                       </label>
                       <input
@@ -1447,6 +1449,24 @@ export default function ScanIntygModal({
                   {/* Rad 6: Handledare / Kursledare mm */}
                   {isCourseKind ? (
                     <div className="grid grid-cols-1 gap-3">
+                      {/* Kursledare fält - bara för 2015-B5-KURS */}
+                      {kind === "2015-B5-KURS" && (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-medium text-slate-900">
+                            Kursledare
+                          </label>
+                          <input
+                            value={(parsed as any)?.courseLeader ?? ""}
+                            onChange={(e) =>
+                              setParsed((p: any) => ({
+                                ...p,
+                                courseLeader: e.target.value,
+                              }))
+                            }
+                            className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                          />
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <label className="block text-xs font-medium text-slate-900">
                           Intygande

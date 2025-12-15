@@ -4,7 +4,7 @@ import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, 
-  fallbackPeriod, extractPeriodFromZoneText
+  fallbackPeriod, extractPeriodFromZoneText, normalizeAndSortDelmalCodes2015
 } from "./common";
 import { extractCommon } from "../fieldExtract";
 
@@ -267,7 +267,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const specialtyHeader = valueAfter(/Specialitet\s+som\s+ansökan\s+avser/i) ||
                          valueAfter(/Specialitet\s+som\s+ansokan\s+avser/i);
 
-  // Delmål (för 2015: a1, b1, c1 etc - INTE ST-prefix)
+  // Delmål (för 2015: a1, b1, c1 etc - INTE ST-prefix, alltid gemener)
   const delmalText = valueAfter(/Delmål\s+som\s+intyget\s+avser/i) ||
                      valueAfter(/Delmal\s+som\s+intyget\s+avser/i);
   let rawDelmalCodes: string[] | undefined;
@@ -277,9 +277,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   if (!rawDelmalCodes || rawDelmalCodes.length === 0) {
     rawDelmalCodes = extractDelmalCodes(raw);
   }
-  // För 2015: använd delmål direkt, INTE normalizeAndSortDelmalCodes2021
+  // För 2015: normalisera till gemener och sortera (a1-a6, b1-b5, c1-c14)
   const delmalCodes = rawDelmalCodes && rawDelmalCodes.length > 0 
-    ? rawDelmalCodes 
+    ? normalizeAndSortDelmalCodes2015(rawDelmalCodes)
     : undefined;
 
   // Ämne (i rubrikform) och period (ååmmdd — ååmmdd) för kursen
@@ -344,11 +344,39 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     }
   }
 
+  // Kursledare (det som följer efter rubriken "Kursledare", INTE checkbox-raden)
+  // VIKTIGT: Detta är en separat rubrik som kommer FÖRE checkbox-raderna
+  // Checkbox-raderna är "X Kursledare" och "X Handledare" (eller "Kursledare" och "X Handledare")
+  const courseLeaderName = valueAfter(/^Kursledare$/i);
+  // Om vi inte hittade det, försök med mer flexibel matchning (men inte checkbox-raden)
+  let courseLeader: string | undefined = courseLeaderName;
+  if (!courseLeader) {
+    // Leta efter "Kursledare" som rubrik, men INTE om det är checkbox-raden
+    const kursledareIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      // Matcha exakt "Kursledare" men INTE om det innehåller checkbox-tecken
+      return n === norm("Kursledare") && !/(☒|✓|✗|☑|\bx\b|\bX\b)/i.test(l);
+    });
+    if (kursledareIdx >= 0 && kursledareIdx + 1 < lines.length) {
+      const nextLine = lines[kursledareIdx + 1];
+      // Kontrollera att nästa rad inte är checkbox-raden eller en annan rubrik
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        const n = norm(nextLine);
+        // Om nästa rad är checkbox-raden ("X Kursledare" eller "X Handledare"), hoppa över
+        if (!/(☒|✓|✗|☑|\bx\b|\bX\b)/i.test(nextLine) && 
+            !n.includes("handledare") && 
+            !n.includes("kursledare")) {
+          courseLeader = nextLine.trim();
+        }
+      }
+    }
+  }
+
   // Beskrivning av kursen
   const descriptionStopPatterns = [
     /^Intygande/i,
-    /^Kursledare\s*$/i, // Bara exakt "Kursledare" (enskild rad)
-    /^Handledare\s*$/i, // Bara exakt "Handledare" (enskild rad)
+    /^Kursledare\s*$/i, // Bara exakt "Kursledare" (enskild rad) - men detta är rubriken, inte checkbox
+    /^Handledare\s*$/i, // Bara exakt "Handledare" (enskild rad) - men detta är checkbox-raden
     /^Specialitet/i,
     /^Tjänsteställe/i,
     /^Tjanstestalle/i,
@@ -361,16 +389,60 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
                       valueAfter(/Beskrivning\s+av\s+kurs/i, descriptionStopPatterns);
 
   // Kryssrutor handledare/kursledare
-  // Leta efter rader som innehåller "Handledare" eller "Kursledare" med checkbox-tecken
+  // VIKTIGT: Det finns två rader:
+  // - Om kursledare ska signera: "X Kursledare" + "Handledare" (utan X)
+  // - Om handledare ska signera: "Kursledare" (utan X) + "X Handledare"
+  // Båda raderna kan innehålla "Kursledare", så vi måste vara försiktiga
   const markRe = /(☒|✓|✗|☑|\bx\b|\bX\b)/i;
-  const handledLine = lines.find((l) => {
+  
+  // Leta efter checkbox-raderna
+  // Först: hitta rader som innehåller checkbox-tecken och "Kursledare" eller "Handledare"
+  let handledLine: string | undefined = undefined;
+  let kursledLine: string | undefined = undefined;
+  
+  for (const l of lines) {
     const lower = l.toLowerCase();
-    return /handledare/i.test(lower) && !/kursledare/i.test(lower) && markRe.test(l);
-  });
-  const kursledLine = lines.find((l) => {
-    const lower = l.toLowerCase();
-    return /kursledare/i.test(lower) && !/handledare/i.test(lower) && markRe.test(l);
-  });
+    const hasMark = markRe.test(l);
+    
+    // Om raden har checkbox och innehåller "handledare" men INTE "kursledare"
+    if (hasMark && /handledare/i.test(lower) && !/kursledare/i.test(lower)) {
+      handledLine = l;
+    }
+    // Om raden har checkbox och innehåller "kursledare" men INTE "handledare"
+    if (hasMark && /kursledare/i.test(lower) && !/handledare/i.test(lower)) {
+      kursledLine = l;
+    }
+  }
+  
+  // Om vi inte hittade checkbox-rader, leta efter rader utan checkbox
+  // (detta betyder att den andra har checkbox)
+  if (!handledLine && !kursledLine) {
+    // Leta efter "Kursledare" utan checkbox (betyder att handledare har checkbox)
+    const kursledWithoutMark = lines.find((l) => {
+      const lower = l.toLowerCase();
+      return /^kursledare\s*$/i.test(l) && !markRe.test(l);
+    });
+    // Leta efter "Handledare" utan checkbox (betyder att kursledare har checkbox)
+    const handledWithoutMark = lines.find((l) => {
+      const lower = l.toLowerCase();
+      return /^handledare\s*$/i.test(l) && !markRe.test(l);
+    });
+    
+    if (kursledWithoutMark) {
+      // "Kursledare" utan checkbox + "X Handledare" = handledare signerar
+      handledLine = lines.find((l) => {
+        const lower = l.toLowerCase();
+        return /handledare/i.test(lower) && markRe.test(l);
+      });
+    }
+    if (handledWithoutMark) {
+      // "Handledare" utan checkbox + "X Kursledare" = kursledare signerar
+      kursledLine = lines.find((l) => {
+        const lower = l.toLowerCase();
+        return /kursledare/i.test(lower) && markRe.test(l);
+      });
+    }
+  }
   
   let signingRole: "handledare" | "kursledare" | undefined;
   if (handledLine && !kursledLine) {
@@ -518,6 +590,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     supervisorName: supervisorName || undefined,
     supervisorSpeciality: supervisorSpeciality || undefined,
     supervisorSite: supervisorSite || undefined,
+    courseLeader: courseLeader || undefined, // Kursledare (namn)
     signer: {
       role: signingRole === "handledare" ? "HANDLEDARE" : signingRole === "kursledare" ? "KURSLEDARE" : undefined,
       name: supervisorName,
@@ -613,6 +686,9 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
       out.subject = value;
     } else if (labelNorm.includes("beskrivning")) {
       out.description = value;
+    } else if (labelNorm.includes("kursledare") && !/(☒|✓|✗|☑|\bx\b|\bX\b)/i.test(value)) {
+      // Kursledare (namn) - INTE checkbox-raden
+      (out as any).courseLeader = value;
     } else if (labelNorm.includes("namnfortydligande") || labelNorm.includes("namnförtydligande")) {
       out.supervisorName = value;
     } else if (labelNorm.includes("specialitet") && !labelNorm.includes("ansokan")) {
@@ -626,6 +702,11 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
     out.fullName = `${out.firstName} ${out.lastName}`;
   }
 
+  // För 2015: normalisera delmål till gemener
+  if (out.delmalCodes && out.delmalCodes.length > 0) {
+    out.delmalCodes = normalizeAndSortDelmalCodes2015(out.delmalCodes);
+  }
+  
   const ok = out.fullName || out.personnummer || out.specialtyHeader || out.subject || 
              out.description || out.delmalCodes?.length || out.period?.startISO || out.period?.endISO ||
              out.supervisorName;

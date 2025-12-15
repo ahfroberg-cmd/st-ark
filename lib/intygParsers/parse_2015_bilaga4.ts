@@ -4,7 +4,7 @@ import type { OcrWord } from "@/lib/ocr";
 import {
   extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
   extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, 
-  fallbackPeriod, extractPeriodFromZoneText
+  fallbackPeriod, extractPeriodFromZoneText, normalizeAndSortDelmalCodes2015
 } from "./common";
 import { extractCommon } from "../fieldExtract";
 
@@ -276,9 +276,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   if (!rawDelmalCodes || rawDelmalCodes.length === 0) {
     rawDelmalCodes = extractDelmalCodes(raw);
   }
-  // För 2015: använd delmål direkt, INTE normalizeAndSortDelmalCodes2021
+  // För 2015: normalisera till gemener och sortera (a1-a6, b1-b5, c1-c14)
   const delmalCodes = rawDelmalCodes && rawDelmalCodes.length > 0 
-    ? rawDelmalCodes 
+    ? normalizeAndSortDelmalCodes2015(rawDelmalCodes)
     : undefined;
 
   // Tjänstgöringsställe och period för den kliniska tjänstgöringen

@@ -128,6 +128,78 @@ export function normalizeAndSortDelmalCodes2021(codes: string[]): string[] {
   return sorted;
 }
 
+/**
+ * Normalisera och sortera delmål för 2015:
+ * - Normalisera alla varianter (a1, A1, STa1, STA1) till gemener (a1, b1, c1)
+ * - Sortera i ordning: a1-a6, b1-b5, c1-c14
+ * - Exkludera delmål utanför detta (t.ex. c19)
+ */
+export function normalizeAndSortDelmalCodes2015(codes: string[]): string[] {
+  const validCodes = new Set<string>();
+  
+  // Definiera giltiga delmål för 2015 (gemener)
+  const validDelmal = new Set<string>();
+  // a1-a6
+  for (let i = 1; i <= 6; i++) validDelmal.add(`a${i}`);
+  // b1-b5
+  for (let i = 1; i <= 5; i++) validDelmal.add(`b${i}`);
+  // c1-c14
+  for (let i = 1; i <= 14; i++) validDelmal.add(`c${i}`);
+  
+  // Normalisera varje kod
+  for (const code of codes) {
+    // Ta bort alla separerare
+    const cleaned = code.trim();
+    
+    // Först: försök med OCR-fel-hantering: "al" -> "a1", "bl" -> "b1", etc.
+    let cleanedFixed = cleaned
+      .replace(/^([abcABC])l$/i, '$11')  // "al" -> "a1", "bl" -> "b1", etc.
+      .replace(/^([abcABC])I$/i, '$11')   // "aI" -> "a1", "bI" -> "b1", etc.
+      .replace(/^ST([abcABC])l$/i, '$11')  // "STal" -> "a1", etc. (ta bort ST)
+      .replace(/^ST([abcABC])I$/i, '$11'); // "STaI" -> "a1", etc. (ta bort ST)
+    
+    // Ta bort ST-prefix om det finns
+    cleanedFixed = cleanedFixed.replace(/^ST/i, '');
+    
+    // Matcha olika format: a1, A1, etc.
+    const match = cleanedFixed.match(/^([abcABC])(\d+)$/i);
+    
+    if (match) {
+      const letter = match[1].toLowerCase(); // Alltid liten bokstav
+      const number = parseInt(match[2], 10);
+      const normalized = `${letter}${number}`;
+      
+      // Kontrollera om det är ett giltigt delmål
+      if (validDelmal.has(normalized)) {
+        validCodes.add(normalized);
+      }
+    }
+  }
+  
+  // Sortera i ordning: a1-a6, b1-b5, c1-c14
+  const sorted = Array.from(validCodes).sort((a, b) => {
+    // Extrahera bokstav och nummer
+    const aMatch = a.match(/^([abc])(\d+)$/);
+    const bMatch = b.match(/^([abc])(\d+)$/);
+    if (!aMatch || !bMatch) return 0;
+    
+    const aLetter = aMatch[1];
+    const bLetter = bMatch[1];
+    const aNum = parseInt(aMatch[2], 10);
+    const bNum = parseInt(bMatch[2], 10);
+    
+    // Först sortera på bokstav (a < b < c)
+    if (aLetter !== bLetter) {
+      return aLetter.localeCompare(bLetter);
+    }
+    
+    // Sedan på nummer
+    return aNum - bNum;
+  });
+  
+  return sorted;
+}
+
 export function extractPersonnummer(text: string): string | undefined {
   const m = PNR.exec(text.replace(/\s+/g, " "));
   return m?.[0]?.replace(/\s+/g, "") ?? undefined;
