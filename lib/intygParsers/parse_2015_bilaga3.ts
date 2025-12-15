@@ -285,33 +285,42 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   let period: { startISO?: string; endISO?: string } | undefined = undefined;
   
   if (clinicAndPeriodText) {
-    // Försök extrahera period först (datumformat: ååmmdd - ååmmdd eller liknande)
-    const periodMatch = clinicAndPeriodText.match(/(\d{6})\s*[-–—]\s*(\d{6})/);
-    if (periodMatch) {
-      // Konvertera ååmmdd till ISO-format
-      const startYY = periodMatch[1].substring(0, 2);
-      const startMM = periodMatch[1].substring(2, 4);
-      const startDD = periodMatch[1].substring(4, 6);
-      const endYY = periodMatch[2].substring(0, 2);
-      const endMM = periodMatch[2].substring(2, 4);
-      const endDD = periodMatch[2].substring(4, 6);
-      
-      // Anta 1900-tal om året är > 50, annars 2000-tal
-      const startYear = parseInt(startYY) > 50 ? `19${startYY}` : `20${startYY}`;
-      const endYear = parseInt(endYY) > 50 ? `19${endYY}` : `20${endYY}`;
-      
-      period = {
-        startISO: `${startYear}-${startMM}-${startDD}`,
-        endISO: `${endYear}-${endMM}-${endDD}`,
-      };
-      
-      // Ta bort period-delen från texten för att få kliniken
-      clinic = clinicAndPeriodText.replace(/\d{6}\s*[-–—]\s*\d{6}.*$/, "").trim();
+    // Filtrera bort "Auskultation" om det råkar vara värdet
+    if (clinicAndPeriodText.toLowerCase().trim() === "auskultation") {
+      clinic = undefined;
     } else {
-      // Om ingen period hittades, använd hela texten som klinik
-      clinic = clinicAndPeriodText;
-      // Försök hitta period med extractPeriodFromZoneText
-      period = extractPeriodFromZoneText(clinicAndPeriodText);
+      // Försök extrahera period först (datumformat: ååmmdd - ååmmdd eller liknande)
+      const periodMatch = clinicAndPeriodText.match(/(\d{6})\s*[-–—]\s*(\d{6})/);
+      if (periodMatch) {
+        // Konvertera ååmmdd till ISO-format
+        const startYY = periodMatch[1].substring(0, 2);
+        const startMM = periodMatch[1].substring(2, 4);
+        const startDD = periodMatch[1].substring(4, 6);
+        const endYY = periodMatch[2].substring(0, 2);
+        const endMM = periodMatch[2].substring(2, 4);
+        const endDD = periodMatch[2].substring(4, 6);
+        
+        // Anta 1900-tal om året är > 50, annars 2000-tal
+        const startYear = parseInt(startYY) > 50 ? `19${startYY}` : `20${startYY}`;
+        const endYear = parseInt(endYY) > 50 ? `19${endYY}` : `20${endYY}`;
+        
+        period = {
+          startISO: `${startYear}-${startMM}-${startDD}`,
+          endISO: `${endYear}-${endMM}-${endDD}`,
+        };
+        
+        // Ta bort period-delen från texten för att få kliniken
+        clinic = clinicAndPeriodText.replace(/\d{6}\s*[-–—]\s*\d{6}.*$/, "").trim();
+        // Ta också bort "för auskultationen" om det finns
+        clinic = clinic.replace(/\s+for\s+auskultationen?/i, "").trim();
+      } else {
+        // Om ingen period hittades, använd hela texten som klinik
+        clinic = clinicAndPeriodText;
+        // Ta bort "för auskultationen" om det finns
+        clinic = clinic.replace(/\s+for\s+auskultationen?/i, "").trim();
+        // Försök hitta period med extractPeriodFromZoneText
+        period = extractPeriodFromZoneText(clinicAndPeriodText);
+      }
     }
   }
 
@@ -330,26 +339,82 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const description = valueAfter(/Beskrivning\s+av\s+auskultationen/i, descriptionStopPatterns) ||
                       valueAfter(/Beskrivning\s+av\s+auskultation/i, descriptionStopPatterns);
 
-  // Handledare
-  const supervisorName = valueAfter(/Namnförtydligande/i) ||
-                        valueAfter(/Namnfortydligande/i);
+  // Handledare - leta efter "Handledare" rubrik och sedan "Namnförtydligande"
+  // För 2015 Bilaga 3 kommer "Handledare" först, sedan "Namnförtydligande"
+  let supervisorName: string | undefined = undefined;
+  const handledareIdx = lines.findIndex((l) => norm(l) === norm("Handledare"));
+  if (handledareIdx >= 0) {
+    // Efter "Handledare" kommer "Namnförtydligande"
+    const namnfortydligandeIdx = lines.findIndex((l, idx) => 
+      idx > handledareIdx && (norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande"))
+    );
+    if (namnfortydligandeIdx >= 0 && namnfortydligandeIdx + 1 < lines.length) {
+      const nextLine = lines[namnfortydligandeIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorName = nextLine.trim();
+      }
+    }
+  }
+  
+  // Om inte hittat via "Handledare", försök direkt med "Namnförtydligande"
+  if (!supervisorName) {
+    supervisorName = valueAfter(/Namnförtydligande/i) ||
+                    valueAfter(/Namnfortydligande/i);
+  }
   
   // Handledarens specialitet (inte sökandens)
+  // Efter "Handledare" kommer "Specialitet" (handledarens)
   let supervisorSpeciality: string | undefined = undefined;
-  const supSpecIdx = lines.findIndex((l) => {
-    const n = norm(l);
-    return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
-  });
-  if (supSpecIdx >= 0 && supSpecIdx + 1 < lines.length) {
-    const nextLine = lines[supSpecIdx + 1];
-    if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-      supervisorSpeciality = nextLine.trim();
+  if (handledareIdx >= 0) {
+    const supSpecIdx = lines.findIndex((l, idx) => {
+      if (idx <= handledareIdx) return false;
+      const n = norm(l);
+      return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+    });
+    if (supSpecIdx >= 0 && supSpecIdx + 1 < lines.length) {
+      const nextLine = lines[supSpecIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorSpeciality = nextLine.trim();
+      }
+    }
+  }
+  
+  // Om inte hittat, försök direkt
+  if (!supervisorSpeciality) {
+    const supSpecIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+    });
+    if (supSpecIdx >= 0 && supSpecIdx + 1 < lines.length) {
+      const nextLine = lines[supSpecIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorSpeciality = nextLine.trim();
+      }
     }
   }
   
   // Handledarens tjänsteställe
-  const supervisorSite = valueAfter(/Tjänsteställe/i) ||
-                         valueAfter(/Tjanstestalle/i);
+  // Efter "Handledare" kommer "Tjänsteställe"
+  let supervisorSite: string | undefined = undefined;
+  if (handledareIdx >= 0) {
+    const tjänsteställeIdx = lines.findIndex((l, idx) => {
+      if (idx <= handledareIdx) return false;
+      const n = norm(l);
+      return n === norm("Tjänsteställe") || n === norm("Tjanstestalle");
+    });
+    if (tjänsteställeIdx >= 0 && tjänsteställeIdx + 1 < lines.length) {
+      const nextLine = lines[tjänsteställeIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorSite = nextLine.trim();
+      }
+    }
+  }
+  
+  // Om inte hittat, försök direkt
+  if (!supervisorSite) {
+    supervisorSite = valueAfter(/Tjänsteställe/i) ||
+                     valueAfter(/Tjanstestalle/i);
+  }
 
   // Kontrollera om vi har tillräckligt med data
   const ok = fullName || personnummer || specialtyHeader || clinic || 
