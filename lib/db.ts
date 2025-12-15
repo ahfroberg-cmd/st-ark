@@ -14,6 +14,9 @@ export class AppDB extends Dexie {
   // Centralt sparade planer för delmål i IUP (per profil + delmål)
   iupMilestonePlans!: Table<any, string>;
 
+  // Centralt sparad data för Specialistansökan (PrepareApplicationModal)
+  specialistApplication!: Table<any, string>;
+
   constructor() {
     // OBS: Namnbytet från "st-intyg" till "st-ark" innebär ny IndexedDB-databas
     // och därmed tom lokal data första gången i varje webbläsare.
@@ -60,12 +63,24 @@ export class AppDB extends Dexie {
       iupMilestonePlans: "id,milestoneId,profileId",
     });
 
+    // Version 6: lägger till tabell för Specialistansökan
+    this.version(6).stores({
+      profile: "id",
+      placements: "id,startDate,endDate",
+      courses: "id,certificateDate",
+      achievements: "id,milestoneId,courseId,placementId",
+      timeline: "id",
+      iupMilestonePlans: "id,milestoneId,profileId",
+      specialistApplication: "id",
+    });
+
     this.profile = this.table("profile");
     this.placements = this.table("placements");
     this.courses = this.table("courses");
     this.achievements = this.table("achievements");
     this.timeline = this.table("timeline");
     this.iupMilestonePlans = this.table("iupMilestonePlans");
+    this.specialistApplication = this.table("specialistApplication");
   }
 }
 

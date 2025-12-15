@@ -1002,16 +1002,30 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
     if (!open) return;
 
     (async () => {
-      // 1) Försök återställa från localStorage (MEN returnera inte; vi hämtar alltid färsk profil)
-      const savedRaw = localStorage.getItem(STORAGE_KEY);
+      // 1) Försök återställa från IndexedDB (fallback till localStorage för migrering)
+      let saved: any = null;
       let hadSavedAttachments = false;
       let hadSavedPresetDates = false;
       let savedAttachments: AttachmentItem[] | null = null;
 
-
       try {
-        if (savedRaw) {
-          const saved = JSON.parse(savedRaw);
+        // Först försök från IndexedDB
+        saved = await (db as any).specialistApplication?.get?.("default");
+        
+        // Om inte finns i IndexedDB, försök migrera från localStorage
+        if (!saved) {
+          const savedRaw = localStorage.getItem(STORAGE_KEY);
+          if (savedRaw) {
+            saved = JSON.parse(savedRaw);
+            // Migrera till IndexedDB
+            if (saved) {
+              saved.id = "default";
+              await (db as any).specialistApplication?.put?.(saved);
+            }
+          }
+        }
+
+        if (saved) {
 
           // Placeringar / kurser / sökande
           if (saved.placements) setPlacements(saved.placements);
@@ -1070,8 +1084,28 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
             hadSavedPresetDates = true;
             setPresetDates(saved.presetDates as Record<PresetKey, string>);
           }
+
+          // STa3 data
+          if (typeof saved.sta3OtherText === "string") {
+            setSta3OtherText(saved.sta3OtherText);
+          }
+          if (typeof saved.sta3HowVerifiedText === "string") {
+            setSta3HowVerifiedText(saved.sta3HowVerifiedText);
+          }
+
+          // Third country data
+          if (typeof saved.thirdCountryDelmalCodes === "string") {
+            setThirdCountryDelmalCodes(saved.thirdCountryDelmalCodes);
+          }
+          if (typeof saved.thirdCountryActivities === "string") {
+            setThirdCountryActivities(saved.thirdCountryActivities);
+          }
+          if (typeof saved.thirdCountryVerification === "string") {
+            setThirdCountryVerification(saved.thirdCountryVerification);
+          }
         }
-      } catch {
+      } catch (err) {
+        console.error("Kunde inte ladda specialistansökan:", err);
         // ignore saved state parse errors
       }
 
@@ -2171,9 +2205,10 @@ const C2 = {
 
 
 /** ===================== Persistens ===================== */
-function onSaveAll() {
-  // Spara inte profil i localStorage – då blir popupen alltid färsk mot DB
+async function onSaveAll() {
+  // Spara till IndexedDB istället för localStorage
   const payload = {
+    id: "default",
     // profile:  ⟵ medvetet utelämnad
     placements,
     courses,
@@ -2185,13 +2220,22 @@ function onSaveAll() {
     presetDates,
     tab,
     userReordered,
+    // STa3 data
+    sta3OtherText,
+    sta3HowVerifiedText,
+    // Third country data
+    thirdCountryDelmalCodes,
+    thirdCountryActivities,
+    thirdCountryVerification,
     savedAt: new Date().toISOString(),
-    version: 7,
+    version: 8,
   };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    await (db as any).specialistApplication?.put?.(payload);
     localStorage.setItem(COLORMAP_KEY, JSON.stringify(GROUP_COLORS));
-  } catch {}
+  } catch (err) {
+    console.error("Kunde inte spara specialistansökan:", err);
+  }
   setDirty(false);
 }
 
@@ -2220,7 +2264,7 @@ function onSaveAll() {
   <div className="flex items-center gap-2">
     <button
   disabled={!dirty}
-  onClick={onSaveAll}
+            onClick={() => { onSaveAll(); }}
   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
 >
   Spara

@@ -297,17 +297,17 @@ const coords2021Bil12 = {
 
 /* ---------- 2021 – Specialistläkare från tredje land (Bilaga 13) ---------- */
 const coords2021Bil13 = {
-  efternamn: { x: 76, y: 607 },
-  fornamn: { x: 331, y: 607 },
-  personnummer: { x: 76, y: 569 },
-  specialitet: { x: 253, y: 569 },
-  delmal: { x: 76, y: 508 },
-  aktiviteter: { x: 76, y: 498 },
-  hurKontrolleratsText: { x: 76, y: 725 },
+  efternamn: { x: 76, y: 614 },
+  fornamn: { x: 331, y: 614 },
+  personnummer: { x: 76, y: 576 },
+  specialitet: { x: 253, y: 576 },
+  delmal: { x: 76, y: 520 },
+  aktiviteter: { x: 76, y: 457 },
+  hurKontrolleratsText: { x: 76, y: 720 },
   ortDatum: { x: 105, y: 260 },
-  namnfortydligande: { x: 76, y: 152 },
-  handledarSpec: { x: 76, y: 114 },
-  handledarTjanstestalle: { x: 76, y: 76 },
+  namnfortydligande: { x: 76, y: 142 },
+  handledarSpec: { x: 76, y: 104 },
+  handledarTjanstestalle: { x: 76, y: 66 },
   bilagaNr: { x: 505, y: 42 },
 } as const;
 
