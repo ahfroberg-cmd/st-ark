@@ -115,8 +115,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("specialitet som ansökan avser") ||
       n.includes("delmal som intyget avser") ||
       n.includes("delmål som intyget avser") ||
-      (n.includes("amne for sjalvstandigt skriftligt arbete") || n.includes("amne for sjalvstandigt skriftligt arbete (i rubrikform)")) ||
-      (n.includes("ämne för självständigt skriftligt arbete") || n.includes("ämne för självständigt skriftligt arbete (i rubrikform)")) ||
+      // Ämne för självständigt skriftligt arbete - hantera OCR-fel som "siälvständiat" och "skriftliat"
+      (n.includes("amne") && 
+       (n.includes("for") || n.includes("för")) &&
+       (n.includes("sjalvstand") || n.includes("självständ") || n.includes("sialvstand") || n.includes("siälvständ")) &&
+       (n.includes("skrift") || n.includes("skriftli")) &&
+       n.includes("arbete")) ||
       // Bara matcha exakt rubrik "Beskrivning av det självständiga skriftliga arbetet", inte bara om "beskrivning" finns
       n.includes("beskrivning av det sjalvstandiga skriftliga arbetet") ||
       n.includes("beskrivning av det självständiga skriftliga arbetet") ||
