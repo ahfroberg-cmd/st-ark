@@ -811,7 +811,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
           className="flex w-full items-center justify-between rounded-2xl border border-emerald-500 bg-emerald-50 px-4 py-4 text-left shadow-sm active:translate-y-px"
         >
           <div>
-            <div className="text-lg font-semibold text-emerald-900">Scanna intyg</div>
+            <div className="text-lg font-semibold text-emerald-900">Skanna intyg</div>
             <div className="mt-1 text-sm font-normal text-emerald-800">
               Lägg till nya tjänstgöringar och kurser direkt från intyg.
             </div>

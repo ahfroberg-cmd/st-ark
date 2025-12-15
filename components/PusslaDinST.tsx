@@ -5302,13 +5302,13 @@ const persistTimelineToDb = async () => {
 
 
 
-          {/* Scanna intyg */}
+          {/* Skanna intyg */}
           <button
   onClick={() => setScanOpen(true)}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-  title="Scanna intyg"
+  title="Skanna intyg"
 >
-  Scanna intyg
+  Skanna intyg
 </button>
 
 

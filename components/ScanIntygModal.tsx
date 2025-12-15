@@ -1044,7 +1044,7 @@ export default function ScanIntygModal({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="m-0 text-lg font-extrabold">Scanna intyg</h2>
+          <h2 className="m-0 text-lg font-extrabold">Skanna intyg</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -1069,7 +1069,7 @@ export default function ScanIntygModal({
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
                   <div className="font-semibold mb-2">För bästa resultat:</div>
                   <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li>Allra bäst resultat får du vid scanning av dokumentet</li>
+                    <li>Allra bäst resultat får du vid skanning av dokumentet</li>
                     <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
                     <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
                     <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
