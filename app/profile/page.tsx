@@ -176,6 +176,7 @@ function ProfilePageInner() {
     foreignLicenses: [] as { country: string; date: string }[],
     hasPriorSpecialist: false,
     priorSpecialties: [] as { speciality: string; country: string; date: string }[],
+    isThirdCountrySpecialist: false,
     // BT (2021)
     btMode: "fristående", // "fristående" | "integrerad"
     btStartDate: "",
@@ -747,6 +748,23 @@ function ProfilePageInner() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* ===== Längst ned: Specialistläkare från tredje land ===== */}
+            <div className="rounded-2xl border border-slate-200 p-3">
+              <label className="inline-flex items-center gap-2 text-[13px] select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.isThirdCountrySpecialist}
+                  onChange={(e) => {
+                    setForm({
+                      ...form,
+                      isThirdCountrySpecialist: e.currentTarget.checked,
+                    });
+                  }}
+                />
+                <span className="font">Specialistläkare från tredje land</span>
+              </label>
             </div>
           </div>
 

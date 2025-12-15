@@ -5017,23 +5017,32 @@ const saveCourseToDb = useCallback(
   [refreshLists]
 );
 
-// ===== Osparade ändringar: tre val (Spara och stäng / Stäng utan att spara / Avbryt) =====
-const [unsavedPrompt, setUnsavedPrompt] = useState<null | {
-  mode: "switch" | "close";
-  nextPlacementId: string | null;
-  nextCourseId: string | null;
-}>(null);
-const [unsavedSaving, setUnsavedSaving] = useState(false);
-
-const closeDetailPanel = useCallback(() => {
+// ===== Osparade ändringar: använd confirm() istället för modal =====
+const closeDetailPanel = useCallback(async () => {
   if (dirty) {
-    setUnsavedPrompt({ mode: "close", nextPlacementId: null, nextCourseId: null });
+    // Fråga om användaren vill spara
+    if (confirm("Du har osparade ändringar. Vill du spara?")) {
+      // Spara och stäng
+      const ok = selectedPlacement
+        ? await savePlacementToDb(selectedPlacement)
+        : selectedCourse
+        ? await saveCourseToDb(selectedCourse)
+        : true;
+      if (!ok) return; // Om sparandet misslyckades, avbryt
+    } else {
+      // Användaren valde att inte spara, fråga om de verkligen vill stänga utan att spara
+      if (!confirm("Stäng utan att spara?")) return;
+      restoreBaseline();
+    }
+    setDirty(false);
+    setSelectedPlacementId(null);
+    setSelectedCourseId(null);
     return;
   }
   setDirty(false);
   setSelectedPlacementId(null);
   setSelectedCourseId(null);
-}, [dirty]);
+}, [dirty, selectedPlacement, selectedCourse]);
 
 // Funktion för att byta aktivitet med varning.
 // Returnerar true om bytet accepteras/är onödigt, annars false (används för att avbryta drag/resize).
@@ -5044,8 +5053,33 @@ const switchActivity = useCallback(
     if (sameSelection) return true;
 
     if (dirty) {
-      setUnsavedPrompt({ mode: "switch", nextPlacementId: newPlacementId, nextCourseId: newCourseId });
-      return false;
+      // Fråga om användaren vill spara
+      if (confirm("Du har osparade ändringar. Vill du spara?")) {
+        // Spara och byt (async i bakgrunden)
+        (async () => {
+          const ok = selectedPlacement
+            ? await savePlacementToDb(selectedPlacement)
+            : selectedCourse
+            ? await saveCourseToDb(selectedCourse)
+            : true;
+          if (!ok) {
+            alert("Kunde inte spara. Ändringar behålls.");
+            return;
+          }
+          setDirty(false);
+          setSelectedPlacementId(newPlacementId);
+          setSelectedCourseId(newCourseId);
+        })();
+        return true; // Acceptera bytet direkt, sparandet sker i bakgrunden
+      } else {
+        // Användaren valde att inte spara, fråga om de verkligen vill byta utan att spara
+        if (!confirm("Byt utan att spara?")) return false;
+        restoreBaseline();
+        setDirty(false);
+        setSelectedPlacementId(newPlacementId);
+        setSelectedCourseId(newCourseId);
+        return true;
+      }
     }
 
     setDirty(false);
@@ -5053,7 +5087,7 @@ const switchActivity = useCallback(
     setSelectedCourseId(newCourseId);
     return true;
   },
-  [dirty, selectedPlacementId, selectedCourseId]
+  [dirty, selectedPlacementId, selectedCourseId, selectedPlacement, selectedCourse]
 );
 
 // Keyboard handler för Delete-tangenten
@@ -8386,8 +8420,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
 
-      {/* ===== Dialog: Osparade ändringar (3 alternativ) ===== */}
-      {unsavedPrompt && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
         >

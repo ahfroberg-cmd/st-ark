@@ -180,6 +180,7 @@ const TEMPLATE_2021_BILAGA_9  = "/pdf/2021/2021-2-7212-bilaga-9.pdf";   // Klini
 const TEMPLATE_2021_BILAGA_10 = "/pdf/2021/2021-2-7212-bilaga-10.pdf";  // Kurs
 const TEMPLATE_2021_BILAGA_11 = "/pdf/2021/2021-2-7212-bilaga-11.pdf";  // Förbättringsarbete
 const TEMPLATE_2021_BILAGA_12 = "/pdf/2021/2021-2-7212-bilaga-12.pdf";  // Delmål STa3
+const TEMPLATE_2021_BILAGA_13 = "/pdf/2021/2021-2-7212-bilaga-13.pdf";  // Specialistläkare från tredje land
 
 /* ---------- 2015 (SOSFS 2015:8) ---------- */
 const TEMPLATE_2015_PLACERING     = "/pdf/2015/blankett-specialistkompetens-klinisk-tjanstgoring-sosfs20158.pdf";
@@ -291,6 +292,22 @@ const coords2021Bil12 = {
   handledarSpec: { x: 76, y: 114 },
   handledarTjanstestalle: { x: 76, y: 76 },
 
+  bilagaNr: { x: 505, y: 42 },
+} as const;
+
+/* ---------- 2021 – Specialistläkare från tredje land (Bilaga 13) ---------- */
+const coords2021Bil13 = {
+  efternamn: { x: 76, y: 607 },
+  fornamn: { x: 331, y: 607 },
+  personnummer: { x: 76, y: 569 },
+  specialitet: { x: 253, y: 569 },
+  delmal: { x: 76, y: 508 },
+  aktiviteter: { x: 76, y: 498 },
+  hurKontrolleratsText: { x: 76, y: 725 },
+  ortDatum: { x: 105, y: 260 },
+  namnfortydligande: { x: 76, y: 152 },
+  handledarSpec: { x: 76, y: 114 },
+  handledarTjanstestalle: { x: 76, y: 76 },
   bilagaNr: { x: 505, y: 42 },
 } as const;
 
@@ -698,8 +715,148 @@ export async function exportSta3Certificate(
   return;
 }
 
+/* =========================================
+   2021 – Specialistläkare från tredje land (Bilaga 13) – egen exporter
+========================================= */
 
+export async function exportThirdCountryCertificate(
+  input: {
+    profile: Profile;
+    delmalCodes: string;
+    activitiesText: string;
+    verificationText: string;
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2021_BILAGA_13);
+  const pdfDoc = await PDFDocument.load(bytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
 
+  const page1 = pages[0];
+  const page2 = pages[1] ?? pages[0];
+
+  const size = 11;
+
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast  = prof.lastName  ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  // ===== SIDA 1: persondel + delmål + aktiviteter =====
+  drawText({
+    page: page1,
+    text: fallbackLast,
+    x: coords2021Bil13.efternamn.x,
+    y: coords2021Bil13.efternamn.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page1,
+    text: fallbackFirst,
+    x: coords2021Bil13.fornamn.x,
+    y: coords2021Bil13.fornamn.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page1,
+    text: prof.personalNumber ?? "",
+    x: coords2021Bil13.personnummer.x,
+    y: coords2021Bil13.personnummer.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page1,
+    text: profSpecialty,
+    x: coords2021Bil13.specialitet.x,
+    y: coords2021Bil13.specialitet.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page1,
+    text: input.delmalCodes ?? "",
+    x: coords2021Bil13.delmal.x,
+    y: coords2021Bil13.delmal.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page1,
+    text: input.activitiesText ?? "",
+    x: coords2021Bil13.aktiviteter.x,
+    y: coords2021Bil13.aktiviteter.y,
+    size,
+    font,
+  });
+
+  // ===== SIDA 2: hur det kontrollerats + handledarsektion =====
+  drawText({
+    page: page2,
+    text: input.verificationText ?? "",
+    x: coords2021Bil13.hurKontrolleratsText.x,
+    y: coords2021Bil13.hurKontrolleratsText.y,
+    size,
+    font,
+  });
+
+  // Handledare (från profil)
+  const supervisorName = (prof as any)?.supervisor || "";
+  const supervisorSpeciality = (prof as any)?.specialty || (prof as any)?.speciality || "";
+  const supervisorSite = (prof as any)?.supervisorWorkplace || (prof as any)?.homeClinic || "";
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const ortDatum = `Ort och datum: ${todayISO}`;
+
+  drawText({
+    page: page2,
+    text: ortDatum,
+    x: coords2021Bil13.ortDatum.x,
+    y: coords2021Bil13.ortDatum.y,
+    size,
+    font,
+  });
+
+  drawText({
+    page: page2,
+    text: supervisorName,
+    x: coords2021Bil13.namnfortydligande.x,
+    y: coords2021Bil13.namnfortydligande.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page2,
+    text: supervisorSpeciality,
+    x: coords2021Bil13.handledarSpec.x,
+    y: coords2021Bil13.handledarSpec.y,
+    size,
+    font,
+  });
+  drawText({
+    page: page2,
+    text: supervisorSite,
+    x: coords2021Bil13.handledarTjanstestalle.x,
+    y: coords2021Bil13.handledarTjanstestalle.y,
+    size,
+    font,
+  });
+
+  const outBytes = await pdfDoc.save();
+  const outputMode = options?.output ?? "download";
+  const outName = options?.filename;
+
+  if (outputMode === "blob") {
+    return new Blob([outBytes], { type: "application/pdf" });
+  }
+
+  downloadBytes(outBytes, outName ?? "intyg-bilaga13-2021.pdf");
+  return;
+}
 
 /* =========================================
    2021 – BT Bilaga 1–4 (stämpla text i mallen)
