@@ -485,6 +485,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     if (handledareIdx >= 0) {
       searchStartIdx = handledareIdx;
       console.warn('[Bilaga 3 Parser] Söker efter Tjänsteställe efter Handledare (index', handledareIdx, ')');
+      console.warn('[Bilaga 3 Parser] Rader efter Handledare (index', handledareIdx, '):', lines.slice(handledareIdx, handledareIdx + 10));
+      console.warn('[Bilaga 3 Parser] Normaliserade rader efter Handledare:', lines.slice(handledareIdx, handledareIdx + 10).map(l => norm(l)));
     } else {
       console.warn('[Bilaga 3 Parser] Handledare inte hittad, söker i hela arrayen');
     }
@@ -501,7 +503,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         (n.includes("tjänst") && n.includes("stalle")) ||
         (n.includes("tjänst") && n.includes("ställe"));
       if (isMatch) {
-        console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l);
+        console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l, 'normaliserad:', n);
+      }
+      // Debug: logga alla rader som innehåller "tjanst" eller "stalle"
+      if (n.includes("tjanst") || n.includes("tjänst") || n.includes("stalle") || n.includes("ställe")) {
+        console.warn('[Bilaga 3 Parser] Rad som innehåller relevanta ord på index:', idx, 'rad:', l, 'normaliserad:', n);
       }
       return isMatch;
     });
