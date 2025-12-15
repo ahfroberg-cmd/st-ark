@@ -8392,12 +8392,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"
         >
           <div
-            className="w-full max-w-[520px] rounded-lg border border-slate-200 bg-white shadow-lg"
-            style={{
-              // Matcha webbläsarens native dialog-typsnitt så nära som möjligt
-              fontFamily:
-                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-            }}
+            className="w-full max-w-md rounded-lg bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div
