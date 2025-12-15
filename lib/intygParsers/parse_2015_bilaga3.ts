@@ -6,6 +6,7 @@ import {
   extractSpecialty, extractBlockAfterLabel, extractClinicAndPeriodFromLine, 
   fallbackPeriod, extractPeriodFromZoneText, normalizeAndSortDelmalCodes2015
 } from "./common";
+import { splitClinicAndPeriod } from "@/lib/dateExtract";
 import { extractCommon } from "../fieldExtract";
 
 export function parse_2015_bilaga3(text: string, words?: OcrWord[]): ParsedIntyg {
@@ -122,7 +123,13 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n.includes("delmal som intyget avser") ||
       n.includes("delmål som intyget avser") ||
       n.includes("tjanstgoringsstalle och period") ||
+      n.includes("tjanstaoringsstalle och period") ||
+      n.includes("tjanstgoringsstalle for auskultation") ||
+      n.includes("tjanstgoringsstalle för auskultation") ||
+      n.includes("tjanstaoringsstalle for auskultation") ||
+      n.includes("tjanstaoringsstalle för auskultation") ||
       n.includes("tjanstgoringsstalle") ||
+      n.includes("tjanstaoringsstalle") ||
       // Bara matcha exakt rubrik "Beskrivning av auskultationen", inte bara om "beskrivning" finns
       n.includes("beskrivning av auskultationen") ||
       // Matcha "Specialitet" som rubrik (handledarens), inte sökandens
@@ -284,12 +291,18 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Tjänstgöringsställe och period för auskultationen
   // Detta kan vara på samma rad: "Tjänstgöringsställe och period (ååmmdd - ååmmdd) för auskultationen"
   // OCR kan skriva "Tiänstgöringsställe" (med "i" istället för "ä")
-  const clinicAndPeriodText = valueAfter(/T[ji]änstgöringsställe\s+och\s+period/i) ||
-                              valueAfter(/T[ji]anstgoringsstalle\s+och\s+period/i) ||
-                              valueAfter(/T[ji]änstgöringsställe/i) ||
-                              valueAfter(/T[ji]anstgoringsstalle/i);
+  // OCR kan också skriva "Tiänstaöringsställe" (med "aö" istället för "gö")
+  // OBS: Formuläret kan också ha "Tjänstgöringsställe för auskultationen" (utan "och period")
+  // VIKTIGT: Kliniken står alltid till vänster om datumet på samma rad
+  const clinicAndPeriodText = valueAfter(/T[ji]änst[ga]?öringsställe\s+och\s+period/i) ||
+                              valueAfter(/T[ji]anst[ga]?oringsstalle\s+och\s+period/i) ||
+                              valueAfter(/T[ji]änst[ga]?öringsställe\s+för\s+auskultation/i) ||
+                              valueAfter(/T[ji]anst[ga]?oringsstalle\s+for\s+auskultation/i) ||
+                              valueAfter(/T[ji]änst[ga]?öringsställe/i) ||
+                              valueAfter(/T[ji]anst[ga]?oringsstalle/i);
   
   // Extrahera klinik och period från texten
+  // Eftersom kliniken alltid står till vänster om datumet, kan vi använda detta för bättre extrahering
   let clinic: string | undefined = undefined;
   let period: { startISO?: string; endISO?: string } | undefined = undefined;
   
@@ -298,9 +311,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     if (clinicAndPeriodText.toLowerCase().trim() === "auskultation") {
       clinic = undefined;
     } else {
-      // Försök extrahera period först (datumformat: ååmmdd - ååmmdd eller liknande)
+      // Först: försök hitta ååmmdd-ååmmdd format (det vanligaste formatet i auskultationsdokument)
+      // Eftersom kliniken alltid är till vänster, kan vi säkert ta allt före datumet
       const periodMatch = clinicAndPeriodText.match(/(\d{6})\s*[-–—]\s*(\d{6})/);
-      if (periodMatch) {
+      if (periodMatch && periodMatch.index !== undefined) {
         // Konvertera ååmmdd till ISO-format
         const startYY = periodMatch[1].substring(0, 2);
         const startMM = periodMatch[1].substring(2, 4);
@@ -318,16 +332,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
           endISO: `${endYear}-${endMM}-${endDD}`,
         };
         
-        // Ta bort period-delen från texten för att få kliniken
-        clinic = clinicAndPeriodText.replace(/\d{6}\s*[-–—]\s*\d{6}.*$/, "").trim();
-        // Ta också bort "för auskultationen" om det finns
-        clinic = clinic.replace(/\s+for\s+auskultationen?/i, "").trim();
+        // Kliniken är allt till vänster om datumet
+        clinic = clinicAndPeriodText.substring(0, periodMatch.index).trim();
       } else {
-        // Om ingen period hittades, använd hela texten som klinik
-        clinic = clinicAndPeriodText;
-        // Ta bort "för auskultationen" om det finns
+        // Om inget ååmmdd-format hittades, använd splitClinicAndPeriod för andra format
+        const split = splitClinicAndPeriod(clinicAndPeriodText);
+        clinic = split.clean || undefined;
+        if (split.startISO || split.endISO) {
+          period = { startISO: split.startISO, endISO: split.endISO };
+        }
+      }
+      
+      // Ta bort "för auskultationen" om det finns i kliniken
+      if (clinic) {
         clinic = clinic.replace(/\s+for\s+auskultationen?/i, "").trim();
-        // Försök hitta period med extractPeriodFromZoneText
+      }
+      
+      // Fallback: om vi fortfarande inte har period, försök med extractPeriodFromZoneText
+      if (!period) {
         period = extractPeriodFromZoneText(clinicAndPeriodText);
       }
     }
@@ -707,6 +729,7 @@ function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
   const delmalCodes = rawDelmalCodes.length > 0 ? rawDelmalCodes : [];
 
   const clinicAndPeriodText = valueFor(findIdByLabel("Tjänstgöringsställe och period")) ||
+                              valueFor(findIdByLabel("Tjänstgöringsställe för auskultationen")) ||
                               valueFor(findIdByLabel("Tjänstgöringsställe"));
   
   // Extrahera klinik och period

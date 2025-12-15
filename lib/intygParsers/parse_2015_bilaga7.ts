@@ -1,274 +1,670 @@
 // lib/intygParsers/parse_2015_bilaga7.ts
-import type { IntygKind } from "@/lib/intygDetect";
+import type { ParsedIntyg } from "./types";
 import type { OcrWord } from "@/lib/ocr";
+import {
+  extractDelmalCodes, extractPersonnummer, extractFullNameBlock,
+  extractSpecialty, extractBlockAfterLabel,
+  normalizeAndSortDelmalCodes2015
+} from "./common";
+import { extractCommon } from "../fieldExtract";
 
-// Minimal layout-typ (matchar Tesseract.js result.data.blocks)
-type OcrBBox = { x0: number; y0: number; x1: number; y1: number };
-type OcrBlock = { bbox: OcrBBox; text: string };
-type OcrLayout = { blocks: OcrBlock[] } | null;
+export function parse_2015_bilaga7(text: string, words?: OcrWord[]): ParsedIntyg {
+  const kind = "2015-B7-SKRIFTLIGT";
 
-type Parsed = {
-  kind?: IntygKind;
-  fullName?: string;
-  personnummer?: string;
-  specialtyHeader?: string;
-  delmalCodes?: string[];
-  clinic?: string;          // ÄMNE (rubrik)
-  description?: string;     // Beskrivning av arbetet
-  supervisorName?: string;
-  supervisorSpeciality?: string;
-  supervisorSite?: string;
-};
+  // 1) Om användaren har annoterat med X/R/T, använd det först
+  const annotated = parseByAnnotatedMarkers(text);
+  if (annotated) return annotated;
 
-function asciiSoft(s: string) {
-  return (s || "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[-–—]/g, "-")
-    .replace(/\s+/g, " ")
-    .toLowerCase()
-    .trim();
-}
-function normalize(s: string) { return (s || "").replace(/\r\n?/g, "\n"); }
-function firstWordOnly(s?: string) { if (!s) return s; const m = s.trim().match(/^[A-Za-zÅÄÖåäö\-]+/); return m ? m[0] : s.trim(); }
-function tidyOneLine(s: string) {
-  return (s || "")
-    .replace(/\s+\|/g, " ").replace(/[|]/g, " ").replace(/\s+/g, " ")
-    .replace(/^[,.:;\-–—]+/, "").trim();
-}
-function enforceBulletBreaks(s: string) {
-  if (!s) return s;
-  let out = s.replace(/\r\n?/g, "\n");
-  out = out.replace(/[ \t]+\n/g, "\n");
-  out = out.replace(/\n{3,}/g, "\n\n");
-  out = out.split("\n").map(line => line.replace(/[ \t]+$/g, "")).join("\n");
-  return out.trim();
+  // 2) OCR.space rubrik-baserad parsing
+  const headings = parseByOcrSpaceHeadings(text);
+  if (headings) return headings;
+
+  // 3) Fallback till äldre logik
+  const delmalCodes = extractDelmalCodes(text);
+  const { fullName, firstName, lastName } = extractFullNameBlock(text);
+  const personnummer = extractPersonnummer(text);
+  const specialtyHeader = extractSpecialty(text);
+
+  const subject = extractBlockAfterLabel(text, /Ämne för självständigt skriftligt arbete/i);
+  const description = extractBlockAfterLabel(text, /Beskrivning av det självständiga skriftliga arbetet/i);
+
+  return { kind, fullName, firstName, lastName, personnummer, specialtyHeader, delmalCodes, clinic: subject, description };
 }
 
-function blockText(layout: OcrLayout, headingRe: RegExp): string | null {
-  if (!layout?.blocks?.length) return null;
-  // 1) hitta block vars text innehåller rubriken
-  const idx = layout.blocks.findIndex(b => headingRe.test(asciiSoft(b.text)));
-  if (idx < 0) return null;
-
-  // 2) ta själva blocket ELLER närmaste blocket precis under (för formulär där rubriken är egen rad)
-  const anchor = layout.blocks[idx];
-  const anchorY = anchor.bbox.y0;
-  const sameBoxText = asciiSoft(anchor.text).replace(headingRe, "").trim();
-
-  // Om rubrikblocket i sig innehåller annan text, använd den (efter rubriken)
-  if (sameBoxText && sameBoxText.length >= 2) {
-    return tidyOneLine(anchor.text.replace(/^[=\-—:\s]+/gm, "")).trim();
-  }
-
-  // Annars: plocka texten från "närmsta block under" inom rimlig X-overlapp
-  const ax0 = anchor.bbox.x0, ax1 = anchor.bbox.x1;
-  const under = layout.blocks
-    .filter(b => b.bbox.y0 > anchorY && overlapX(b.bbox, anchor.bbox) > 0.35)
-    .sort((a,b) => a.bbox.y0 - b.bbox.y0)[0];
-
-  if (under) {
-    return tidyOneLine(under.text.replace(/^[=\-—:\s]+/gm, ""));
-  }
-  return null;
-}
-
-function overlapX(a: OcrBBox, b: OcrBBox) {
-  const left = Math.max(a.x0, b.x0);
-  const right = Math.min(a.x1, b.x1);
-  const w = Math.max(0, right - left);
-  const aw = Math.max(1, a.x1 - a.x0);
-  const bw = Math.max(1, b.x1 - b.x0);
-  return Math.max(w / aw, w / bw);
-}
-
-function sliceBetweenBlocks(layout: OcrLayout, startRe: RegExp, endRe: RegExp): string | null {
-  if (!layout?.blocks?.length) return null;
-  const idxStart = layout.blocks.findIndex(b => startRe.test(asciiSoft(b.text)));
-  if (idxStart < 0) return null;
-
-  // hitta första block under start som ser ut som innehåll (inte rubrik/rad med bara rubriken)
-  const startBox = layout.blocks[idxStart];
-  const ax0 = startBox.bbox.x0, ax1 = startBox.bbox.x1, ay0 = startBox.bbox.y0;
-  // slut-anker (nästa rubrik/sektion)
-  const idxEnd = layout.blocks.findIndex((b, i) => i > idxStart && endRe.test(asciiSoft(b.text)));
-  const endY = idxEnd >= 0 ? layout.blocks[idxEnd].bbox.y0 : Infinity;
-
-  // samla alla block mellan start och slut som rimligen ligger "i samma spalt"
-  const bodyBlocks = layout.blocks.filter(b =>
-    b.bbox.y0 > ay0 && b.bbox.y1 < endY && overlapX(b.bbox, startBox.bbox) > 0.35
-  );
-
-  if (!bodyBlocks.length) return null;
-  const merged = bodyBlocks.map(b => b.text).join("\n");
-  return merged
-    .replace(/^[=\-—:\s]+/gm, "")
+function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
+  const kind = "2015-B7-SKRIFTLIGT";
+  
+  // Normalisera OCR-fel INNAN split
+  const normalizedRaw = raw
+    .replace(/\bFömamn\b/gi, "Förnamn")
+    .replace(/\bEftemamn\b/gi, "Efternamn")
+    .replace(/\bfömamn\b/gi, "Förnamn")
+    .replace(/\beftemamn\b/gi, "Efternamn");
+  
+  const linesAll = normalizedRaw
     .split(/\r?\n/)
-    .map(tidyOneLine)
-    .filter(Boolean)
-    .join("\n")
-    .trim();
-}
+    .map((l) => l.trim())
+    .filter(Boolean);
+  
+  if (linesAll.length === 0) return null;
 
-function extractDelmalCodes(text: string): string[] {
-  if (!text) return [];
-  const normalized = text
-    .replace(/\b([abc])\s*([0-9])\s*[.\s]\s*([0-9])\b/gi, (_m, g1, d1, d2) => `${g1}${d1}${d2}`)
-    .replace(/\s+/g, " ");
-  const out = new Set<string>();
-  const re = /\b(?:st[\s-]*)?([abc])[\s-]*([0-9]{1,2})\b/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(normalized)) !== null) {
-    const letter = (m[1] || "").toLowerCase();
-    const num = (m[2] || "").replace(/^0+/, "") || "0";
-    const hadST = /^st/i.test(normalized.slice(Math.max(0, m.index - 3), m.index + 1));
-    out.add(hadST ? `ST${letter}${num}` : `${letter}${num}`);
-  }
-  return Array.from(out);
-}
+  // IGNORE-lista: exakta rader som ska filtreras bort
+  // Viktigt: "Sökande" ska bara ignoreras om det är en enskild rad, inte om det ingår i en mening
+  // "Handledare" ska INTE filtreras bort - det är en rubrik vi behöver!
+  const IGNORE_EXACT: string[] = [
+    "Rensa",
+    "Bilaga nr:",
+    "INTYG",
+    "om genomförd utbildningsaktivitet och uppfyllda kompetenskrav",
+    "Skriv ut",
+    "Sökande",
+    "Intygande",
+    "Sökanden har genomfört utbildningsaktiviteten och uppfyllt kompetenskrav i delmålet/-en.",
+    "Självständigt skriftligt arbete enligt vetenskapliga principer",
+    "SOSFS 2015:8 - Bilaga 7",
+  ];
 
-// Acceptera både layout (gammalt) och words (nytt) för bakåtkompatibilitet
-export function parse_2015_bilaga7(rawInput: string, layoutOrWords?: OcrLayout | OcrWord[]): Parsed {
-  // Om det är en array av OcrWord, ignorera det för nu (denna parser använder layout)
-  const layout = Array.isArray(layoutOrWords) ? undefined : (layoutOrWords as OcrLayout | undefined);
-  const raw = normalize(rawInput);
-  const soft = asciiSoft(raw);
-  const out: Parsed = { kind: "2015-B7-SKRIFTLIGT" };
+  const IGNORE: RegExp[] = [
+    /^\*{3,}\s*result\s+for\s+image\/page/i,
+    /^\*{3,}/,
+    /^\s*(page|sida)\s*\d+\s*$/i,
+    /^SOSFS/i, // Blockera alla rader som börjar med "SOSFS"
+    /\bSOSFS\s+2015:8/i,
+    /\bBilaga\s*7\b/i,
+    /\bBilaga\s*nr\b/i,
+    /^\s*INTYG\b/i,
+    /\bSkriv\s+ut\b/i,
+    /\bRensa\b/i,
+    /\bom\s+genomförd\s+utbildningsaktivitet/i,
+    /^Sökande\s*$/i, // Bara exakt "Sökande" (enskild rad), inte när det ingår i en mening
+    /\bSjälvständigt\s+skriftligt\s+arbete\s+enligt\s+vetenskapliga\s+principer\b/i,
+    /\bIntygande\b/i,
+    /\bSökanden\s+har\s+genomfört/i,
+    // "Handledare" - TA BORT FRÅN IGNORE! Vi behöver den som rubrik
+  ];
 
-  // 0) Försök primärt layout-baserat (ruta) — annars fallback regex
-  // NAMN
-  {
-    const ef = blockText(layout ?? null, /\befternamn\b/i);
-    const fo = blockText(layout ?? null, /\bförnamn\b/i);
-    const last = ef ? tidyOneLine(ef) : (raw.match(/\b[Ee]fternamn\s*[:\-]?\s*([^\n|]+)/)?.[1] ?? "");
-    const first = fo ? tidyOneLine(fo) : (raw.match(/\b[fF][öo]rnamn\s*[:\-]?\s*([^\n|]+)/)?.[1] ?? "");
-    const full = [last, first].filter(Boolean).join(" ").trim()
-      .replace(/\b(förnamn|efternamn)\b/gi, "").replace(/\s{2,}/g, " ").trim();
-    if (full) out.fullName = full;
-  }
+  // Filtrera bort rader som matchar IGNORE-listan (bara initial filtrering)
+  const lines = linesAll.filter((l) => {
+    // Kontrollera exakta matchningar först
+    if (IGNORE_EXACT.some((exact) => l === exact)) return false;
+    // Kontrollera regex-mönster
+    if (IGNORE.some((re) => re.test(l))) return false;
+    return true;
+  });
 
-  // PERSONNUMMER
-  {
-    const pnBlock = blockText(layout ?? null, /\bpersonnummer\b/i);
-    const pn = (pnBlock || raw).match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/);
-    if (pn?.[0]) out.personnummer = pn[0];
-  }
+  if (lines.length < 5) return null;
 
-  // SPECIALITET (första ord)
-  {
-    const sp = blockText(layout ?? null, /specialitet\s+som\s+ans[öo]kan\s+avser/i);
-    const m = (sp || raw).match(/specialitet\s+som\s+ans[öo]kan\s+avser\s*[:\-]?\s*([^\n|]+)/i);
-    if (m?.[1]) out.specialtyHeader = firstWordOnly(tidyOneLine(m[1]));
-  }
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  // DELMÅL — Begränsa till rutan under "Delmål som intyget avser"
-  {
-    const box = sliceBetweenBlocks(
-      layout ?? null,
-      /(delm[aå]l\s+som\s+intyget\s+avser|delm[aå]l)/i,
-      /(ämne\s+för\s+självständigt\s+skriftligt\s+arbete|amne\s+for|beskrivning|handledare|intygande|underskrift)/i
-    ) || null;
-
-    const src = box || (
-      // text-fallback
-      (() => {
-        const s = soft.search(/(delm[aå]l\s+som\s+intyget\s+avser|delm[aå]l)/i);
-        if (s < 0) return "";
-        const tail = soft.slice(s);
-        const e = tail.search(/(ämne|amne|beskrivning|handledare|intygande|underskrift)/i);
-        const startIdx = s;
-        const endIdx = e < 0 ? soft.length : s + e;
-        return raw.slice(mapBack(raw, soft, startIdx), mapBack(raw, soft, endIdx));
-      })()
+  // Identifiera rubriker
+  // VIKTIGT: Var specifik - matcha bara exakta rubriker, inte bara om ordet finns i raden
+  const isLabelLine = (l: string) => {
+    const n = norm(l);
+    return (
+      n === norm("Efternamn") ||
+      n === norm("Personnummer") ||
+      n === norm("Förnamn") ||
+      n === norm("Fornamn") ||
+      n.includes("specialitet som ansokan avser") ||
+      n.includes("specialitet som ansökan avser") ||
+      n.includes("delmal som intyget avser") ||
+      n.includes("delmål som intyget avser") ||
+      n.includes("amne for sjalvstandigt skriftligt arbete") ||
+      n.includes("ämne för självständigt skriftligt arbete") ||
+      // Bara matcha exakt rubrik "Beskrivning av det självständiga skriftliga arbetet", inte bara om "beskrivning" finns
+      n.includes("beskrivning av det sjalvstandiga skriftliga arbetet") ||
+      n.includes("beskrivning av det självständiga skriftliga arbetet") ||
+      // Matcha "Specialitet" som rubrik (handledarens), inte sökandens
+      (n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan")) ||
+      n === norm("Tjänsteställe") ||
+      n === norm("Tjanstestalle") ||
+      // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+      // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+      (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+      n === norm("Namnförtydligande") ||
+      n === norm("Namnfortydligande") ||
+      n === norm("Handledare") ||
+      n === norm("Namnteckning") ||
+      n === norm("Ort och datum") ||
+      n === norm("Ort o datum")
     );
+  };
 
-    const codes = extractDelmalCodes(src);
-    if (codes.length) out.delmalCodes = codes;
+  // Kontrollera om en rad ska ignoreras (bara för rubriker, inte för innehåll)
+  const shouldIgnoreLine = (l: string): boolean => {
+    if (!l) return true;
+    const n = norm(l);
+    // Ignorera rubriker som inte ska inkluderas: Namnteckning, Ort och datum, Personnummer (handledarens)
+    if (n === norm("Namnteckning") || n === norm("Ort och datum") || n === norm("Ort o datum") || n === norm("Personnummer")) {
+      return true;
+    }
+    // Blockera alla rader som börjar med "SOSFS"
+    if (/^SOSFS/i.test(l.trim())) {
+      return true;
+    }
+    return false;
+  };
+
+  // Extrahera värde efter rubrik
+  const valueAfter = (labelRe: RegExp, stopRes: RegExp[] = []): string | undefined => {
+    // Försök hitta rubriken
+    let idx = lines.findIndex((l) => labelRe.test(l));
+    
+    // Om inte hittat, försök med mer flexibel matchning
+    if (idx < 0) {
+      const patternStr = labelRe.source
+        .replace(/\\b/g, '')
+        .replace(/[.*+?^${}()|[\]\\]/g, '')
+        .replace(/\\s\+/g, '\\s*')
+        .replace(/\\s\*/g, '\\s*');
+      const flexibleRe = new RegExp(patternStr, 'i');
+      idx = lines.findIndex((l) => flexibleRe.test(norm(l)));
+    }
+    
+    if (idx < 0) return undefined;
+
+    // "Label: value" på samma rad
+    const sameLine = lines[idx].split(":").slice(1).join(":").trim();
+    if (sameLine) return sameLine;
+
+    // För Beskrivning: samla alla rader tills nästa rubrik
+    const isDescription = labelRe.source.includes("Beskrivning");
+    
+    if (isDescription) {
+      // För Beskrivning: samla alla rader tills nästa rubrik
+      // VIKTIGT: Använd INTE shouldIgnoreLine här - innehåll kan innehålla ord som tidigare ignorerats
+      const out: string[] = [];
+      for (let i = idx + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (!l) break;
+        
+        // Hoppa över om första raden efter rubriken är en duplicerad "Beskrivning"-rubrik
+        if (i === idx + 1) {
+          const n = norm(l);
+          if (n.includes("beskrivning av det sjalvstandiga skriftliga arbetet") ||
+              n.includes("beskrivning av det självständiga skriftliga arbetet")) {
+            continue;
+          }
+        }
+        
+        // Stoppa vid rubriker (inklusive de som ska ignoreras)
+        if (isLabelLine(l)) break;
+        
+        // Stoppa vid stopp-mönster
+        if (stopRes.some((re) => re.test(l))) break;
+        
+        // Stoppa vid rader som börjar med "SOSFS"
+        if (/^SOSFS/i.test(l.trim())) break;
+        
+        out.push(l);
+      }
+      return out.join("\n").trim() || undefined;
+    } else {
+      // För ALLA övriga fält: ta BARA nästa rad (inte flera rader)
+      if (idx + 1 >= lines.length) return undefined;
+      const nextLine = lines[idx + 1];
+      if (!nextLine) return undefined;
+      
+      // Stoppa om nästa rad är en rubrik
+      if (isLabelLine(nextLine)) return undefined;
+      
+      // Stoppa om nästa rad ska ignoreras (t.ex. "Namnteckning", "Ort och datum", "Personnummer")
+      if (shouldIgnoreLine(nextLine)) return undefined;
+      
+      // Stoppa vid stopp-mönster
+      if (stopRes.some((re) => re.test(nextLine))) return undefined;
+      
+      // För "Tjänsteställe": ta bara nästa rad och stopp om den innehåller "SOSFS" eller liknande
+      const isTjanstestalle = labelRe.source.includes("Tjänsteställe") || 
+                              labelRe.source.includes("Tjanstestalle");
+      if (isTjanstestalle) {
+        const trimmed = nextLine.trim();
+        // Stoppa om raden innehåller "SOSFS" eller "Bilaga"
+        if (/SOSFS|Bilaga/i.test(trimmed)) {
+          const match = trimmed.match(/^(.+?)(?:\s+SOSFS|\s+Bilaga)/i);
+          if (match) {
+            return match[1].trim() || undefined;
+          }
+          return undefined;
+        }
+        return trimmed || undefined;
+      }
+      
+      return nextLine.trim() || undefined;
+    }
+  };
+
+  // Bas (personnummer/delmål/period-range) som fallback
+  const base = extractCommon(raw);
+
+  // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
+  // VIKTIGT: Kontrollera att värdet inte är "Sökande"
+  const lastNameRaw = valueAfter(/^Efternamn$/i) ||
+                      valueAfter(/Efternamn/i);
+  const firstNameRaw = valueAfter(/^Förnamn$/i) || 
+                      valueAfter(/Fornamn$/i) ||
+                      valueAfter(/Förnamn/i);
+  
+  // Filtrera bort "Sökande" om det råkar vara värdet
+  const lastName = lastNameRaw && 
+                   lastNameRaw.toLowerCase() !== "sökande"
+                   ? lastNameRaw 
+                   : undefined;
+  const firstName = firstNameRaw && 
+                    firstNameRaw.toLowerCase() !== "sökande"
+                    ? firstNameRaw 
+                    : undefined;
+  
+  const fullName = firstName && lastName 
+    ? `${firstName.trim()} ${lastName.trim()}`.trim()
+    : (firstName || lastName || undefined);
+
+  // Personnummer (sökandens - inte handledarens)
+  const pnrText = valueAfter(/^Personnummer$/i);
+  const personnummer = pnrText ? extractPersonnummer(pnrText) : (extractPersonnummer(lines.join(" ")) || base.personnummer);
+
+  // Specialitet som ansökan avser
+  const specialtyHeader = valueAfter(/Specialitet\s+som\s+ansökan\s+avser/i) ||
+                         valueAfter(/Specialitet\s+som\s+ansokan\s+avser/i);
+
+  // Delmål (för 2015: a1, b1, c1 etc - INTE ST-prefix)
+  const delmalText = valueAfter(/Delmål\s+som\s+intyget\s+avser/i) ||
+                     valueAfter(/Delmal\s+som\s+intyget\s+avser/i);
+  let rawDelmalCodes: string[] | undefined;
+  if (delmalText) {
+    rawDelmalCodes = extractDelmalCodes(delmalText);
   }
+  if (!rawDelmalCodes || rawDelmalCodes.length === 0) {
+    rawDelmalCodes = extractDelmalCodes(raw);
+  }
+  // För 2015: normalisera till gemener och sortera (a1-a6, b1-b5, c1-c14)
+  const delmalCodes = rawDelmalCodes && rawDelmalCodes.length > 0 
+    ? normalizeAndSortDelmalCodes2015(rawDelmalCodes)
+    : undefined;
 
-  // ÄMNE (rubrik) — Begränsa till rutan under "Ämne för självständigt..."
-  {
-    const amneBox = blockText(layout ?? null, /ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i) ||
-      sliceBetweenBlocks(layout ?? null,
-        /ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i,
-        /(beskrivning|handledare|intygande|underskrift)/i
-      );
-    let amne = amneBox ?? raw.match(/^\s*Ämne\s+för\s+självständigt\s+skriftligt\s+arbete[^\n]*?:\s*([^\n]+)$/im)?.[1] ?? "";
-    if (!amne && amneBox) amne = amneBox.split("\n")[0] ?? "";
-    if (amne) {
-      const cleaned = tidyOneLine(amne)
-        .replace(/\b\d{4}[.\-\/ ]\d{2}[.\-\/ ]\d{2}\b/g, " ")
-        .replace(/\s{2,}/g, " ").trim();
-      if (cleaned) out.clinic = cleaned;
+  // Ämne för självständigt skriftligt arbete (i rubrikform)
+  // Detta ska sparas i clinic-fältet
+  const subject = valueAfter(/Ämne\s+för\s+självständigt\s+skriftligt\s+arbete/i) ||
+                  valueAfter(/Amne\s+for\s+sjalvstandigt\s+skriftligt\s+arbete/i) ||
+                  valueAfter(/Ämne\s+för\s+självständigt/i) ||
+                  valueAfter(/Amne\s+for\s+sjalvstandigt/i);
+
+  // Beskrivning av det självständiga skriftliga arbetet
+  // Stoppa vid: Handledare, Namnförtydligande, Specialitet, Tjänsteställe, Namnteckning, Ort och datum
+  const descriptionStopPatterns = [
+    /^Intygande/i,
+    /^Handledare\s*$/i, // Bara exakt "Handledare" (enskild rad)
+    /^Namnförtydligande/i,
+    /^Namnfortydligande/i,
+    /^Specialitet/i,
+    /^Tjänsteställe/i,
+    /^Tjanstestalle/i,
+    /^Namnteckning/i,
+    /^Ort och datum/i,
+    /^Ort o datum/i,
+  ];
+  const description = valueAfter(/Beskrivning\s+av\s+det\s+självständiga\s+skriftliga\s+arbetet/i, descriptionStopPatterns) ||
+                      valueAfter(/Beskrivning\s+av\s+det\s+sjalvstandiga\s+skriftliga\s+arbetet/i, descriptionStopPatterns);
+
+  // Handledare - leta efter "Handledare" rubrik och sedan "Namnförtydligande"
+  // För 2015 Bilaga 7 kommer "Handledare" först, sedan "Namnförtydligande"
+  let supervisorName: string | undefined = undefined;
+  const handledareIdx = lines.findIndex((l) => norm(l) === norm("Handledare"));
+  if (handledareIdx >= 0) {
+    // Efter "Handledare" kommer "Namnförtydligande"
+    const namnfortydligandeIdx = lines.findIndex((l, idx) => 
+      idx > handledareIdx && (norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande"))
+    );
+    if (namnfortydligandeIdx >= 0) {
+      // Ta nästa rad efter "Namnförtydligande"
+      let candidateIdx = namnfortydligandeIdx + 1;
+      
+      // Om nästa rad ser ut som en rubrik (t.ex. "Namn Handledare"), ta nästa rad istället
+      if (candidateIdx < lines.length) {
+        const candidateLine = lines[candidateIdx];
+        const candidateNorm = norm(candidateLine);
+        // Om raden innehåller både "namn" och "handledare", är det troligen en rubrik, inte värdet
+        if (candidateNorm.includes("namn") && candidateNorm.includes("handledare")) {
+          candidateIdx++;
+        }
+      }
+      
+      if (candidateIdx < lines.length) {
+        const nextLine = lines[candidateIdx];
+        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+          // Filtrera bort om det ser ut som ett nummer eller parenteser (t.ex. "1 (1)")
+          const trimmed = nextLine.trim();
+          if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
+            supervisorName = trimmed;
+          }
+        }
+      }
     }
   }
-
-  // BESKRIVNING — Begränsa till rutan under "Beskrivning av det självständiga..."
-  {
-    const desc = sliceBetweenBlocks(
-      layout ?? null,
-      /beskrivning\s+av\s+det\s+sj[aä]lvst[aä]ndiga\s+skriftliga\s+arbetet/i,
-      /(handledare|intygande|underskrift|namnförtydligande|namnfortydligande|specialitet\s+som\s+ans[öo]kan\s+avser|delm[aå]l|ämne|amne)/i
+  
+  // Om inte hittat via "Handledare", försök direkt med "Namnförtydligande"
+  if (!supervisorName) {
+    // Hitta "Namnförtydligande" rubriken
+    const namnfortydligandeIdx = lines.findIndex((l) => 
+      norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande")
     );
-    let body = (desc ?? "").trim();
-    if (!body) {
-      // fallback nära ordet "beskrivning"
-      const i = soft.indexOf("beskrivning");
-      if (i >= 0) body = raw.slice(Math.max(0, i - 200), Math.min(raw.length, i + 2000));
+    
+    if (namnfortydligandeIdx >= 0) {
+      // Ta nästa rad efter "Namnförtydligande"
+      let candidateIdx = namnfortydligandeIdx + 1;
+      
+      // Om nästa rad ser ut som en rubrik (t.ex. "Namn Handledare"), ta nästa rad istället
+      if (candidateIdx < lines.length) {
+        const candidateLine = lines[candidateIdx];
+        const candidateNorm = norm(candidateLine);
+        // Om raden innehåller både "namn" och "handledare", är det troligen en rubrik, inte värdet
+        if (candidateNorm.includes("namn") && candidateNorm.includes("handledare")) {
+          candidateIdx++;
+        }
+      }
+      
+      if (candidateIdx < lines.length) {
+        const nextLine = lines[candidateIdx];
+        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+          // Filtrera bort om det ser ut som ett nummer eller parenteser
+          const trimmed = nextLine.trim();
+          if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
+            supervisorName = trimmed;
+          }
+        }
+      }
     }
-    if (body) {
-      body = body
-        .replace(/^[=\-—:\s]+/gm, "")
-        .split(/\r?\n/)
-        .map(tidyOneLine)
-        .filter(l => !/^(ämne\s+för\s+självständigt\s+skriftligt\s+arbete|beskrivning\s+av\s+det\s+sj[aä]lvst[aä]ndiga\s+skriftliga\s+arbetet|intygande|handledare)\b/i.test(l))
-        .join("\n");
-      out.description = enforceBulletBreaks(body);
+    
+    // Fallback: använd valueAfter om ovanstående inte fungerade
+    if (!supervisorName) {
+      const nameFromValueAfter = valueAfter(/Namnförtydligande/i) ||
+                                valueAfter(/Namnfortydligande/i);
+      // Filtrera bort om det ser ut som ett nummer eller parenteser
+      if (nameFromValueAfter && !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim())) {
+        supervisorName = nameFromValueAfter;
+      }
     }
   }
-
-  // HANDLEDARDEL — Begränsa till rutan under "Handledare"
-  {
-    const handBox = sliceBetweenBlocks(
-      layout ?? null,
-      /\bhandledare\b/i,
-      /(tjänsteställe|tjanstestalle|ort\s+och\s+datum|namnförtydligande|namnfortydligande|intygande|underskrift)/i
-    ) || "";
-
-    // Namn
-    const nm = handBox.split(/\r?\n/).map(tidyOneLine).find(l => /\s/.test(l) && !/^(handledare|specialitet)\b/i.test(asciiSoft(l)));
-    if (nm && !out.supervisorName) out.supervisorName = nm;
-
-    // Specialitet
-    const sp = handBox.match(/\b[Ss]pecialitet\s*[:\-]?\s*([A-ZÅÄÖa-zåäö\-]+)/);
-    if (sp?.[1] && !out.supervisorSpeciality) out.supervisorSpeciality = firstWordOnly(sp[1]);
-
-    // Tjänsteställe — tittar i blocket för Tjänsteställe/Ort och datum (under samma sektion)
-    const siteBox = sliceBetweenBlocks(
-      layout ?? null,
-      /(tjänsteställe|tjanstestalle)/i,
-      /(ort\s+och\s+datum|namnförtydligande|namnfortydligande|intygande|underskrift)/i
-    );
-    if (siteBox) {
-      const line = siteBox.split(/\r?\n/).map(tidyOneLine).find(Boolean) || "";
-      if (line) {
-        out.supervisorSite = line
-          .replace(/\b\d{4}[.\-\/ ]\d{2}[.\-\/ ]\d{2}\b/g, " ") // bort datum
-          .replace(/\s{2,}/g, " ").trim();
+  
+  // Handledarens specialitet (inte sökandens)
+  // Efter "Handledare" kommer "Specialitet" (handledarens)
+  let supervisorSpeciality: string | undefined = undefined;
+  if (handledareIdx >= 0) {
+    const supSpecIdx = lines.findIndex((l, idx) => {
+      if (idx <= handledareIdx) return false;
+      const n = norm(l);
+      return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+    });
+    if (supSpecIdx >= 0 && supSpecIdx + 1 < lines.length) {
+      const nextLine = lines[supSpecIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorSpeciality = nextLine.trim();
+      }
+    }
+  }
+  
+  // Om inte hittat, försök direkt
+  if (!supervisorSpeciality) {
+    const supSpecIdx = lines.findIndex((l) => {
+      const n = norm(l);
+      return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
+    });
+    if (supSpecIdx >= 0 && supSpecIdx + 1 < lines.length) {
+      const nextLine = lines[supSpecIdx + 1];
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        supervisorSpeciality = nextLine.trim();
+      }
+    }
+  }
+  
+  // Handledarens tjänsteställe
+  // Efter "Handledare" kommer "Tjänsteställe"
+  // Använd valueAfter som primär metod (den hanterar SOSFS/Bilaga korrekt)
+  let supervisorSite: string | undefined = undefined;
+  
+  // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
+  // Använd mer flexibla regex-mönster som matchar variationer
+  // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+  const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
+  const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
+  const siteFromValueAfter3 = valueAfter(/T[ji]änsteställe/i);
+  const siteFromValueAfter4 = valueAfter(/T[ji]anstestalle/i);
+  // Mer flexibel: matcha om raden innehåller "tjanst" och "stalle" men INTE "görings" eller "göring"
+  const siteFromValueAfter5 = valueAfter(/T[ji]än?st(?!.*göring).*?st[äa]lle/i);
+  
+  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
+  
+  // Om inte hittat via valueAfter, försök direkt i lines-arrayen
+  if (!supervisorSite) {
+    // Sök efter "Tjänsteställe" i hela arrayen, men prioritera efter "Handledare" om det finns
+    let searchStartIdx = 0;
+    if (handledareIdx >= 0) {
+      searchStartIdx = handledareIdx;
+    }
+    
+    const tjänsteställeIdx = lines.findIndex((l, idx) => {
+      if (idx < searchStartIdx) return false;
+      const n = norm(l);
+      // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+      // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+      const isMatch = 
+        n === norm("Tjänsteställe") || 
+        n === norm("Tjanstestalle") || 
+        (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjänst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring"));
+      return isMatch;
+    });
+    
+    if (tjänsteställeIdx >= 0 && tjänsteställeIdx + 1 < lines.length) {
+      const nextLine = lines[tjänsteställeIdx + 1];
+      
+      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+        const trimmed = nextLine.trim();
+        // Stoppa om raden innehåller "SOSFS" eller "Bilaga"
+        if (/SOSFS|Bilaga/i.test(trimmed)) {
+          const match = trimmed.match(/^(.+?)(?:\s+SOSFS|\s+Bilaga)/i);
+          if (match) {
+            supervisorSite = match[1].trim() || undefined;
+          }
+        } else {
+          supervisorSite = trimmed;
+        }
       }
     }
   }
 
-  return out;
+  // Kontrollera om vi har tillräckligt med data
+  const ok = fullName || personnummer || specialtyHeader || subject || 
+             description || delmalCodes?.length || supervisorName;
+  
+  if (!ok) return null;
+
+  return {
+    kind,
+    fullName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    personnummer: personnummer || undefined,
+    specialtyHeader: specialtyHeader || undefined,
+    delmalCodes,
+    clinic: subject || undefined, // Ämne sparas i clinic-fältet
+    description: description || undefined,
+    supervisorName: supervisorName || undefined,
+    supervisorSpeciality: supervisorSpeciality || undefined,
+    supervisorSite: supervisorSite || undefined,
+  };
 }
 
-// ---- små hjälpare ----
-function mapBack(original: string, normalized: string, idx: number) {
-  let acc = 0;
-  for (let i = 0; i < original.length; i++) {
-    const n = asciiSoft(original[i]);
-    acc += Math.max(1, n.length);
-    if (acc >= idx) return i;
+/**
+ * Stöd för manuellt annoterad OCR-text där:
+ * - R<n> = rubrikrad (ska aldrig in i textfält)
+ * - T<n> = text kopplad till rubriken R<n>
+ * - X    = rad som aldrig ska in i något fält
+ */
+function parseByAnnotatedMarkers(raw: string): ParsedIntyg | null {
+  const kind = "2015-B7-SKRIFTLIGT";
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const rtCount = lines.filter((l) => /^[RT]\d+\b/.test(l)).length;
+  const xCount = lines.filter((l) => /^X\b/.test(l)).length;
+  // Kör bara denna logik om det tydligt ser annoterat ut
+  if (rtCount < 6 && xCount < 3) return null;
+
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "");
+
+  type Bucket = { label?: string; values: string[] };
+  const buckets = new Map<number, Bucket>();
+
+  const getBucket = (n: number) => {
+    const b = buckets.get(n) ?? { values: [] };
+    buckets.set(n, b);
+    return b;
+  };
+
+  const looksLikeValue = (s: string) => {
+    const t = s.trim();
+    if (!t) return false;
+    // personnummer/datum/period
+    if (/\d{6}[-+ ]?\d{4}\b/.test(t)) return true;
+    if (/\b\d{6}\s*[-–—]\s*\d{6}\b/.test(t)) return true;
+    if (/\b\d{6}-\d{6}\b/.test(t)) return true;
+    if (/\b\d{2,4}\D?\d{2}\D?\d{2}\b/.test(t)) return true;
+    // annars: en "vanlig" text kan också vara value
+    return true;
+  };
+
+  for (const line of lines) {
+    // X-rader ska alltid ignoreras
+    if (/^X\b/.test(line)) continue;
+
+    const m = /^([RT])(\d+)\s*(.*)$/.exec(line);
+    if (!m) continue;
+
+    const tag = m[1];
+    const id = Number(m[2]);
+    const rest = (m[3] || "").trim();
+    if (!Number.isFinite(id)) continue;
+
+    const b = getBucket(id);
+
+    // Om rest råkar vara tomt, inget att göra
+    if (!rest) continue;
+
+    if (tag === "R") {
+      // Ibland kan OCR/handpåläggning råka skriva value som R-rad (t.ex. "R2 861027-4857").
+      // Om vi redan har label för id, eller rest ser ut som värde, lägg den som value.
+      if (b.label && looksLikeValue(rest)) {
+        b.values.push(rest);
+      } else {
+        // Annars är det rubriken
+        b.label = rest;
+      }
+      continue;
+    }
+
+    // tag === "T"
+    // Om T-raden råkar innehålla rubrikord (t.ex. "T7 Beskrivning") – ignorera den.
+    if (b.label) {
+      const nRest = norm(rest);
+      const nLab = norm(b.label);
+      if (nRest === nLab) continue;
+    }
+    b.values.push(rest);
   }
-  return original.length - 1;
+
+  const findIdByLabel = (needle: string) => {
+    const nNeedle = norm(needle);
+    for (const [id, b] of buckets.entries()) {
+      if (!b.label) continue;
+      const n = norm(b.label);
+      if (n === nNeedle || n.includes(nNeedle)) return id;
+    }
+    return null;
+  };
+
+  const valueFor = (id: number | null) => {
+    if (!id) return undefined;
+    const b = buckets.get(id);
+    if (!b || !b.values.length) return undefined;
+    return b.values.join("\n").trim() || undefined;
+  };
+
+  const lastName = valueFor(findIdByLabel("Efternamn"));
+  const firstName = valueFor(findIdByLabel("Förnamn")) || valueFor(findIdByLabel("Fornamn"));
+  // fullName: förnamn först
+  const fullName = `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim() || undefined;
+
+  // Sökandens personnummer
+  let personnummer: string | undefined;
+  {
+    const pId = findIdByLabel("Personnummer");
+    const v = valueFor(pId);
+    const m = v ? v.match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/) : null;
+    personnummer = m?.[0]?.replace(/\s+/g, "") || undefined;
+    if (!personnummer) {
+      // fallback: första personnummer i hela texten
+      const all = Array.from(buckets.values()).flatMap((b) => b.values);
+      const m2 = all.join("\n").match(/\b(\d{6}|\d{8})[-+ ]?\d{4}\b/);
+      personnummer = m2?.[0]?.replace(/\s+/g, "") || undefined;
+    }
+  }
+
+  const specialtyHeader = valueFor(findIdByLabel("Specialitet som ansökan avser"));
+  
+  const delmalRaw = valueFor(findIdByLabel("Delmål som intyget avser")) || "";
+  const rawDelmalCodes = extractDelmalCodes(delmalRaw);
+  // För 2015: använd delmål direkt, INTE normalizeAndSortDelmalCodes2021
+  const delmalCodes = rawDelmalCodes.length > 0 ? rawDelmalCodes : [];
+
+  const subject = valueFor(findIdByLabel("Ämne för självständigt skriftligt arbete"));
+
+  const description = valueFor(findIdByLabel("Beskrivning av det självständiga skriftliga arbetet"));
+
+  const supervisorName = valueFor(findIdByLabel("Namnförtydligande"));
+  const supervisorSpeciality = valueFor(findIdByLabel("Specialitet"));
+  const supervisorSite = valueFor(findIdByLabel("Tjänsteställe"));
+
+  // Kräver minst grundfält för att acceptera
+  const score =
+    (fullName ? 1 : 0) +
+    (personnummer ? 1 : 0) +
+    (specialtyHeader ? 1 : 0) +
+    (subject ? 1 : 0) +
+    (delmalCodes.length ? 1 : 0);
+
+  if (score < 4) return null;
+
+  return {
+    kind,
+    fullName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    personnummer,
+    specialtyHeader: specialtyHeader || undefined,
+    delmalCodes: delmalCodes.length ? delmalCodes : undefined,
+    clinic: subject || undefined, // Ämne sparas i clinic-fältet
+    description: description || undefined,
+    supervisorName: supervisorName || undefined,
+    supervisorSpeciality: supervisorSpeciality || undefined,
+    supervisorSite: supervisorSite || undefined,
+  };
 }

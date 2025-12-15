@@ -1033,9 +1033,9 @@ export default function ScanIntygModal({
     case "2015-B7-SKRIFTLIGT":
       titleLabel =
         "Ämne för självständigt skriftligt arbete (rubrikform)";
-      clinicLabel = "Ämne (titel på arbetet)";
+      clinicLabel = "Ämne (rubrik)";
       descriptionLabel =
-        "Beskrivning av det skriftliga arbetet";
+        "Beskrivning av det självständiga skriftliga arbetet";
       break;
 
     // HSLF-FS 2021:8 – Bilaga 8 (Auskultation)
