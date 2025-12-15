@@ -129,7 +129,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       (n === norm("Specialitet") && !n.includes("ansokan")) ||
       n === norm("Tjänsteställe") ||
       n === norm("Tjanstestalle") ||
-      n.includes("tjanstestalle") || // OCR kan skriva med "i" istället för "ä"
+      // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+      (n.includes("tjanst") && n.includes("stalle")) ||
+      (n.includes("tjanst") && n.includes("ställe")) ||
+      (n.includes("tjänst") && n.includes("stalle")) ||
+      (n.includes("tjänst") && n.includes("ställe"))
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
       n === norm("Intygande") ||
@@ -468,7 +472,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   console.warn('[Bilaga 3 Parser] siteFromValueAfter1 (Tjänsteställe):', siteFromValueAfter1);
   console.warn('[Bilaga 3 Parser] siteFromValueAfter2 (Tjanstestalle):', siteFromValueAfter2);
   
-  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2;
+  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
   
   // Om inte hittat via valueAfter, försök direkt i lines-arrayen
   if (!supervisorSite) {
@@ -485,7 +489,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     const tjänsteställeIdx = lines.findIndex((l, idx) => {
       if (idx < searchStartIdx) return false;
       const n = norm(l);
-      const isMatch = n === norm("Tjänsteställe") || n === norm("Tjanstestalle") || n.includes("tjanstestalle");
+      // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+      const isMatch = 
+        n === norm("Tjänsteställe") || 
+        n === norm("Tjanstestalle") || 
+        (n.includes("tjanst") && n.includes("stalle")) ||
+        (n.includes("tjanst") && n.includes("ställe")) ||
+        (n.includes("tjänst") && n.includes("stalle")) ||
+        (n.includes("tjänst") && n.includes("ställe"));
       if (isMatch) {
         console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l);
       }
