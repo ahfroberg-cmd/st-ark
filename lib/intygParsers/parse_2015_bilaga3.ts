@@ -350,13 +350,28 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     const namnfortydligandeIdx = lines.findIndex((l, idx) => 
       idx > handledareIdx && (norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande"))
     );
-    if (namnfortydligandeIdx >= 0 && namnfortydligandeIdx + 1 < lines.length) {
-      const nextLine = lines[namnfortydligandeIdx + 1];
-      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-        // Filtrera bort om det ser ut som ett nummer eller parenteser (t.ex. "1 (1)")
-        const trimmed = nextLine.trim();
-        if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
-          supervisorName = trimmed;
+    if (namnfortydligandeIdx >= 0) {
+      // Ta nästa rad efter "Namnförtydligande"
+      let candidateIdx = namnfortydligandeIdx + 1;
+      
+      // Om nästa rad ser ut som en rubrik (t.ex. "Namn Handledare"), ta nästa rad istället
+      if (candidateIdx < lines.length) {
+        const candidateLine = lines[candidateIdx];
+        const candidateNorm = norm(candidateLine);
+        // Om raden innehåller både "namn" och "handledare", är det troligen en rubrik, inte värdet
+        if (candidateNorm.includes("namn") && candidateNorm.includes("handledare")) {
+          candidateIdx++;
+        }
+      }
+      
+      if (candidateIdx < lines.length) {
+        const nextLine = lines[candidateIdx];
+        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+          // Filtrera bort om det ser ut som ett nummer eller parenteser (t.ex. "1 (1)")
+          const trimmed = nextLine.trim();
+          if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
+            supervisorName = trimmed;
+          }
         }
       }
     }
@@ -364,11 +379,45 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   
   // Om inte hittat via "Handledare", försök direkt med "Namnförtydligande"
   if (!supervisorName) {
-    const nameFromValueAfter = valueAfter(/Namnförtydligande/i) ||
-                              valueAfter(/Namnfortydligande/i);
-    // Filtrera bort om det ser ut som ett nummer eller parenteser
-    if (nameFromValueAfter && !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim())) {
-      supervisorName = nameFromValueAfter;
+    // Hitta "Namnförtydligande" rubriken
+    const namnfortydligandeIdx = lines.findIndex((l) => 
+      norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande")
+    );
+    
+    if (namnfortydligandeIdx >= 0) {
+      // Ta nästa rad efter "Namnförtydligande"
+      let candidateIdx = namnfortydligandeIdx + 1;
+      
+      // Om nästa rad ser ut som en rubrik (t.ex. "Namn Handledare"), ta nästa rad istället
+      if (candidateIdx < lines.length) {
+        const candidateLine = lines[candidateIdx];
+        const candidateNorm = norm(candidateLine);
+        // Om raden innehåller både "namn" och "handledare", är det troligen en rubrik, inte värdet
+        if (candidateNorm.includes("namn") && candidateNorm.includes("handledare")) {
+          candidateIdx++;
+        }
+      }
+      
+      if (candidateIdx < lines.length) {
+        const nextLine = lines[candidateIdx];
+        if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
+          // Filtrera bort om det ser ut som ett nummer eller parenteser
+          const trimmed = nextLine.trim();
+          if (!/^\d+\s*\(?\d*\)?$/.test(trimmed)) {
+            supervisorName = trimmed;
+          }
+        }
+      }
+    }
+    
+    // Fallback: använd valueAfter om ovanstående inte fungerade
+    if (!supervisorName) {
+      const nameFromValueAfter = valueAfter(/Namnförtydligande/i) ||
+                                valueAfter(/Namnfortydligande/i);
+      // Filtrera bort om det ser ut som ett nummer eller parenteser
+      if (nameFromValueAfter && !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim())) {
+        supervisorName = nameFromValueAfter;
+      }
     }
   }
   
