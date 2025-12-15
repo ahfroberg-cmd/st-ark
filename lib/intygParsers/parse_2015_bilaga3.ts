@@ -454,8 +454,15 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   
   // Handledarens tjänsteställe
   // Efter "Handledare" kommer "Tjänsteställe"
+  // Använd valueAfter som primär metod (den hanterar SOSFS/Bilaga korrekt)
   let supervisorSite: string | undefined = undefined;
-  if (handledareIdx >= 0) {
+  
+  // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
+  supervisorSite = valueAfter(/Tjänsteställe/i) ||
+                   valueAfter(/Tjanstestalle/i);
+  
+  // Om inte hittat via valueAfter, försök direkt i lines-arrayen
+  if (!supervisorSite && handledareIdx >= 0) {
     const tjänsteställeIdx = lines.findIndex((l, idx) => {
       if (idx <= handledareIdx) return false;
       const n = norm(l);
@@ -476,12 +483,6 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
         }
       }
     }
-  }
-  
-  // Om inte hittat, försök direkt med valueAfter
-  if (!supervisorSite) {
-    supervisorSite = valueAfter(/Tjänsteställe/i) ||
-                     valueAfter(/Tjanstestalle/i);
   }
 
   // Kontrollera om vi har tillräckligt med data
