@@ -8406,7 +8406,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             >
               Du har osparade ändringar
             </div>
-            <div className="h-px w-full bg-slate-200" />
 
             <div className="flex items-center justify-end gap-2 px-4 pb-3">
               <button
