@@ -283,15 +283,20 @@ export default function CalendarDatePicker({
 
                     const isToday = isTodayDate(viewYear, viewMonth, day ?? -1);
 
+                    // Kontrollera om datumet är före minDate
+                    const isBeforeMinDate = minDate && day != null
+                      ? fmtISO(viewYear, viewMonth + 1, day) < minDate
+                      : false;
+
                     return (
                       <button
                         key={di}
                         type="button"
-                        disabled={!inMonth}
+                        disabled={!inMonth || isBeforeMinDate}
                         onPointerDown={(e) => {
                           e.preventDefault();   // ingen fokus/blur till föräldrar
                           e.stopPropagation();  // bubbla inte upp (första klicket stannar här)
-                          if (!inMonth || day == null) return;
+                          if (!inMonth || day == null || isBeforeMinDate) return;
                           pick(viewYear, viewMonth, day);  // sätter onChange + stänger
                         }}
                         onMouseDown={(e) => {
@@ -301,7 +306,7 @@ export default function CalendarDatePicker({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (!inMonth || day == null) return;
+                          if (!inMonth || day == null || isBeforeMinDate) return;
                           pick(viewYear, viewMonth, day);
                         }}
                         onTouchStart={(e) => {
