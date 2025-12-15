@@ -122,6 +122,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       (n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan")) ||
       n === norm("Tjänsteställe") ||
       n === norm("Tjanstestalle") ||
+      n.includes("handledares tjanstestalle") ||
+      n.includes("handledares tjänsteställe") ||
+      n.includes("handledares tjansteställe") ||
+      n.includes("handledares tjänstestalle") ||
       // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
       // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
       (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
@@ -424,13 +428,17 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   }
   
   // Handledarens tjänsteställe
-  // Efter "Handledare" kommer "Tjänsteställe"
+  // Efter "Handledare" kommer "Tjänsteställe" eller "Handledares tjänsteställe"
   // Använd valueAfter som primär metod (den hanterar SOSFS/Bilaga korrekt)
   let supervisorSite: string | undefined = undefined;
   
   // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
   // Använd mer flexibla regex-mönster som matchar variationer
   // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+  // Först försök med "Handledares tjänsteställe" (kan vara exakt rubrik)
+  const siteFromValueAfter0 = valueAfter(/Handledares\s+tjänsteställe/i) ||
+                              valueAfter(/Handledares\s+tjanstestalle/i) ||
+                              valueAfter(/Handledares\s+tj[äa]nstest[äa]lle/i);
   const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
   const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
   const siteFromValueAfter3 = valueAfter(/T[ji]änsteställe/i);
@@ -438,7 +446,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Mer flexibel: matcha om raden innehåller "tjanst" och "stalle" men INTE "görings" eller "göring"
   const siteFromValueAfter5 = valueAfter(/T[ji]än?st(?!.*göring).*?st[äa]lle/i);
   
-  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
+  supervisorSite = siteFromValueAfter0 || siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
   
   // Om inte hittat via valueAfter, försök direkt i lines-arrayen
   if (!supervisorSite) {
@@ -453,9 +461,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       const n = norm(l);
       // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
       // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+      // Matcha också "Handledares tjänsteställe"
       const isMatch = 
         n === norm("Tjänsteställe") || 
         n === norm("Tjanstestalle") || 
+        n.includes("handledares tjanstestalle") ||
+        n.includes("handledares tjänsteställe") ||
         (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
         (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
         (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
