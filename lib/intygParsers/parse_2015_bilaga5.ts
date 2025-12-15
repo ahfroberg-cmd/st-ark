@@ -890,6 +890,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     supervisorSpeciality: supervisorSpeciality || undefined,
     supervisorSite: supervisorSite || undefined,
     courseLeader: courseLeader || undefined, // Kursledare (namn)
+    signingRole: signingRole || undefined, // Lägg till signingRole för UI:t
     signer: {
       role: signingRole === "handledare" ? "HANDLEDARE" : signingRole === "kursledare" ? "KURSLEDARE" : undefined,
       name: supervisorName,
