@@ -276,9 +276,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Tjänstgöringsställe och period för auskultationen
   // Detta kan vara på samma rad: "Tjänstgöringsställe och period (ååmmdd - ååmmdd) för auskultationen"
-  const clinicAndPeriodText = valueAfter(/Tjänstgöringsställe\s+och\s+period/i) ||
-                              valueAfter(/Tjanstgoringsstalle\s+och\s+period/i) ||
-                              valueAfter(/Tjänstgöringsställe/i);
+  // OCR kan skriva "Tiänstgöringsställe" (med "i" istället för "ä")
+  const clinicAndPeriodText = valueAfter(/T[ji]änstgöringsställe\s+och\s+period/i) ||
+                              valueAfter(/T[ji]anstgoringsstalle\s+och\s+period/i) ||
+                              valueAfter(/T[ji]änstgöringsställe/i) ||
+                              valueAfter(/T[ji]anstgoringsstalle/i);
   
   // Extrahera klinik och period från texten
   let clinic: string | undefined = undefined;
