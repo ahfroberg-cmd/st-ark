@@ -458,33 +458,61 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Använd valueAfter som primär metod (den hanterar SOSFS/Bilaga korrekt)
   let supervisorSite: string | undefined = undefined;
   
+  console.warn('[Bilaga 3 Parser] ====== HANDLEDARENS TJÄNSTESTÄLLE ======');
+  console.warn('[Bilaga 3 Parser] handledareIdx:', handledareIdx);
+  
   // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
-  supervisorSite = valueAfter(/Tjänsteställe/i) ||
-                   valueAfter(/Tjanstestalle/i);
+  const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
+  const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
+  console.warn('[Bilaga 3 Parser] siteFromValueAfter1 (Tjänsteställe):', siteFromValueAfter1);
+  console.warn('[Bilaga 3 Parser] siteFromValueAfter2 (Tjanstestalle):', siteFromValueAfter2);
+  
+  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2;
   
   // Om inte hittat via valueAfter, försök direkt i lines-arrayen
   if (!supervisorSite && handledareIdx >= 0) {
+    console.warn('[Bilaga 3 Parser] Försöker hitta Tjänsteställe direkt i lines-arrayen efter Handledare');
     const tjänsteställeIdx = lines.findIndex((l, idx) => {
       if (idx <= handledareIdx) return false;
       const n = norm(l);
-      return n === norm("Tjänsteställe") || n === norm("Tjanstestalle");
+      const isMatch = n === norm("Tjänsteställe") || n === norm("Tjanstestalle");
+      if (isMatch) {
+        console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l);
+      }
+      return isMatch;
     });
+    console.warn('[Bilaga 3 Parser] tjänsteställeIdx:', tjänsteställeIdx);
+    
     if (tjänsteställeIdx >= 0 && tjänsteställeIdx + 1 < lines.length) {
       const nextLine = lines[tjänsteställeIdx + 1];
+      console.warn('[Bilaga 3 Parser] Nästa rad efter Tjänsteställe:', nextLine);
+      console.warn('[Bilaga 3 Parser] shouldIgnoreLine:', shouldIgnoreLine(nextLine));
+      console.warn('[Bilaga 3 Parser] isLabelLine:', isLabelLine(nextLine));
+      
       if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
         const trimmed = nextLine.trim();
+        console.warn('[Bilaga 3 Parser] trimmed nextLine:', trimmed);
         // Stoppa om raden innehåller "SOSFS" eller "Bilaga"
         if (/SOSFS|Bilaga/i.test(trimmed)) {
           const match = trimmed.match(/^(.+?)(?:\s+SOSFS|\s+Bilaga)/i);
           if (match) {
             supervisorSite = match[1].trim() || undefined;
+            console.warn('[Bilaga 3 Parser] Extracted from SOSFS/Bilaga match:', supervisorSite);
           }
         } else {
           supervisorSite = trimmed;
+          console.warn('[Bilaga 3 Parser] Using trimmed line as supervisorSite:', supervisorSite);
         }
+      } else {
+        console.warn('[Bilaga 3 Parser] Nästa rad ignoreras eller är en rubrik');
       }
+    } else {
+      console.warn('[Bilaga 3 Parser] Ingen nästa rad eller tjänsteställeIdx < 0');
     }
   }
+  
+  console.warn('[Bilaga 3 Parser] Final supervisorSite:', supervisorSite);
+  console.warn('[Bilaga 3 Parser] ====== SLUT HANDLEDARENS TJÄNSTESTÄLLE ======');
 
   // Kontrollera om vi har tillräckligt med data
   const ok = fullName || personnummer || specialtyHeader || clinic || 
