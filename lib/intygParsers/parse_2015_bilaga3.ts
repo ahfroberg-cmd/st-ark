@@ -467,8 +467,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   console.warn('[Bilaga 3 Parser] handledareIdx:', handledareIdx);
   
   // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
+  // Använd mer flexibla regex-mönster som matchar variationer
   const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
   const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
+  const siteFromValueAfter3 = valueAfter(/T[ji]änsteställe/i);
+  const siteFromValueAfter4 = valueAfter(/T[ji]anstestalle/i);
+  // Mer flexibel: matcha om raden innehåller "tjanst" och "stalle"
+  const siteFromValueAfter5 = valueAfter(/T[ji]än?st.*?st[äa]lle/i);
+  
   console.warn('[Bilaga 3 Parser] siteFromValueAfter1 (Tjänsteställe):', siteFromValueAfter1);
   console.warn('[Bilaga 3 Parser] siteFromValueAfter2 (Tjanstestalle):', siteFromValueAfter2);
   console.warn('[Bilaga 3 Parser] siteFromValueAfter3 (T[ji]änsteställe):', siteFromValueAfter3);
