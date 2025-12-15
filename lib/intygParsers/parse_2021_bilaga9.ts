@@ -251,15 +251,29 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       // För Beskrivning: samla alla rader tills nästa rubrik
       // VIKTIGT: Använd INTE shouldIgnoreLine här - innehåll kan innehålla ord som tidigare ignorerats
       const out: string[] = [];
+      console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Hittade rubrik på rad', idx, ':', lines[idx]);
       for (let i = idx + 1; i < lines.length; i++) {
         const l = lines[i];
-        if (!l) break;
+        if (!l) {
+          console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Tom rad på', i);
+          break;
+        }
+        console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Rad', i, ':', l, '- isLabelLine:', isLabelLine(l));
         // Stoppa bara vid rubriker eller stopp-mönster, INTE vid IGNORE-listan
-        if (isLabelLine(l)) break;
-        if (stopRes.some((re) => re.test(l))) break;
+        if (isLabelLine(l)) {
+          console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Stoppar vid rubrik:', l);
+          break;
+        }
+        if (stopRes.some((re) => re.test(l))) {
+          console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Stoppar vid stopp-mönster:', l);
+          break;
+        }
         out.push(l);
+        console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Lade till rad:', l);
       }
-      return out.join("\n").trim() || undefined;
+      const result = out.join("\n").trim() || undefined;
+      console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Resultat:', result);
+      return result;
     } else {
       // För ALLA övriga fält: ta BARA nästa rad (inte flera rader)
       if (idx + 1 >= lines.length) return undefined;
@@ -338,9 +352,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Ort och datum/i,
     /^Namnteckning/i,
   ];
-  const description = valueAfter(/Beskrivning\s+av\s+den\s+kliniska\s+tjänstgöringen/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning\s+av\s+den\s+kliniska\s+tjanstgoringen/i, descriptionStopPatterns) ||
-                      valueAfter(/Beskrivning/i, descriptionStopPatterns);
+  let description = valueAfter(/Beskrivning\s+av\s+den\s+kliniska\s+tjänstgöringen/i, descriptionStopPatterns) ||
+                    valueAfter(/Beskrivning\s+av\s+den\s+kliniska\s+tjanstgoringen/i, descriptionStopPatterns) ||
+                    valueAfter(/Beskrivning/i, descriptionStopPatterns);
+  
+  // Debug: logga beskrivningen
+  console.warn('[Bilaga 9 Parser] description:', description);
 
   // Period
   const periodText = valueAfter(/Period/i);
