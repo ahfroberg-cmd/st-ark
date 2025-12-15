@@ -258,6 +258,16 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
           console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Tom rad på', i);
           break;
         }
+        // Hoppa över om första raden efter rubriken är en duplicerad "Beskrivning"-rubrik
+        // (OCR kan ibland duplicera rubriken)
+        if (i === idx + 1) {
+          const n = norm(l);
+          // Om första raden är bara "Beskrivning" eller matchar beskrivningsrubriken, hoppa över den
+          if (n === norm("Beskrivning") || n.includes("beskrivning av den kliniska tjanstgoringen")) {
+            console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Hoppar över duplicerad rubrik på rad', i, ':', l);
+            continue;
+          }
+        }
         console.warn('[Bilaga 9 Parser] valueAfter Beskrivning: Rad', i, ':', l, '- isLabelLine:', isLabelLine(l));
         // Stoppa bara vid rubriker eller stopp-mönster, INTE vid IGNORE-listan
         if (isLabelLine(l)) {
