@@ -442,6 +442,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Först: hitta rader som innehåller checkbox-tecken och "Kursledare" eller "Handledare"
   let handledLine: string | undefined = undefined;
   let kursledLine: string | undefined = undefined;
+  let signingRole: "handledare" | "kursledare" | undefined = undefined;
   
   console.log('[Bilaga 5 Parser] Letar efter checkbox-raderna...');
   console.log('[Bilaga 5 Parser] markRe:', markRe);
@@ -512,56 +513,65 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       
       console.log('[Bilaga 5 Parser] kursledIdx:', kursledIdx, 'handledIdx:', handledIdx, 'beskrivningIdx:', beskrivningIdx);
       
-      // VIKTIGT: Om "Kursledare" kommer FÖRE "Handledare" (och båda finns), 
-      // så är det troligen kursledare som signerar (eftersom "Kursledare" är den första rubriken)
-      // MEN: Om "Handledare" kommer EFTER "Beskrivning", så är det troligen handledare som signerar
-      // (eftersom handledare-rubriken kommer efter beskrivningen i intyget)
-      if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
+      // VIKTIGT: Prioriteringsordning:
+      // 1. Om "Kursledare" kommer FÖRE "Handledare" (och båda finns), så är det troligen kursledare som signerar
+      //    (eftersom "Kursledare" är den första rubriken, och om den är ikryssad så är det kursledare)
+      // 2. Om bara "Kursledare" finns, så är det kursledare som signerar
+      // 3. Om bara "Handledare" finns, eller om "Handledare" kommer EFTER "Beskrivning" (och "Kursledare" inte finns),
+      //    så är det handledare som signerar
+      if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
+        // Om "Kursledare" kommer FÖRE "Handledare", så är det troligen kursledare som signerar
+        // (eftersom "Kursledare" är den första rubriken, och om den är ikryssad så är det kursledare)
+        signingRole = "kursledare";
+        kursledLine = lines[kursledIdx];
+        handledLine = lines[handledIdx]; // Sätt också handledLine för att beräkna checkboxEndIdx
+        console.log('[Bilaga 5 Parser] Kursledare kommer före Handledare - kursledare signerar');
+      } else if (kursledIdx >= 0 && handledIdx < 0) {
+        // Om bara "Kursledare" finns (ingen "Handledare"), så är det kursledare som signerar
+        signingRole = "kursledare";
+        kursledLine = lines[kursledIdx];
+        console.log('[Bilaga 5 Parser] Bara Kursledare finns - kursledare signerar');
+      } else if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
         // Om "Handledare" kommer EFTER "Beskrivning", så är det troligen handledare som signerar
-        // Detta är den vanligaste situationen när handledare signerar
-        // signingRole kommer att sättas senare (efter deklarationen)
+        // (men bara om "Kursledare" INTE kommer före "Handledare")
+        signingRole = "handledare";
         handledLine = lines[handledIdx];
         if (kursledIdx >= 0) {
           kursledLine = lines[kursledIdx];
         }
-        console.log('[Bilaga 5 Parser] Handledare kommer efter Beskrivning - handledare signerar (signingRole sätts senare)');
-      } else if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
-        // Om "Kursledare" kommer FÖRE "Handledare", så är det troligen kursledare som signerar
-        // signingRole kommer att sättas senare (efter deklarationen)
-        kursledLine = lines[kursledIdx];
-        handledLine = lines[handledIdx]; // Sätt också handledLine för att beräkna checkboxEndIdx
-        console.log('[Bilaga 5 Parser] Kursledare kommer före Handledare - kursledare signerar (signingRole sätts senare)');
-      } else if (kursledIdx >= 0 && handledIdx < 0) {
-        // Om bara "Kursledare" finns (ingen "Handledare"), så är det kursledare som signerar
-        kursledLine = lines[kursledIdx];
-        console.log('[Bilaga 5 Parser] Bara Kursledare finns - kursledare signerar (signingRole sätts senare)');
+        console.log('[Bilaga 5 Parser] Handledare kommer efter Beskrivning - handledare signerar');
       } else if (handledIdx >= 0 && kursledIdx < 0) {
         // Om bara "Handledare" finns (ingen "Kursledare"), så är det handledare som signerar
+        signingRole = "handledare";
         handledLine = lines[handledIdx];
-        console.log('[Bilaga 5 Parser] Bara Handledare finns - handledare signerar (signingRole sätts senare)');
+        console.log('[Bilaga 5 Parser] Bara Handledare finns - handledare signerar');
       }
     }
   }
   
-  // Bestäm signingRole baserat på handledLine/kursledLine (som kan ha satts av position-logiken)
-  if (handledLine && !kursledLine) {
-    signingRole = "handledare";
-    console.log('[Bilaga 5 Parser] signingRole satt till: handledare (handledLine finns, ingen kursledLine)');
-  } else if (kursledLine && !handledLine) {
-    signingRole = "kursledare";
-    console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (kursledLine finns, ingen handledLine)');
-  } else if (kursledLine && handledLine) {
-    // Om båda finns, använd position-logik: om handledare kommer efter beskrivning, så är det handledare
-    const beskrivningIdx = lines.findIndex((l) => /beskrivning/i.test(l));
-    const handledIdx = lines.findIndex(l => l === handledLine);
-    if (handledIdx >= 0 && beskrivningIdx >= 0 && handledIdx > beskrivningIdx) {
+  // Bestäm signingRole baserat på handledLine/kursledLine (om den inte redan är satt av position-logiken)
+  if (!signingRole) {
+    if (handledLine && !kursledLine) {
       signingRole = "handledare";
-      console.log('[Bilaga 5 Parser] signingRole satt till: handledare (båda finns, men Handledare efter Beskrivning)');
-    } else {
-      // Annars: kursledare (eftersom "Kursledare" är den första rubriken)
+      console.log('[Bilaga 5 Parser] signingRole satt till: handledare (handledLine finns, ingen kursledLine)');
+    } else if (kursledLine && !handledLine) {
       signingRole = "kursledare";
-      console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (båda finns, Kursledare är första rubriken)');
+      console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (kursledLine finns, ingen handledLine)');
+    } else if (kursledLine && handledLine) {
+      // Om båda finns, använd position-logik: om kursledare kommer före handledare, så är det kursledare
+      const kursledIdx = lines.findIndex(l => l === kursledLine);
+      const handledIdx = lines.findIndex(l => l === handledLine);
+      if (kursledIdx >= 0 && handledIdx >= 0 && kursledIdx < handledIdx) {
+        signingRole = "kursledare";
+        console.log('[Bilaga 5 Parser] signingRole satt till: kursledare (båda finns, Kursledare före Handledare)');
+      } else {
+        // Annars: handledare (eftersom "Handledare" kommer efter "Beskrivning")
+        signingRole = "handledare";
+        console.log('[Bilaga 5 Parser] signingRole satt till: handledare (båda finns, Handledare efter Beskrivning)');
+      }
     }
+  } else {
+    console.log('[Bilaga 5 Parser] signingRole redan satt av position-logik till:', signingRole);
   }
   
   console.log('[Bilaga 5 Parser] handledLine:', handledLine);
