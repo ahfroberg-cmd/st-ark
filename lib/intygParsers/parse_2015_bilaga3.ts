@@ -130,6 +130,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n === norm("Tjanstestalle") ||
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
+      n === norm("Intygande") ||
+      n === norm("Handledare") ||
       n === norm("Namnteckning") ||
       n === norm("Ort och datum") ||
       n === norm("Ort o datum")
@@ -226,11 +228,25 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   const base = extractCommon(raw);
 
   // Namn: Efternamn och Förnamn är separata rubriker, slå ihop till "Förnamn Efternamn"
-  const lastName = valueAfter(/^Efternamn$/i) ||
-                   valueAfter(/Efternamn/i);
-  const firstName = valueAfter(/^Förnamn$/i) || 
-                   valueAfter(/Fornamn$/i) ||
-                   valueAfter(/Förnamn/i);
+  // VIKTIGT: Kontrollera att värdet inte är "Sökande" eller "Auskultation"
+  const lastNameRaw = valueAfter(/^Efternamn$/i) ||
+                      valueAfter(/Efternamn/i);
+  const firstNameRaw = valueAfter(/^Förnamn$/i) || 
+                      valueAfter(/Fornamn$/i) ||
+                      valueAfter(/Förnamn/i);
+  
+  // Filtrera bort "Sökande" och "Auskultation" om de råkar vara värden
+  const lastName = lastNameRaw && 
+                   lastNameRaw.toLowerCase() !== "sökande" && 
+                   lastNameRaw.toLowerCase() !== "auskultation"
+                   ? lastNameRaw 
+                   : undefined;
+  const firstName = firstNameRaw && 
+                    firstNameRaw.toLowerCase() !== "sökande" && 
+                    firstNameRaw.toLowerCase() !== "auskultation"
+                    ? firstNameRaw 
+                    : undefined;
+  
   const fullName = firstName && lastName 
     ? `${firstName.trim()} ${lastName.trim()}`.trim()
     : (firstName || lastName || undefined);
@@ -301,6 +317,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
 
   // Beskrivning av auskultationen
   const descriptionStopPatterns = [
+    /^Intygande/i,
+    /^Handledare\s*$/i, // Bara exakt "Handledare" (enskild rad)
     /^Specialitet/i,
     /^Tjänsteställe/i,
     /^Tjanstestalle/i,
