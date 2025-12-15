@@ -130,10 +130,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       n === norm("Tjänsteställe") ||
       n === norm("Tjanstestalle") ||
       // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
-      (n.includes("tjanst") && n.includes("stalle")) ||
-      (n.includes("tjanst") && n.includes("ställe")) ||
-      (n.includes("tjänst") && n.includes("stalle")) ||
-      (n.includes("tjänst") && n.includes("ställe")) ||
+      // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+      (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+      (n.includes("tjänst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
       n === norm("Namnförtydligande") ||
       n === norm("Namnfortydligande") ||
       n === norm("Intygande") ||
@@ -502,13 +503,14 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       if (idx < searchStartIdx) return false;
       const n = norm(l);
       // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
+      // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
       const isMatch = 
         n === norm("Tjänsteställe") || 
         n === norm("Tjanstestalle") || 
-        (n.includes("tjanst") && n.includes("stalle")) ||
-        (n.includes("tjanst") && n.includes("ställe")) ||
-        (n.includes("tjänst") && n.includes("stalle")) ||
-        (n.includes("tjänst") && n.includes("ställe"));
+        (n.includes("tjanst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjanst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjänst") && n.includes("stalle") && !n.includes("gorings") && !n.includes("göring")) ||
+        (n.includes("tjänst") && n.includes("ställe") && !n.includes("gorings") && !n.includes("göring"));
       if (isMatch) {
         console.warn('[Bilaga 3 Parser] Hittade Tjänsteställe på index:', idx, 'rad:', l, 'normaliserad:', n);
       }
