@@ -6328,7 +6328,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
             {isCourse && selCourse && (
   <div className="grid gap-3">
-             {/* Rad 1: kurs, ort, kursledare, start, slut, (ev. Fas BT/ST mellan BT-start och Slutdatum för BT) */}
+             {/* Rad 1: kurs, kursledare, start, slut, (ev. Fas BT/ST mellan BT-start och Slutdatum för BT) */}
     <div
       className={[
         "grid gap-3 grid-cols-1",
@@ -6509,31 +6509,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         );
       })()}
 
-      {/* Ort - visas endast för 2015 */}
-      {(() => {
-        const prof: any = profile || {};
-        const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
-        if (is2021) return null;
-        
-        return (
-          <div>
-            <label className="block text-sm text-slate-700">Ort</label>
-            <input
-              value={selCourse.city || ""}
-              onChange={(e) =>
-                setCourses((prev) =>
-                  prev.map((c) =>
-                    c.id === selCourse.id
-                      ? { ...c, city: e.target.value }
-                      : c
-                  )
-                )
-              }
-              className="w-full h-10 rounded-lg border px-3"
-            />
-          </div>
-        );
-      })()}
 
       {/* Kursledare */}
       <div>
