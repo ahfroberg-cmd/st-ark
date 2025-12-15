@@ -461,15 +461,38 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
       const n = norm(l);
       return n === norm("Tjänsteställe") || n === norm("Tjanstestalle");
     });
-    if (tjänsteställeIdx >= 0 && tjänsteställeIdx + 1 < lines.length) {
-      const nextLine = lines[tjänsteställeIdx + 1];
-      if (nextLine && !shouldIgnoreLine(nextLine) && !isLabelLine(nextLine)) {
-        supervisorSite = nextLine.trim();
+    if (tjänsteställeIdx >= 0) {
+      // Ta nästa rad efter "Tjänsteställe"
+      let candidateIdx = tjänsteställeIdx + 1;
+      
+      // Om nästa rad är tom eller en rubrik, hoppa över den
+      while (candidateIdx < lines.length) {
+        const candidateLine = lines[candidateIdx];
+        if (!candidateLine || candidateLine.trim() === "") {
+          candidateIdx++;
+          continue;
+        }
+        if (shouldIgnoreLine(candidateLine) || isLabelLine(candidateLine)) {
+          candidateIdx++;
+          continue;
+        }
+        // Hittat en giltig rad
+        const trimmed = candidateLine.trim();
+        // Stoppa om raden innehåller "SOSFS" eller "Bilaga"
+        if (/SOSFS|Bilaga/i.test(trimmed)) {
+          const match = trimmed.match(/^(.+?)(?:\s+SOSFS|\s+Bilaga)/i);
+          if (match) {
+            supervisorSite = match[1].trim() || undefined;
+          }
+        } else {
+          supervisorSite = trimmed;
+        }
+        break;
       }
     }
   }
   
-  // Om inte hittat, försök direkt
+  // Om inte hittat, försök direkt med valueAfter
   if (!supervisorSite) {
     supervisorSite = valueAfter(/Tjänsteställe/i) ||
                      valueAfter(/Tjanstestalle/i);
