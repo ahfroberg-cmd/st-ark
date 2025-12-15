@@ -87,7 +87,12 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Kurs\s*$/i, // Bara exakt "Kurs" (enskild rad) - VIKTIGT: inte när "kurs" ingår i texten
     /\bIntygande\b/i,
     /\bSökanden\s+har\s+genomfört/i,
-    // "Kursledare" och "Handledare" - TA BORT FRÅN IGNORE! Vi behöver dem som rubriker
+    // Checkbox-raderna: "X Kursledare", "X Handledare", "Kursledare" (utan X), "Handledare" (utan X)
+    // Dessa ska ALDRIG inkluderas i något fält
+    /^(☒|✓|✗|☑|\bx\b|\bX\b)\s*Kursledare\s*$/i, // "X Kursledare"
+    /^(☒|✓|✗|☑|\bx\b|\bX\b)\s*Handledare\s*$/i, // "X Handledare"
+    // "Kursledare" och "Handledare" - TA BORT FRÅN IGNORE! Vi behöver dem som rubriker (för kursledare-namnet)
+    // Men checkbox-raderna ska ignoreras
   ];
 
   // Filtrera bort rader som matchar IGNORE-listan (bara initial filtrering)
@@ -154,6 +159,23 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     if (n === norm("Namnteckning") || n === norm("Ort och datum") || n === norm("Ort o datum")) {
       return true;
     }
+    // Ignorera checkbox-raderna: "X Kursledare", "X Handledare", och raden efter dem
+    const markRe = /(☒|✓|✗|☑|\bx\b|\bX\b)/i;
+    if (markRe.test(l) && (/kursledare/i.test(l) || /handledare/i.test(l))) {
+      return true;
+    }
+    // Ignorera raden efter checkbox-raderna om den bara är "Kursledare" eller "Handledare" (utan checkbox)
+    // Detta är den andra raden i checkbox-paret
+    if ((n === norm("Kursledare") || n === norm("Handledare")) && !markRe.test(l)) {
+      // Kontrollera om föregående rad var en checkbox-rad
+      const lineIdx = lines.findIndex(line => line === l);
+      if (lineIdx > 0) {
+        const prevLine = lines[lineIdx - 1];
+        if (prevLine && markRe.test(prevLine) && (/kursledare/i.test(prevLine) || /handledare/i.test(prevLine))) {
+          return true; // Detta är den andra raden i checkbox-paret, ignorera den
+        }
+      }
+    }
     return false;
   };
 
@@ -184,7 +206,8 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     
     if (isDescription) {
       // För Beskrivning: samla alla rader tills nästa rubrik
-      // VIKTIGT: Använd INTE shouldIgnoreLine här - innehåll kan innehålla ord som tidigare ignorerats
+      // VIKTIGT: Filtrera bort checkbox-raderna
+      const markRe = /(☒|✓|✗|☑|\bx\b|\bX\b)/i;
       const out: string[] = [];
       for (let i = idx + 1; i < lines.length; i++) {
         const l = lines[i];
@@ -196,7 +219,24 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
             continue;
           }
         }
-        // Stoppa bara vid rubriker eller stopp-mönster, INTE vid IGNORE-listan
+        // Filtrera bort checkbox-raderna: "X Kursledare", "X Handledare"
+        if (markRe.test(l) && (/kursledare/i.test(l) || /handledare/i.test(l))) {
+          // Hoppa över checkbox-raden och nästa rad (som också kan vara "Kursledare" eller "Handledare")
+          i++; // Hoppa över nästa rad också
+          continue;
+        }
+        // Ignorera raden efter checkbox om den bara är "Kursledare" eller "Handledare" (utan checkbox)
+        const n = norm(l);
+        if ((n === norm("Kursledare") || n === norm("Handledare")) && !markRe.test(l)) {
+          // Kontrollera om föregående rad var en checkbox-rad
+          if (i > 0) {
+            const prevLine = lines[i - 1];
+            if (prevLine && markRe.test(prevLine) && (/kursledare/i.test(prevLine) || /handledare/i.test(prevLine))) {
+              continue; // Detta är den andra raden i checkbox-paret, hoppa över den
+            }
+          }
+        }
+        // Stoppa vid rubriker eller stopp-mönster
         if (isLabelLine(l)) break;
         if (stopRes.some((re) => re.test(l))) break;
         out.push(l);
@@ -373,10 +413,10 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   }
 
   // Beskrivning av kursen
+  // VIKTIGT: Stoppa vid checkbox-raderna också
+  // markRe deklareras senare i checkbox-logiken
   const descriptionStopPatterns = [
     /^Intygande/i,
-    /^Kursledare\s*$/i, // Bara exakt "Kursledare" (enskild rad) - men detta är rubriken, inte checkbox
-    /^Handledare\s*$/i, // Bara exakt "Handledare" (enskild rad) - men detta är checkbox-raden
     /^Specialitet/i,
     /^Tjänsteställe/i,
     /^Tjanstestalle/i,
@@ -384,6 +424,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     /^Namnfortydligande/i,
     /^Ort och datum/i,
     /^Namnteckning/i,
+    // Stoppa vid checkbox-raderna
+    new RegExp(`^${markRe.source}\\s*Kursledare`, 'i'),
+    new RegExp(`^${markRe.source}\\s*Handledare`, 'i'),
   ];
   const description = valueAfter(/Beskrivning\s+av\s+kursen/i, descriptionStopPatterns) ||
                       valueAfter(/Beskrivning\s+av\s+kurs/i, descriptionStopPatterns);
@@ -455,10 +498,26 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   }
 
   // Intygande person - leta efter "Namnförtydligande"
+  // VIKTIGT: Hitta "Namnförtydligande" som kommer EFTER checkbox-raderna
   let supervisorName: string | undefined = undefined;
-  const namnfortydligandeIdx = lines.findIndex((l) => 
-    norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande")
-  );
+  
+  // Hitta index för checkbox-raderna för att veta var de slutar
+  let checkboxEndIdx = -1;
+  if (handledLine || kursledLine) {
+    const handledIdx = handledLine ? lines.findIndex(l => l === handledLine) : -1;
+    const kursledIdx = kursledLine ? lines.findIndex(l => l === kursledLine) : -1;
+    const maxIdx = Math.max(handledIdx, kursledIdx);
+    if (maxIdx >= 0) {
+      // Checkbox-raderna är på maxIdx och maxIdx+1 (den andra raden i paret)
+      checkboxEndIdx = maxIdx + 1;
+    }
+  }
+  
+  // Leta efter "Namnförtydligande" som kommer EFTER checkbox-raderna
+  const namnfortydligandeIdx = lines.findIndex((l, idx) => {
+    if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
+    return norm(l) === norm("Namnförtydligande") || norm(l) === norm("Namnfortydligande");
+  });
   
   if (namnfortydligandeIdx >= 0) {
     // Ta nästa rad efter "Namnförtydligande"
@@ -487,20 +546,26 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     }
   }
   
-  // Om inte hittat, försök direkt med valueAfter
+  // Om inte hittat, försök direkt med valueAfter (men hoppa över checkbox-raderna)
   if (!supervisorName) {
     const nameFromValueAfter = valueAfter(/Namnförtydligande/i) ||
                               valueAfter(/Namnfortydligande/i);
     // Filtrera bort om det ser ut som ett nummer eller parenteser
-    if (nameFromValueAfter && !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim())) {
+    // Också filtrera bort om det är checkbox-raden
+    if (nameFromValueAfter && 
+        !/^\d+\s*\(?\d*\)?$/.test(nameFromValueAfter.trim()) &&
+        !markRe.test(nameFromValueAfter) &&
+        !/^(kursledare|handledare)$/i.test(nameFromValueAfter.trim())) {
       supervisorName = nameFromValueAfter;
     }
   }
   
   // Intygandens specialitet (om den intygande personen är specialistkompetent läkare)
   // Detta är INTE sökandens specialitet
+  // VIKTIGT: Hitta "Specialitet" som kommer EFTER checkbox-raderna
   let supervisorSpeciality: string | undefined = undefined;
-  const supSpecIdx = lines.findIndex((l) => {
+  const supSpecIdx = lines.findIndex((l, idx) => {
+    if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
     const n = norm(l);
     // Matcha "Specialitet" men INTE "Specialitet som ansökan avser"
     return n === norm("Specialitet") && !n.includes("ansokan") && !n.includes("ansökan");
@@ -513,11 +578,11 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   }
   
   // Intygandens tjänsteställe
+  // VIKTIGT: Hitta "Tjänsteställe" som kommer EFTER checkbox-raderna
   let supervisorSite: string | undefined = undefined;
   
   // Försök först med valueAfter (den hanterar SOSFS/Bilaga korrekt)
-  // Använd mer flexibla regex-mönster som matchar variationer
-  // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
+  // Men se till att vi hittar rätt "Tjänsteställe" (efter checkbox-raderna)
   const siteFromValueAfter1 = valueAfter(/Tjänsteställe/i);
   const siteFromValueAfter2 = valueAfter(/Tjanstestalle/i);
   const siteFromValueAfter3 = valueAfter(/T[ji]änsteställe/i);
@@ -525,11 +590,21 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
   // Mer flexibel: matcha om raden innehåller "tjanst" och "stalle" men INTE "görings" eller "göring"
   const siteFromValueAfter5 = valueAfter(/T[ji]än?st(?!.*göring).*?st[äa]lle/i);
   
-  supervisorSite = siteFromValueAfter1 || siteFromValueAfter2 || siteFromValueAfter3 || siteFromValueAfter4 || siteFromValueAfter5;
+  // Filtrera bort om värdet är checkbox-raden
+  const candidates = [siteFromValueAfter1, siteFromValueAfter2, siteFromValueAfter3, siteFromValueAfter4, siteFromValueAfter5];
+  for (const candidate of candidates) {
+    if (candidate && 
+        !markRe.test(candidate) && 
+        !/^(kursledare|handledare)$/i.test(candidate.trim())) {
+      supervisorSite = candidate;
+      break;
+    }
+  }
   
-  // Om inte hittat via valueAfter, försök direkt i lines-arrayen
+  // Om inte hittat via valueAfter, försök direkt i lines-arrayen (efter checkbox-raderna)
   if (!supervisorSite) {
-    const tjänsteställeIdx = lines.findIndex((l) => {
+    const tjänsteställeIdx = lines.findIndex((l, idx) => {
+      if (idx <= checkboxEndIdx) return false; // Hoppa över checkbox-raderna
       const n = norm(l);
       // Mer flexibel matchning - matcha om raden innehåller "tjanst" och "stalle" (med variationer)
       // VIKTIGT: Exkludera "Tjänstgöringsställe" - den ska INTE matchas här
