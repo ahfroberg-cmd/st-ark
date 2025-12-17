@@ -18,6 +18,7 @@
 import React, { useRef, useState } from "react";
 import { ocrImage } from "@/lib/ocr";
 import { detectIntygKind, type IntygKind } from "@/lib/intygDetect";
+import { validateOcrFile } from "@/lib/validation";
 
 // 2015
 import { parse_2015_bilaga3 } from "@/lib/intygParsers/parse_2015_bilaga3";
@@ -91,6 +92,14 @@ export default function ScanIntygModal({
 
   function onSelectFile(f: File | null) {
     if (!f) return;
+    
+    // Validera fil innan bearbetning
+    const fileValidation = validateOcrFile(f);
+    if (!fileValidation.valid) {
+      setWarning(fileValidation.error || "Ogiltig fil.");
+      return;
+    }
+    
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     const url = URL.createObjectURL(f);
     setPreviewUrl(url);
@@ -104,6 +113,15 @@ export default function ScanIntygModal({
 
   async function handleScan() {
     if (!file) return;
+    
+    // Validera fil igen innan OCR (extra säkerhet)
+    const fileValidation = validateOcrFile(file);
+    if (!fileValidation.valid) {
+      setWarning(fileValidation.error || "Ogiltig fil.");
+      setBusy(false);
+      return;
+    }
+    
     setBusy(true);
     setWarning(null);
     try {

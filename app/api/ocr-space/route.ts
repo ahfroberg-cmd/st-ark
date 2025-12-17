@@ -1,5 +1,8 @@
 export const runtime = "nodejs";
 
+import { MAX_OCR_FILE_SIZE, ALLOWED_OCR_FILE_TYPES, ALLOWED_OCR_FILE_EXTENSIONS } from "@/lib/validation";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+
 type OcrWord = {
   text: string;
   x1: number;
@@ -18,6 +21,28 @@ type OcrResult = {
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting: max 10 requests per minut per IP
+    const clientIp = getClientIp(req);
+    const rateLimit = checkRateLimit(`ocr:${clientIp}`, 10, 60000); // 10 requests per minut
+    
+    if (!rateLimit.allowed) {
+      return Response.json(
+        {
+          error: "För många förfrågningar. Försök igen senare.",
+          retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateLimit.resetTime - Date.now()) / 1000)),
+            "X-RateLimit-Limit": "10",
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+            "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetTime / 1000)),
+          },
+        }
+      );
+    }
+
     const apiKey =
       process.env.OCR_SPACE_API_KEY ||
       process.env.OCR_SPACE_KEY ||
@@ -35,6 +60,32 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("file");
     const langRaw = String(form.get("lang") || "swe+eng");
+    
+    // Validera fil på serversidan
+    if (!(file instanceof File)) {
+      return Response.json({ error: "Ingen fil skickades (field: file)." }, { status: 400 });
+    }
+    
+    // Kontrollera filstorlek
+    if (file.size > MAX_OCR_FILE_SIZE) {
+      return Response.json(
+        { error: `Filen är för stor. Maximal storlek är ${MAX_OCR_FILE_SIZE / 1024 / 1024} MB.` },
+        { status: 400 }
+      );
+    }
+    
+    // Kontrollera filtyp
+    const isValidType = ALLOWED_OCR_FILE_TYPES.includes(file.type);
+    const isValidExtension = ALLOWED_OCR_FILE_EXTENSIONS.some((ext) =>
+      file.name.toLowerCase().endsWith(ext)
+    );
+    
+    if (!isValidType && !isValidExtension) {
+      return Response.json(
+        { error: `Ogiltig filtyp. Tillåtna format: ${ALLOWED_OCR_FILE_EXTENSIONS.join(", ")}` },
+        { status: 400 }
+      );
+    }
 
     // OCR.space stödjer ett språk per request (3-bokstavskoder).
     // Normalisera och mappa vanliga varianter, och fallbacka till eng.
@@ -73,10 +124,6 @@ export async function POST(req: Request) {
     };
 
     const ocrLang = normalizeOcrSpaceLang(langRaw);
-
-    if (!(file instanceof File)) {
-      return Response.json({ error: "Ingen fil skickades (field: file)." }, { status: 400 });
-    }
 
     const apiUrl = "https://api.ocr.space/parse/image";
 

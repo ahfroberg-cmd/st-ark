@@ -68,12 +68,12 @@ export default function MobileAbout({ open, onClose }: Props) {
         return;
       }
 
-      // Öppna mailto-länk
+      // Om mailto-länk finns (fallback), öppna den, annars visa success-meddelande
       if (data.mailtoLink) {
         window.location.href = data.mailtoLink;
-        setContactSuccess(true);
-        setContactForm({ name: "", email: "", message: "" });
       }
+      setContactSuccess(true);
+      setContactForm({ name: "", email: "", message: "" });
     } catch (error) {
       console.error("Kontaktformulär fel:", error);
       setContactError("Ett fel uppstod när meddelandet skulle skickas");
@@ -120,20 +120,52 @@ export default function MobileAbout({ open, onClose }: Props) {
           {/* Upphov och syfte */}
           <section className="border-b border-slate-200 px-5 py-4">
             <h2 className="text-lg font-extrabold text-slate-900 mb-3">Upphov och syfte</h2>
-            <div className="space-y-3 text-slate-700">
+            <div className="max-h-[300px] overflow-y-auto space-y-3 text-slate-700">
               {aboutContent.about.paragraphs.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className={index === aboutContent.about.commercialInterestIndex ? "font-semibold text-slate-900" : ""}
-                >
+                <p key={index}>
                   {paragraph}
                 </p>
               ))}
             </div>
           </section>
 
-          {/* Kontakt */}
+          {/* Integritet och dataskydd */}
           <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Integritet och dataskydd</h2>
+            <div className="space-y-3 text-slate-700">
+              {aboutContent.privacy.paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+          </section>
+
+          {/* Licensvillkor */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Licensvillkor</h2>
+            <div className="space-y-3 text-slate-700">
+              <p>{aboutContent.license.intro}</p>
+              <ul className="list-disc space-y-2 pl-5">
+                {aboutContent.license.points.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+              <p>
+                Den fullständiga licenstexten finns i filen{" "}
+                <a
+                  href={aboutContent.license.licenseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-600 hover:text-sky-700 underline"
+                >
+                  LICENSE
+                </a>{" "}
+                i projektets rotkatalog.
+              </p>
+            </div>
+          </section>
+
+          {/* Kontakt */}
+          <section className="px-5 py-4">
             <h2 className="text-lg font-extrabold text-slate-900 mb-3">Kontakt</h2>
             <form onSubmit={handleContactSubmit} className="space-y-4">
               <div>
@@ -179,7 +211,7 @@ export default function MobileAbout({ open, onClose }: Props) {
               )}
               {contactSuccess && (
                 <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700">
-                  Meddelandet har skickats! Din e-postklient öppnas nu.
+                  Meddelandet har skickats! Du får svar så snart som möjligt.
                 </div>
               )}
               <button
@@ -192,70 +224,6 @@ export default function MobileAbout({ open, onClose }: Props) {
             </form>
           </section>
 
-          {/* Ladda ned projektet */}
-          <section className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Ladda ned projektet</h2>
-            <div className="space-y-3 text-slate-700">
-              <p>{aboutContent.download.intro}</p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h3 className="mb-2 text-sm font-extrabold text-slate-900">
-                  {aboutContent.download.steps.title}
-                </h3>
-                <ol className="list-decimal space-y-2 pl-5">
-                  {aboutContent.download.steps.items.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ol>
-                <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm">
-                  {aboutContent.download.steps.exampleText}
-                </div>
-              </div>
-              <div className="mt-4">
-                <a
-                  href={aboutContent.download.githubZipUrl}
-                  download
-                  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
-                >
-                  Ladda ned projektet (ZIP)
-                </a>
-              </div>
-            </div>
-          </section>
-
-          {/* Integritet och dataskydd */}
-          <section className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Integritet och dataskydd</h2>
-            <div className="space-y-3 text-slate-700">
-              {aboutContent.privacy.paragraphs.map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-            </div>
-          </section>
-
-          {/* Licensvillkor */}
-          <section className="px-5 py-4">
-            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Licensvillkor</h2>
-            <div className="space-y-3 text-slate-700">
-              <p>{aboutContent.license.intro}</p>
-              <ul className="list-disc space-y-2 pl-5">
-                {aboutContent.license.points.map((point, index) => (
-                  <li key={index}>{point}</li>
-                ))}
-              </ul>
-              <p>
-                Den fullständiga licenstexten finns i filen{" "}
-                <a
-                  href={aboutContent.license.licenseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sky-600 hover:text-sky-700 underline"
-                >
-                  LICENSE
-                </a>{" "}
-                i projektets rotkatalog.
-              </p>
-            </div>
-          </section>
         </div>
       </div>
     </div>

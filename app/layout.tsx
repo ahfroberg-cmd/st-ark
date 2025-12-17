@@ -18,6 +18,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SWRegister from "./sw-register";
 import { TitleOverride } from "./TitleOverride";
+import BetaGuard from "@/components/BetaGuard";
 
 export const metadata: Metadata = {
   title: {
@@ -54,7 +55,7 @@ export default function RootLayout({
       <body>
         <SWRegister />
         <TitleOverride />
-        {children}
+        <BetaGuard>{children}</BetaGuard>
       </body>
     </html>
   );

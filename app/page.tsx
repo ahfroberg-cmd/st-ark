@@ -19,6 +19,10 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/db";
+import dynamic from "next/dynamic";
+import { validateJsonFile, safeJsonParse } from "@/lib/validation";
+
+const AboutModal = dynamic(() => import("@/components/AboutModal"), { ssr: false });
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,11 +38,27 @@ export default function HomePage() {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    
+    // Validera fil innan bearbetning
+    const fileValidation = validateJsonFile(f);
+    if (!fileValidation.valid) {
+      alert(fileValidation.error || "Ogiltig fil.");
+      return;
+    }
+
     setImporting(true);
     try {
       // Dexie öppnar databasen automatiskt vid första query
       const txt = await f.text();
-      const data = JSON.parse(txt);
+      
+      // Säker JSON-parsing med validering
+      const parseResult = safeJsonParse(txt);
+      if (!parseResult.success || !parseResult.data) {
+        alert(parseResult.error || "Kunde inte läsa JSON-filen.");
+        return;
+      }
+      
+      const data = parseResult.data;
 
       const p = data.profile ?? data?.Profile ?? data?.prof ?? null;
       const placements = data.placements ?? data?.Placements ?? [];
@@ -103,28 +123,7 @@ export default function HomePage() {
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} />
 
       {/* About modal */}
-      {aboutOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setAboutOpen(false)}>
-          <div
-            className="max-h-[90dvh] w-full max-w-[720px] overflow-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-extrabold">Om ST-ark</h2>
-              <button
-                onClick={() => setAboutOpen(false)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-semibold hover:bg-slate-50"
-              >
-                Stäng
-              </button>
-            </div>
-            <p className="leading-relaxed text-slate-700">
-              Allt lagras lokalt i din webbläsare (IndexedDB). Ingen inloggning, ingen server. För att flytta eller
-              säkerhetskopiera: Exportera/Importera JSON.
-            </p>
-          </div>
-        </div>
-      )}
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </main>
   );
 }

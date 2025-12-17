@@ -7,6 +7,7 @@ import type { Profile, Placement, Achievement } from "@/lib/types";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import { btMilestones } from "@/lib/goals-bt";
 import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { validateJsonFile, safeJsonParse } from "@/lib/validation";
 
 type MobileHomeProps = {
   onOpenScan?: () => void;
@@ -606,10 +607,26 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
+    
+    // Validera fil innan bearbetning
+    const fileValidation = validateJsonFile(f);
+    if (!fileValidation.valid) {
+      window.alert(fileValidation.error || "Ogiltig fil.");
+      return;
+    }
+
     setImporting(true);
     try {
       const txt = await f.text();
-      const data = JSON.parse(txt);
+      
+      // Säker JSON-parsing med validering
+      const parseResult = safeJsonParse(txt);
+      if (!parseResult.success || !parseResult.data) {
+        window.alert(parseResult.error || "Kunde inte läsa JSON-filen.");
+        return;
+      }
+      
+      const data = parseResult.data;
 
       const p = data.profile ?? data?.Profile ?? data?.prof ?? null;
       const placementsData = data.placements ?? data?.Placements ?? [];

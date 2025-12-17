@@ -59,12 +59,12 @@ export default function AboutModal({ open, onClose }: Props) {
         return;
       }
 
-      // Öppna mailto-länk
+      // Om mailto-länk finns (fallback), öppna den, annars visa success-meddelande
       if (data.mailtoLink) {
         window.location.href = data.mailtoLink;
-        setContactSuccess(true);
-        setContactForm({ name: "", email: "", message: "" });
       }
+      setContactSuccess(true);
+      setContactForm({ name: "", email: "", message: "" });
     } catch (error) {
       console.error("Kontaktformulär fel:", error);
       setContactError("Ett fel uppstod när meddelandet skulle skickas");
@@ -105,10 +105,10 @@ export default function AboutModal({ open, onClose }: Props) {
           {[
             { id: "instruction", label: "Instruktion" },
             { id: "about", label: "Upphov och syfte" },
-            { id: "contact", label: "Kontakt" },
             { id: "download", label: "Ladda ned projektet" },
             { id: "privacy", label: "Integritet och dataskydd" },
             { id: "license", label: "Licensvillkor" },
+            { id: "contact", label: "Kontakt" },
           ].map((t) => (
             <button
               key={t.id}
@@ -136,10 +136,7 @@ export default function AboutModal({ open, onClose }: Props) {
           {tab === "about" && (
             <div className="space-y-4 text-slate-700">
               {aboutContent.about.paragraphs.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className={index === aboutContent.about.commercialInterestIndex ? "font-semibold text-slate-900" : ""}
-                >
+                <p key={index}>
                   {paragraph}
                 </p>
               ))}
@@ -192,7 +189,7 @@ export default function AboutModal({ open, onClose }: Props) {
                 )}
                 {contactSuccess && (
                   <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700">
-                    Meddelandet har skickats! Din e-postklient öppnas nu.
+                    Meddelandet har skickats! Du får svar så snart som möjligt.
                   </div>
                 )}
                 <button

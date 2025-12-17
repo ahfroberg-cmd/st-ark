@@ -17,9 +17,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Hoppa över om vi redan är på /mobile eller om det är en API-route/static-fil
+  // Hoppa över om vi redan är på /mobile, /beta-login eller om det är en API-route/static-fil
   if (
     request.nextUrl.pathname.startsWith("/mobile") ||
+    request.nextUrl.pathname.startsWith("/beta-login") ||
     request.nextUrl.pathname.startsWith("/api") ||
     request.nextUrl.pathname.startsWith("/_next") ||
     request.nextUrl.pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|json|wasm|mjs)$/)
