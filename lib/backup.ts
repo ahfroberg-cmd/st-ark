@@ -41,6 +41,35 @@ export async function exportAll(): Promise<ExportBundle> {
 export async function downloadJson(bundle: ExportBundle, filename = "st-intyg-backup.json") {
   const json = JSON.stringify(bundle, null, 2);
   const blob = new Blob([json], { type: "application/json" });
+
+  // Försök använda File System Access API om det stöds (låter användaren välja var filen ska sparas)
+  if ('showSaveFilePicker' in window) {
+    try {
+      const fileHandle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: 'JSON-filer',
+          accept: { 'application/json': ['.json'] },
+        }],
+      });
+      
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err: any) {
+      // Användaren avbröt dialogrutan eller ett fel uppstod
+      // Fallback till den gamla metoden
+      if (err.name !== 'AbortError') {
+        console.warn('File System Access API misslyckades, använder fallback:', err);
+      } else {
+        // Användaren avbröt, avsluta utan att göra något
+        return;
+      }
+    }
+  }
+
+  // Fallback: använd den gamla metoden med automatisk nedladdning
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
