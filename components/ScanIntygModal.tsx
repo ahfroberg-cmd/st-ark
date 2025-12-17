@@ -1709,32 +1709,11 @@ export default function ScanIntygModal({
           onClick={() => setTipsOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-xl p-6"
+            className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
+            <header className="flex items-center justify-between border-b px-4 py-3">
               <h3 className="m-0 text-lg font-semibold text-slate-900">Tips för bästa resultat</h3>
-              <button
-                type="button"
-                onClick={() => setTipsOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Stäng"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="text-sm text-slate-900">
-              <ul className="list-disc list-inside space-y-2">
-                <li>Allra bäst resultat får du vid skanning av dokumentet</li>
-                <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
-                <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
-                <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
-                <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
-              </ul>
-            </div>
-            <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 onClick={() => setTipsOpen(false)}
@@ -1742,6 +1721,18 @@ export default function ScanIntygModal({
               >
                 Stäng
               </button>
+            </header>
+            <div className="p-6">
+              <div className="text-sm text-slate-900">
+                <ul className="list-disc list-inside space-y-2">
+                  <li>Allra bäst resultat får du vid skanning av dokumentet</li>
+                  <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
+                  <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
+                  <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
+                  <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
+                  <li>Titta igenom resultatet noggrant, det finns risk för fel</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

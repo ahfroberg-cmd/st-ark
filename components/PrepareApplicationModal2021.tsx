@@ -2302,16 +2302,7 @@ async function onSaveAll() {
                   <ReadonlyInput value={String((profile as any)?.email ?? "")} label="E-postadress" />
                   <ReadonlyInput value={String((profile as any)?.homeClinic ?? "")} label="Arbetsplats" />
                   <ReadonlyInput value={String((profile as any)?.mobile ?? "")} label="Mobiltelefon" />
-                  <div className="grid grid-cols-1 gap-2">
-                    <label className="text-xs font-semibold text-slate-700">Telefonnummer till arbetsplats</label>
-                    <input
-                      type="text"
-                      value={applicant.phoneWork}
-                      onChange={(e) => setApplicant((prev) => ({ ...prev, phoneWork: e.target.value }))}
-                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      placeholder=""
-                    />
-                  </div>
+                  <ReadonlyInput value={String((profile as any)?.phoneWork ?? "")} label="Telefonnummer till arbetsplats" />
                 </div>
               </div>
 

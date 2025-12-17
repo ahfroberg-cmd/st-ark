@@ -1078,7 +1078,7 @@ export async function exportBilaga5Certificate(
   drawText({ page: page1, text: safe(input.applicant?.mobile || (prof as any)?.mobile), x: coords2021Bil5.mobile.x, y: coords2021Bil5.mobile.y, size, font });
   drawText({ page: page1, text: safe((prof as any)?.email), x: coords2021Bil5.email.x, y: coords2021Bil5.email.y, size, font });
   drawText({ page: page1, text: safe(prof.homeClinic), x: coords2021Bil5.workplace.x, y: coords2021Bil5.workplace.y, size, font });
-  drawText({ page: page1, text: safe(input.applicant?.phoneWork), x: coords2021Bil5.phoneWork.x, y: coords2021Bil5.phoneWork.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.phoneWork || (prof as any)?.phoneWork), x: coords2021Bil5.phoneWork.x, y: coords2021Bil5.phoneWork.y, size, font });
 
   // Läkarexamen (flyttade ned 250 pixlar)
   drawText({ page: page1, text: safe(input.applicant?.medDegreeCountry || (prof as any)?.medDegreeCountry), x: coords2021Bil5.medDegreeCountry.x, y: coords2021Bil5.medDegreeCountry.y, size, font });
@@ -1575,76 +1575,76 @@ async function fillBt2021Bilaga1(pdfDoc: PDFDocument, profile: any, activity: an
     ).trim();
 
   // ========= Sökande – ÖVERSTA BLOCKET =========
-  // Samma layout som övriga 2021-blanketter:
-  // Efternamn (vänster, rad 1)
+  // Efternamn: Där personnummer var (x: 76, y: 530)
   page.drawText(lastName, {
-    x: 76,
-    y: 607,
-    size: 11,
-    font,
-  });
-  // Förnamn (höger, rad 1)
-  page.drawText(firstName, {
-    x: 331,
-    y: 607,
-    size: 11,
-    font,
-  });
-  // Personnummer (vänster, rad 2)
-  page.drawText(personalNumber, {
-    x: 76,
-    y: 569,
-    size: 11,
-    font,
-  });
-  // Specialitet som ansökan avser (höger, rad 2)
-  page.drawText(applicantSpec, {
-    x: 253,
-    y: 569,
-    size: 11,
-    font,
-  });
-
-  // ========= Övriga personuppgifter längre ned (adress m.m.) =========
-  page.drawText(String(a.address ?? p.address ?? ""), {
     x: 76,
     y: 530,
     size: 11,
     font,
-  }); // Adress
-  page.drawText(String(a.postalCode ?? p.postalCode ?? ""), {
+  });
+  // Förnamn: Återgå till tidigare x-värde (331), men ändra y-värdet till samma som efternamn (530)
+  page.drawText(firstName, {
+    x: 331,
+    y: 530,
+    size: 11,
+    font,
+  });
+  // Personnummer: Där mobilnummer var (x: 76, y: 491)
+  page.drawText(personalNumber, {
     x: 76,
     y: 491,
+    size: 11,
+    font,
+  });
+  // Specialitet som ansökan avser - TAS BORT
+
+  // ========= Övriga personuppgifter längre ned (adress m.m.) =========
+  // Utdelningsadress: Samma x-värde som epostadress är nu (232), samma y-värde som mobilnummer är nu (491)
+  page.drawText(String(a.address ?? p.address ?? ""), {
+    x: 232,
+    y: 491,
+    size: 11,
+    font,
+  }); // Utdelningsadress
+  // Postnummer
+  page.drawText(String(a.postalCode ?? p.postalCode ?? ""), {
+    x: 76,
+    y: 452,
     size: 11,
     font,
   }); // Postnr
+  // Postort: Behåll x-värde (193), ändra y-värde till samma som postnummer (452)
   page.drawText(String(a.city ?? p.city ?? ""), {
     x: 193,
-    y: 491,
+    y: 452,
     size: 11,
     font,
   }); // Ort
+  // Mobilnummer: Där hemklinik är nu (x: 76, y: 414)
   page.drawText(String(a.mobile ?? p.mobile ?? ""), {
     x: 76,
-    y: 452,
+    y: 414,
     size: 11,
     font,
   }); // Mobil
+  // Epost-adress: Behåll x-värde (232), ändra y-värde till samma som hemklinik är nu (414)
   page.drawText(String(a.email ?? p.email ?? ""), {
     x: 232,
-    y: 452,
+    y: 414,
     size: 11,
     font,
   }); // E-post
+  // Hemklinik: Flytta ned 3 pixlar (från y: 359 till y: 356)
   page.drawText(String(a.workplace ?? p.homeClinic ?? ""), {
     x: 76,
-    y: 414,
+    y: 356,
     size: 11,
     font,
-  }); // Arbetsplats
+  }); // Arbetsplats/Hemklinik
+  // Telefon arbetet: Samma y-värde som hemklinik (356), flytta 7 pixlar åt höger (från x: 365 till x: 372)
   page.drawText(String(a.phoneWork ?? p.phoneWork ?? ""), {
-    x: 375,
-    y: 414,
+    x: 372,
+    y: 356,
     size: 11,
     font,
   }); // Telefon arbete
