@@ -15,6 +15,7 @@
 // limitations under the License.
 //
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import SWRegister from "./sw-register";
 import { TitleOverride } from "./TitleOverride";
@@ -56,6 +57,7 @@ export default function RootLayout({
         <SWRegister />
         <TitleOverride />
         <BetaGuard>{children}</BetaGuard>
+        <Analytics />
       </body>
     </html>
   );
