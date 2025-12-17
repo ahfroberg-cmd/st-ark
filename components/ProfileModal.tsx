@@ -106,7 +106,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
     foreignLicenses: [] as { country: string; date: string }[],     // max 3 rader via UI
     hasPriorSpecialist: false,
-    priorSpecialties: [] as { speciality: string; country: string; date: string }[], // max 3 rader via UI
+    priorSpecialties: [] as { speciality: string; country: string; date: string }[], // max 4 rader via UI (2021)
     isThirdCountrySpecialist: false,
     // BT (2021)
     btMode: "fristående", // "fristående" | "integrerad"
@@ -619,7 +619,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
         {form.hasPriorSpecialist && (
           <div className="mt-2 space-y-2">
-            {(form.priorSpecialties || []).slice(0, 3).map((row: { speciality: string; country: string; date: string }, idx: number) => (
+            {(form.priorSpecialties || []).slice(0, 4).map((row: { speciality: string; country: string; date: string }, idx: number) => (
               <div key={idx} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_220px]">
                 <div>
                   <Labeled>Specialitet</Labeled>
@@ -675,7 +675,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             ))}
 
 
-            {(form.priorSpecialties || []).length < 3 && (
+            {(form.priorSpecialties || []).length < 4 && (
               <button
                 type="button"
                 onClick={() => {

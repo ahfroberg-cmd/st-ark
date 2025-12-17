@@ -612,7 +612,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                       ...form,
                       hasPriorSpecialist: on,
                       priorSpecialties: on
-                        ? ((form.priorSpecialties && form.priorSpecialties.length) ? form.priorSpecialties.slice(0, 3) : [{ speciality: "", country: "", date: "" }])
+                        ? ((form.priorSpecialties && form.priorSpecialties.length) ? form.priorSpecialties.slice(0, 4) : [{ speciality: "", country: "", date: "" }])
                         : [],
                     });
                   }}
@@ -622,7 +622,7 @@ export default function MobileProfile({ open, onClose }: Props) {
 
               {form.hasPriorSpecialist && (
                 <div className="mt-2 space-y-2">
-                  {(form.priorSpecialties || []).slice(0, 3).map((row: { speciality: string; country: string; date: string }, idx: number) => (
+                  {(form.priorSpecialties || []).slice(0, 4).map((row: { speciality: string; country: string; date: string }, idx: number) => (
                     <div key={idx} className="grid grid-cols-1 gap-2">
                       <div>
                         <Labeled>Specialitet</Labeled>
@@ -660,7 +660,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                     </div>
                   ))}
 
-                  {(form.priorSpecialties || []).length < 3 && (
+                  {(form.priorSpecialties || []).length < 4 && (
                     <button
                       type="button"
                       onClick={() => {

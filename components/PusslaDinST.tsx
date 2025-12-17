@@ -22,7 +22,7 @@ const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ss
 const DesktopMilestonePicker = dynamic(() => import("@/components/DesktopMilestonePicker"), { ssr: false });
 const DesktopBtMilestonePicker = dynamic(() => import("@/components/DesktopBtMilestonePicker"), { ssr: false });
 
-const PrepareApplicationModal = dynamic(() => import("@/components/PrepareApplicationModal"), { ssr: false });
+const PrepareApplicationModal = dynamic(() => import("@/components/PrepareApplicationModalWrapper"), { ssr: false });
 const PrepareBtModal = dynamic(() => import("@/components/PrepareBtModal"), { ssr: false });
 const ProfileModal = dynamic(() => import("@/components/ProfileModal"), { ssr: false });
 const MilestoneOverviewModal = dynamic(

@@ -221,11 +221,6 @@ export default function ScanIntygModal({
       console.log('[ScanIntygModal] OCR content length:', content.length);
       console.log('[ScanIntygModal] OCR content first 500 chars:', content.substring(0, 500));
       
-      // Visa även i UI om det är Bilaga 8
-      if (k === "2021-B8-AUSK") {
-        setWarning(`DEBUG: Parsar Bilaga 8. Kind: ${k}, Parser: ${parser ? 'FINNS' : 'SAKNAS'}, Content length: ${content.length}`);
-      }
-      
       if (parser) {
         console.log('[ScanIntygModal] Anropar parser för kind:', k);
         try {
@@ -912,6 +907,18 @@ export default function ScanIntygModal({
             ...parsed,
             clinic: (parsed as any)?.subject || (parsed as any)?.clinic,
           });
+          await ensurePlacementOnTimeline();
+          break;
+
+        // 2021 – auskultation (Bilaga 8)
+        case "2021-B8-AUSK":
+          await mapAndSavePlacement2015(parsed);
+          await ensurePlacementOnTimeline();
+          break;
+
+        // 2021 – klinisk tjänstgöring (Bilaga 9)
+        case "2021-B9-KLIN":
+          await mapAndSavePlacement2015(parsed);
           await ensurePlacementOnTimeline();
           break;
 

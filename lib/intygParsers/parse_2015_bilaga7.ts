@@ -98,9 +98,9 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     s
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   // Identifiera rubriker
   // VIKTIGT: Var specifik - matcha bara exakta rubriker, inte bara om ordet finns i raden

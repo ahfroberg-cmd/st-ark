@@ -173,6 +173,9 @@ const TEMPLATE_2021_BILAGA_1  = "/pdf/2021/2021-2-7212-bilaga-1.pdf";   // Ansö
 const TEMPLATE_2021_BILAGA_2  = "/pdf/2021/2021-2-7212-bilaga-2.pdf";   // Intyg om genomförda delmål i BT
 const TEMPLATE_2021_BILAGA_3  = "/pdf/2021/2021-2-7212-bilaga-3.pdf";   // Intyg om fullgjord BT
 const TEMPLATE_2021_BILAGA_4  = "/pdf/2021/2021-2-7212-bilaga-4.pdf";   // Intyg om uppnådd baskompetens
+const TEMPLATE_2021_BILAGA_5  = "/pdf/2021/2021-2-7212-bilaga-5.pdf";   // Ansökan
+const TEMPLATE_2021_BILAGA_6  = "/pdf/2021/2021-2-7212-bilaga-6.pdf";   // Fullgjord specialiseringstjänstgöring
+const TEMPLATE_2021_BILAGA_7  = "/pdf/2021/2021-2-7212-bilaga-7.pdf";   // Uppnådd specialistkompetens
 
 // ST (Bilaga 8–12, som du redan hade)
 const TEMPLATE_2021_BILAGA_8  = "/pdf/2021/2021-2-7212-bilaga-8.pdf";   // Auskultation
@@ -594,6 +597,638 @@ const beskrivning = activity.notes ?? (activity as any).note ?? "";
 
 }
 
+
+/* =========================================
+   2021 – Bilaga 6 – Fullgjord specialiseringstjänstgöring
+========================================= */
+
+/* ---------- 2021 – Fullgjord specialiseringstjänstgöring (Bilaga 6) ---------- */
+// TODO: Koordinater behöver bestämmas från PDF:en 2021-2-7212-bilaga-6.pdf
+// Detta är en placeholder-struktur baserad på typiska 2021-bilagor
+const coords2021Bil6 = {
+  // Personuppgifter
+  efternamn: { x: 76, y: 614 },
+  fornamn: { x: 331, y: 614 },
+  personnummer: { x: 76, y: 576 },
+  specialitet: { x: 232, y: 576 },
+  
+  // Tjänstgöringslista sida 1 - fyra kolumner
+  tjänstgöringsstart_sida1: { x: 76, y: 493 },
+  kolumn1_sida1: { x: 76 },   // Tjänstgöringstitel
+  kolumn2_sida1: { x: 235 },  // Intervall (start - slutdatum)
+  kolumn3_sida1: { x: 350 },  // Sysselsättningsgrad (%)
+  kolumn4_sida1: { x: 438 },  // Antal månader (FTE)
+  lineHeight: 22.7,
+  
+  // Tjänstgöringslista sida 2 - fyra kolumner
+  tjänstgöringsstart_sida2: { x: 76, y: 700 },
+  kolumn1_sida2: { x: 76 },   // Tjänstgöringstitel
+  kolumn2_sida2: { x: 235 },  // Intervall (start - slutdatum)
+  kolumn3_sida2: { x: 350 },  // Sysselsättningsgrad (%)
+  kolumn4_sida2: { x: 438 },  // Antal månader (FTE)
+  
+  // Sammanräkning längre ned på sida 2
+  summa_månader: { x: 438, y: 247 }, // Position för total summa månader
+  
+  // Signaturrad (handledare/verksamhetschef)
+  namnfortydligande: { x: 76, y: 143 },
+  handledarSpec: { x: 76, y: 105 },
+  handledarTjanstestalle: { x: 76, y: 68 },
+  ortDatum: { x: 105, y: 260 },
+  bilagaNr: { x: 505, y: 42 },
+} as const;
+
+export async function exportBilaga6Certificate(
+  input: {
+    profile: Profile;
+    placements: Array<{ clinic: string; startDate: string; endDate: string; attendance?: number }>;
+    cert?: any; // För att få verksamhetschef-uppgifter
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2021_BILAGA_6);
+  const pdfDoc = await PDFDocument.load(bytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0];
+  
+  // Skapa sida 2 om den inte finns (för när det finns fler än 19 tjänstgöringar)
+  let page2 = pages.length > 1 ? pages[1] : null;
+  if (!page2 && input.placements.length > 19) {
+    const [firstPage] = pdfDoc.getPages();
+    const { width, height } = firstPage.getSize();
+    page2 = pdfDoc.addPage([width, height]);
+  } else if (!page2) {
+    page2 = page1; // Fallback om ingen sida 2 behövs
+  }
+
+  const size = 11;
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast = prof.lastName ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  // Personuppgifter
+  drawText({ page: page1, text: fallbackLast, x: coords2021Bil6.efternamn.x, y: coords2021Bil6.efternamn.y, size, font });
+  drawText({ page: page1, text: fallbackFirst, x: coords2021Bil6.fornamn.x, y: coords2021Bil6.fornamn.y, size, font });
+  drawText({ page: page1, text: prof.personalNumber ?? "", x: coords2021Bil6.personnummer.x, y: coords2021Bil6.personnummer.y, size, font });
+  drawText({ page: page1, text: profSpecialty, x: coords2021Bil6.specialitet.x, y: coords2021Bil6.specialitet.y, size, font });
+
+  // Tjänstgöringslista - fyra kolumner: titel, intervall, sysselsättningsgrad, månader (FTE)
+  // De första 19 tjänstgöringarna på sida 1, resten på sida 2
+  const MAX_PER_PAGE = 19;
+  const startY_sida1 = coords2021Bil6.tjänstgöringsstart_sida1.y;
+  const startY_sida2 = coords2021Bil6.tjänstgöringsstart_sida2.y;
+  
+  // Hjälpfunktion för att formatera månader (heltal eller 0.5)
+  const formatMonths = (value: number): string => {
+    if (!Number.isFinite(value)) return "";
+    const whole = Math.floor(value);
+    const frac = value - whole;
+    if (Math.abs(frac) < 1e-6) return String(whole);
+    if (Math.abs(frac - 0.5) < 1e-6) return `${whole},5`;
+    // Avrunda till närmaste 0.5 om det inte redan är heltal eller 0.5
+    const rounded = Math.round(value * 2) / 2;
+    const roundedWhole = Math.floor(rounded);
+    const roundedFrac = rounded - roundedWhole;
+    if (Math.abs(roundedFrac) < 1e-6) return String(roundedWhole);
+    return `${roundedWhole},5`;
+  };
+  
+  // Beräkna månader för varje tjänstgöring och sammanräkning
+  const placementRows = input.placements
+    .filter((p: any) => p.startDate && p.endDate)
+    .map((p: any) => {
+      const clinic = p.clinic || "—";
+      const percent = p.attendance || 100;
+      const monthsExact = monthDiffExact(p.startDate, p.endDate) * (percent / 100);
+      const monthsRounded = Math.round(monthsExact * 2) / 2; // Avrunda till 0,5
+      const period = `${toYYMMDD(p.startDate)} - ${toYYMMDD(p.endDate)}`;
+      return { clinic, period, percent, monthsRounded };
+    });
+  
+  let currentY: number = startY_sida1;
+  let currentPage = page1;
+  let placementIndex = 0;
+  let totalMonths = 0;
+  
+  for (const row of placementRows) {
+    // Om vi har nått 19 tjänstgöringar, byt till sida 2
+    if (placementIndex === MAX_PER_PAGE) {
+      currentPage = page2;
+      currentY = startY_sida2;
+    }
+    
+    // Bestäm kolumnkoordinater baserat på vilken sida vi är på
+    const col1X = placementIndex < MAX_PER_PAGE ? coords2021Bil6.kolumn1_sida1.x : coords2021Bil6.kolumn1_sida2.x;
+    const col2X = placementIndex < MAX_PER_PAGE ? coords2021Bil6.kolumn2_sida1.x : coords2021Bil6.kolumn2_sida2.x;
+    const col3X = placementIndex < MAX_PER_PAGE ? coords2021Bil6.kolumn3_sida1.x : coords2021Bil6.kolumn3_sida2.x;
+    const col4X = placementIndex < MAX_PER_PAGE ? coords2021Bil6.kolumn4_sida1.x : coords2021Bil6.kolumn4_sida2.x;
+    
+    // Kolumn 1: Tjänstgöringstitel
+    drawText({ page: currentPage, text: row.clinic, x: col1X, y: currentY, size, font });
+    
+    // Kolumn 2: Intervall (startdatum - slutdatum)
+    drawText({ page: currentPage, text: row.period, x: col2X, y: currentY, size, font });
+    
+    // Kolumn 3: Sysselsättningsgrad (%)
+    drawText({ page: currentPage, text: String(row.percent), x: col3X, y: currentY, size, font });
+    
+    // Kolumn 4: Antal månader (FTE)
+    const monthsText = formatMonths(row.monthsRounded);
+    drawText({ page: currentPage, text: monthsText, x: col4X, y: currentY, size, font });
+    
+    totalMonths += row.monthsRounded;
+    currentY -= coords2021Bil6.lineHeight;
+    placementIndex++;
+  }
+  
+  // Sammanräkning av alla månader längre ned på sida 2
+  if (placementRows.length > 0) {
+    const totalRounded = Math.round(totalMonths * 2) / 2; // Avrunda totalen till närmaste 0.5
+    drawText({ page: page2, text: formatMonths(totalRounded), x: coords2021Bil6.summa_månader.x, y: coords2021Bil6.summa_månader.y, size, font });
+  }
+
+  // Verksamhetschef (signerar bilaga 6)
+  // Endast namn och tjänsteställe behövs (specialitet tas bort)
+  const verksamhetschefName = (prof as any)?.verksamhetschef || (prof as any)?.manager || "";
+  const verksamhetschefSite = input.cert?.managerSelf?.workplace || prof.homeClinic || "";
+  
+  // Namn flyttas till där specialitet var (y: 105)
+  drawText({ page: page2, text: verksamhetschefName, x: coords2021Bil6.handledarSpec.x, y: coords2021Bil6.handledarSpec.y, size, font });
+  // Tjänsteställe behålls på samma plats (y: 68)
+  drawText({ page: page2, text: verksamhetschefSite, x: coords2021Bil6.handledarTjanstestalle.x, y: coords2021Bil6.handledarTjanstestalle.y, size, font });
+
+  const outBytes = await pdfDoc.save();
+  const outputMode = options?.output ?? "blob";
+
+  if (outputMode === "blob") {
+    return new Blob([outBytes], { type: "application/pdf" });
+  }
+
+  // För download
+  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = options?.filename || "intyg-bilaga6-2021.pdf";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* =========================================
+   2021 – Bilaga 7 – Uppnådd specialistkompetens
+========================================= */
+
+/* ---------- 2021 – Uppnådd specialistkompetens (Bilaga 7) ---------- */
+// TODO: Koordinater behöver bestämmas från PDF:en 2021-2-7212-bilaga-7.pdf
+const coords2021Bil7 = {
+  // Personuppgifter
+  efternamn: { x: 76, y: 614 },
+  fornamn: { x: 331, y: 614 },
+  personnummer: { x: 76, y: 576 },
+  specialitet: { x: 251, y: 576 },
+  
+  // Huvudhandledare
+  mh_namnfortydligande: { x: 76, y: 244 },
+  mh_specialitet: { x: 76, y: 204 },
+  mh_handledarAr: { x: 430, y: 159 },
+  mh_tjanstestalle: { x: 76, y: 165 },
+  
+  // Intygsutfärdande specialistläkare
+  certifying_namn: { x: 76, y: 449 },
+  certifying_spec: { x: 76, y: 410 },
+  certifying_tjanstestalle: { x: 76, y: 371 },
+} as const;
+
+// Hjälpfunktion för att rita X i kryssrutor
+function drawX(page: any, cx: number, cy: number, size = 12, lineWidth = 1.5) {
+  const half = size / 2;
+  page.drawLine({ 
+    start: { x: cx - half, y: cy - half }, 
+    end: { x: cx + half, y: cy + half }, 
+    thickness: lineWidth,
+    color: rgb(0, 0, 0),
+  });
+  page.drawLine({ 
+    start: { x: cx - half, y: cy + half }, 
+    end: { x: cx + half, y: cy - half }, 
+    thickness: lineWidth,
+    color: rgb(0, 0, 0),
+  });
+}
+
+export async function exportBilaga7Certificate(
+  input: {
+    profile: Profile;
+    applicant: any;
+    cert: any;
+    placements: any[];
+    courses: any[];
+    attachments: any[];
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2021_BILAGA_7);
+  const pdfDoc = await PDFDocument.load(bytes);
+  
+  // Flattena formulärfält så att vårt ritade innehåll hamnar ovanpå
+  try {
+    const form = pdfDoc.getForm();
+    form.flatten();
+  } catch {
+    // Om flatten misslyckas, försök ta bort AcroForm direkt
+    try {
+      const acroForm = (pdfDoc.catalog as any).get(PDFName.of("AcroForm"));
+      if (acroForm) {
+        (pdfDoc.catalog as any).set(PDFName.of("AcroForm"), pdfDoc.context.obj({}));
+      }
+      const pages = pdfDoc.getPages();
+      for (const page of pages) {
+        try {
+          (page.node as any).set(PDFName.of("Annots"), pdfDoc.context.obj([]));
+        } catch {}
+      }
+    } catch {}
+  }
+  
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0];
+  const page2 = pages.length > 1 ? pages[1] : page1;
+
+  const size = 11;
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast = prof.lastName ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  // Personuppgifter
+  drawText({ page: page1, text: fallbackLast, x: coords2021Bil7.efternamn.x, y: coords2021Bil7.efternamn.y, size, font });
+  drawText({ page: page1, text: fallbackFirst, x: coords2021Bil7.fornamn.x, y: coords2021Bil7.fornamn.y, size, font });
+  drawText({ page: page1, text: prof.personalNumber ?? "", x: coords2021Bil7.personnummer.x, y: coords2021Bil7.personnummer.y, size, font });
+  drawText({ page: page1, text: profSpecialty, x: coords2021Bil7.specialitet.x, y: coords2021Bil7.specialitet.y, size, font });
+
+  // Huvudhandledare - Signaturblock
+  const mhName = input.cert?.mainSupervisor?.name || (prof as any)?.supervisor || "";
+  const mhSpec = input.cert?.mainSupervisor?.specialty || profSpecialty;
+  const mhYear = input.cert?.mainSupervisor?.trainingYear || "";
+  const mhWork = input.cert?.mainSupervisor?.workplace || (prof as any)?.supervisorWorkplace || prof.homeClinic || "";
+
+  drawText({ page: page2, text: mhName, x: coords2021Bil7.mh_namnfortydligande.x, y: coords2021Bil7.mh_namnfortydligande.y, size, font });
+  // Personnummer tas bort enligt krav
+  drawText({ page: page2, text: mhSpec, x: coords2021Bil7.mh_specialitet.x, y: coords2021Bil7.mh_specialitet.y, size, font });
+  drawText({ page: page2, text: mhYear, x: coords2021Bil7.mh_handledarAr.x, y: coords2021Bil7.mh_handledarAr.y, size, font });
+  drawText({ page: page2, text: mhWork, x: coords2021Bil7.mh_tjanstestalle.x, y: coords2021Bil7.mh_tjanstestalle.y, size, font });
+
+  // Intygsutfärdande specialistläkare
+  const certName = input.cert?.certifyingSpecialist?.name || "";
+  const certSpec = input.cert?.certifyingSpecialist?.specialty || "";
+  const certWork = input.cert?.certifyingSpecialist?.workplace || "";
+
+  if (certName || certSpec || certWork) {
+    drawText({ page: page2, text: certName, x: coords2021Bil7.certifying_namn.x, y: coords2021Bil7.certifying_namn.y, size, font });
+    drawText({ page: page2, text: certSpec, x: coords2021Bil7.certifying_spec.x, y: coords2021Bil7.certifying_spec.y, size, font });
+    drawText({ page: page2, text: certWork, x: coords2021Bil7.certifying_tjanstestalle.x, y: coords2021Bil7.certifying_tjanstestalle.y, size, font });
+  }
+
+  const outBytes = await pdfDoc.save();
+  const outputMode = options?.output ?? "download";
+
+  if (outputMode === "blob") {
+    return new Blob([outBytes], { type: "application/pdf" });
+  }
+
+  // För download, använd fetchPublicPdf downloadPdf-funktion
+  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = options?.filename || "intyg-bilaga7-2021.pdf";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* =========================================
+   2021 – Bilaga 5 – Ansökan om bevis om specialistkompetens
+========================================= */
+
+/* ---------- 2021 – Ansökan (Bilaga 5) ---------- */
+// TODO: Koordinater behöver bestämmas från PDF:en 2021-2-7212-bilaga-5.pdf
+const coords2021Bil5 = {
+  // Specialitet
+  specialitet: { x: 76, y: 546 },
+  
+  // Personuppgifter
+  efternamn: { x: 76, y: 470 },
+  fornamn: { x: 331, y: 470 },
+  personnummer: { x: 76, y: 431 },
+  address: { x: 231, y: 431 },
+  zip: { x: 76, y: 392 },
+  city: { x: 193, y: 392 },
+  mobile: { x: 76, y: 353 },
+  email: { x: 231, y: 353 },
+  workplace: { x: 76, y: 297 },
+  phoneWork: { x: 374, y: 297 },
+  
+  // Läkarexamen
+  medDegreeCountry: { x: 76, y: 203 },
+  medDegreeDate: { x: 384, y: 203 },
+  
+  // Legitimation 
+  lic1_country: { x: 76, y: 127 },
+  lic1_date: { x: 384, y: 127 },
+  lic2_country: { x: 76, y: 88 },
+  lic2_date: { x: 384, y: 88 },
+  lic3_country: { x: 76, y: 49 },
+  lic3_date: { x: 384, y: 49 },
+  
+  // Datum för godkänd BT (högst upp på sid 2)
+  btApprovedDate_sida2: { x: 76, y: 710 },
+  
+  // Tidigare specialistbevis (flyttade till sida 2)
+  prev1_spec: { x: 76, y: 637 },
+  prev1_country: { x: 76, y: 598 },
+  prev1_date: { x: 382, y: 598 },
+  prev2_spec: { x: 76, y: 559 },
+  prev2_country: { x: 76, y: 520 },
+  prev2_date: { x: 382, y: 520 },
+  prev3_spec: { x: 76, y: 481 },
+  prev3_country: { x: 76, y: 442 },
+  prev3_date: { x: 382, y: 442 },
+  prev4_spec: { x: 76, y: 403 }, // 39 pixlar under prev3_country (442 - 39 = 403)
+  prev4_country: { x: 76, y: 364 }, // 39 pixlar under prev4_spec (403 - 39 = 364)
+  prev4_date: { x: 382, y: 364 },
+  
+  // Sida 2 - Bilagor (alla utom övriga handlingar)
+  bilaga_fullgjordST_sida2: { x: 370, y: 295 },
+  bilaga_uppnadd_sida2: { x: 370, y: 263 },
+  bilaga_ausk_sida2: { x: 370, y: 231 },
+  bilaga_klinik_sida2: { x: 370, y: 199 },
+  bilaga_vet_sida2: { x: 370, y: 167 },
+  bilaga_kurser_sida2: { x: 370, y: 135 },
+  bilaga_kval_sida2: { x: 370, y: 103 },
+  bilaga_sta3_sida2: { x: 370, y: 103 },
+  bilaga_third_sida2: { x: 370, y: 69 },
+  
+  // Sida 3 - Övriga handlingar
+  bilaga_svDoc: { x: 370, y: 717 },
+  bilaga_foreignDoc: { x: 370, y: 685 },
+  bilaga_foreignServ: { x: 370, y: 653 },
+  bilaga_individProg: { x: 370, y: 621 },
+  bilaga_paidFee: { x: 385, y: 544 }, 
+} as const;
+
+// Hjälpfunktion för datumformat YYMMDD
+function toYYMMDD(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = String(d.getFullYear()).slice(-2);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${dd}`;
+}
+
+// Hjälpfunktion för månadsberäkning
+function monthDiffExact(startISO?: string, endISO?: string): number {
+  const s = new Date(startISO || "");
+  const e = new Date(endISO || "");
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
+  const ms = e.getTime() - s.getTime();
+  const days = ms / (1000 * 60 * 60 * 24);
+  return Math.max(0, days / 30.4375);
+}
+
+export async function exportBilaga5Certificate(
+  input: {
+    profile: Profile;
+    applicant: any;
+    cert: any;
+    placements: any[];
+    courses: any[];
+    attachments: any[];
+    paidFeeDate: string;
+    btApprovedDate?: string;
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2021_BILAGA_5);
+  const pdfDoc = await PDFDocument.load(bytes);
+  
+  // Flattena formulärfält
+  try {
+    const form = pdfDoc.getForm();
+    // Rensa nollor i formulärfält
+    form.getFields().forEach((f: any) => {
+      const name = String(f.getName() || "");
+      const ctor = (f as any).constructor?.name;
+      const getText = (f as any).getText?.bind(f);
+      const val = typeof getText === "function" ? String(getText() ?? "") : "";
+      if (ctor === "PDFTextField" && (/(sum|total)/i.test(name) || /^\s*0([.,]0+)?\s*$/.test(val))) {
+        (f as any).setText("");
+      }
+    });
+    form.updateFieldAppearances(await pdfDoc.embedFont(StandardFonts.Helvetica));
+    form.flatten();
+  } catch {
+    try {
+      const acroForm = (pdfDoc.catalog as any).get(PDFName.of("AcroForm"));
+      if (acroForm) {
+        (pdfDoc.catalog as any).set(PDFName.of("AcroForm"), pdfDoc.context.obj({}));
+      }
+      const pages = pdfDoc.getPages();
+      for (const page of pages) {
+        try {
+          (page.node as any).set(PDFName.of("Annots"), pdfDoc.context.obj([]));
+        } catch {}
+      }
+    } catch {}
+  }
+  
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0];
+  const page2 = pages[1] ?? page1;
+  // Bilagor kan vara på sida 2 eller 3, använd sista sidan
+  const page3 = pages.length > 2 ? pages[2] : (pages[1] ?? page1);
+
+  const size = 11;
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast = prof.lastName ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  const safe = (v?: string) => (v == null ? "" : String(v));
+
+  // ===== SIDA 1: Personuppgifter =====
+  // Specialitet högt upp på sid 1
+  drawText({ page: page1, text: profSpecialty, x: coords2021Bil5.specialitet.x, y: coords2021Bil5.specialitet.y, size, font });
+  
+  // Sökandes uppgifter (flyttade ned 150 pixlar)
+  drawText({ page: page1, text: fallbackLast, x: coords2021Bil5.efternamn.x, y: coords2021Bil5.efternamn.y, size, font });
+  drawText({ page: page1, text: fallbackFirst, x: coords2021Bil5.fornamn.x, y: coords2021Bil5.fornamn.y, size, font });
+  drawText({ page: page1, text: prof.personalNumber ?? "", x: coords2021Bil5.personnummer.x, y: coords2021Bil5.personnummer.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.address || (prof as any)?.address), x: coords2021Bil5.address.x, y: coords2021Bil5.address.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.postalCode || (prof as any)?.postalCode), x: coords2021Bil5.zip.x, y: coords2021Bil5.zip.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.city || (prof as any)?.city), x: coords2021Bil5.city.x, y: coords2021Bil5.city.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.mobile || (prof as any)?.mobile), x: coords2021Bil5.mobile.x, y: coords2021Bil5.mobile.y, size, font });
+  drawText({ page: page1, text: safe((prof as any)?.email), x: coords2021Bil5.email.x, y: coords2021Bil5.email.y, size, font });
+  drawText({ page: page1, text: safe(prof.homeClinic), x: coords2021Bil5.workplace.x, y: coords2021Bil5.workplace.y, size, font });
+  drawText({ page: page1, text: safe(input.applicant?.phoneWork), x: coords2021Bil5.phoneWork.x, y: coords2021Bil5.phoneWork.y, size, font });
+
+  // Läkarexamen (flyttade ned 250 pixlar)
+  drawText({ page: page1, text: safe(input.applicant?.medDegreeCountry || (prof as any)?.medDegreeCountry), x: coords2021Bil5.medDegreeCountry.x, y: coords2021Bil5.medDegreeCountry.y, size, font });
+  drawText({ page: page1, text: toYYMMDD(input.applicant?.medDegreeDate || (prof as any)?.medDegreeDate), x: coords2021Bil5.medDegreeDate.x, y: coords2021Bil5.medDegreeDate.y, size, font });
+
+  // Legitimation (flyttade ned 250 pixlar, max 3)
+  const licenses = Array.isArray(input.applicant?.licenseCountries) ? input.applicant.licenseCountries.slice(0, 3) : [];
+  if (licenses[0]) {
+    drawText({ page: page1, text: safe(licenses[0].country), x: coords2021Bil5.lic1_country.x, y: coords2021Bil5.lic1_country.y, size, font });
+    drawText({ page: page1, text: toYYMMDD(licenses[0].date), x: coords2021Bil5.lic1_date.x, y: coords2021Bil5.lic1_date.y, size, font });
+  }
+  if (licenses[1]) {
+    drawText({ page: page1, text: safe(licenses[1].country), x: coords2021Bil5.lic2_country.x, y: coords2021Bil5.lic2_country.y, size, font });
+    drawText({ page: page1, text: toYYMMDD(licenses[1].date), x: coords2021Bil5.lic2_date.x, y: coords2021Bil5.lic2_date.y, size, font });
+  }
+  if (licenses[2]) {
+    drawText({ page: page1, text: safe(licenses[2].country), x: coords2021Bil5.lic3_country.x, y: coords2021Bil5.lic3_country.y, size, font });
+    drawText({ page: page1, text: toYYMMDD(licenses[2].date), x: coords2021Bil5.lic3_date.x, y: coords2021Bil5.lic3_date.y, size, font });
+  }
+
+  // ===== SIDA 2: Datum för godkänd BT (högst upp) =====
+  const btApprovedDate = (input as any)?.btApprovedDate || "";
+  if (btApprovedDate) {
+    drawText({ page: page2, text: toYYMMDD(btApprovedDate), x: coords2021Bil5.btApprovedDate_sida2.x, y: coords2021Bil5.btApprovedDate_sida2.y, size, font });
+  }
+
+  // ===== SIDA 2: Tidigare specialistbevis (flyttade från sida 1) =====
+  if (input.applicant?.hasPreviousSpecialistCert && Array.isArray(input.applicant.previousSpecialties)) {
+    const prevs = input.applicant.previousSpecialties.slice(0, 4);
+    if (prevs[0]) {
+      drawText({ page: page2, text: safe(prevs[0].specialty), x: coords2021Bil5.prev1_spec.x, y: coords2021Bil5.prev1_spec.y, size, font });
+      drawText({ page: page2, text: safe(prevs[0].country), x: coords2021Bil5.prev1_country.x, y: coords2021Bil5.prev1_country.y, size, font });
+      drawText({ page: page2, text: toYYMMDD(prevs[0].date), x: coords2021Bil5.prev1_date.x, y: coords2021Bil5.prev1_date.y, size, font });
+    }
+    if (prevs[1]) {
+      drawText({ page: page2, text: safe(prevs[1].specialty), x: coords2021Bil5.prev2_spec.x, y: coords2021Bil5.prev2_spec.y, size, font });
+      drawText({ page: page2, text: safe(prevs[1].country), x: coords2021Bil5.prev2_country.x, y: coords2021Bil5.prev2_country.y, size, font });
+      drawText({ page: page2, text: toYYMMDD(prevs[1].date), x: coords2021Bil5.prev2_date.x, y: coords2021Bil5.prev2_date.y, size, font });
+    }
+    if (prevs[2]) {
+      drawText({ page: page2, text: safe(prevs[2].specialty), x: coords2021Bil5.prev3_spec.x, y: coords2021Bil5.prev3_spec.y, size, font });
+      drawText({ page: page2, text: safe(prevs[2].country), x: coords2021Bil5.prev3_country.x, y: coords2021Bil5.prev3_country.y, size, font });
+      drawText({ page: page2, text: toYYMMDD(prevs[2].date), x: coords2021Bil5.prev3_date.x, y: coords2021Bil5.prev3_date.y, size, font });
+    }
+    if (prevs[3]) {
+      drawText({ page: page2, text: safe(prevs[3].specialty), x: coords2021Bil5.prev4_spec.x, y: coords2021Bil5.prev4_spec.y, size, font });
+      drawText({ page: page2, text: safe(prevs[3].country), x: coords2021Bil5.prev4_country.x, y: coords2021Bil5.prev4_country.y, size, font });
+      drawText({ page: page2, text: toYYMMDD(prevs[3].date), x: coords2021Bil5.prev4_date.x, y: coords2021Bil5.prev4_date.y, size, font });
+    }
+  }
+
+  // ===== SIDA 2: Bilagor (alla utom övriga handlingar) =====
+  const numbered = input.attachments.map((a, idx) => ({ ...a, nr: idx + 1 }));
+  const bilagaMapSida2: Record<string, { x: number; y: number }> = {
+    "Fullgjord specialiseringstjänstgöring": coords2021Bil5.bilaga_fullgjordST_sida2,
+    "Uppnådd specialistkompetens": coords2021Bil5.bilaga_uppnadd_sida2,
+    "Auskultationer": coords2021Bil5.bilaga_ausk_sida2,
+    "Kliniska tjänstgöringar under handledning": coords2021Bil5.bilaga_klinik_sida2,
+    "Vetenskapligt arbete": coords2021Bil5.bilaga_vet_sida2, // Samma bilaga 9, längre ned
+    "Kurser": coords2021Bil5.bilaga_kurser_sida2,
+    "Utvecklingsarbete": coords2021Bil5.bilaga_kval_sida2,
+    "Delmål STa3": coords2021Bil5.bilaga_sta3_sida2,
+    "Medicinsk vetenskap": coords2021Bil5.bilaga_sta3_sida2, // Samma som Delmål STa3
+    "Delmål för specialistläkare från tredjeland": coords2021Bil5.bilaga_third_sida2,
+  };
+  
+  // ===== SIDA 3: Övriga handlingar =====
+  const bilagaMapSida3: Record<string, { x: number; y: number }> = {
+    "Svensk doktorsexamen": coords2021Bil5.bilaga_svDoc,
+    "Utländsk doktorsexamen": coords2021Bil5.bilaga_foreignDoc,
+    "Utländsk tjänstgöring": coords2021Bil5.bilaga_foreignServ,
+    "Individuellt utbildningsprogram för specialistläkare från tredjeland": coords2021Bil5.bilaga_individProg,
+  };
+
+  // Hjälpfunktion för att slå ihop sekvenser av bilagor (t.ex. [2,3,4,5,8,9,10,13,14,16] -> "2-5, 8-10, 13, 14, 16")
+  // Sekvenser med fler än två nummer slås ihop (t.ex. 2,3,4,5 -> 2-5)
+  const collapseRanges = (nums: number[]): string => {
+    if (nums.length === 0) return "";
+    const sorted = Array.from(new Set(nums)).sort((a, b) => a - b);
+    const pieces: string[] = [];
+    let start = sorted[0];
+    let prev = sorted[0];
+    
+    for (let i = 1; i < sorted.length; i++) {
+      const n = sorted[i];
+      if (n === prev + 1) {
+        prev = n;
+        continue;
+      }
+      // Avsluta nuvarande sekvens
+      // Om sekvensen har fler än två nummer (prev - start >= 2), slå ihop den
+      if (prev - start >= 2) {
+        pieces.push(`${start}-${prev}`);
+      } else {
+        // Annars skriv ut individuellt
+        for (let j = start; j <= prev; j++) {
+          pieces.push(String(j));
+        }
+      }
+      start = prev = n;
+    }
+    // Hantera sista sekvensen
+    if (prev - start >= 2) {
+      pieces.push(`${start}-${prev}`);
+    } else {
+      for (let j = start; j <= prev; j++) {
+        pieces.push(String(j));
+      }
+    }
+    return pieces.join(", ");
+  };
+
+  const writeBilagaList = (pg: any, type: string, bilagaMap: Record<string, { x: number; y: number }>) => {
+    const start = bilagaMap[type];
+    if (!start) return;
+    const nums = numbered
+      .filter((x) => x.type === type)
+      .map((x) => x.nr);
+    if (!nums.length) return;
+    const formatted = collapseRanges(nums);
+    drawText({ page: pg, text: formatted, x: start.x, y: start.y, size, font });
+  };
+
+  // Skriv bilagor på sida 2
+  // "Kliniska tjänstgöringar under handledning" och "Vetenskapligt arbete" är båda bilaga 9
+  // men skrivs på separata rader, där "Vetenskapligt arbete" hamnar längre ned (ovanför bilaga 10)
+  Object.keys(bilagaMapSida2).forEach((k) => writeBilagaList(page2, k, bilagaMapSida2));
+  
+  // Skriv övriga handlingar på sida 3
+  Object.keys(bilagaMapSida3).forEach((k) => writeBilagaList(page3, k, bilagaMapSida3));
+  
+  // Skriv datum för avgiften betald längst ned på sida 3
+  drawText({ page: page3, text: toYYMMDD(input.paidFeeDate), x: coords2021Bil5.bilaga_paidFee.x, y: coords2021Bil5.bilaga_paidFee.y, size, font });
+
+  const outBytes = await pdfDoc.save();
+  const outputMode = options?.output ?? "download";
+
+  if (outputMode === "blob") {
+    return new Blob([outBytes], { type: "application/pdf" });
+  }
+
+  // För download, skapa blob och ladda ner
+  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = options?.filename || "ansokan-bilaga5-2021.pdf";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 /* =========================================
    2021 – STa3 (Bilaga 12) – egen exporter
@@ -1195,7 +1830,11 @@ async function fillBt2021Bilaga2(
   // — Sidor
   const pages = pdfDoc.getPages();
   const page1 = pages[0];            // personuppgifter, delmål, aktiviteter
-  const page2 = pages[1] ?? pages[0]; // hur kontrollerats + signer (läggs på sida 2 om den finns)
+  // Skapa sida 2 om den inte finns (för "Hur kontrollerats" + signer)
+  let page2 = pages[1];
+  if (!page2) {
+    page2 = pdfDoc.addPage([595.28, 841.89]); // A4
+  }
 
   // ===== Koordinater =====
   // Sida 1: vänsterkolumn (en kolumn för aktiviteter med radbrytning mellan varje)
@@ -1504,8 +2143,20 @@ async function fillBt2021Bilaga2(
     "";
   const ctrl = String(rawCtrl).trim();
 
-
-  drawWrapped(page2, font, ctrl, coords2.hurKontrollerats.x, coords2.hurKontrollerats.y, coords2.hurKontrollerats.width, 11, coords2.hurKontrollerats.lineHeight);
+  // Skriv ut "Hur kontrollerats" om texten finns
+  if (ctrl) {
+    // Hantera flerradig text (splitta på radbrytningar och rita varje rad)
+    const lines = ctrl.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      let y = coords2.hurKontrollerats.y;
+      const maxWidth = coords2.hurKontrollerats.width;
+      const lineHeight = coords2.hurKontrollerats.lineHeight;
+      
+      for (const line of lines) {
+        y = drawWrapped(page2, font, line, coords2.hurKontrollerats.x, y, maxWidth, 11, lineHeight);
+      }
+    }
+  }
 
   // ===== SIGNER/HH (sida 2) =====
   if (outName) page2.drawText(outName, { x: coords2.signerNamn.x, y: coords2.signerNamn.y, size: 11, font });

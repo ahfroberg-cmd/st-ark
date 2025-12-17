@@ -37,6 +37,7 @@ export default function CalendarDatePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<"down" | "up">("down");
+  const [horizontalAlign, setHorizontalAlign] = useState<"left" | "right" | "center">(align);
 
 
   const thisYear = new Date().getFullYear();
@@ -127,9 +128,11 @@ export default function CalendarDatePicker({
               } else {
               const rect = rootRef.current.getBoundingClientRect();
               const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+                const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
 
               // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
               const calendarHeight = 340;
+                const calendarWidth = 320; // Kalenderns bredd
 
               const spaceBelow = viewportHeight - rect.bottom;
               const spaceAbove = rect.top;
@@ -139,7 +142,44 @@ export default function CalendarDatePicker({
               } else {
                 setDirection("down");
                 }
+
+                // Beräkna horisontell positionering
+                if (align === "right") {
+                  const spaceRight = viewportWidth - rect.right;
+                  if (spaceRight < calendarWidth) {
+                    // Kalendern skulle hamna utanför till höger, flytta inåt
+                    const spaceLeft = rect.left;
+                    if (spaceLeft >= calendarWidth) {
+                      // Finns plats till vänster, använd center för att flytta inåt
+                      setHorizontalAlign("center");
+                    } else {
+                      // Inte tillräckligt med plats till vänster heller, använd center men begränsa
+                      setHorizontalAlign("center");
+                    }
+                  } else {
+                    setHorizontalAlign("right");
+                  }
+                } else {
+                  // align === "left" eller default
+                  const spaceLeft = rect.left;
+                  if (spaceLeft < calendarWidth) {
+                    // Kalendern skulle hamna utanför till vänster, flytta inåt
+                    const spaceRight = viewportWidth - rect.right;
+                    if (spaceRight >= calendarWidth) {
+                      // Finns plats till höger, använd center för att flytta inåt
+                      setHorizontalAlign("center");
+                    } else {
+                      // Inte tillräckligt med plats till höger heller, använd center men begränsa
+                      setHorizontalAlign("center");
+                    }
+                  } else {
+                    setHorizontalAlign("left");
+                  }
+                }
               }
+            } else if (!next) {
+              // Stäng kalendern, återställ till original align
+              setHorizontalAlign(align);
             }
             return next;
           });
@@ -225,24 +265,58 @@ export default function CalendarDatePicker({
               e.stopPropagation();
             }}
             style={
-              direction === "up" && rootRef.current
-                ? (() => {
+              (() => {
+                const styles: React.CSSProperties = {};
+                
+                if (direction === "up" && rootRef.current) {
                     const rect = rootRef.current.getBoundingClientRect();
                     const triggerHeight = rootRef.current.offsetHeight || 38;
                     const spaceAbove = rect.top;
-                    // Säkerställ att övre kanten är synlig även när kalendern är hög (6 rader)
-                    // maxHeight ska vara utrymmet ovanför minus 4px margin
-                    return {
-                      top: `-${triggerHeight + 4}px`,
-                      maxHeight: `${Math.max(300, spaceAbove - 4)}px`,
-                      overflowY: "auto",
-                    };
-                  })()
-                : undefined
+                  styles.top = `-${triggerHeight + 4}px`;
+                  styles.maxHeight = `${Math.max(300, spaceAbove - 4)}px`;
+                  styles.overflowY = "auto";
+                }
+
+                // Horisontell positionering baserat på horizontalAlign
+                if (horizontalAlign === "center" && rootRef.current) {
+                  const rect = rootRef.current.getBoundingClientRect();
+                  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+                  const calendarWidth = 320;
+                  const triggerWidth = rect.width;
+                  
+                  // Centrera kalendern relativt trigger-knappen, men begränsa till viewport
+                  const leftOffset = (triggerWidth - calendarWidth) / 2;
+                  const leftPosition = rect.left + leftOffset;
+                  const rightPosition = leftPosition + calendarWidth;
+                  
+                  if (leftPosition < 8) {
+                    // För nära vänster kant, justera
+                    styles.left = "8px";
+                    styles.right = "auto";
+                  } else if (rightPosition > viewportWidth - 8) {
+                    // För nära höger kant, justera
+                    styles.right = "8px";
+                    styles.left = "auto";
+                  } else {
+                    // Centrera relativt trigger
+                    styles.left = `${leftOffset}px`;
+                    styles.right = "auto";
+                  }
+                } else if (horizontalAlign === "right") {
+                  styles.right = "0";
+                  styles.left = "auto";
+                } else {
+                  // left eller default
+                  styles.left = "0";
+                  styles.right = "auto";
+                }
+
+                return Object.keys(styles).length > 0 ? styles : undefined;
+              })()
             }
             className={`absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl ${
               direction === "up" ? "" : "top-full mt-1"
-            } ${align === "right" ? "right-0" : "left-0"}`}
+            }`}
           >
 
             {/* Header: månad + år, med navigering */}

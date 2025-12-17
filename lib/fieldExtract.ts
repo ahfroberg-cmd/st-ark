@@ -26,6 +26,11 @@ export function extractCommon(raw: string): ExtractedCommon {
 export function normalizeOcrText(s: string): string {
   return s
     .normalize("NFKC")
+    // Normalisera OCR-fel: "Fömamn" -> "Förnamn", "Eftemamn" -> "Efternamn"
+    .replace(/\bFömamn\b/gi, "Förnamn")
+    .replace(/\bEftemamn\b/gi, "Efternamn")
+    .replace(/\bfömamn\b/gi, "Förnamn")
+    .replace(/\beftemamn\b/gi, "Efternamn")
     // unify dashes (minus, en-dash, em-dash → "-")
     .replace(/[-–—]/g, "-")
     // kolon/punktvarianter i rubriker

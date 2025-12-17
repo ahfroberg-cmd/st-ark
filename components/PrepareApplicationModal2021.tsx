@@ -7,6 +7,9 @@ import { db } from "@/lib/db";
 import type { Profile, Placement, Course } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import { PDFDocument, StandardFonts, PDFName } from "pdf-lib";
+import { addMonths, toISO } from "@/lib/dateutils";
+import MilestonePicker from "@/components/MilestonePicker";
+import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 
 
 
@@ -15,7 +18,7 @@ import { PDFDocument, StandardFonts, PDFName } from "pdf-lib";
 type LicenseCountry = { id: string; country: string; date: string };
 type PriorSpecialty  = { id: string; specialty: string; country: string; date: string };
 
-type Applicant2015 = {
+type Applicant2021 = {
   address: string;
   postalCode: string;
   city: string;
@@ -29,7 +32,7 @@ type Applicant2015 = {
   licenseCountries: LicenseCountry[]; // max 3
 
   hasPreviousSpecialistCert: boolean;
-  previousSpecialties: PriorSpecialty[]; // max 3
+  previousSpecialties: PriorSpecialty[]; // max 4 (2021)
 };
 
 type SupervisorMain = {
@@ -52,8 +55,12 @@ type ManagerAppointed = {
 };
 
 type Certifiers = {
-  studyDirector: string;
-  studyDirectorWorkplace: string;
+  // Intygsutfärdande specialistläkare (ny för 2021, ersätter studierektor)
+  certifyingSpecialist: {
+    name: string;
+    specialty: string;
+    workplace: string;
+  };
   mainSupervisor: SupervisorMain;
   managerMode: ManagerMode;
   managerSelf: ManagerSelf;
@@ -62,34 +69,42 @@ type Certifiers = {
 
 /** === Bilagetyper & ordning (för färg + initial sortering) === */
 type AttachGroup =
+  | "Fullgjord specialiseringstjänstgöring"
   | "Uppnådd specialistkompetens"
   | "Auskultationer"
   | "Kliniska tjänstgöringar under handledning"
   | "Kurser"
   | "Utvecklingsarbete"
   | "Vetenskapligt arbete"
-  | "Uppfyllda kompetenskrav för specialistläkare från tredje land"
+  | "Delmål STa3"
+  | "Medicinsk vetenskap"
+  | "Delmål för specialistläkare från tredjeland"
   | "Svensk doktorsexamen"
   | "Utländsk doktorsexamen"
   | "Utländsk tjänstgöring"
-  | "Individuellt utbildningsprogram";
+  | "Individuellt utbildningsprogram för specialistläkare från tredjeland";
 
 const GROUP_ORDER: AttachGroup[] = [
+  "Fullgjord specialiseringstjänstgöring",
   "Uppnådd specialistkompetens",
   "Auskultationer",
   "Kliniska tjänstgöringar under handledning",
   "Kurser",
   "Utvecklingsarbete",
   "Vetenskapligt arbete",
-  "Uppfyllda kompetenskrav för specialistläkare från tredje land",
+  "Delmål STa3",
+  "Medicinsk vetenskap",
+  "Delmål för specialistläkare från tredjeland",
   "Svensk doktorsexamen",
   "Utländsk doktorsexamen",
   "Utländsk tjänstgöring",
-  "Individuellt utbildningsprogram",
+  "Individuellt utbildningsprogram för specialistläkare från tredjeland",
 ];
 
 type PresetKey =
+  | "fullgjordST"
   | "intyg"
+  | "sta3"
   | "svDoc"
   | "foreignDocEval"
   | "foreignService"
@@ -147,7 +162,7 @@ function stEndDate(placements: Placement[]): string {
   return latest === -Infinity ? isoToday() : new Date(latest).toISOString().slice(0, 10);
 }
 
-/** Bygg initial bilagelista (2015) från sparade placeringar + kurser i DB */
+/** Bygg initial bilagelista (2021) från sparade placeringar + kurser i DB */
 function pickPlacementDate(p: Placement): string {
   // För kliniska tjänstgöringar vill vi alltid visa själva tjänstgöringsperioden,
   // inte något eventuellt intygsdatum. Därför ignoreras certificateDate här.
@@ -170,7 +185,7 @@ function pickCourseDate(c: Course): string {
 
 
 
-function buildDefaultAttachmentsFor2015(args: {
+function buildDefaultAttachmentsFor2021(args: {
   placements: Placement[];
   courses: Course[];
 }): AttachmentItem[] {
@@ -215,11 +230,42 @@ function buildDefaultAttachmentsFor2015(args: {
   }
 
 
-  // Sortera enligt GROUP_ORDER + datum + label
+  // Sortera enligt bilagnummer först, sedan datum + label
+  // "Fullgjord specialiseringstjänstgöring" ska alltid hamna först
   const sorted = items.slice().sort((a, b) => {
-    const ga = GROUP_ORDER.indexOf(a.type);
-    const gb = GROUP_ORDER.indexOf(b.type);
-    if (ga !== gb) return ga - gb;
+    // Om en av dem är "Fullgjord specialiseringstjänstgöring", den ska alltid hamna först
+    if (a.type === "Fullgjord specialiseringstjänstgöring" && b.type !== "Fullgjord specialiseringstjänstgöring") {
+      return -1;
+    }
+    if (b.type === "Fullgjord specialiseringstjänstgöring" && a.type !== "Fullgjord specialiseringstjänstgöring") {
+      return 1;
+    }
+    
+    // Först sortera efter bilagnummer
+    // "Vetenskapligt arbete" ska ha bilagnummer 9 (samma som "Kliniska tjänstgöringar under handledning")
+    // men hamna efter den i sorteringen och före bilaga 10 (Kurser)
+    const numA = a.type === "Fullgjord specialiseringstjänstgöring" ? { num: 1, sub: "" } :
+                 a.type === "Uppnådd specialistkompetens" ? { num: 7, sub: "" } :
+                 a.type === "Auskultationer" ? { num: 8, sub: "" } :
+                 a.type === "Kliniska tjänstgöringar under handledning" ? { num: 9, sub: "a" } :
+                 a.type === "Vetenskapligt arbete" ? { num: 9, sub: "b" } : // Samma bilagnummer men efter kliniska, före bilaga 10
+                 a.type === "Kurser" ? { num: 10, sub: "" } :
+                 a.type === "Utvecklingsarbete" ? { num: 11, sub: "" } :
+                 a.type === "Delmål STa3" || a.type === "Medicinsk vetenskap" || a.type === "Delmål för specialistläkare från tredjeland" ? { num: 13, sub: "" } :
+                 { num: 9999, sub: "" };
+    const numB = b.type === "Fullgjord specialiseringstjänstgöring" ? { num: 1, sub: "" } :
+                 b.type === "Uppnådd specialistkompetens" ? { num: 7, sub: "" } :
+                 b.type === "Auskultationer" ? { num: 8, sub: "" } :
+                 b.type === "Kliniska tjänstgöringar under handledning" ? { num: 9, sub: "a" } :
+                 b.type === "Vetenskapligt arbete" ? { num: 9, sub: "b" } : // Samma bilagnummer men efter kliniska, före bilaga 10
+                 b.type === "Kurser" ? { num: 10, sub: "" } :
+                 b.type === "Utvecklingsarbete" ? { num: 11, sub: "" } :
+                 b.type === "Delmål STa3" || b.type === "Medicinsk vetenskap" || b.type === "Delmål för specialistläkare från tredjeland" ? { num: 13, sub: "" } :
+                 { num: 9999, sub: "" };
+    
+    if (numA.num !== numB.num) return numA.num - numB.num;
+    // Om samma bilagnummer, sortera efter sub (så att "Kliniska" kommer före "Vetenskapligt")
+    if (numA.sub !== numB.sub) return numA.sub.localeCompare(numB.sub);
 
     const ta = ts(a.date);
     const tb = ts(b.date);
@@ -241,27 +287,25 @@ const GREY_PILL = "hsl(220 16% 98%/.96)";
 const GREY_PILLBD = "hsl(220 10% 86%/.96)";
 
 const GROUP_COLORS: Record<AttachGroup, Swatch> = {
+  "Fullgjord specialiseringstjänstgöring": { bg: "hsl(12 35% 94%/.96)", bd: "hsl(12 25% 75%/.96)", pill: "hsl(12 40% 98%/.96)", pillBd: "hsl(12 23% 85%/.96)" },
   "Uppnådd specialistkompetens": { bg: "hsl(12 35% 94%/.96)", bd: "hsl(12 25% 75%/.96)", pill: "hsl(12 40% 98%/.96)", pillBd: "hsl(12 23% 85%/.96)" },
-
-  // Övriga grupper behåller tidigare färger – MEN de fem 'Lägg till bilaga'-typerna får samma grå nedan.
   "Auskultationer":               { bg: "hsl(30 35% 94%/.96)", bd: "hsl(30 25% 75%/.96)", pill: "hsl(30 40% 98%/.96)", pillBd: "hsl(30 23% 85%/.96)" },
-"Kliniska tjänstgöringar under handledning": { bg: "hsl(222 30% 94%/.96)", bd: "hsl(222 22% 72%/.96)", pill: "hsl(222 35% 98%/.96)", pillBd: "hsl(222 20% 84%/.96)" },
-
+  "Kliniska tjänstgöringar under handledning": { bg: "hsl(222 30% 94%/.96)", bd: "hsl(222 22% 72%/.96)", pill: "hsl(222 35% 98%/.96)", pillBd: "hsl(222 20% 84%/.96)" },
   "Kurser":                       { bg: "hsl(190 30% 94%/.96)", bd: "hsl(190 22% 72%/.96)", pill: "hsl(190 35% 98%/.96)", pillBd: "hsl(190 20% 84%/.96)" },
   "Utvecklingsarbete":            { bg: "hsl(95 25% 94%/.96)",  bd: "hsl(95 20% 72%/.96)",  pill: "hsl(95 30% 98%/.96)",  pillBd: "hsl(95 18% 84%/.96)"  },
   "Vetenskapligt arbete":         { bg: "hsl(265 25% 94%/.96)", bd: "hsl(265 20% 72%/.96)", pill: "hsl(265 30% 98%/.96)", pillBd: "hsl(265 18% 84%/.96)" },
-
-  // Fem presets med samma grå
+  "Delmål STa3":                  { bg: "hsl(200 30% 94%/.96)", bd: "hsl(200 22% 72%/.96)", pill: "hsl(200 35% 98%/.96)", pillBd: "hsl(200 20% 84%/.96)" },
+  "Medicinsk vetenskap":          { bg: "hsl(200 30% 94%/.96)", bd: "hsl(200 22% 72%/.96)", pill: "hsl(200 35% 98%/.96)", pillBd: "hsl(200 20% 84%/.96)" },
+  "Delmål för specialistläkare från tredjeland": { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
   "Svensk doktorsexamen":         { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
   "Utländsk doktorsexamen":       { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
   "Utländsk tjänstgöring":        { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
-  "Uppfyllda kompetenskrav för specialistläkare från tredje land": { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
-  "Individuellt utbildningsprogram": { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
+  "Individuellt utbildningsprogram för specialistläkare från tredjeland": { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
 };
 
 const makeId = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-/** ===================== PDF-hjälpare (INTYG 2015) ===================== */
+/** ===================== PDF-hjälpare (INTYG 2021) ===================== */
 async function loadTemplate(path: string) {
   const res = await fetch(path);
   if (!res.ok) throw new Error("Kunde inte läsa PDF-mallen: " + path);
@@ -327,6 +371,10 @@ function Sta3TabContent({
   sta3HowVerifiedText,
   setSta3HowVerifiedText,
   onPreview,
+  presetChecked,
+  presetDates,
+  setPresetChecked,
+  rebuildWithPresets,
 }: {
   profile: Profile | null;
   placements: Placement[];
@@ -336,6 +384,10 @@ function Sta3TabContent({
   sta3HowVerifiedText: string;
   setSta3HowVerifiedText: (v: string) => void;
   onPreview: (blob: Blob) => void;
+  presetChecked: Record<PresetKey, boolean>;
+  presetDates: Record<PresetKey, string>;
+  setPresetChecked: React.Dispatch<React.SetStateAction<Record<PresetKey, boolean>>>;
+  rebuildWithPresets: (nextChecked: Record<PresetKey, boolean>, nextDates: Record<PresetKey, string>) => void;
 }) {
   const [autoPlacements, setAutoPlacements] = useState<Array<{ id: string; title: string; period?: string }>>([]);
   const [autoCourses, setAutoCourses] = useState<Array<{ id: string; title: string; period?: string }>>([]);
@@ -381,15 +433,27 @@ function Sta3TabContent({
         for (const ach of achs) {
           const cands = [ach.milestoneId, ach.goalId, ach.code, ach.milestone];
           if (cands.some(isSta3Token)) {
-            if (ach.placementId) placementIds.add(String(ach.placementId));
+            // Lägg bara till placeringar som INTE är vetenskapligt arbete
+            if (ach.placementId) {
+              const placement = placs.find((p: any) => String(p.id) === String(ach.placementId));
+              if (placement && placement.type !== "Vetenskapligt arbete") {
+                placementIds.add(String(ach.placementId));
+              } else if (placement && placement.type === "Vetenskapligt arbete") {
+                // Om det är vetenskapligt arbete, lägg till som research
+                foundResearch = placement.clinic || placement.label || placement.note || "";
+              }
+            }
             if (ach.courseId) courseIds.add(String(ach.courseId));
           }
         }
 
         for (const p of placs) {
-          if (hasSta3InObj(p)) placementIds.add(String(p.id));
+          // Om det är vetenskapligt arbete med STa3, lägg bara till som research, inte som klinisk tjänstgöring
           if (p.type === "Vetenskapligt arbete" && hasSta3InObj(p)) {
             foundResearch = p.clinic || p.label || p.note || "";
+          } else if (hasSta3InObj(p)) {
+            // Endast placeringar som INTE är vetenskapligt arbete läggs till i klinisk tjänstgöring
+            placementIds.add(String(p.id));
           }
         }
         for (const c of crs) {
@@ -421,17 +485,10 @@ function Sta3TabContent({
     })();
   }, []);
 
-  const listPlacements = autoPlacements.length ? autoPlacements : placements.map((p: any) => ({
-    id: String(p.id),
-    title: p.clinic || p.title || "Klinisk tjänstgöring",
-    period: `${p.startDate || ""}${p.endDate ? ` – ${p.endDate}` : ""}`.trim(),
-  }));
-
-  const listCourses = autoCourses.length ? autoCourses : courses.map((c: any) => ({
-    id: String(c.id),
-    title: c.title || "Kurs",
-    period: [c.city, (c as any).certificateDate || c.endDate || c.startDate].filter(Boolean).join(" · "),
-  }));
+  // Använd bara auto-uppsamlade aktiviteter som faktiskt uppfyller STa3-delmålet
+  // Om inga hittas, visa tomma listor (inte alla aktiviteter som fallback)
+  const listPlacements = autoPlacements;
+  const listCourses = autoCourses;
 
   const handleGenerate = async () => {
     if (!profile) return;
@@ -575,26 +632,44 @@ function Sta3TabContent({
         />
       </div>
 
-      {/* Intyg-knapp */}
-      <div className="flex justify-end">
+      {/* Intyg-knappar */}
+      <div className="flex items-center justify-end gap-2">
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={presetChecked.sta3 ?? false}
+            onChange={(e) => {
+              setPresetChecked((prev) => {
+                const next = { ...prev, sta3: e.target.checked };
+                rebuildWithPresets(next, presetDates);
+                return next;
+              });
+            }}
+            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+          />
+          <span>Visa i listan över bilagor</span>
+        </label>
         <button
           type="button"
           onClick={handleGenerate}
           disabled={downloading}
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px disabled:opacity-60 disabled:pointer-events-none"
         >
-          {downloading ? "Skapar förhandsgranskning…" : "Intyg"}
+          {downloading ? "Skapar förhandsgranskning…" : "Intyg delmål STa3"}
         </button>
       </div>
     </div>
   );
 }
 
-/** ===================== Third Country Tab Content ===================== */
+/** ===================== Third Country Tab Content (2021) ===================== */
 function ThirdCountryTabContent({
   profile,
-  thirdCountryDelmalCodes,
-  setThirdCountryDelmalCodes,
+  goals,
+  thirdCountryMilestones,
+  setThirdCountryMilestones,
+  thirdCountryMilestonePickerOpen,
+  setThirdCountryMilestonePickerOpen,
   thirdCountryActivities,
   setThirdCountryActivities,
   thirdCountryVerification,
@@ -602,8 +677,11 @@ function ThirdCountryTabContent({
   onPreview,
 }: {
   profile: Profile | null;
-  thirdCountryDelmalCodes: string;
-  setThirdCountryDelmalCodes: (v: string) => void;
+  goals: GoalsCatalog | null;
+  thirdCountryMilestones: Set<string>;
+  setThirdCountryMilestones: (v: Set<string>) => void;
+  thirdCountryMilestonePickerOpen: boolean;
+  setThirdCountryMilestonePickerOpen: (v: boolean) => void;
   thirdCountryActivities: string;
   setThirdCountryActivities: (v: string) => void;
   thirdCountryVerification: string;
@@ -611,6 +689,11 @@ function ThirdCountryTabContent({
   onPreview: (blob: Blob) => void;
 }) {
   const [downloading, setDownloading] = useState(false);
+
+  // Konvertera Set till komma-separerad sträng för export
+  const milestonesString = useMemo(() => {
+    return Array.from(thirdCountryMilestones).join(", ");
+  }, [thirdCountryMilestones]);
 
   const handleGenerate = async () => {
     if (!profile) return;
@@ -621,7 +704,7 @@ function ThirdCountryTabContent({
       const blob = await exportThirdCountryCertificate(
         {
           profile: profile as any,
-          delmalCodes: thirdCountryDelmalCodes,
+          delmalCodes: milestonesString,
           activitiesText: thirdCountryActivities,
           verificationText: thirdCountryVerification,
         },
@@ -639,16 +722,57 @@ function ThirdCountryTabContent({
     }
   };
 
+  const handleToggleMilestone = (milestoneId: string) => {
+    const next = new Set<string>(thirdCountryMilestones);
+    if (next.has(milestoneId)) {
+      next.delete(milestoneId);
+    } else {
+      next.add(milestoneId);
+    }
+    setThirdCountryMilestones(next);
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4">
       <div className="rounded-lg border border-slate-200 p-3">
-        <LabeledInputLocal
-          label="Delmål som intyget avser (t.ex. STa1, STb2, STc3)"
-          value={thirdCountryDelmalCodes}
-          onCommit={setThirdCountryDelmalCodes}
-          placeholder="t.ex. STa1, STb2, STc3"
-        />
+        <label className="mb-1 block text-sm font-semibold text-slate-900">
+          Delmål som intyget avser
+        </label>
+        <div className="space-y-2">
+          {thirdCountryMilestones.size > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {Array.from(thirdCountryMilestones).map((code) => (
+                <span
+                  key={code}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800"
+                >
+                  {code}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Inga delmål valda</p>
+          )}
+          <button
+            type="button"
+            onClick={() => setThirdCountryMilestonePickerOpen(true)}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+          >
+            {thirdCountryMilestones.size > 0 ? "Ändra delmål" : "Välj delmål"}
+          </button>
+        </div>
       </div>
+
+      {goals && (
+        <MilestonePicker
+          open={thirdCountryMilestonePickerOpen}
+          title="Välj delmål för specialistläkare från tredjeland"
+          goals={goals}
+          checked={thirdCountryMilestones}
+          onToggle={handleToggleMilestone}
+          onClose={() => setThirdCountryMilestonePickerOpen(false)}
+        />
+      )}
 
       <div className="rounded-lg border border-slate-200 p-3">
         <label className="mb-1 block text-sm font-semibold text-slate-900">
@@ -688,8 +812,8 @@ function ThirdCountryTabContent({
   );
 }
 
-/** ===================== Komponent ===================== */
-export default function PrepareApplicationModal({ open, onClose }: Props) {
+/** ===================== Komponent (2021) ===================== */
+export default function PrepareApplicationModal2021({ open, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const [dirty, setDirty] = useState(false);
@@ -699,10 +823,8 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
 
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  const is2015 = useMemo(
-    () => (profile?.goalsVersion || "").toString().includes("2015") || !profile?.goalsVersion,
-    [profile]
-  );
+  // Detta är alltid 2021-versionen
+  const is2015 = false;
 
   const [tab, setTab] = useState<"applicant" | "signers" | "sta3" | "thirdCountry" | "attachments">("applicant");
 
@@ -774,14 +896,12 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
     );
   }
 
-  // Sökande (2015)
-  const [applicant, setApplicant] = useState<Applicant2015>({
-
+  // Sökande (2021)
+  const [applicant, setApplicant] = useState<Applicant2021>({
     address: "",
     postalCode: "",
     city: "",
     mobile: "",
-    phoneHome: "",
     phoneWork: "",
     medDegreeCountry: "",
     medDegreeDate: isoToday(),
@@ -794,8 +914,11 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
   const managerModeChangedRef = useRef(false);
 
   const [cert, setCert] = useState<Certifiers>({
-    studyDirector: "",
-    studyDirectorWorkplace: "",
+    certifyingSpecialist: {
+      name: "",
+      specialty: "",
+      workplace: "",
+    },
     mainSupervisor: {
       name: "",
       workplace: "",
@@ -833,11 +956,20 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
   const [thirdCountryDelmalCodes, setThirdCountryDelmalCodes] = useState<string>("");
   const [thirdCountryActivities, setThirdCountryActivities] = useState<string>("");
   const [thirdCountryVerification, setThirdCountryVerification] = useState<string>("");
+  const [thirdCountryMilestones, setThirdCountryMilestones] = useState<Set<string>>(new Set());
+  const [thirdCountryMilestonePickerOpen, setThirdCountryMilestonePickerOpen] = useState(false);
+  const [goals, setGoals] = useState<GoalsCatalog | null>(null);
+
+  // Baseline för dirty-tracking
+  const baselineRef = useRef<any>(null);
 
   // Bilagor/presets
   const [paidFeeDate, setPaidFeeDate] = useState<string>(isoToday());
+  const [btApprovedDate, setBtApprovedDate] = useState<string>(isoToday());
   const [presetChecked, setPresetChecked] = useState<Record<PresetKey, boolean>>({
+    fullgjordST: true,  // default ikryssad
     intyg: true,  // default ikryssad
+    sta3: false,
     svDoc: false,
     foreignDocEval: false,
     foreignService: false,
@@ -845,7 +977,9 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
     individProg: false,
   });
   const [presetDates, setPresetDates] = useState<Record<PresetKey, string>>({
+    fullgjordST: isoToday(),
     intyg: isoToday(),
+    sta3: isoToday(),
     svDoc: isoToday(),
     foreignDocEval: isoToday(),
     foreignService: isoToday(),
@@ -854,6 +988,98 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
   });
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [userReordered, setUserReordered] = useState(false);
+
+  // Funktionshjälp för att få bilagnamn för 2021
+  const getBilagaName2021 = (type: AttachGroup): string => {
+    const bilagaMap: Record<string, string> = {
+      "Fullgjord specialiseringstjänstgöring": "HSLF-FS 2021:8 - Bilaga 6",
+      "Uppnådd specialistkompetens": "HSLF-FS 2021:8 - Bilaga 7",
+      "Auskultationer": "HSLF-FS 2021:8 - Bilaga 8",
+      "Kliniska tjänstgöringar under handledning": "HSLF-FS 2021:8 - Bilaga 9",
+      "Vetenskapligt arbete": "HSLF-FS 2021:8 - Bilaga 9", // Samma bilaga som Kliniska tjänstgöringar
+      "Kurser": "HSLF-FS 2021:8 - Bilaga 10",
+      "Utvecklingsarbete": "HSLF-FS 2021:8 - Bilaga 11",
+      "Delmål STa3": "HSLF-FS 2021:8 - Bilaga 12",
+      "Medicinsk vetenskap": "HSLF-FS 2021:8 - Bilaga 12",
+      "Delmål för specialistläkare från tredjeland": "HSLF-FS 2021:8 - Bilaga 13",
+      "Svensk doktorsexamen": "Övriga handlingar",
+      "Utländsk doktorsexamen": "Övriga handlingar",
+      "Utländsk tjänstgöring": "Övriga handlingar",
+      "Individuellt utbildningsprogram för specialistläkare från tredjeland": "Övriga handlingar",
+    };
+    return bilagaMap[type] || "";
+  };
+
+  // Funktionshjälp för att formatera label baserat på typ (liknande 2015)
+  const formatAttachmentLabel2021 = (item: AttachmentItem): string => {
+    const type = item.type;
+    const currentLabel = item.label || "";
+
+    // För vetenskapligt arbete, bara typnamnet
+    if (type === "Vetenskapligt arbete") {
+      return "Vetenskapligt arbete";
+    }
+
+    // För utvecklingsarbete
+    if (type === "Utvecklingsarbete") {
+      return "Kvalitets- och förbättringsarbete";
+    }
+
+    // För kliniska tjänstgöringar
+    if (type === "Kliniska tjänstgöringar under handledning") {
+      const name = currentLabel.trim();
+      if (name && name !== "—") {
+        return `Klinisk tjänstgöring: ${name}`;
+      }
+      return type;
+    }
+
+    // För kurser
+    if (type === "Kurser") {
+      const name = currentLabel.trim();
+      if (name && name !== "—") {
+        return `Kurs: ${name}`;
+      }
+      return type;
+    }
+
+    // För auskultationer
+    if (type === "Auskultationer") {
+      const name = currentLabel.trim();
+      if (name && name !== "—") {
+        return `Auskultation: ${name}`;
+      }
+      return type;
+    }
+
+    // För andra, behåll det som är satt nu
+    return currentLabel || type;
+  };
+
+  // Funktionshjälp för att extrahera bilagnummer för sortering
+  const getBilagaNumber2021 = (type: AttachGroup): { num: number; sub: string } => {
+    const bilagaName = getBilagaName2021(type);
+    if (!bilagaName || bilagaName === "Övriga handlingar") return { num: 9999, sub: "" };
+    
+    const match = bilagaName.match(/Bilaga\s+(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      return { num, sub: "" };
+    }
+    return { num: 9999, sub: "" };
+  };
+
+  // Sorteringsfunktion baserad på bilagnummer
+  const sortByBilagaNumber2021 = useCallback((a: AttachmentItem, b: AttachmentItem): number => {
+    const numA = getBilagaNumber2021(a.type);
+    const numB = getBilagaNumber2021(b.type);
+    
+    if (numA.num !== numB.num) {
+      return numA.num - numB.num;
+    }
+    
+    return GROUP_ORDER.indexOf(a.type) - GROUP_ORDER.indexOf(b.type);
+  }, []);
 
 
   /** ==== Drag & drop: snap ==== */
@@ -871,37 +1097,16 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
   // Säkerställ att tempOrder speglar attachments
   useEffect(() => setTempOrder(attachments), [attachments]);
 
-  // Säkerställ att presets (t.ex. default-intyget) finns i bilagelistan
+  // Säkerställ att presets finns i bilagelistan när de är ikryssade
   useEffect(() => {
     if (!open) return;
-
-    // Lägg bara till "Intyg om uppnådd specialistkompetens" om
-    // den är ikryssad men ännu inte finns i listan.
-    if (!presetChecked.intyg) return;
-
-    setAttachments((prev) => {
-      const hasIntyg = prev.some((it) => it.preset === "intyg");
-      if (hasIntyg) return prev;
-
-      const item: AttachmentItem = {
-        id: "preset-intyg",
-        type: "Uppnådd specialistkompetens",
-        label: "Uppnådd specialistkompetens",
-        date: presetDates.intyg || isoToday(),
-        preset: "intyg",
-      };
-
-      const list = [...prev, item];
-
-      return userReordered
-        ? list
-        : list
-            .slice()
-            .sort(
-              (a, b) => GROUP_ORDER.indexOf(a.type) - GROUP_ORDER.indexOf(b.type)
-            );
-    });
-  }, [open, presetChecked.intyg, presetDates.intyg, userReordered]);
+    // Vänta tills attachments har laddats innan vi kör rebuildWithPresets
+    if (attachments.length === 0) return;
+    
+    // Använd rebuildWithPresets för att säkerställa att alla ikryssade presets finns i listan
+    rebuildWithPresets(presetChecked, presetDates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, presetChecked, presetDates, attachments.length]);
 
   // Prefill från Profil: läkarexamensland/datum + legitimation(s)land (max 3) om tomt lokalt
   useEffect(() => {
@@ -1044,11 +1249,14 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
                 ...prev,
                 ...savedCert,
                 managerMode: nextManagerMode,
-                // Namn fylls alltid i nu / via profil – ta inte gamla sparade namn
-                studyDirector: "",
                 mainSupervisor: {
                   ...(savedCert.mainSupervisor || prev.mainSupervisor),
                   name: "",
+                },
+                certifyingSpecialist: {
+                  name: savedCert.certifyingSpecialist?.name || prev.certifyingSpecialist?.name || "",
+                  specialty: savedCert.certifyingSpecialist?.specialty || prev.certifyingSpecialist?.specialty || "",
+                  workplace: savedCert.certifyingSpecialist?.workplace || prev.certifyingSpecialist?.workplace || "",
                 },
               };
             });
@@ -1074,15 +1282,42 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
             setPaidFeeDate(saved.paidFeeDate);
           }
 
+          // Datum för godkänd BT
+          if (typeof saved.btApprovedDate === "string" && saved.btApprovedDate) {
+            setBtApprovedDate(saved.btApprovedDate);
+          }
+
           // Preset-kryss
           if (saved.presetChecked) {
-            setPresetChecked(saved.presetChecked as Record<PresetKey, boolean>);
+            const savedPresetChecked = saved.presetChecked as Record<PresetKey, boolean>;
+            // Säkerställ att alla nycklar finns, inklusive sta3 som kan saknas i äldre sparad data
+            setPresetChecked({
+              fullgjordST: savedPresetChecked.fullgjordST ?? true,
+              intyg: savedPresetChecked.intyg ?? true,
+              sta3: savedPresetChecked.sta3 ?? false,
+              svDoc: savedPresetChecked.svDoc ?? false,
+              foreignDocEval: savedPresetChecked.foreignDocEval ?? false,
+              foreignService: savedPresetChecked.foreignService ?? false,
+              thirdCountry: savedPresetChecked.thirdCountry ?? false,
+              individProg: savedPresetChecked.individProg ?? false,
+            });
           }
 
           // Preset-datum
           if (saved.presetDates) {
             hadSavedPresetDates = true;
-            setPresetDates(saved.presetDates as Record<PresetKey, string>);
+            const savedPresetDates = saved.presetDates as Record<PresetKey, string>;
+            // Säkerställ att alla nycklar finns, inklusive sta3 som kan saknas i äldre sparad data
+            setPresetDates({
+              fullgjordST: savedPresetDates.fullgjordST ?? isoToday(),
+              intyg: savedPresetDates.intyg ?? isoToday(),
+              sta3: savedPresetDates.sta3 ?? isoToday(),
+              svDoc: savedPresetDates.svDoc ?? isoToday(),
+              foreignDocEval: savedPresetDates.foreignDocEval ?? isoToday(),
+              foreignService: savedPresetDates.foreignService ?? isoToday(),
+              thirdCountry: savedPresetDates.thirdCountry ?? isoToday(),
+              individProg: savedPresetDates.individProg ?? isoToday(),
+            });
           }
 
           // STa3 data
@@ -1096,6 +1331,11 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
           // Third country data
           if (typeof saved.thirdCountryDelmalCodes === "string") {
             setThirdCountryDelmalCodes(saved.thirdCountryDelmalCodes);
+            // Konvertera från komma-separerad sträng till Set
+            if (saved.thirdCountryDelmalCodes) {
+              const codes = saved.thirdCountryDelmalCodes.split(",").map((c: string) => c.trim()).filter(Boolean);
+              setThirdCountryMilestones(new Set(codes));
+            }
           }
           if (typeof saved.thirdCountryActivities === "string") {
             setThirdCountryActivities(saved.thirdCountryActivities);
@@ -1119,13 +1359,49 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
       // Profil ska alltid vara den färska från DB
       setProfile(p ?? null);
 
-      // Bygg bilagelista från DB-data (och komplettera ev. sparad lista)
-      const allPlacements = (pls || []) as any[];
-      const allCourses = (crs || []) as any[];
+      // Ladda goals-katalog för MilestonePicker
+      if (p?.goalsVersion && (p.specialty || (p as any).speciality)) {
+        try {
+          const g = await loadGoals(p.goalsVersion, p.specialty || (p as any).speciality || "");
+          setGoals(g);
+        } catch {
+          setGoals(null);
+        }
+      } else {
+        setGoals(null);
+      }
 
       // Endast för 2021: filtrera fram ST-fasade eller de som markerats "Uppfyller ST-delmål"
       const gvRaw = String((p as any)?.goalsVersion || "").toLowerCase();
       const is2021 = gvRaw.includes("2021");
+
+      // Beräkna BT-slutdatum från profil (btEndDate eller 24 månader efter btStartDate)
+      if (p && is2021) {
+        const btEndManual = (p as any)?.btEndDate;
+        const btStartISO = (p as any)?.btStartDate;
+        
+        let calculatedBtEnd: string | null = null;
+        if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+          calculatedBtEnd = btEndManual;
+        } else if (btStartISO && /^\d{4}-\d{2}-\d{2}$/.test(btStartISO)) {
+          try {
+            const btDate = new Date(btStartISO + "T00:00:00");
+            const btEndDate = addMonths(btDate, 24);
+            calculatedBtEnd = toISO(btEndDate);
+          } catch {
+            // Ignore
+          }
+        }
+        
+        // Sätt BT-godkänd datum om det inte redan är sparat
+        if (calculatedBtEnd && !saved?.btApprovedDate) {
+          setBtApprovedDate(calculatedBtEnd);
+        }
+      }
+
+      // Bygg bilagelista från DB-data (och komplettera ev. sparad lista)
+      const allPlacements = (pls || []) as any[];
+      const allCourses = (crs || []) as any[];
 
       const filteredPlacements = is2021
         ? allPlacements.filter((pl) => {
@@ -1146,7 +1422,7 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
       setPlacements(filteredPlacements as any);
       setCourses(filteredCourses as any);
 
-           const built: AttachmentItem[] = buildDefaultAttachmentsFor2015({
+           const built: AttachmentItem[] = buildDefaultAttachmentsFor2021({
         placements: filteredPlacements as any,
         courses: filteredCourses as any,
       });
@@ -1159,6 +1435,16 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
         const list: AttachmentItem[] = [];
 
         // Samma preset-logik som i rebuildWithPresets:
+        if (presetChecked.fullgjordST) {
+          list.push({
+            id: "preset-fullgjordST",
+            type: "Fullgjord specialiseringstjänstgöring",
+            label: "Intyg om fullgjord specialiseringstjänstgöring",
+            date: presetDates.fullgjordST || isoToday(),
+            preset: "fullgjordST",
+          });
+        }
+
         if (presetChecked.intyg) {
           list.push({
             id: "preset-intyg",
@@ -1166,6 +1452,16 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
             label: "Uppnådd specialistkompetens",
             date: presetDates.intyg || isoToday(),
             preset: "intyg",
+          });
+        }
+
+        if (presetChecked.sta3) {
+          list.push({
+            id: "preset-sta3",
+            type: "Delmål STa3",
+            label: "Intyg delmål STa3",
+            date: presetDates.sta3 || isoToday(),
+            preset: "sta3",
           });
         }
 
@@ -1204,8 +1500,8 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
         if (presetChecked.thirdCountry) {
           list.push({
             id: "preset-thirdCountry",
-            type: "Uppfyllda kompetenskrav för specialistläkare från tredje land",
-            label: "Uppfyllda kompetenskrav för specialistläkare från tredje land",
+            type: "Delmål för specialistläkare från tredjeland",
+            label: "Delmål för specialistläkare från tredjeland",
             date: presetDates.thirdCountry || isoToday(),
             preset: "thirdCountry",
           });
@@ -1214,16 +1510,19 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
         if (presetChecked.individProg) {
           list.push({
             id: "preset-individProg",
-            type: "Individuellt utbildningsprogram",
-            label: "Individuellt utbildningsprogram",
+            type: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
+            label: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
             date: presetDates.individProg || isoToday(),
             preset: "individProg",
           });
         }
 
-        const finalList = list.slice().sort(
-          (a, b) => GROUP_ORDER.indexOf(a.type) - GROUP_ORDER.indexOf(b.type)
-        );
+        // Säkerställ att "Fullgjord specialiseringstjänstgöring" alltid hamnar först
+        const fullgjordST = list.filter((a) => a.type === "Fullgjord specialiseringstjänstgöring");
+        const rest = list.filter((a) => a.type !== "Fullgjord specialiseringstjänstgöring");
+        
+        // Sortera med sortByBilagaNumber2021 istället för GROUP_ORDER för att få korrekt ordning
+        const finalList = [...fullgjordST, ...rest.slice().sort(sortByBilagaNumber2021)];
 
         setAttachments(finalList);
         setTempOrder(finalList);
@@ -1236,16 +1535,18 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
 
 
       // Sätt default för ort/datum-fält ENDAST om vi INTE hade sparade datum
-      if (!hadSavedPresetDates) {
-        setPresetDates({
-          intyg: isoToday(),
-          svDoc: isoToday(),
-          foreignDocEval: isoToday(),
-          foreignService: isoToday(),
-          thirdCountry: isoToday(),
-          individProg: isoToday(),
-        });
-      }
+          if (!hadSavedPresetDates) {
+            setPresetDates({
+              fullgjordST: isoToday(),
+              intyg: isoToday(),
+              sta3: isoToday(),
+              svDoc: isoToday(),
+              foreignDocEval: isoToday(),
+              foreignService: isoToday(),
+              thirdCountry: isoToday(),
+              individProg: isoToday(),
+            });
+          }
 
       // Förifyll intygare med hemklinik om tomt
       setCert((prev) => ({
@@ -1258,6 +1559,7 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
         managerSelf: {
           ...prev.managerSelf,
           workplace: prev.managerSelf.workplace || (p as any)?.homeClinic || "",
+          specialty: prev.managerSelf.specialty || (p as any)?.specialty || (p as any)?.speciality || "",
         },
         managerAppointed: {
           ...prev.managerAppointed,
@@ -1331,20 +1633,21 @@ export default function PrepareApplicationModal({ open, onClose }: Props) {
   /** ESC för att stänga */
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleRequestClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open]);
 
 /** ===================== ReadonlyInput ===================== */
 function ReadonlyInput({ value, label }: { value: string; label: string }) {
   return (
-    <div className="min-w-0" title={value || "Ändra på profilsidan"}>
+    <div className="min-w-0">
       <label className="mb-1 block text-sm text-slate-700">{label}</label>
       <div
-        className="min-h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
+        className="min-h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700 cursor-help"
         aria-readonly="true"
         role="textbox"
+        title="Uppgifterna ändras i Profil"
       >
         <span className="whitespace-normal break-words">
           {value || "—"}
@@ -1383,9 +1686,9 @@ useEffect(() => {
       }
     }
 
-    // Bygg tidigare specialiteter (max 3) från profil
+    // Bygg tidigare specialiteter (max 4 för 2021) från profil
     const priorListSrc: any[] = Array.isArray(prof.priorSpecialties) ? prof.priorSpecialties : [];
-    const priorList = priorListSrc.slice(0, 3).map((r) => ({
+    const priorList = priorListSrc.slice(0, 4).map((r) => ({
       id: makeId(),
       specialty: String((r?.specialty ?? r?.speciality) || ""), // hantera båda stavningarna
       country: String(r?.country || ""),
@@ -1409,9 +1712,18 @@ useEffect(() => {
   });
 }, [open, profile]);
 
+  // Ta baseline efter att allt är initierat
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => {
+      takeBaseline();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [open, profile, placements.length, courses.length]);
+
 /** ===================== Validering (lätt) ===================== */
 
-  function validate2015(): boolean {
+  function validate2021(): boolean {
     if (!profile?.name || !(profile as any).personalNumber || !(profile as any).homeClinic) {
       alert("Komplettera din profil (namn, personnummer, arbetsplats).");
       return false;
@@ -1485,8 +1797,9 @@ function drawGrid(page: any, stepPt = 20) {
 }
 
 
-/* ---------- 2015 – Intyg om uppnådd specialistkompetens ---------- */
+/* ---------- 2021 – Intyg om uppnådd specialistkompetens (TODO: Implementera) ---------- */
 /* Startvärden – justera x/y tills det sitter perfekt. */
+/* OBS: Denna kod använder fortfarande 2015-koordinater och behöver uppdateras för 2021-templates */
 const coordsIntyg2015 = {
   // Sökande
   efternamn:            { x: 76,  y: 655 },
@@ -1535,566 +1848,103 @@ const coordsIntyg2015 = {
 
 } as const;
 
+  async function onPrintFullgjord() {
+    if (!validate2021() || !profile) return;
+    try {
+      const { exportBilaga6Certificate } = await import("@/lib/exporters");
+      
+      // Samla alla tjänstgöringar från placements
+      const allPlacements = placements
+        .filter((p: any) => p.startDate && p.endDate)
+        .map((p: any) => ({
+          clinic: p.clinic || p.title || (p as any).site || "—",
+          startDate: p.startDate || "",
+          endDate: p.endDate || "",
+          attendance: (p as any).attendance || 100,
+        }));
+
+      const blob = await exportBilaga6Certificate(
+        {
+          profile: profile as any,
+          placements: allPlacements,
+          cert: cert,
+        },
+        { output: "blob", filename: "intyg-bilaga6-2021.pdf" }
+      );
+
+      if (blob instanceof Blob) {
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setPreviewOpen(true);
+      }
+    } catch (err) {
+      console.error("exportBilaga6Certificate error", err);
+      alert("Det gick inte att skapa intyget. Kontrollera uppgifterna och försök igen.");
+    }
+  }
 
   async function onPrintIntyg() {
-  if (!validate2015()) return;
+    if (!validate2021() || !profile) return;
+    try {
+      const { exportBilaga7Certificate } = await import("@/lib/exporters");
+      
+      const blob = await exportBilaga7Certificate(
+        {
+          profile: profile as any,
+          applicant: applicant,
+          cert: cert,
+          placements: placements || [],
+          courses: courses || [],
+          attachments: attachments || [],
+        },
+        { output: "blob", filename: "intyg-bilaga7-2021.pdf" }
+      );
 
-  const safe = (v?: string) => (v == null ? "" : String(v));
-  const splitName = (full?: string) => {
-    const f = safe(full).trim();
-    if (!f) return { first: "", last: "" };
-    const parts = f.split(/\s+/);
-    if (parts.length === 1) return { first: parts[0], last: "" };
-    const last = parts.pop() as string;      // efternamn = sista ordet
-    const first = parts.join(" ");           // övriga ord = förnamn/mellannamn
-    return { first, last };
-  };
-
-
-  try {
-    const templatePath = "/pdf/2015/blankett-uppnadd-specialistkompetens-sosfs20158.pdf";
-    const pdfDoc = await loadTemplate(templatePath);
-const form = pdfDoc.getForm();
-const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-// Ta bort formulär-annoteringar så att de inte ligger ovanpå våra kryss
-try {
-  form.flatten();
-} catch { /* ignore */ }
-
-
-
-// === DATA (definiera innan vi använder dem) ===
-const prof = (profile as any) || {};
-const isAppointed = cert.managerMode === "appointed";
-
-
-
-// === DATA forts. ===
-const spec = safe(prof.specialty);
-const pn = safe(prof.personalNumber);
-const { first: firstName, last: lastName } = splitName(prof.name);
-const homeClinic = safe(prof.homeClinic);
-
-const vc = isAppointed ? cert.managerAppointed : cert.managerSelf;
-const vcName = safe(isAppointed ? vc.specialistName || vc.managerName : vc.name);
-const vcPN   = safe(isAppointed ? vc.specialistPersonalNumber : vc.personalNumber);
-const vcSpec = safe(isAppointed ? vc.specialistSpecialty : vc.specialty);
-const vcWork = safe(isAppointed ? vc.specialistWorkplace || vc.managerWorkplace : vc.workplace);
-
-const mh = cert.mainSupervisor;
-// OBS: huvudhandledarens namn ska INTE delas upp i PDF, skrivs i sin helhet senare
-const mhName = safe(mh.name || (profile as any)?.supervisor);
-const mhPN   = safe(mh.personalNumber);
-// Förifyll handledarspecialitet från profilen om den inte är ifylld i cert
-const mhSpec = safe(mh.specialty || (profile as any)?.specialty);
-const mhYear = safe(mh.trainingYear);
-const mhWork = safe(mh.workplace || homeClinic);
-
-const todayISO = new Date().toISOString().slice(0, 10);
-const vcOrtDatum = "";
-
-const mhOrtDatum = "";
-
-
-// === RITA TEXT PÅ EXAKTA KOORDINATER ===
-const page = pdfDoc.getPages()[0];
-
-const c = coordsIntyg2015;
-const fontSize = 11;
-
-// (valfritt) slå på rutnät vid justering
-// drawGrid(page, 20);
-
-// --- Kryssruta: rita X vid Ja/Nej med koordinater ---
-function drawX(page: any, cx: number, cy: number, size = 12, lineWidth = 1.5) {
-  const half = size / 2;
-  page.drawLine({ start: { x: cx - half, y: cy - half }, end: { x: cx + half, y: cy + half }, lineWidth });
-  page.drawLine({ start: { x: cx - half, y: cy + half }, end: { x: cx + half, y: cy - half }, lineWidth });
-}
-// På raden "Verksamhetschefen har enligt ... utsett en läkare med specialistkompetens...":
-// (justerad enligt observerat beteende i appen)
-// - Om managerMode === "self" ska rutan "Ja" kryssas.
-// - Om verksamhetschefen har utsett någon annan (managerMode !== "self") ska rutan "Nej" kryssas.
-if (cert.managerMode === "self") {
-  // -> kryss i JA-rutan
-  drawX(page, c.vc_yes_center.x, c.vc_yes_center.y);
-} else {
-  // -> kryss i NEJ-rutan
-  drawX(page, c.vc_no_center.x,  c.vc_no_center.y);
-}
-
-
-// --- SÖKANDE ---
-drawLabel(page, helvetica, lastName,            c.efternamn.x,            c.efternamn.y,            fontSize);
-
-
-drawLabel(page, helvetica, firstName,           c.fornamn.x,              c.fornamn.y,              fontSize);
-drawLabel(page, helvetica, pn,                  c.personnummer.x,         c.personnummer.y,         fontSize);
-drawLabel(page, helvetica, spec,                c.specialitet.x,          c.specialitet.y,          fontSize);
-
-// --- VERKSAMHETSCHEF + (ev) UTSEDD SPECIALIST ---
-
-// 1) Verksamhetschefens namn & tjänsteställe visas i båda lägena
-const managerName = isAppointed ? cert.managerAppointed.managerName : cert.managerSelf.name;
-const managerWork = isAppointed ? cert.managerAppointed.managerWorkplace : cert.managerSelf.workplace;
-
-// --- VERKSAMHETSCHEF + (ev) UTSEDD SPECIALIST ---
-// I self-läge: INGEN separat VC-rad (undvik dublett). Endast signaturraden.
-// I appointed-läge: separat VC-rad + separat rad för utsedd specialist, och signaturraden fylls med specialist.
-
-if (isAppointed) {
-  // Verksamhetschef (appointed) – separat rad
-  drawLabel(page, helvetica, cert.managerAppointed.managerName || "",      c.mgrApp_namn.x,          c.mgrApp_namn.y,          fontSize);
-  drawLabel(page, helvetica, cert.managerAppointed.managerWorkplace || "", c.mgrApp_tjanstestalle.x, c.mgrApp_tjanstestalle.y, fontSize);
-
-  // Ingen signaturrad här – den ritas i blocket "2) Signaturraden ..." nedan.
-} else {
-
-  // SELF-läge: hoppa över separat VC-rad (ingen dublett)
-
-  // Signaturrad = verksamhetschefen (med PN + specialist)
-  drawLabel(page, helvetica, cert.managerSelf.name || "",           c.vc_namnfortydligande.x, c.vc_namnfortydligande.y, fontSize);
-  drawLabel(page, helvetica, cert.managerSelf.personalNumber || "", c.vc_personnummer.x,      c.vc_personnummer.y,      fontSize);
-  drawLabel(page, helvetica, cert.managerSelf.specialty || "",      c.vc_specialitet.x,       c.vc_specialitet.y,       fontSize);
-  drawLabel(page, helvetica, cert.managerSelf.workplace || "",      c.vc_tjanstestalle.x,     c.vc_tjanstestalle.y,     fontSize);
-  drawLabel(page, helvetica, vcOrtDatum,                            c.vc_ortDatum.x,          c.vc_ortDatum.y,          fontSize);
-}
-
-
-// 2) Signaturraden (vc_*) = den som faktiskt signerar intyget:
-//    appointed => utsedd specialist (signerar), self => verksamhetschef
-const signerName = isAppointed ? (cert.managerAppointed.specialistName || managerName) : managerName;
-const signerPN   = isAppointed ? cert.managerAppointed.specialistPersonalNumber : cert.managerSelf.personalNumber;
-const signerSpec = isAppointed ? cert.managerAppointed.specialistSpecialty       : cert.managerSelf.specialty;
-const signerWork = isAppointed
-  ? (cert.managerAppointed.specialistWorkplace || cert.managerAppointed.managerWorkplace)
-  : managerWork;
-
-// Alltid fyll signaturraden med den som faktiskt signerar
-drawLabel(page, helvetica, signerName, c.vc_namnfortydligande.x, c.vc_namnfortydligande.y, fontSize);
-drawLabel(page, helvetica, signerPN,   c.vc_personnummer.x,      c.vc_personnummer.y,      fontSize);
-drawLabel(page, helvetica, signerSpec, c.vc_specialitet.x,       c.vc_specialitet.y,       fontSize);
-drawLabel(page, helvetica, signerWork, c.vc_tjanstestalle.x,     c.vc_tjanstestalle.y,     fontSize);
-drawLabel(page, helvetica, vcOrtDatum, c.vc_ortDatum.x,          c.vc_ortDatum.y,          fontSize);
-
-
-
-// 3) Extra rad för utsedd specialist när appointed är valt
-if (isAppointed) {
-  drawLabel(page, helvetica, cert.managerAppointed.specialistName,       c.sp_namn.x,         c.sp_namn.y,         fontSize);
-  drawLabel(page, helvetica, cert.managerAppointed.specialistPersonalNumber ?? "", c.sp_personnummer.x, c.sp_personnummer.y, fontSize);
-  drawLabel(page, helvetica, cert.managerAppointed.specialistSpecialty,  c.sp_specialitet.x,  c.sp_specialitet.y,  fontSize);
-  drawLabel(page, helvetica, cert.managerAppointed.specialistWorkplace ?? "",      c.sp_tjanstestalle.x, c.sp_tjanstestalle.y, fontSize);
-}
-
-
-// --- STUDIEREKTOR ---
-{
-  const srFullName = cert.studyDirector || (profile as any)?.studyDirector || "";
-  const srWork     = cert.studyDirectorWorkplace || (profile as any)?.homeClinic || "";
-
-  if (/\s/.test(srFullName)) {
-    const sr = splitName(srFullName);
-    // Standard: Efternamn + Förnamn på separata koordinater
-    drawLabel(page, helvetica, sr.last || srFullName,  c.sr_efternamn.x,     c.sr_efternamn.y,     fontSize);
-    drawLabel(page, helvetica, sr.first || "",         c.sr_fornamn.x,       c.sr_fornamn.y,       fontSize);
-  } else {
-    // Fallback: inget mellanrum → skriv hela i "efternamn"-fältet
-    drawLabel(page, helvetica, srFullName,             c.sr_efternamn.x,     c.sr_efternamn.y,     fontSize);
-  }
-  drawLabel(page, helvetica, srWork,                   c.sr_tjanstestalle.x, c.sr_tjanstestalle.y, fontSize);
-}
-
-
-
-// --- HUVUDANSVARIG HANDLEDARE ---
-drawLabel(page, helvetica, mhName,              c.mh_namnfortydligande.x, c.mh_namnfortydligande.y, fontSize);
-drawLabel(page, helvetica, mhPN,                c.mh_personnummer.x,      c.mh_personnummer.y,      fontSize);
-drawLabel(page, helvetica, mhSpec,              c.mh_specialitet.x,       c.mh_specialitet.y,       fontSize);
-drawLabel(page, helvetica, mhYear,              c.mh_handledarAr.x,       c.mh_handledarAr.y,       fontSize);
-drawLabel(page, helvetica, mhWork,              c.mh_tjanstestalle.x,     c.mh_tjanstestalle.y,     fontSize);
-drawLabel(page, helvetica, mhOrtDatum,          c.mh_ortDatum.x,          c.mh_ortDatum.y,          fontSize);
-
-const bytes = await pdfDoc.save({ useObjectStreams: false });
-const blob = new Blob([bytes], { type: "application/pdf" });
-openPreviewFromBlob(blob);
-
-  } catch (e: any) {
-    console.error(e);
-    alert(e?.message || "Kunde inte skapa PDF.");
-  }
-}
-
-
-
-async function onPrintAnsokan() {
-  if (!validate2015()) return;
-
-  const safe = (v?: string) => (v == null ? "" : String(v));
-  const toYYMMDD = (iso?: string) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    const y = String(d.getFullYear()).slice(-2);
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}${m}${dd}`;
-  };
-  const splitName = (full?: string) => {
-    const f = safe(full).trim();
-    if (!f) return { first: "", last: "" };
-    const parts = f.split(/\s+/);
-    if (parts.length === 1) return { first: parts[0], last: "" };
-    const last = parts.pop() as string;
-    const first = parts.join(" ");
-    return { first, last };
-  };
-  const monthDiffExact = (startISO?: string, endISO?: string) => {
-    const s = new Date(startISO || "");
-    const e = new Date(endISO || "");
-    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
-    const ms = e.getTime() - s.getTime();
-    const days = ms / (1000 * 60 * 60 * 24);
-    return Math.max(0, days / 30.4375);
-  };
-  const pickPercent = (p: any) => {
-    const v = Number(
-      p?.attendance ??
-      p?.percent ??
-      p?.ftePercent ??
-      p?.scopePercent ??
-      p?.omfattning ??
-      100
-    );
-    return Number.isFinite(v) && v > 0 ? Math.min(100, Math.max(0, v)) : 100;
-  };
-
-
-  try {
-    const templatePath = "/pdf/2015/blankett-bevis-specialistkompetens-sosfs20158.pdf";
-    const pdfDoc = await loadTemplate(templatePath);
-const form = pdfDoc.getForm();
-const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-// 1) Rensa ev. "0" i formulärfält (t.ex. summa/total) och flattena så att annotationer inte ligger över
-try {
-  form.getFields().forEach((f: any) => {
-    const name = String(f.getName() || "");
-    const ctor = (f as any).constructor?.name;
-    const getText = (f as any).getText?.bind(f);
-    const val = typeof getText === "function" ? String(getText() ?? "") : "";
-
-    if (ctor === "PDFTextField" && (/(sum|total)/i.test(name) || /^\s*0([.,]0+)?\s*$/.test(val))) {
-      (f as any).setText(""); // rensa nollan
+      if (blob && blob instanceof Blob) {
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setPreviewOpen(true);
+      } else {
+        console.error("exportBilaga7Certificate returned invalid blob:", blob);
+        alert("Det gick inte att skapa intyget. Ingen PDF genererades.");
+      }
+    } catch (err) {
+      console.error("exportBilaga7Certificate error", err);
+      alert("Det gick inte att skapa intyget. Kontrollera uppgifterna och försök igen. Fel: " + (err instanceof Error ? err.message : String(err)));
     }
-  });
-  form.updateFieldAppearances(helv);
-  form.flatten(); // lägger text i sidans innehåll och tar bort widget-lagret
-} catch { /* ignore */ }
-
-const pages = pdfDoc.getPages();
-const page1 = pages[0];
-const page2 = pages[1];
-const page3 = pages[2];
-
-// 2) Ta bort ALLA annotationer på sida 2 som extra säkerhet (så inget ligger över din vita rektangel)
-try {
-  (page2 as any).node.set(PDFName.of('Annots'), pdfDoc.context.obj([]));
-} catch { /* ignore */ }
-
-
-
-    // ====== DATA ======
-    const p: any = profile || {};
-    const pn = safe(p.personalNumber);
-    const spec = safe(p.specialty);
-    const { first: firstName, last: lastName } = splitName(p.name);
-    const homeClinic = safe(p.homeClinic);
-
-    const addr = safe(
-      applicant.address ||
-      (profile as any)?.address
-    );
-    const zip  = safe(
-      applicant.postalCode ||
-      (profile as any)?.postalCode
-    );
-    const city = safe(
-      applicant.city ||
-      (profile as any)?.city
-    );
-    const phoneHome   = safe(
-      applicant.phoneHome ||
-      (profile as any)?.phoneHome
-    );
-    const phoneWork   = safe(
-      applicant.phoneWork ||
-      (profile as any)?.phoneWork
-    );
-    const phoneMobile = safe(
-      applicant.mobile ||
-      (profile as any)?.mobile
-    );
-    const email = safe((profile as any)?.email);
-
-    const medCountry = safe(
-      (profile as any)?.licenseCountry
-      || (profile as any)?.medDegreeCountry
-      || applicant.medDegreeCountry
-    );
-
-    const medDate    = toYYMMDD(
-      applicant.medDegreeDate
-      || (profile as any)?.medDegreeDate
-    );
-
-    
-
-
-    // ====== RIT-HJÄLP ======
-    const draw = (pg: any, txt: string, x: number, y: number, size = 11) => {
-  const s = normalizePdfText(txt);
-  if (!s) return;
-  pg.drawText(s, { x, y, size, font: helv });
-};
-
-
-    // ====== KOORDINATER ======
-    const C1 = {
-      specialty:   { x: 76,  y: 629 },
-      lastName:    { x: 76,  y: 562 },
-      firstName:   { x: 303, y: 562 },
-      personNum:   { x: 76,  y: 534 },
-      address:     { x: 231, y: 534 },
-      zip:         { x: 76,  y: 506 },
-      city:        { x: 170, y: 506 },
-      phoneHome:   { x: 394, y: 506 },
-      phoneMobile: { x: 76,  y: 478 },
-      email:       { x: 231, y: 478 },
-      workplace:   { x: 76,  y: 450 },
-      phoneWork:   { x: 394, y: 450 },
-
-      medCountry:  { x: 76,  y: 384 },
-      medDate:     { x: 320, y: 384 },
-
-      lic1_country:{ x: 76,  y: 330 },
-      lic1_date:   { x: 320, y: 330 },
-      lic2_country:{ x: 76,  y: 302 },
-      lic2_date:   { x: 320, y: 302 },
-      lic3_country:{ x: 76,  y: 274 },
-      lic3_date:   { x: 320, y: 274 },
-
-      prev1_spec:  { x: 76,  y: 221 },
-      prev1_country:{x: 76, y: 192 },
-      prev1_date:  { x: 320, y: 192 },
-      prev2_spec:  { x: 76,  y: 164 },
-      prev2_country:{x: 76, y: 136 },
-      prev2_date:  { x: 320, y: 136 },
-      prev3_spec:  { x: 76,  y: 108 },
-      prev3_country:{x: 76,  y: 80 },
-      prev3_date:  { x: 320,  y: 80 },
-    } as const;
-
-const C2 = {
-  colClinic:   76,
-  colPeriod:   270,
-  colPercent:  417,
-  colMonths:   485,
-  startY:      725,
-  rowStep:     20,
-  maxRows:     33,
-  sumY:        68,
-  sumX:        485,
-} as const;
-
-
-    const C3 = {
-      lineStep: 16,
-      uppnadd:     { x: 76, y: 756 },
-      ausk:        { x: 76, y: 703 },
-      klinik:      { x: 76, y: 650 },
-      kurser:      { x: 76, y: 597 },
-      kval:        { x: 76, y: 544 },
-      vet:         { x: 76, y: 491 },
-      third:       { x: 76, y: 438 },
-      svDoc:       { x: 76, y: 360 },
-      foreignDoc:  { x: 76, y: 307 },
-      foreignServ: { x: 76, y: 254 },
-      individProg: { x: 76, y: 201 },
-      paidFee:     { x: 425, y: 146 },
-    } as const;
-
-    // ====== SIDA 1 ======
-    draw(page1, spec,           C1.specialty.x,   C1.specialty.y);
-    draw(page1, lastName,       C1.lastName.x,    C1.lastName.y);
-    draw(page1, firstName,      C1.firstName.x,   C1.firstName.y);
-    draw(page1, pn,             C1.personNum.x,   C1.personNum.y);
-    draw(page1, addr,           C1.address.x,     C1.address.y);
-    draw(page1, email,          C1.email.x,       C1.email.y);
-    draw(page1, zip,            C1.zip.x,         C1.zip.y);
-    draw(page1, city,           C1.city.x,        C1.city.y);
-    draw(page1, phoneHome,      C1.phoneHome.x,   C1.phoneHome.y);
-    draw(page1, phoneMobile,    C1.phoneMobile.x, C1.phoneMobile.y);
-    draw(page1, homeClinic,     C1.workplace.x,   C1.workplace.y);
-    draw(page1, phoneWork,      C1.phoneWork.x,   C1.phoneWork.y);
-
-    draw(page1, medCountry,     C1.medCountry.x,  C1.medCountry.y);
-    draw(page1, medDate,        C1.medDate.x,     C1.medDate.y);
-
-
-    const lic = (() => {
-      const prof = (profile as any) || {};
-      const list: Array<{ country: string; date: string }> = [];
-      if (prof.licenseCountry) {
-        list.push({ country: String(prof.licenseCountry), date: String(prof.licenseDate || "") });
-      }
-      if (Array.isArray(prof.foreignLicenses)) {
-        for (const r of prof.foreignLicenses) {
-          if (list.length >= 3) break;
-          list.push({ country: String(r?.country || ""), date: String(r?.date || "") });
-        }
-      }
-      const fromApplicant = (applicant.licenseCountries ?? []).map((r: any) => ({
-        country: String(r?.country || ""),
-        date: String(r?.date || ""),
-      }));
-      const effective = list.length ? list : fromApplicant;
-      return effective.slice(0, 3);
-    })();
-
-    if (lic[0]) { draw(page1, safe(lic[0].country), C1.lic1_country.x, C1.lic1_country.y);
-                  draw(page1, toYYMMDD(lic[0].date),C1.lic1_date.x,    C1.lic1_date.y); }
-    if (lic[1]) { draw(page1, safe(lic[1].country), C1.lic2_country.x, C1.lic2_country.y);
-                  draw(page1, toYYMMDD(lic[1].date),C1.lic2_date.x,    C1.lic2_date.y); }
-    if (lic[2]) { draw(page1, safe(lic[2].country), C1.lic3_country.x, C1.lic3_country.y);
-                  draw(page1, toYYMMDD(lic[2].date),C1.lic3_date.x,    C1.lic3_date.y); }
-
-    if (applicant.hasPreviousSpecialistCert) {
-      const prev = applicant.previousSpecialties?.slice(0, 3) ?? [];
-      if (prev[0]) { draw(page1, safe(prev[0].specialty), C1.prev1_spec.x,    C1.prev1_spec.y);
-                     draw(page1, safe(prev[0].country),   C1.prev1_country.x, C1.prev1_country.y);
-                     draw(page1, toYYMMDD(prev[0].date),  C1.prev1_date.x,    C1.prev1_date.y); }
-      if (prev[1]) { draw(page1, safe(prev[1].specialty), C1.prev2_spec.x,    C1.prev2_spec.y);
-                     draw(page1, safe(prev[1].country),   C1.prev2_country.x, C1.prev2_country.y);
-                     draw(page1, toYYMMDD(prev[1].date),  C1.prev2_date.x,    C1.prev2_date.y); }
-      if (prev[2]) { draw(page1, safe(prev[2].specialty), C1.prev3_spec.x,    C1.prev3_spec.y);
-                     draw(page1, safe(prev[2].country),   C1.prev3_country.x, C1.prev3_country.y);
-                     draw(page1, toYYMMDD(prev[2].date),  C1.prev3_date.x,    C1.prev3_date.y); }
-    }
-
-    // ====== SIDA 2 – Tjänsteförteckning ======
-    type Row = {
-      clinic: string;
-      period: string;
-      percent: number;
-      monthsExact: number;
-      monthsRounded: number;
-      start: Date;
-    };
-
-    const rows: Row[] = placements
-      .filter((pl) => pl?.startDate && pl?.endDate)
-      .map((pl) => {
-        const clinic = safe((pl as any).clinic || (pl as any).note || "-");
-
-        const sISO = safe((pl as any).startDate);
-        const eISO = safe((pl as any).endDate || (pl as any).startDate);
-        const percent = pickPercent(pl);
-        const mExact = monthDiffExact(sISO, eISO) * (percent / 100);
-
-        // Avrunda till närmaste 0,5 månad
-        const mRounded = Math.round(mExact * 2) / 2;
-
-        const period = `${toYYMMDD(sISO)} - ${toYYMMDD(eISO)}`;
-
-        return {
-          clinic,
-          period,
-          percent,
-          monthsExact: mExact,
-          monthsRounded: mRounded,
-          start: new Date(sISO || ""),
-        };
-      })
-      .sort((a, b) => a.start.getTime() - b.start.getTime());
-
-    const totalRounded = rows.reduce((acc, r) => acc + r.monthsRounded, 0);
-
-    const formatMonths = (value: number): string => {
-      if (!Number.isFinite(value)) return "";
-      const whole = Math.floor(value);
-      const frac = value - whole;
-
-      if (Math.abs(frac) < 1e-6) {
-        // Heltal
-        return String(whole);
-      }
-      if (Math.abs(frac - 0.5) < 1e-6) {
-        // Halvtal → kommatecken
-        return `${whole},5`;
-      }
-      // Fallback (om något skulle hamna utanför 0 eller 0,5)
-      return value.toFixed(1).replace(".", ",");
-    };
-
-    const cap = Math.min(C2.maxRows, rows.length);
-    for (let i = 0; i < cap; i++) {
-      const y = C2.startY - i * C2.rowStep;
-      const r = rows[i];
-      draw(page2, r.clinic,                  C2.colClinic,  y);
-      draw(page2, r.period,                  C2.colPeriod,  y);
-      draw(page2, String(r.percent),         C2.colPercent, y);
-      draw(page2, formatMonths(r.monthsRounded), C2.colMonths,  y);
-    }
-
-    draw(page2, formatMonths(totalRounded), C2.sumX, C2.sumY, 11);
-
-
-
-
-    // ====== SIDA 3 – Bilagor ======
-    const numbered = attachments.map((a, idx) => ({ ...a, nr: idx + 1 }));
-    const at = {
-      "Uppnådd specialistkompetens": C3.uppnadd,
-      "Auskultationer":               C3.ausk,
-      "Kliniska tjänstgöringar under handledning": C3.klinik,
-      "Kurser":                       C3.kurser,
-      "Utvecklingsarbete":            C3.kval,
-      "Vetenskapligt arbete":         C3.vet,
-      "Uppfyllda kompetenskrav för specialistläkare från tredje land": C3.third,
-      "Svensk doktorsexamen":         C3.svDoc,
-      "Utländsk doktorsexamen":       C3.foreignDoc,
-      "Utländsk tjänstgöring":        C3.foreignServ,
-      "Individuellt utbildningsprogram": C3.individProg,
-    } as const;
-
-    const writeBilagaList = (pg: any, type: AttachGroup) => {
-  const start = (at as any)[type] as { x: number; y: number } | undefined;
-  if (!start) return;
-  const nums = numbered
-    .filter((x) => x.type === type)
-    .map((x) => String(x.nr));
-  if (!nums.length) return;
-  draw(pg, nums.join(", "), start.x, start.y);
-};
-
-
-    (Object.keys(at) as AttachGroup[]).forEach((k) => writeBilagaList(page3, k));
-
-    draw(page3, toYYMMDD(paidFeeDate), C3.paidFee.x, C3.paidFee.y);
-
-      const todayISO = new Date().toISOString().slice(0, 10);
-
-  const bytes = await pdfDoc.save({ useObjectStreams: false });
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  openPreviewFromBlob(blob);
-
-  } catch (e: any) {
-    console.error(e);
-    alert(e?.message || "Kunde inte skapa PDF.");
   }
-}
+
+
+
+  async function onPrintAnsokan() {
+    if (!validate2021() || !profile) return;
+    try {
+      const { exportBilaga5Certificate } = await import("@/lib/exporters");
+      
+      const blob = await exportBilaga5Certificate(
+        {
+          profile: profile as any,
+          applicant: applicant,
+          cert: cert,
+          placements: placements,
+          courses: courses,
+          attachments: attachments,
+          paidFeeDate: paidFeeDate,
+          btApprovedDate: btApprovedDate,
+        },
+        { output: "blob", filename: "ansokan-bilaga5-2021.pdf" }
+      );
+
+      if (blob instanceof Blob) {
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        setPreviewOpen(true);
+      }
+    } catch (err) {
+      console.error("exportBilaga5Certificate error", err);
+      alert("Det gick inte att skapa ansökan. Kontrollera uppgifterna och försök igen.");
+    }
+  }
 
 
 
@@ -2104,76 +1954,103 @@ const C2 = {
 
   /** ===================== Presets ===================== */
   function rebuildWithPresets(nextChecked: Record<PresetKey, boolean>, nextDates: Record<PresetKey, string>) {
-    const base = attachments.filter((x) => !x.preset);
-    const list: AttachmentItem[] = [];
+    // Använd funktionell uppdatering för att få senaste attachments
+    setAttachments((currentAttachments) => {
+      const base = currentAttachments.filter((x) => !x.preset);
+      const list: AttachmentItem[] = [];
 
-    if (nextChecked.intyg) {
-      list.push({
-        id: "preset-intyg",
-        type: "Uppnådd specialistkompetens",
-        label: "Uppnådd specialistkompetens",
-        date: nextDates.intyg || isoToday(),
-        preset: "intyg",
-      });
-    }
+      if (nextChecked.fullgjordST) {
+        list.push({
+          id: "preset-fullgjordST",
+          type: "Fullgjord specialiseringstjänstgöring",
+          label: "Intyg om fullgjord specialiseringstjänstgöring",
+          date: nextDates.fullgjordST || isoToday(),
+          preset: "fullgjordST",
+        });
+      }
 
-    list.push(...base);
+      if (nextChecked.intyg) {
+        list.push({
+          id: "preset-intyg",
+          type: "Uppnådd specialistkompetens",
+          label: "Uppnådd specialistkompetens",
+          date: nextDates.intyg || isoToday(),
+          preset: "intyg",
+        });
+      }
 
-    if (nextChecked.svDoc) {
-      list.push({
-        id: "preset-svdoc",
-        type: "Svensk doktorsexamen",
-        label: "Godkänd svensk doktorsexamen",
-        date: nextDates.svDoc || isoToday(),
-        preset: "svDoc",
-      });
-    }
+      if (nextChecked.sta3) {
+        list.push({
+          id: "preset-sta3",
+          type: "Delmål STa3",
+          label: "Intyg delmål STa3",
+          date: nextDates.sta3 || isoToday(),
+          preset: "sta3",
+        });
+      }
 
-    if (nextChecked.foreignDocEval) {
-      list.push({
-        id: "preset-foreignDocEval",
-        type: "Utländsk doktorsexamen",
-        label: "Bedömning av utländsk doktorsexamen",
-        date: nextDates.foreignDocEval || isoToday(),
-        preset: "foreignDocEval",
-      });
-    }
+      list.push(...base);
 
-    if (nextChecked.foreignService) {
-      list.push({
-        id: "preset-foreignService",
-        type: "Utländsk tjänstgöring",
-        label: "Intyg om utländsk tjänstgöring",
-        date: nextDates.foreignService || isoToday(),
-        preset: "foreignService",
-      });
-    }
+      if (nextChecked.svDoc) {
+        list.push({
+          id: "preset-svdoc",
+          type: "Svensk doktorsexamen",
+          label: "Godkänd svensk doktorsexamen",
+          date: nextDates.svDoc || isoToday(),
+          preset: "svDoc",
+        });
+      }
 
-    if (nextChecked.thirdCountry) {
-      list.push({
-        id: "preset-thirdCountry",
-        type: "Uppfyllda kompetenskrav för specialistläkare från tredje land",
-        label: "Uppfyllda kompetenskrav för specialistläkare från tredje land",
-        date: nextDates.thirdCountry || isoToday(),
-        preset: "thirdCountry",
-      });
-    }
+      if (nextChecked.foreignDocEval) {
+        list.push({
+          id: "preset-foreignDocEval",
+          type: "Utländsk doktorsexamen",
+          label: "Bedömning av utländsk doktorsexamen",
+          date: nextDates.foreignDocEval || isoToday(),
+          preset: "foreignDocEval",
+        });
+      }
 
-    if (nextChecked.individProg) {
-      list.push({
-        id: "preset-individProg",
-        type: "Individuellt utbildningsprogram",
-        label: "Individuellt utbildningsprogram",
-        date: nextDates.individProg || isoToday(),
-        preset: "individProg",
-      });
-    }
+      if (nextChecked.foreignService) {
+        list.push({
+          id: "preset-foreignService",
+          type: "Utländsk tjänstgöring",
+          label: "Intyg om utländsk tjänstgöring",
+          date: nextDates.foreignService || isoToday(),
+          preset: "foreignService",
+        });
+      }
 
-    setAttachments(
-      userReordered
-        ? list
-        : list.slice().sort((a, b) => GROUP_ORDER.indexOf(a.type) - GROUP_ORDER.indexOf(b.type))
-    );
+      if (nextChecked.thirdCountry) {
+        list.push({
+          id: "preset-thirdCountry",
+          type: "Delmål för specialistläkare från tredjeland",
+          label: "Delmål för specialistläkare från tredjeland",
+          date: nextDates.thirdCountry || isoToday(),
+          preset: "thirdCountry",
+        });
+      }
+
+      if (nextChecked.individProg) {
+        list.push({
+          id: "preset-individProg",
+          type: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
+          label: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
+          date: nextDates.individProg || isoToday(),
+          preset: "individProg",
+        });
+      }
+
+      // Säkerställ att "Fullgjord specialiseringstjänstgöring" alltid hamnar först
+      const fullgjordST = list.filter((a) => a.type === "Fullgjord specialiseringstjänstgöring");
+      const rest = list.filter((a) => a.type !== "Fullgjord specialiseringstjänstgöring");
+      
+      const finalList = userReordered
+        ? [...fullgjordST, ...rest] // Alltid först även vid manuell omordning
+        : [...fullgjordST, ...rest.slice().sort(sortByBilagaNumber2021)]; // Sortera resten
+      
+      return finalList;
+    });
     setDirty(true);
   }
 
@@ -2204,6 +2081,104 @@ const C2 = {
 
 
 
+/** ===================== Baseline och restore ===================== */
+const currentSnapshot = () => {
+  return {
+    placements: structuredClone(placements),
+    courses: structuredClone(courses),
+    applicant: structuredClone(applicant),
+    cert: structuredClone(cert),
+    attachments: structuredClone(attachments),
+    paidFeeDate,
+    btApprovedDate,
+    presetChecked: structuredClone(presetChecked),
+    presetDates: structuredClone(presetDates),
+    tab,
+    userReordered,
+    sta3OtherText,
+    sta3HowVerifiedText,
+    thirdCountryDelmalCodes: Array.from(thirdCountryMilestones).join(", "), // Konvertera Set till sträng för sparning
+    thirdCountryActivities,
+    thirdCountryVerification,
+  };
+};
+
+const takeBaseline = () => {
+  baselineRef.current = currentSnapshot();
+};
+
+const restoreBaseline = () => {
+  const b = baselineRef.current;
+  if (!b) return;
+  setPlacements(b.placements);
+  setCourses(b.courses);
+  setApplicant(b.applicant);
+  setCert(b.cert);
+  setAttachments(b.attachments);
+  setPaidFeeDate(b.paidFeeDate);
+  setBtApprovedDate(b.btApprovedDate ?? isoToday());
+  setPresetChecked(b.presetChecked);
+  setPresetDates(b.presetDates);
+  setTab(b.tab);
+  setUserReordered(b.userReordered);
+  setSta3OtherText(b.sta3OtherText);
+  setSta3HowVerifiedText(b.sta3HowVerifiedText);
+  setThirdCountryDelmalCodes(b.thirdCountryDelmalCodes);
+  // Konvertera från sträng till Set
+  if (b.thirdCountryDelmalCodes) {
+    const codes = b.thirdCountryDelmalCodes.split(",").map((c: string) => c.trim()).filter((c: string) => Boolean(c));
+    setThirdCountryMilestones(new Set<string>(codes));
+  } else {
+    setThirdCountryMilestones(new Set<string>());
+  }
+  setThirdCountryActivities(b.thirdCountryActivities);
+  setThirdCountryVerification(b.thirdCountryVerification);
+};
+
+/** Stäng med varning och ev. rollback */
+const handleRequestClose = () => {
+  if (!dirty) return onClose();
+  const goOn = window.confirm(
+    "Det finns osparade ändringar. Vill du stänga utan att spara?"
+  );
+  if (goOn) {
+    restoreBaseline(); // rulla tillbaka
+    setDirty(false);
+    onClose();
+  }
+};
+
+  /** Uppdatera dirty-status baserat på baseline */
+  useEffect(() => {
+    if (!open || !baselineRef.current) return;
+    const b = baselineRef.current;
+    const cur = currentSnapshot();
+    try {
+      const isDirty = JSON.stringify(cur) !== JSON.stringify(b);
+      setDirty(isDirty);
+    } catch {
+      setDirty(true);
+    }
+  }, [
+    open,
+    placements,
+    courses,
+    applicant,
+    cert,
+    attachments,
+    paidFeeDate,
+    btApprovedDate,
+    presetChecked,
+    presetDates,
+    tab,
+    userReordered,
+    sta3OtherText,
+    sta3HowVerifiedText,
+    thirdCountryMilestones,
+    thirdCountryActivities,
+    thirdCountryVerification,
+  ]);
+
 /** ===================== Persistens ===================== */
 async function onSaveAll() {
   // Spara till IndexedDB istället för localStorage
@@ -2224,7 +2199,7 @@ async function onSaveAll() {
     sta3OtherText,
     sta3HowVerifiedText,
     // Third country data
-    thirdCountryDelmalCodes,
+    thirdCountryDelmalCodes: Array.from(thirdCountryMilestones).join(", "), // Konvertera Set till sträng för sparning
     thirdCountryActivities,
     thirdCountryVerification,
     savedAt: new Date().toISOString(),
@@ -2233,6 +2208,7 @@ async function onSaveAll() {
   try {
     await (db as any).specialistApplication?.put?.(payload);
     localStorage.setItem(COLORMAP_KEY, JSON.stringify(GROUP_COLORS));
+    takeBaseline(); // Spara ny baseline efter sparning
   } catch (err) {
     console.error("Kunde inte spara specialistansökan:", err);
   }
@@ -2244,13 +2220,13 @@ async function onSaveAll() {
 
   /** ===================== Render ===================== */
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
-    >
+      <div
+        ref={overlayRef}
+        className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
+        onClick={(e) => {
+          if (e.target === overlayRef.current) handleRequestClose();
+        }}
+      >
       <div
         className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl"
         data-modal-panel
@@ -2271,7 +2247,7 @@ async function onSaveAll() {
 </button>
 
     <button
-      onClick={onClose}
+      onClick={handleRequestClose}
       className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
     >
       Stäng
@@ -2285,8 +2261,8 @@ async function onSaveAll() {
           {[
             { id: "applicant",   label: "Uppgifter om sökande" },
             { id: "signers",     label: "Intygande personer" },
-            { id: "sta3",        label: "STa3" },
-            ...(profile?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredje land" }] : []),
+            { id: "sta3",        label: "Delmål STa3" }, // STa3 finns i 2021
+            ...((profile as any)?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredje land" }] : []),
             { id: "attachments", label: "Ordna bilagor" },
           ].map((t) => (
             <button
@@ -2326,17 +2302,29 @@ async function onSaveAll() {
                   <ReadonlyInput value={String((profile as any)?.email ?? "")} label="E-postadress" />
                   <ReadonlyInput value={String((profile as any)?.homeClinic ?? "")} label="Arbetsplats" />
                   <ReadonlyInput value={String((profile as any)?.mobile ?? "")} label="Mobiltelefon" />
-                  <ReadonlyInput value={String((profile as any)?.phoneHome ?? "")} label="Telefon (bostad)" />
-                  <ReadonlyInput value={String((profile as any)?.phoneWork ?? "")} label="Telefon (arbete)" />
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className="text-xs font-semibold text-slate-700">Telefonnummer till arbetsplats</label>
+                    <input
+                      type="text"
+                      value={applicant.phoneWork}
+                      onChange={(e) => setApplicant((prev) => ({ ...prev, phoneWork: e.target.value }))}
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder=""
+                    />
+                  </div>
                 </div>
               </div>
 
 
-              {/* Examen, legitimation och specialistkompetens */}
+              {/* Examen, legitimation och specialistkompetens - visa endast om något är ifyllt */}
+              {((profile as any)?.medDegreeCountry || (profile as any)?.medDegreeDate || 
+                (applicant.licenseCountries.length > 0 && applicant.licenseCountries.some(lc => lc.country || lc.date)) ||
+                (applicant.previousSpecialties && applicant.previousSpecialties.length > 0 && applicant.previousSpecialties.some(ps => ps.specialty || ps.country || ps.date))) && (
               <div className="rounded-lg border border-slate-200 p-3">
                 <h3 className="mb-2 text-sm font-extrabold">Examen, legitimation och specialistkompetens</h3>
 
                 {/* Läkarexamen – land + datum (readonly från Profil) */}
+                {((profile as any)?.medDegreeCountry || (profile as any)?.medDegreeDate) && (
                 <div className="mb-3 grid grid-cols-[minmax(0,1fr)_220px] gap-2">
                   <ReadonlyInput
                     label="Land för läkarexamen"
@@ -2344,18 +2332,19 @@ async function onSaveAll() {
                   />
                   <div className="self-end w-[220px]">
                     <div
-                      className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
+                      className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700 cursor-help"
                       aria-readonly="true"
-                      title={'Ändras i "Profil"'}
+                      title="Uppgifterna ändras i Profil"
                     >
                       {String((profile as any)?.medDegreeDate ?? "") || "—"}
                     </div>
                   </div>
                 </div>
+                )}
 
 
                 {/* Legitimation – readonly, hämtas från profil/applicant.licenseCountries */}
-                {applicant.licenseCountries.length > 0 && (
+                {applicant.licenseCountries.length > 0 && applicant.licenseCountries.some(lc => lc.country || lc.date) && (
                   <div className="grid gap-y-2">
                     {applicant.licenseCountries.map((lc, idx) => (
                       <div key={lc.id} className="grid grid-cols-[minmax(0,1fr)_220px] gap-2">
@@ -2365,9 +2354,9 @@ async function onSaveAll() {
                         />
                         <div className="self-end w-[220px]">
                           <div
-                            className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
+                            className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700 cursor-help"
                             aria-readonly="true"
-                            title={'Ändras i "Profil"'}
+                            title="Uppgifterna ändras i Profil"
                           >
                             {lc.date || "—"}
                           </div>
@@ -2379,7 +2368,8 @@ async function onSaveAll() {
 
                 {/* Tidigare specialistbevis – readonly om det finns i applicant.previousSpecialties */}
                 {applicant.previousSpecialties &&
-                  applicant.previousSpecialties.length > 0 && (
+                  applicant.previousSpecialties.length > 0 &&
+                  applicant.previousSpecialties.some(ps => ps.specialty || ps.country || ps.date) && (
                     <div className="mt-4 rounded-lg border border-slate-200 p-3">
                       <div className="mb-2 text-[13px] font-semibold text-slate-700">
                         Har sedan tidigare bevis om specialistkompetens
@@ -2400,9 +2390,9 @@ async function onSaveAll() {
                             />
                             <div className="w-[220px] self-end">
                               <div
-                                className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
+                                className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700 cursor-help"
                                 aria-readonly="true"
-                                title={'Ändras i "Profil"'}
+                                title="Uppgifterna ändras i Profil"
                               >
                                 {row.date || "—"}
                               </div>
@@ -2413,6 +2403,7 @@ async function onSaveAll() {
                     </div>
                   )}
               </div>
+              )}
             </div>
           )}
 
@@ -2420,27 +2411,7 @@ async function onSaveAll() {
           {/* ========== Intygande personer ========== */}
           {tab === "signers" && (
             <div className="grid grid-cols-1 gap-4">
-              {/* Studierektor */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Studierektor</h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <ReadonlyInput
-  label="Namn"
-  value={
-    (profile as any)?.studyDirector
-      || [ (profile as any)?.studyDirectorFirstName, (profile as any)?.studyDirectorLastName ].filter(Boolean).join(" ")
-      || cert.studyDirector
-      || ""
-  }
-/>
-
-
-
-                  <ReadonlyInput label="Tjänsteställe" value={(profile as any)?.homeClinic || ""} />
-                </div>
-              </div>
-
-                            {/* Huvudansvarig handledare */}
+              {/* Huvudansvarig handledare */}
               <div className="rounded-lg border border-slate-200 p-3">
                 <h3 className="mb-2 text-sm font-extrabold">Huvudansvarig handledare</h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -2454,15 +2425,21 @@ async function onSaveAll() {
                     }
                   />
 
-                  <ReadonlyInput
+                  <LabeledInputLocal
                     label="Tjänsteställe"
                     value={
                       String(
+                        cert.mainSupervisor.workplace ||
                         (profile as any)?.supervisorWorkplace
                           || (profile as any)?.homeClinic
-                          || cert.mainSupervisor.workplace
                           || ""
                       )
+                    }
+                    onCommit={(v) =>
+                      setCert((s) => ({
+                        ...s,
+                        mainSupervisor: { ...s.mainSupervisor, workplace: v },
+                      }))
                     }
                   />
 
@@ -2492,133 +2469,79 @@ async function onSaveAll() {
                     placeholder=""
                     inputMode="numeric"
                   />
-                  <LabeledInputLocal
-                    label="Personnummer"
-                    value={cert.mainSupervisor.personalNumber}
-                    onCommit={(v) =>
-                      setCert((s) => ({
-                        ...s,
-                        mainSupervisor: { ...s.mainSupervisor, personalNumber: v },
-                      }))
-                    }
-                  />
                 </div>
               </div>
 
-
-              {/* Verksamhetschef / utsedd specialist */}
+              {/* Intygsutfärdande specialistläkare */}
               <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Verksamhetschef / utsedd specialist</h3>
-
-                <select
-                  className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
-                  value={cert.managerMode}
-                  onChange={(e) => {
-                    const v = (e.target as HTMLSelectElement).value as ManagerMode;
-                    // Markera att användaren nu aktivt valt läge -> init-logik får inte skriva över detta
-                    managerModeChangedRef.current = true;
-                    setCert((s) => ({
-                      ...s,
-                      managerMode: v,
-                    }));
-                    setDirty(true);
-                  }}
-                >
-
-
-                  <option value="self">
-                    Verksamhetschefen har specialistkompetens och intygar själv ST-läkarens specialistkompetens.
-                  </option>
-                  <option value="appointed">
-                    Verksamhetschefen har utsett en läkare med specialistkompetens att bedöma ST-läkarens
-                    specialistkompetens
-                  </option>
-                </select>
-
-                {cert.managerMode === "self" ? (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <LabeledInputLocal
-                      label="Verksamhetschefens namn"
-                      value={cert.managerSelf.name}
-                      onCommit={(v) => setCert((s) => ({ ...s, managerSelf: { ...s.managerSelf, name: v } }))}
-                    />
-                    <LabeledInputLocal
-                      label="Tjänsteställe"
-                      value={cert.managerSelf.workplace}
-                      onCommit={(v) => setCert((s) => ({ ...s, managerSelf: { ...s.managerSelf, workplace: v } }))}
-                    />
-                    <LabeledInputLocal
-                      label="Specialitet"
-                      value={cert.managerSelf.specialty}
-                      onCommit={(v) => setCert((s) => ({ ...s, managerSelf: { ...s.managerSelf, specialty: v } }))}
-                    />
-                    <LabeledInputLocal
-                      label="Personnummer"
-                      value={cert.managerSelf.personalNumber}
-                      onCommit={(v) =>
-                        setCert((s) => ({ ...s, managerSelf: { ...s.managerSelf, personalNumber: v } }))
-                      }
+                <h3 className="mb-2 text-sm font-extrabold">
+                  Intygsutfärdande specialistläkare som, utöver huvudhandledare, bedömer att sökanden har uppnått samtliga delmål i målbeskrivningen för specialiteten
+                </h3>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className="text-xs font-semibold text-slate-700">Namn</label>
+                    <input
+                      type="text"
+                      value={cert.certifyingSpecialist.name}
+                      onChange={(e) => setCert((prev) => ({
+                        ...prev,
+                        certifyingSpecialist: { ...prev.certifyingSpecialist, name: e.target.value }
+                      }))}
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder=""
                     />
                   </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <LabeledInputLocal
-                        label="Verksamhetschef"
-                        value={cert.managerAppointed.managerName}
-                        onCommit={(v) =>
-                          setCert((s) => ({ ...s, managerAppointed: { ...s.managerAppointed, managerName: v } }))
-                        }
-                      />
-                      <LabeledInputLocal
-                        label="Verksamhetschefens tjänsteställe"
-                        value={cert.managerAppointed.managerWorkplace}
-                        onCommit={(v) =>
-                          setCert((s) => ({ ...s, managerAppointed: { ...s.managerAppointed, managerWorkplace: v } }))
-                        }
-                      />
-                    </div>
-                    <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <LabeledInputLocal
-                        label="Utsedd specialistläkare"
-                        value={cert.managerAppointed.specialistName}
-                        onCommit={(v) =>
-                          setCert((s) => ({ ...s, managerAppointed: { ...s.managerAppointed, specialistName: v } }))
-                        }
-                      />
-                      <LabeledInputLocal
-                        label="Utsedd specialistläkares specialitet"
-                        value={cert.managerAppointed.specialistSpecialty}
-                        onCommit={(v) =>
-                          setCert((s) => ({
-                            ...s,
-                            managerAppointed: { ...s.managerAppointed, specialistSpecialty: v },
-                          }))
-                        }
-                      />
-                      <LabeledInputLocal
-                        label="Utsedd specialistläkares tjänsteställe"
-                        value={cert.managerAppointed.specialistWorkplace}
-                        onCommit={(v) =>
-                          setCert((s) => ({
-                            ...s,
-                            managerAppointed: { ...s.managerAppointed, specialistWorkplace: v },
-                          }))
-                        }
-                      />
-                      <LabeledInputLocal
-                        label="Utsedd specialistläkares personnummer"
-                        value={cert.managerAppointed.specialistPersonalNumber}
-                        onCommit={(v) =>
-                          setCert((s) => ({
-                            ...s,
-                            managerAppointed: { ...s.managerAppointed, specialistPersonalNumber: v },
-                          }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className="text-xs font-semibold text-slate-700">Specialitet</label>
+                    <input
+                      type="text"
+                      value={cert.certifyingSpecialist.specialty}
+                      onChange={(e) => setCert((prev) => ({
+                        ...prev,
+                        certifyingSpecialist: { ...prev.certifyingSpecialist, specialty: e.target.value }
+                      }))}
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder=""
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-slate-700">Tjänsteställe</label>
+                    <input
+                      type="text"
+                      value={cert.certifyingSpecialist.workplace}
+                      onChange={(e) => setCert((prev) => ({
+                        ...prev,
+                        certifyingSpecialist: { ...prev.certifyingSpecialist, workplace: e.target.value }
+                      }))}
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder=""
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Verksamhetschef */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <h3 className="mb-2 text-sm font-extrabold">Verksamhetschef</h3>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <ReadonlyInput
+                    label="Namn"
+                    value={
+                      (profile as any)?.verksamhetschef ||
+                      (profile as any)?.manager ||
+                      cert.managerSelf?.name ||
+                      ""
+                    }
+                  />
+                  <ReadonlyInput
+                    label="Tjänsteställe"
+                    value={String((profile as any)?.homeClinic ?? "")}
+                  />
+                  <ReadonlyInput
+                    label="Specialitet"
+                    value={String((profile as any)?.specialty ?? (profile as any)?.speciality ?? "")}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -2634,6 +2557,10 @@ async function onSaveAll() {
               sta3HowVerifiedText={sta3HowVerifiedText}
               setSta3HowVerifiedText={setSta3HowVerifiedText}
               onPreview={(blob) => openPreviewFromBlob(blob)}
+              presetChecked={presetChecked}
+              presetDates={presetDates}
+              setPresetChecked={setPresetChecked}
+              rebuildWithPresets={rebuildWithPresets}
             />
           )}
 
@@ -2641,8 +2568,11 @@ async function onSaveAll() {
           {tab === "thirdCountry" && (
             <ThirdCountryTabContent
               profile={profile}
-              thirdCountryDelmalCodes={thirdCountryDelmalCodes}
-              setThirdCountryDelmalCodes={setThirdCountryDelmalCodes}
+              goals={goals}
+              thirdCountryMilestones={thirdCountryMilestones}
+              setThirdCountryMilestones={setThirdCountryMilestones}
+              thirdCountryMilestonePickerOpen={thirdCountryMilestonePickerOpen}
+              setThirdCountryMilestonePickerOpen={setThirdCountryMilestonePickerOpen}
               thirdCountryActivities={thirdCountryActivities}
               setThirdCountryActivities={setThirdCountryActivities}
               thirdCountryVerification={thirdCountryVerification}
@@ -2679,7 +2609,7 @@ async function onSaveAll() {
                           </div>
                         </div>
 
-                        {/* Kort */}
+                        {/* Kort med två textfält */}
                         <div
                           onPointerDown={(e) => onPointerDownCard(idx, e)}
                           className={`rounded-xl border p-1.5 shadow-sm transition-all select-none ${
@@ -2702,14 +2632,16 @@ async function onSaveAll() {
                         >
                           <div className="flex items-center gap-2">
                             <div className="select-none text-slate-500 leading-none">≡</div>
+                            {/* Vänster textfält med ljus bakgrund för bilaganamn */}
                             <span
-                              className="shrink-0 rounded-md border px-1.5 py-[1px] text-[11px] font-semibold text-slate-700 select-none"
-                              style={(() => { const c = colorsFor(a.type); return { backgroundColor: c.pillBg, borderColor: c.pillBd }; })()}
+                              className="shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold text-slate-700 select-none bg-slate-50"
+                              style={{ borderColor: "hsl(220 13% 80%)" }}
                             >
-                              {a.type}
+                              {getBilagaName2021(a.type) || a.type}
                             </span>
+                            {/* Höger textfält för label */}
                             <span className="min-w-0 grow truncate text-[13px] font-medium text-slate-900 select-none">
-                              {a.label}
+                              {formatAttachmentLabel2021(a)}
                             </span>
                             <span className="ml-auto shrink-0 tabular-nums text-[12px] text-slate-700/80 select-none">
                               {a.date || "—"}
@@ -2730,6 +2662,22 @@ async function onSaveAll() {
               <div className="rounded-lg border border-slate-200 p-3">
                 <div className="mb-2 text-sm font-extrabold">Lägg till bilaga</div>
 
+                {/* Intyg om fullgjord specialiseringstjänstgöring */}
+                <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
+                  <label className="inline-flex items-center gap-2 text-[13px]">
+                    <input type="checkbox" checked={presetChecked.fullgjordST ?? true} onChange={() => togglePreset("fullgjordST")} />
+                    <span>Intyg om fullgjord specialiseringstjänstgöring</span>
+                  </label>
+                  <div className="w-[220px]">
+                    <CalendarDatePicker
+                      value={presetDates.fullgjordST}
+                      onChange={(iso) => updatePresetDate("fullgjordST", iso)}
+                      align="right"
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
+                    />
+                  </div>
+                </div>
+
                 {/* Intyg */}
                 <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
                   <label className="inline-flex items-center gap-2 text-[13px]">
@@ -2746,15 +2694,57 @@ async function onSaveAll() {
                   </div>
                 </div>
 
-                {(["svDoc", "foreignDocEval", "foreignService", "thirdCountry", "individProg"] as PresetKey[]).map(
+                {/* Intyg delmål STa3 */}
+                <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
+                  <label className="inline-flex items-center gap-2 text-[13px]">
+                    <input type="checkbox" checked={presetChecked.sta3} onChange={() => togglePreset("sta3")} />
+                    <span>Intyg delmål STa3</span>
+                  </label>
+                  <div className="w-[220px]">
+                    <CalendarDatePicker
+                      value={presetDates.sta3}
+                      onChange={(iso) => updatePresetDate("sta3", iso)}
+                      align="right"
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Delmål för specialistläkare från tredjeland (om användaren är specialistläkare från tredjeland) */}
+                {(profile as any)?.isThirdCountrySpecialist && (
+                  <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-[13px]">
+                      <input type="checkbox" checked={presetChecked.thirdCountry} onChange={() => togglePreset("thirdCountry")} />
+                      <span>Delmål för specialistläkare från tredjeland</span>
+                    </label>
+                    <div className="w-[220px]">
+                      <CalendarDatePicker
+                        value={presetDates.thirdCountry}
+                        onChange={(iso) => updatePresetDate("thirdCountry", iso)}
+                        align="right"
+                        className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Ordning: Svensk doktorsexamen, Bedömning av utländsk doktorsexamen, Utländsk tjänstgöring, Individuellt utbildningsprogram för specialistläkare från tredjeland */}
+                {(["svDoc", "foreignDocEval", "foreignService", "individProg"] as PresetKey[]).map(
                   (k) => {
+                    // Dölj individProg om användaren inte är specialistläkare från tredjeland
+                    if (k === "individProg" && !(profile as any)?.isThirdCountrySpecialist) {
+                      return null;
+                    }
+
                     const labels: Record<PresetKey, string> = {
+                      fullgjordST: "Intyg om fullgjord specialiseringstjänstgöring",
                       intyg: "Intyg om uppnådd specialistkompetens",
-                      svDoc: "Godkänd svensk doktorsexamen",
+                      sta3: "Intyg delmål STa3",
+                      svDoc: "Svensk doktorsexamen",
                       foreignDocEval: "Bedömning av utländsk doktorsexamen",
-                      foreignService: "Intyg om utländsk tjänstgöring",
-                      thirdCountry: "Uppfyllda kompetenskrav för specialistläkare från tredje land",
-                      individProg: "Individuellt utbildningsprogram",
+                      foreignService: "Utländsk tjänstgöring",
+                      thirdCountry: "Delmål för specialistläkare från tredjeland",
+                      individProg: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
                     };
                     return (
                       <div key={k} className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
@@ -2774,6 +2764,21 @@ async function onSaveAll() {
                     );
                   }
                 )}
+              </div>
+
+              {/* Datum för godkänd BT */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <div className="grid grid-cols-[1fr_220px] items-center gap-2">
+                  <span className="whitespace-nowrap text-sm text-slate-700">Datum för godkänd BT</span>
+                  <div className="w-[220px] justify-self-end">
+                    <CalendarDatePicker
+                      value={btApprovedDate}
+                      onChange={setBtApprovedDate}
+                      align="right"
+                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Datum för betald avgift */}
@@ -2799,10 +2804,16 @@ async function onSaveAll() {
           <div />
           <div className="flex items-center gap-2">
             <button
+              onClick={onPrintFullgjord}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+            >
+              Intyg fullgjord ST
+            </button>
+            <button
               onClick={onPrintIntyg}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
             >
-              Intyg om uppnådd specialistkompetens
+              Intyg uppnådd ST
             </button>
             <button
               onClick={onPrintAnsokan}
