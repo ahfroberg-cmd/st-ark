@@ -16,6 +16,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { aboutContent } from "@/lib/aboutContent";
 
 type TabId = "instruction" | "about" | "contact" | "download" | "privacy" | "license";
 
@@ -128,33 +129,20 @@ export default function AboutModal({ open, onClose }: Props) {
         <section className="max-h-[75vh] overflow-auto p-4">
           {tab === "instruction" && (
             <div className="space-y-4">
-              <p className="text-slate-700">Instruktionsvideo kommer inom kort.</p>
+              <p className="text-slate-700">{aboutContent.instruction.text}</p>
             </div>
           )}
 
           {tab === "about" && (
             <div className="space-y-4 text-slate-700">
-              <p>
-                ST-ARK har skapats som ett öppet verktyg för dokumentation och planering av läkarnas specialiseringstjänstgöring. Kodbasen är fritt tillgänglig för insyn och vidareutveckling, vilket gör det möjligt att anpassa efter lokala behov och bidra till förbättring av programmet.
-              </p>
-              <p>
-                Skapare är Andreas Fröberg, specialist i psykiatri och verksam som sektionschef på Psykiatri Psykos, Sahlgrenska Universitetssjukhuset. Utan programmeringserfarenhet och på kort tid har appen tagits fram med hjälp av språkmodellen ChatGPT 5.1 och den AI-drivna editorn Cursor. Projektet vill visa upp hur den snabba teknikutvecklingen gör det möjligt att bygga avancerade digitala tjänster på kort tid, även med begränsade resurser och teknisk kunskap.
-              </p>
-              <p>
-                Arbetet med applikationen pekar också på en större förändring i omvärlden. När allt fler kan utveckla egna digitala produkter med liten insats kommer användare, medarbetare och samarbetspartner att jämföra offentliga tjänster med en tekniknivå som tidigare bara fanns hos större organisationer. Detta innebär att förväntningarna på offentlig sektor förändras.
-              </p>
-              <p>
-                För att behålla legitimitet och relevans behöver offentliga verksamheter tydligt visa vad som är kärnan i det offentliga uppdraget. Värden som rättssäkerhet, likvärdighet, kontinuitet, öppenhet och skydd av känsliga uppgifter måste också avspeglas i digitala tjänster som upplevs moderna och användbara.
-              </p>
-              <p>
-                Projektet visar att offentlig sektor har goda möjligheter att själva utveckla digitala lösningar som är nära verksamhetens behov. Att skapa system inifrån organisationen kan ge högre flexibilitet, kortare ledtider och bättre kontroll. Då digitala system inte har någon marginalkostnad ger det också möjlighet att dela med sig till närliggande verksamheter, såsom över kommun- och regiongränserna.
-              </p>
-              <p>
-                Applikationen fungerar därför både som ett praktiskt verktyg och som ett exempel på vilken kapacitet som redan finns att tillgå och möjligheter att utveckla egna verktyg in-house, liksom hur denna kapacitet formar omvärldens förväntningar på framtida digitala tjänster inom offentlig sektor.
-              </p>
-              <p className="mt-4 font-semibold text-slate-900">
-                Det finns inget kommersiellt intresse i applikationen.
-              </p>
+              {aboutContent.about.paragraphs.map((paragraph, index) => (
+                <p
+                  key={index}
+                  className={index === aboutContent.about.commercialInterestIndex ? "font-semibold text-slate-900" : ""}
+                >
+                  {paragraph}
+                </p>
+              ))}
             </div>
           )}
 
@@ -220,27 +208,23 @@ export default function AboutModal({ open, onClose }: Props) {
 
           {tab === "download" && (
             <div className="space-y-4 text-slate-700">
-              <p>
-                Ladda ned projektet för lokal installation och vidareutveckling. Även för någon som varken kan programmera eller har större datorvana är det tack vare AI-baserade språkmodeller enkelt att själv använda och vidareutveckla appen.
-              </p>
+              <p>{aboutContent.download.intro}</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h3 className="mb-2 text-sm font-extrabold text-slate-900">
-                  Så här gör du om du inte har datorvana:
+                  {aboutContent.download.steps.title}
                 </h3>
                 <ol className="list-decimal space-y-2 pl-5">
-                  <li>Ladda ned projektet som en komprimerad fil här.</li>
-                  <li>
-                    Öppna någon större AI-baserad språkmodell, till exempel ChatGPT, Claude, Gemini eller Mistral.
-                  </li>
-                  <li>Kopiera in zip-filen i chatrutan och skriv in följande text:</li>
+                  {aboutContent.download.steps.items.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
                 </ol>
                 <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm">
-                  Denna zip-fil är ett open source-projekt. Jag vill göra ändringar i appen utan att kunna programmera. Ge mig mycket enkla steg för hur jag kan ändra text, lägga till nya fält eller justera funktioner. Föreslå gärna användning av en enkel kodeditor med inbyggd AI och skriv exakt vad jag ska göra och vilken kod som ska ersättas med vad.
+                  {aboutContent.download.steps.exampleText}
                 </div>
               </div>
               <div className="mt-4">
                 <a
-                  href="https://github.com/ahfroberg-cmd/st-ark/archive/refs/heads/main.zip"
+                  href={aboutContent.download.githubZipUrl}
                   download
                   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
                 >
@@ -252,35 +236,24 @@ export default function AboutModal({ open, onClose }: Props) {
 
           {tab === "privacy" && (
             <div className="space-y-4 text-slate-700">
-              <p>
-                Applikationen lagrar inga personuppgifter på externa servrar. All information hanteras lokalt i användarens webbläsare eller i filer som användaren själv sparar och förvaltar.
-              </p>
-              <p>
-                Vid användning av funktioner för dokumenttolkning skickas uppladdade dokument till en extern OCR-tjänst (ocr.space) för textigenkänning. Denna överföring sker på användarens initiativ och enbart för att möjliggöra den efterfrågade funktionen. Applikationen sparar inte de dokument eller uppgifter som behandlas av OCR-tjänsten.
-              </p>
-              <p>
-                Användaren ansvarar själv för vilken information som laddas upp, hur resultatet används samt för lagring och informationssäkerhet i sin egen miljö.
-              </p>
+              {aboutContent.privacy.paragraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
             </div>
           )}
 
           {tab === "license" && (
             <div className="space-y-4 text-slate-700">
-              <p>
-                Projektet omfattas av Apache License 2.0. Det innebär bland annat:
-              </p>
+              <p>{aboutContent.license.intro}</p>
               <ul className="list-disc space-y-2 pl-5">
-                <li>Du får kopiera, ändra och distribuera projektet.</li>
-                <li>Du får använda koden i egna applikationer, även kommersiella.</li>
-                <li>Du måste inkludera licenstexten när du sprider vidare din version.</li>
-                <li>
-                  Du får inte framställa det som att den ursprungliga utvecklaren ansvarar för din vidareutveckling eller drift.
-                </li>
+                {aboutContent.license.points.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
               </ul>
               <p>
                 Den fullständiga licenstexten finns i filen{" "}
                 <a
-                  href="https://github.com/ahfroberg-cmd/st-ark/blob/main/LICENSE"
+                  href={aboutContent.license.licenseUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sky-600 hover:text-sky-700 underline"
