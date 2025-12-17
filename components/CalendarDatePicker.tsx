@@ -321,8 +321,8 @@ export default function CalendarDatePicker({
 
             {/* Header: månad + år, med navigering */}
             <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
-              <button type="button" onClick={() => navYear(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-700 hover:border-slate-300 hover:bg-white" title="Föregående år">«</button>
-              <button type="button" onClick={() => navMonth(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-700 hover:border-slate-300 hover:bg-white" title="Föregående månad">‹</button>
+              <button type="button" onClick={() => navYear(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Föregående år">«</button>
+              <button type="button" onClick={() => navMonth(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Föregående månad">‹</button>
 
               <div className="mx-1 flex items-center gap-2">
                 <div className="min-w-[8ch] text-sm font-semibold capitalize">{capitalize(monthLabel)}</div>
@@ -331,14 +331,14 @@ export default function CalendarDatePicker({
                 </select>
               </div>
 
-              <button type="button" onClick={() => navMonth(1)} className="ml-auto h-7 w-7 rounded-md border border-transparent text-slate-700 hover:border-slate-300 hover:bg-white" title="Nästa månad">›</button>
-              <button type="button" onClick={() => navYear(1)} className="h-7 w-7 rounded-md border border-transparent text-slate-700 hover:border-slate-300 hover:bg-white" title="Nästa år">»</button>
+              <button type="button" onClick={() => navMonth(1)} className="ml-auto h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Nästa månad">›</button>
+              <button type="button" onClick={() => navYear(1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Nästa år">»</button>
             </div>
 
             {/* Veckodagar */}
             <div className="grid grid-cols-7 gap-px bg-slate-200 px-px py-px">
               {weekdays.map((w, i) => (
-                <div key={i} className="select-none bg-white py-1 text-center text-xs font-semibold uppercase tracking-wide text-slate-500" title={w}>
+                <div key={i} className="select-none bg-white py-1 text-center text-xs font-semibold uppercase tracking-wide text-slate-900" title={w}>
                   {w.slice(0, 2)}
                 </div>
               ))}

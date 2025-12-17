@@ -15,21 +15,30 @@
 //
 "use client";
 
-import React, { useState } from "react";
-
-type TabId = "instruction" | "about" | "contact" | "download" | "privacy" | "license";
+import React, { useState, useRef } from "react";
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-export default function AboutModal({ open, onClose }: Props) {
-  const [tab, setTab] = useState<TabId>("instruction");
+export default function MobileAbout({ open, onClose }: Props) {
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactSuccess, setContactSuccess] = useState(false);
   const [contactError, setContactError] = useState("");
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   const handleRequestClose = () => {
     setContactForm({ name: "", email: "", message: "" });
@@ -76,64 +85,41 @@ export default function AboutModal({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
+      ref={overlayRef}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
-        if (e.target === e.currentTarget) handleRequestClose();
+        if (e.target === overlayRef.current) {
+          handleRequestClose();
+        }
       }}
     >
       <div
-        className="w-full max-w-[980px] overflow-hidden rounded-2xl bg-white shadow-2xl"
-        data-modal-panel
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <header className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="m-0 text-lg font-extrabold">Om</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRequestClose}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-            >
-              Stäng
-            </button>
-          </div>
+        <header className="flex items-center justify-between border-b border-slate-200 bg-sky-50 px-5 py-4">
+          <h1 className="text-xl font-extrabold text-sky-900">Om</h1>
+          <button
+            onClick={handleRequestClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
+          >
+            ✕
+          </button>
         </header>
 
-        {/* Tabs */}
-        <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
-          {[
-            { id: "instruction", label: "Instruktion" },
-            { id: "about", label: "Upphov och syfte" },
-            { id: "contact", label: "Kontakt" },
-            { id: "download", label: "Ladda ned projektet" },
-            { id: "privacy", label: "Integritet och dataskydd" },
-            { id: "license", label: "Licensvillkor" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id as TabId)}
-              className={`rounded-t-lg px-3 py-2 text-sm font-semibold focus:outline-none focus-visible:outline-none ${
-                tab === t.id
-                  ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
-                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        {/* Content - Scrollbar lista med sektioner */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Instruktion */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Instruktion</h2>
+            <p className="text-slate-700">Instruktionsvideo kommer inom kort.</p>
+          </section>
 
-        {/* Content */}
-        <section className="max-h-[75vh] overflow-auto p-4">
-          {tab === "instruction" && (
-            <div className="space-y-4">
-              <p className="text-slate-700">Instruktionsvideo kommer inom kort.</p>
-            </div>
-          )}
-
-          {tab === "about" && (
-            <div className="space-y-4 text-slate-700">
+          {/* Upphov och syfte */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Upphov och syfte</h2>
+            <div className="space-y-3 text-slate-700">
               <p>
                 ST-ARK har skapats som ett öppet verktyg för dokumentation och planering av läkarnas specialiseringstjänstgöring. Kodbasen är fritt tillgänglig för insyn och vidareutveckling, vilket gör det möjligt att anpassa efter lokala behov och bidra till förbättring av programmet.
               </p>
@@ -156,70 +142,72 @@ export default function AboutModal({ open, onClose }: Props) {
                 Det finns inget kommersiellt intresse i applikationen.
               </p>
             </div>
-          )}
+          </section>
 
-          {tab === "contact" && (
-            <div className="space-y-4">
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    Namn
-                  </label>
-                  <input
-                    type="text"
-                    value={contactForm.name}
-                    onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                    required
-                    className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
+          {/* Kontakt */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Kontakt</h2>
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Namn
+                </label>
+                <input
+                  type="text"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  required
+                  className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  E-postadress
+                </label>
+                <input
+                  type="email"
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                  required
+                  className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-slate-700">
+                  Meddelande
+                </label>
+                <textarea
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                  required
+                  rows={6}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[14px] text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+              {contactError && (
+                <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                  {contactError}
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    E-postadress
-                  </label>
-                  <input
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                    required
-                    className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
+              )}
+              {contactSuccess && (
+                <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700">
+                  Meddelandet har skickats! Din e-postklient öppnas nu.
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">
-                    Meddelande
-                  </label>
-                  <textarea
-                    value={contactForm.message}
-                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                    required
-                    rows={6}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[14px] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
-                {contactError && (
-                  <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-                    {contactError}
-                  </div>
-                )}
-                {contactSuccess && (
-                  <div className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-700">
-                    Meddelandet har skickats! Din e-postklient öppnas nu.
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  disabled={contactSubmitting}
-                  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  {contactSubmitting ? "Skickar..." : "Skicka meddelande"}
-                </button>
-              </form>
-            </div>
-          )}
+              )}
+              <button
+                type="submit"
+                disabled={contactSubmitting}
+                className="w-full inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {contactSubmitting ? "Skickar..." : "Skicka meddelande"}
+              </button>
+            </form>
+          </section>
 
-          {tab === "download" && (
-            <div className="space-y-4 text-slate-700">
+          {/* Ladda ned projektet */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Ladda ned projektet</h2>
+            <div className="space-y-3 text-slate-700">
               <p>
                 Ladda ned projektet för lokal installation och vidareutveckling. Även för någon som varken kan programmera eller har större datorvana är det tack vare AI-baserade språkmodeller enkelt att själv använda och vidareutveckla appen.
               </p>
@@ -248,10 +236,12 @@ export default function AboutModal({ open, onClose }: Props) {
                 </a>
               </div>
             </div>
-          )}
+          </section>
 
-          {tab === "privacy" && (
-            <div className="space-y-4 text-slate-700">
+          {/* Integritet och dataskydd */}
+          <section className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Integritet och dataskydd</h2>
+            <div className="space-y-3 text-slate-700">
               <p>
                 Applikationen lagrar inga personuppgifter på externa servrar. All information hanteras lokalt i användarens webbläsare eller i filer som användaren själv sparar och förvaltar.
               </p>
@@ -262,10 +252,12 @@ export default function AboutModal({ open, onClose }: Props) {
                 Användaren ansvarar själv för vilken information som laddas upp, hur resultatet används samt för lagring och informationssäkerhet i sin egen miljö.
               </p>
             </div>
-          )}
+          </section>
 
-          {tab === "license" && (
-            <div className="space-y-4 text-slate-700">
+          {/* Licensvillkor */}
+          <section className="px-5 py-4">
+            <h2 className="text-lg font-extrabold text-slate-900 mb-3">Licensvillkor</h2>
+            <div className="space-y-3 text-slate-700">
               <p>
                 Projektet omfattas av Apache License 2.0. Det innebär bland annat:
               </p>
@@ -290,8 +282,8 @@ export default function AboutModal({ open, onClose }: Props) {
                 i projektets rotkatalog.
               </p>
             </div>
-          )}
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );

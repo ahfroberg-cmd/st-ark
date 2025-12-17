@@ -23,7 +23,7 @@ import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
 import MobileProfile from "./MobileProfile";
 import MobileIup from "./MobileIup";
-import AboutModal from "./AboutModal";
+import MobileAbout from "./MobileAbout";
 
 const ScanIntygModal = dynamic(
   () => import("@/components/ScanIntygModal"),
@@ -177,7 +177,7 @@ export default function MobileAppShell() {
         onClose={() => setProfileOpen(false)}
       />
 
-      <AboutModal
+      <MobileAbout
         open={aboutOpen}
         onClose={() => setAboutOpen(false)}
       />
