@@ -790,16 +790,16 @@ const coords2021Bil7 = {
   personnummer: { x: 76, y: 576 },
   specialitet: { x: 251, y: 576 },
   
-  // Huvudhandledare
-  mh_namnfortydligande: { x: 76, y: 244 },
-  mh_specialitet: { x: 76, y: 204 },
-  mh_handledarAr: { x: 430, y: 159 },
-  mh_tjanstestalle: { x: 76, y: 165 },
+  // Huvudhandledare (flyttad ned)
+  mh_namnfortydligande: { x: 76, y: 449 },
+  mh_specialitet: { x: 76, y: 410 },
+  mh_handledarAr: { x: 430, y: 365 },
+  mh_tjanstestalle: { x: 76, y: 371 },
   
-  // Intygsutfärdande specialistläkare
-  certifying_namn: { x: 76, y: 449 },
-  certifying_spec: { x: 76, y: 410 },
-  certifying_tjanstestalle: { x: 76, y: 371 },
+  // Intygsutfärdande specialistläkare (flyttad upp)
+  certifying_namn: { x: 76, y: 244 },
+  certifying_spec: { x: 76, y: 204 },
+  certifying_tjanstestalle: { x: 76, y: 165 },
 } as const;
 
 // Hjälpfunktion för att rita X i kryssrutor

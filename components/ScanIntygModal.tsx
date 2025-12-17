@@ -50,6 +50,7 @@ export default function ScanIntygModal({
   const [kind, setKind] = useState<IntygKind | null>(null);
   const [parsed, setParsed] = useState<any>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
 
   const visible = open ? "" : "hidden";
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,7 @@ export default function ScanIntygModal({
     setKind(null);
     setParsed(null);
     setWarning(null);
+    setTipsOpen(false);
   }
 
   function handleClose() {
@@ -1110,13 +1112,22 @@ export default function ScanIntygModal({
       >
         <header className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="m-0 text-lg font-extrabold">Skanna intyg</h2>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
-          >
-            Stäng
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTipsOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+            >
+              Tips för bästa resultat
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+            >
+              Stäng
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-5">
@@ -1130,18 +1141,6 @@ export default function ScanIntygModal({
             {/* --- UPLOAD --- */}
             {step === "upload" && (
               <div className="space-y-4">
-                {/* Tips för bästa resultat */}
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
-                  <div className="font-semibold mb-2">För bästa resultat:</div>
-                  <ul className="list-disc list-inside space-y-1 text-xs">
-                    <li>Allra bäst resultat får du vid skanning av dokumentet</li>
-                    <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
-                    <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
-                    <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
-                    <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
-                  </ul>
-                </div>
-
                 {/* Input */}
                 <input
                   ref={cameraInputRef}
@@ -1702,6 +1701,51 @@ export default function ScanIntygModal({
           </footer>
         )}
       </div>
+
+      {/* Tips popup */}
+      {tipsOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setTipsOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="m-0 text-lg font-semibold text-slate-900">Tips för bästa resultat</h3>
+              <button
+                type="button"
+                onClick={() => setTipsOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+                aria-label="Stäng"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="text-sm text-slate-900">
+              <ul className="list-disc list-inside space-y-2">
+                <li>Allra bäst resultat får du vid skanning av dokumentet</li>
+                <li>Om du fotograferar: håll kameran rakt ovanför dokumentet, undvik vinkling</li>
+                <li>Se till att hela dokumentet syns i bilden och beskär så att endast dokumentet syns</li>
+                <li>Fotografera i gott ljus, helst dagsljus eller stark belysning och undvik skuggor och reflektioner</li>
+                <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
+              </ul>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setTipsOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+              >
+                Stäng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
