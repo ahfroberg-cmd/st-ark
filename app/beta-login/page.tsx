@@ -113,10 +113,6 @@ export default function BetaLoginPage() {
         {/* Beskrivning */}
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h2 className="mb-2 text-lg font-bold text-amber-900">Välkommen till ST-ARK Beta</h2>
-          <p className="mb-3 text-sm text-amber-800">
-            ST-ARK är ett verktyg för dokumentation och planering av läkarnas specialiseringstjänstgöring. 
-            Applikationen hjälper dig att planera, dokumentera och följa upp din ST-utbildning.
-          </p>
           <div className="rounded border border-amber-300 bg-white p-3">
             <p className="text-xs font-semibold text-amber-900">⚠️ Under utveckling</p>
             <p className="mt-1 text-xs text-amber-800">
@@ -226,11 +222,6 @@ export default function BetaLoginPage() {
             </form>
           </div>
         )}
-
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-500">
-          För frågor eller feedback, kontakta utvecklaren via kontaktformuläret.
-        </p>
       </div>
     </div>
   );
