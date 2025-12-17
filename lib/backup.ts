@@ -1,7 +1,21 @@
 // lib/backup.ts
-// Export/import av hela databasen (JSON som “source of truth”).
+// Export/import av hela databasen (JSON som "source of truth").
 // Stöd för replace/merge + enkel versionsmigrering.
-
+//
+// Copyright 2024 ST-ARK
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 import { db } from "@/lib/db";
 import type { Profile, Placement, Course, Achievement } from "@/lib/types";
 
@@ -54,18 +68,18 @@ export async function downloadJson(bundle: ExportBundle, filename = "st-intyg-ba
       });
       
       const writable = await fileHandle.createWritable();
-      await writable.write(blob);
+      // Konvertera blob till ArrayBuffer för att skriva till filen
+      const buffer = await blob.arrayBuffer();
+      await writable.write(buffer);
       await writable.close();
       return;
     } catch (err: any) {
-      // Användaren avbröt dialogrutan eller ett fel uppstod
-      // Fallback till den gamla metoden
-      if (err.name !== 'AbortError') {
-        console.warn('File System Access API misslyckades, använder fallback:', err);
-      } else {
-        // Användaren avbröt, avsluta utan att göra något
+      // Användaren avbröt dialogrutan - detta är inte ett fel, avsluta tyst
+      if (err.name === 'AbortError' || err.name === 'NotAllowedError') {
         return;
       }
+      // För andra fel, logga och fallback till den gamla metoden
+      console.warn('File System Access API misslyckades, använder fallback:', err);
     }
   }
 

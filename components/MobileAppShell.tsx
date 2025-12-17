@@ -1,3 +1,18 @@
+//
+// Copyright 2024 ST-ARK
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 "use client";
 
 import React, { useState } from "react";
@@ -8,6 +23,7 @@ import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
 import MobileProfile from "./MobileProfile";
 import MobileIup from "./MobileIup";
+import AboutModal from "./AboutModal";
 
 const ScanIntygModal = dynamic(
   () => import("@/components/ScanIntygModal"),
@@ -28,6 +44,7 @@ export default function MobileAppShell() {
   const [tab, setTab] = useState<TabKey>("home");
   const [scanOpen, setScanOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -35,8 +52,26 @@ export default function MobileAppShell() {
     setExporting(true);
     try {
       const bundle = await exportAll();
-      const d = new Date().toISOString().slice(0, 10);
-      await downloadJson(bundle, `st-intyg-backup-${d}.json`);
+      
+      // Hämta namn från profilen
+      const profileName = bundle.profile?.name || 
+                         (bundle.profile?.firstName && bundle.profile?.lastName 
+                           ? `${bundle.profile.firstName} ${bundle.profile.lastName}`.trim()
+                           : "Användare");
+      
+      // Gör namnet filsystem-säkert (ersätt specialtecken med bindestreck)
+      const safeName = profileName
+        .replace(/[^a-zA-Z0-9åäöÅÄÖ\s-]/g, '') // Ta bort ogiltiga tecken
+        .replace(/\s+/g, '-') // Ersätt mellanslag med bindestreck
+        .replace(/-+/g, '-') // Ta bort dubbla bindestreck
+        .replace(/^-|-$/g, ''); // Ta bort bindestreck i början/slutet
+      
+      // Datum i format YYMMDD
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const d = dateStr.slice(2, 4) + dateStr.slice(5, 7) + dateStr.slice(8, 10);
+      
+      const filename = `ST-ARK-${safeName}-${d}.json`;
+      await downloadJson(bundle, filename);
     } catch (e) {
       console.error(e);
       alert("Kunde inte spara filen.");
@@ -74,9 +109,7 @@ export default function MobileAppShell() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              // TODO: Implementera Om-modal
-            }}
+            onClick={() => setAboutOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
             Om
@@ -142,6 +175,11 @@ export default function MobileAppShell() {
       <MobileProfile
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
+      />
+
+      <AboutModal
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
       />
     </div>
   );

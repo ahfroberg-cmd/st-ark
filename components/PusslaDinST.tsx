@@ -1,4 +1,19 @@
 // components/PusslaDinST.tsx
+//
+// Copyright 2024 ST-ARK
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +44,7 @@ const MilestoneOverviewModal = dynamic(
   () => import("@/components/MilestoneOverviewModal"),
   { ssr: false }
 );
+const AboutModal = dynamic(() => import("@/components/AboutModal"), { ssr: false });
 
 
 
@@ -1147,6 +1163,7 @@ useEffect(() => {
 const [saveInfoOpen, setSaveInfoOpen] = useState(false);
 const [reportOpen, setReportOpen] = useState(false);
 const [profileOpen, setProfileOpen] = useState(false);
+const [aboutOpen, setAboutOpen] = useState(false);
 
 // Visa: 'both' | 'BT' | 'ST'
 const [viewPhase, setViewPhase] = useState<'both' | 'BT' | 'ST'>('both');
@@ -5407,9 +5424,9 @@ const persistTimelineToDb = async () => {
 </button>
 
 
-          {/* Om (länkar till framtida sida) */}
+          {/* Om */}
           <button
-            onClick={() => router.push("/om")}
+            onClick={() => setAboutOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 active:translate-y-px"
             title="Om"
           >
@@ -8210,6 +8227,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 />
 {/* Profilmodal */}
 <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+<AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
 {/* === Specialistansökan (gemensam modal för 2015/2021) === */}
 <PrepareApplicationModal
