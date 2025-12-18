@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 type Props = {
   open: boolean;
@@ -18,6 +19,10 @@ export default function InstrumentsModal({
 }: Props) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [input, setInput] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{
+    name: string;
+  } | null>(null);
 
   const handleRequestClose = useCallback(() => {
     onClose();
@@ -36,14 +41,18 @@ export default function InstrumentsModal({
 
   const handleRemove = useCallback(
     (name: string) => {
-      const ok = window.confirm(
-        `Vill du ta bort bedömningsinstrumentet "${name}"?`
-      );
-      if (!ok) return;
-      onSave(instruments.filter((i) => i !== name));
+      setDeleteConfirmConfig({ name });
+      setShowDeleteConfirm(true);
     },
-    [instruments, onSave]
+    []
   );
+
+  const confirmRemove = useCallback(() => {
+    if (!deleteConfirmConfig) return;
+    onSave(instruments.filter((i) => i !== deleteConfirmConfig.name));
+    setShowDeleteConfirm(false);
+    setDeleteConfirmConfig(null);
+  }, [deleteConfirmConfig, instruments, onSave]);
 
   useEffect(() => {
     if (!open) setInput("");
@@ -93,7 +102,6 @@ export default function InstrumentsModal({
                   }
                 }}
                 className="h-12 flex-1 rounded-lg border border-slate-300 bg-white px-4 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                placeholder="Instrumentnamn..."
               />
               <button
                 type="button"
@@ -130,6 +138,22 @@ export default function InstrumentsModal({
           </div>
         </div>
       </div>
+
+      {/* === Ta bort-bekräftelsedialog === */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        title="Ta bort"
+        message={
+          deleteConfirmConfig
+            ? `Vill du ta bort bedömningsinstrumentet "${deleteConfirmConfig.name}"?`
+            : "Är du säker på att du vill ta bort detta?"
+        }
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setDeleteConfirmConfig(null);
+        }}
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }

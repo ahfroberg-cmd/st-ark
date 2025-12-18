@@ -135,7 +135,6 @@ export default function PlanningView({
               type="text"
               value={newSectionTitle}
               onChange={(e) => setNewSectionTitle(e.target.value)}
-              placeholder="Rubrik..."
               className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {

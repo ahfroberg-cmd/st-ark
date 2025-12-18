@@ -8,6 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
@@ -216,29 +218,89 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupMeeting | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
-    if (!open || !meeting) return;
+    if (!open || !meeting) {
+      setShowCloseConfirm(false);
+      return;
+    }
     setDraft(cloneMeeting(meeting));
     setDirty(false);
   }, [open, meeting]);
 
   const handleRequestClose = useCallback(() => {
     if (dirty) {
-      const ok = window.confirm(
-        "Du har osparade ändringar i detta handledarsamtal. Vill du stänga utan att spara?"
-      );
-      if (!ok) return;
+      setShowCloseConfirm(true);
+      return;
     }
     onClose();
-  }, [dirty, onClose]);
+  }, [dirty]);
 
   const handleSave = useCallback(() => {
     if (!draft) return;
     onSave(draft);
     setDirty(false);
+    // Spara utan att stänga - användaren kan stänga via Stäng-knappen eller ESC
+  }, [draft, onSave]);
+
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
     onClose();
-  }, [draft, onSave, onClose]);
+  }, [onClose]);
+
+  const handleSaveAndClose = useCallback(() => {
+    handleSave();
+    setShowCloseConfirm(false);
+    onClose();
+  }, [handleSave, onClose]);
+
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
+  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      // Om bekräftelsedialogen är öppen, låt den hantera keyboard events
+      if (showCloseConfirm) {
+        return;
+      }
+      // Kontrollera om delete-dialogen är öppen genom att kolla om eventet redan stoppats
+      if (e.defaultPrevented) {
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        handleSave();
+      } else if (e.key === "Escape") {
+        // Kontrollera om det finns en delete-dialog eller unsaved-dialog öppen genom att kolla DOM
+        const dialog = document.querySelector('[class*="z-[300]"]');
+        if (dialog) {
+          // Om det finns en dialog med högre z-index, låt den hantera ESC
+          return;
+        }
+        // Stoppa propagation FÖRE anropet för att förhindra att huvudmodalen fångar ESC
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
+        handleRequestClose();
+      }
+    };
+    // Använd capture-fas för att fånga ESC innan huvudmodalen
+    // Registrera med requestAnimationFrame för att säkerställa att denna listener registreras EFTER huvudmodalen
+    const raf = requestAnimationFrame(() => {
+      window.addEventListener("keydown", onKey, { capture: true, passive: false });
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("keydown", onKey, { capture: true });
+    };
+  }, [open, dirty, handleSave, handleRequestClose, showCloseConfirm]);
 
      const updateDraft = (patch: Partial<IupMeeting>) => {
     setDraft((prev) => {
@@ -253,10 +315,16 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
 
   if (!open || !meeting || !draft) return null;
 
-
-
-
   return (
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        title="Osparade ändringar"
+        message="Du har osparade ändringar i detta handledarsamtal. Vill du stänga utan att spara?"
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[130] grid place-items-center bg-black/40 p-3"
@@ -407,6 +475,7 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
         </section>
       </div>
     </div>
+    </>
   );
 }
 
@@ -435,9 +504,13 @@ function AssessmentModal({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupAssessment | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
-    if (!open || !assessment) return;
+    if (!open || !assessment) {
+      setShowCloseConfirm(false);
+      return;
+    }
     setDraft(cloneAssessment(assessment));
     setDirty(false);
   }, [open, assessment]);
@@ -485,22 +558,77 @@ function AssessmentModal({
   }, [open, draft?.dateISO]);
 
   const handleRequestClose = useCallback(() => {
-
     if (dirty) {
-      const ok = window.confirm(
-        "Du har osparade ändringar i denna progressionsbedömning. Vill du stänga utan att spara?"
-      );
-      if (!ok) return;
+      setShowCloseConfirm(true);
+      return;
     }
     onClose();
-  }, [dirty, onClose]);
+  }, [dirty]);
 
   const handleSave = useCallback(() => {
     if (!draft) return;
     onSave(draft);
     setDirty(false);
+    // Spara utan att stänga - användaren kan stänga via Stäng-knappen eller ESC
+  }, [draft, onSave]);
+
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
     onClose();
-  }, [draft, onSave, onClose]);
+  }, [onClose]);
+
+  const handleSaveAndClose = useCallback(() => {
+    handleSave();
+    setShowCloseConfirm(false);
+    onClose();
+  }, [handleSave, onClose]);
+
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
+  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      // Om bekräftelsedialogen är öppen, låt den hantera keyboard events
+      if (showCloseConfirm) {
+        return;
+      }
+      // Kontrollera om delete-dialogen är öppen genom att kolla om eventet redan stoppats
+      if (e.defaultPrevented) {
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        handleSave();
+      } else if (e.key === "Escape") {
+        // Kontrollera om det finns en delete-dialog eller unsaved-dialog öppen genom att kolla DOM
+        const dialog = document.querySelector('[class*="z-[300]"]');
+        if (dialog) {
+          // Om det finns en dialog med högre z-index, låt den hantera ESC
+          return;
+        }
+        // Stoppa propagation FÖRE anropet för att förhindra att huvudmodalen fångar ESC
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
+        handleRequestClose();
+      }
+    };
+    // Använd capture-fas för att fånga ESC innan huvudmodalen
+    // Registrera med requestAnimationFrame för att säkerställa att denna listener registreras EFTER huvudmodalen
+    const raf = requestAnimationFrame(() => {
+      window.addEventListener("keydown", onKey, { capture: true, passive: false });
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("keydown", onKey, { capture: true });
+    };
+  }, [open, dirty, handleSave, handleRequestClose, showCloseConfirm]);
 
   const updateDraft = (patch: Partial<IupAssessment>) => {
     setDraft((prev) => {
@@ -517,7 +645,15 @@ function AssessmentModal({
     String(profile?.goalsVersion || "").trim() === "2021";
 
   return (
-
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        title="Osparade ändringar"
+        message="Du har osparade ändringar i denna progressionsbedömning. Vill du stänga utan att spara?"
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[130] grid place-items-center bg-black/40 p-3"
@@ -675,6 +811,7 @@ function AssessmentModal({
         </section>
       </div>
     </div>
+    </>
   );
 }
 
@@ -693,10 +830,29 @@ function InstrumentsModal({
 }: InstrumentsModalProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [input, setInput] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{
+    name: string;
+  } | null>(null);
 
   const handleRequestClose = useCallback(() => {
     onClose();
   }, [onClose]);
+
+  // ESC för att stänga instrument-dialogen
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        handleRequestClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, handleRequestClose]);
 
   const handleAdd = useCallback(() => {
     const name = input.trim();
@@ -711,14 +867,18 @@ function InstrumentsModal({
 
   const handleRemove = useCallback(
     (name: string) => {
-      const ok = window.confirm(
-        `Vill du ta bort bedömningsinstrumentet "${name}"?`
-      );
-      if (!ok) return;
-      onChange(instruments.filter((i) => i !== name));
+      setDeleteConfirmConfig({ name });
+      setShowDeleteConfirm(true);
     },
-    [instruments, onChange]
+    []
   );
+
+  const confirmRemove = useCallback(() => {
+    if (!deleteConfirmConfig) return;
+    onChange(instruments.filter((i) => i !== deleteConfirmConfig.name));
+    setShowDeleteConfirm(false);
+    setDeleteConfirmConfig(null);
+  }, [deleteConfirmConfig, instruments, onChange]);
 
   if (!open) return null;
 
@@ -797,6 +957,22 @@ function InstrumentsModal({
           </div>
         </div>
       </div>
+
+      {/* === Ta bort-bekräftelsedialog === */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        title="Ta bort"
+        message={
+          deleteConfirmConfig
+            ? `Vill du ta bort bedömningsinstrumentet "${deleteConfirmConfig.name}"?`
+            : "Är du säker på att du vill ta bort detta?"
+        }
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setDeleteConfirmConfig(null);
+        }}
+        onConfirm={confirmRemove}
+      />
     </div>
   );
 }
@@ -918,6 +1094,12 @@ export default function IupModal({
 
   const [loading, setLoading] = useState(false);
   const [dirty, setDirty] = useState(false);
+  // Delete confirmation dialog
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [tab, setTab] = useState<
     "handledning" | "planering" | "delmal" | "rapport"
   >("handledning");
@@ -993,6 +1175,7 @@ export default function IupModal({
 
   const [instrumentsModalOpen, setInstrumentsModalOpen] = useState(false);
   const [newSectionModalOpen, setNewSectionModalOpen] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
 
 
@@ -1113,6 +1296,7 @@ export default function IupModal({
     setTab(initialTab ?? "handledning");
     setEditingMeetingId(initialMeetingId ?? null);
     setEditingAssessmentId(initialAssessmentId ?? null);
+    setShowCloseConfirm(false);
 
 
         (async () => {
@@ -1506,43 +1690,90 @@ export default function IupModal({
 
 
 
-  const handleRequestClose = useCallback(() => {
+  const handleSave = useCallback(async () => {
+    await saveAllToDb(meetings, assessments, planning, planningExtra);
+    setDirty(false);
+  }, [saveAllToDb, meetings, assessments, planning, planningExtra]);
 
+  const handleRequestClose = useCallback(() => {
     if (dirty) {
-      const ok = window.confirm(
-        "Du har osparade ändringar i IUP. Vill du stänga utan att spara?"
-      );
-      if (!ok) return;
+      setShowCloseConfirm(true);
+      return;
     }
     onClose();
   }, [dirty, onClose]);
 
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    onClose();
+  }, [onClose]);
+
+  const handleSaveAndClose = useCallback(async () => {
+    await handleSave();
+    setShowCloseConfirm(false);
+    onClose();
+  }, [handleSave, onClose]);
+
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
   // ESC-hantering: stäng det översta fönstret
   // Om MilestoneOverviewPanel är öppen (tab === "delmal"), låt den hantera ESC först
   // Annars stäng IupModal
+  // Cmd/Ctrl+Enter för att spara
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Om bekräftelsedialogen är öppen, låt den hantera ALLA keyboard events
+      if (showCloseConfirm || showDeleteConfirm) {
+        // UnsavedChangesDialog och DeleteConfirmDialog hanterar keyboard events och stoppar propagation
+        return;
+      }
+      
+      // Cmd/Ctrl+Enter för att spara
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        void handleSave();
+        return;
+      }
+      
       if (e.key === "Escape") {
+        // Viktigt: Kontrollera om någon undermodal är öppen FÖRST
+        // Om AssessmentModal är öppen, låt den hantera ESC - gör ingenting här
+        if (editingAssessmentId !== null) {
+          return;
+        }
+        // Om MeetingModal är öppen, låt den hantera ESC - gör ingenting här
+        if (editingMeetingId !== null) {
+          return;
+        }
+        // Om InstrumentsModal är öppen, låt den hantera ESC - gör ingenting här
+        if (instrumentsModalOpen) {
+          return;
+        }
         // Om vi är i delmal-tab, låt MilestoneOverviewPanel hantera ESC
         // (den kommer att stoppa propagation om den hanterar det)
         if (tab === "delmal") {
-          // MilestoneOverviewPanel hanterar ESC, vi gör inget här
           return;
         }
-        // Annars stäng IupModal
+        // Annars stäng IupModal (med varning om dirty)
+        // VIKTIGT: Stoppa propagation FÖRE anropet så att andra listeners inte fångar ESC
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
         handleRequestClose();
+        return;
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, tab, handleRequestClose]);
-
-  const handleSave = useCallback(async () => {
-    await saveAllToDb(meetings, assessments, planning, planningExtra);
-  }, [saveAllToDb, meetings, assessments, planning, planningExtra]);
+    // Använd capture-fas med hög prioritet för att säkerställa att vi fångar ESC
+    // Registrera direkt utan timeout för att få högsta prioritet
+    window.addEventListener("keydown", handleKeyDown, { capture: true, passive: false });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [open, tab, handleRequestClose, dirty, handleSave, editingAssessmentId, editingMeetingId, instrumentsModalOpen, showCloseConfirm, showDeleteConfirm]);
 
 
 
@@ -1704,17 +1935,20 @@ export default function IupModal({
 
 
   const removeMeeting = (id: string) => {
-    const ok = window.confirm(
-      "Vill du ta bort detta handledarsamtal?"
-    );
-    if (!ok) return;
-
-    const next = meetings.filter((m) => m.id !== id);
-    setMeetings(next);
-    setDirty(true);
-    if (editingMeetingId === id) {
-      setEditingMeetingId(null);
-    }
+    setDeleteConfirmConfig({
+      message: "Vill du ta bort detta handledarsamtal?",
+      onConfirm: () => {
+        const next = meetings.filter((m) => m.id !== id);
+        setMeetings(next);
+        setDirty(true);
+        if (editingMeetingId === id) {
+          setEditingMeetingId(null);
+        }
+        setShowDeleteConfirm(false);
+        setDeleteConfirmConfig(null);
+      },
+    });
+    setShowDeleteConfirm(true);
   };
 
 
@@ -1752,17 +1986,20 @@ export default function IupModal({
 
 
   const removeAssessment = (id: string) => {
-    const ok = window.confirm(
-      "Vill du ta bort denna progressionsbedömning?"
-    );
-    if (!ok) return;
-
-    const next = assessments.filter((a) => a.id !== id);
-    setAssessments(next);
-    setDirty(true);
-    if (editingAssessmentId === id) {
-      setEditingAssessmentId(null);
-    }
+    setDeleteConfirmConfig({
+      message: "Vill du ta bort denna progressionsbedömning?",
+      onConfirm: () => {
+        const next = assessments.filter((a) => a.id !== id);
+        setAssessments(next);
+        setDirty(true);
+        if (editingAssessmentId === id) {
+          setEditingAssessmentId(null);
+        }
+        setShowDeleteConfirm(false);
+        setDeleteConfirmConfig(null);
+      },
+    });
+    setShowDeleteConfirm(true);
   };
 
 
@@ -1824,6 +2061,12 @@ export default function IupModal({
 
   return (
     <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
       {/* Huvudmodal */}
       <div
         ref={overlayRef}
@@ -2271,6 +2514,11 @@ export default function IupModal({
                   open={open}
                   onClose={handleRequestClose}
                   initialTab="st"
+                  onDirtyChange={(dirty) => {
+                    if (dirty) {
+                      setDirty(true);
+                    }
+                  }}
                 />
               </div>
             )}
@@ -3464,6 +3712,20 @@ export default function IupModal({
           setNewSectionModalOpen(false);
         }}
         onClose={() => setNewSectionModalOpen(false)}
+      />
+
+      {/* === Ta bort-bekräftelsedialog === */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        title="Ta bort"
+        message={deleteConfirmConfig?.message || "Är du säker på att du vill ta bort detta?"}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setDeleteConfirmConfig(null);
+        }}
+        onConfirm={() => {
+          deleteConfirmConfig?.onConfirm();
+        }}
       />
     </>
   );

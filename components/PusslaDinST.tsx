@@ -25,11 +25,14 @@ import CoursePrepModal from "@/components/CoursePrepModal";
 import Sta3PrepModal from "@/components/Sta3PrepModal";
 import ReportPrintModal from "@/components/ReportPrintModal";
 import IupModal from "@/components/IupModal";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 
 import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
+import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 
 import dynamic from "next/dynamic";
@@ -767,7 +770,477 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   }
 }, [profile]);
 
+  // View mode för 2021: BT eller ST
+  const [viewMode, setViewMode] = useState<"bt" | "st">("st");
+  
+  // Data från databas för progress-beräkningar
+  const [dbPlacements, setDbPlacements] = useState<any[]>([]);
+  const [dbCourses, setDbCourses] = useState<any[]>([]);
+  const [dbAchievements, setDbAchievements] = useState<any[]>([]);
+  const [goalsCatalog, setGoalsCatalog] = useState<GoalsCatalog | null>(null);
 
+  // Ladda data från databas för progress-beräkningar
+  useEffect(() => {
+    (async () => {
+      try {
+        const pls = await (db as any).placements?.toArray?.() ?? [];
+        const crs = await (db as any).courses?.toArray?.() ?? [];
+        const ach = await (db as any).achievements?.toArray?.() ?? [];
+        setDbPlacements(pls);
+        setDbCourses(crs);
+        setDbAchievements(ach);
+        
+        // Ladda goals-katalog
+        const prof = await (db as any).profile?.toArray?.();
+        const p = Array.isArray(prof) ? prof[0] : null;
+        if (p?.goalsVersion && (p.specialty || p.speciality)) {
+          try {
+            const g = await loadGoals(p.goalsVersion, p.specialty || p.speciality);
+            setGoalsCatalog(g);
+          } catch {}
+        }
+      } catch {}
+    })();
+  }, []);
+
+  // Bestäm förinställning för viewMode baserat på dagens datum
+  useEffect(() => {
+    const gv = String((profile as any)?.goalsVersion || "").trim();
+    if (gv !== "2021") return;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return;
+    
+    // Beräkna BT-slutdatum
+    const btEndManual = (profile as any)?.btEndDate;
+    let btEnd: string;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      btEnd = btEndManual;
+    } else {
+      try {
+        const btDate = new Date(btStart + "T00:00:00");
+        btDate.setMonth(btDate.getMonth() + 12);
+        const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(btDate.getDate()).padStart(2, "0");
+        btEnd = `${btDate.getFullYear()}-${mm}-${dd}`;
+      } catch {
+        return;
+      }
+    }
+    
+    const today = todayISO();
+    // Om dagens datum ligger inom BT-fasen, sätt till BT, annars ST
+    if (today >= btStart && today < btEnd) {
+      setViewMode("bt");
+    } else {
+      setViewMode("st");
+    }
+  }, [profile]);
+
+  // Hjälpfunktioner för progress-beräkningar
+  function todayISO() {
+    const d = new Date();
+    const z = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+  }
+
+  const monthDiffExact = (startISO?: string, endISO?: string): number => {
+    if (!startISO || !endISO) return 0;
+    const s = new Date(startISO + "T00:00:00");
+    const e = new Date(endISO + "T00:00:00");
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
+    const ms = e.getTime() - s.getTime();
+    const days = ms / (1000 * 60 * 60 * 24);
+    return Math.max(0, days / 30.4375);
+  };
+
+  const pickPercent = (p: any): number => {
+    const v = Number(p?.attendance ?? p?.percent ?? p?.sysselsättning ?? 100);
+    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 100;
+  };
+
+  const normalizeGoalsVersion = (v: any): "2015" | "2021" => {
+    const s = String(v || "").trim();
+    if (s.includes("2015")) return "2015";
+    return "2021";
+  };
+
+  // Beräkna BT-slutdatum
+  const btEndISO = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return null;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return null;
+    
+    const btEndManual = (profile as any)?.btEndDate;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      const manualMonths = monthDiffExact(btStart, btEndManual);
+      if (manualMonths < 12) {
+        try {
+          const btDate = new Date(btStart + "T00:00:00");
+          btDate.setMonth(btDate.getMonth() + 12);
+          const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+          const dd = String(btDate.getDate()).padStart(2, "0");
+          return `${btDate.getFullYear()}-${mm}-${dd}`;
+        } catch {
+          return btEndManual;
+        }
+      }
+      return btEndManual;
+    }
+    
+    try {
+      const btDate = new Date(btStart + "T00:00:00");
+      btDate.setMonth(btDate.getMonth() + 12);
+      const mm = String(btDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(btDate.getDate()).padStart(2, "0");
+      return `${btDate.getFullYear()}-${mm}-${dd}`;
+    } catch {
+      return null;
+    }
+  }, [profile]);
+
+  // Hjälpfunktion: avgör om en tjänstgöring är BT-fasad
+  const isPlacementBTPhase = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return () => false;
+    
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart || !btEndISO) return () => false;
+    
+    return (p: any) => {
+      if (p.phase === "BT") return true;
+      if (p.phase === "ST") return false;
+      
+      const refDate = p.startDate || p.startISO || p.start || "";
+      if (!refDate) return false;
+      
+      const refMs = new Date(refDate + "T00:00:00").getTime();
+      const btStartMs = new Date(btStart + "T00:00:00").getTime();
+      const btEndMs = new Date(btEndISO + "T00:00:00").getTime();
+      
+      if (!Number.isFinite(refMs) || !Number.isFinite(btStartMs) || !Number.isFinite(btEndMs)) {
+        return false;
+      }
+      
+      return refMs >= btStartMs && refMs < btEndMs;
+    };
+  }, [profile, btEndISO]);
+
+  // Registrerad tid för BT-läge
+  const workedBtFteMonths = useMemo(() => {
+    if (!dbPlacements || dbPlacements.length === 0) return 0;
+    
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") return 0;
+    
+    const today = todayISO();
+    const isBT = isPlacementBTPhase;
+    
+    return dbPlacements.reduce((acc, p: any) => {
+      if (!isBT(p)) return acc;
+      
+      const start = p.startDate || p.startISO || p.start || "";
+      if (!start) return acc;
+      
+      const end = p.endDate || p.endISO || p.end || today;
+      const endDate = end > today ? today : end;
+      
+      const months = monthDiffExact(start, endDate);
+      const frac = pickPercent(p) / 100;
+      return acc + months * frac;
+    }, 0);
+  }, [dbPlacements, profile, isPlacementBTPhase]);
+
+  // Registrerad tid för ST-läge
+  const workedStFteMonths = useMemo(() => {
+    if (!dbPlacements || dbPlacements.length === 0) return 0;
+    
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const today = todayISO();
+    
+    if (gv !== "2021") {
+      return dbPlacements.reduce((acc, p: any) => {
+        const start = p.startDate || p.startISO || p.start || "";
+        const end = p.endDate || p.endISO || p.end || today;
+        const months = monthDiffExact(start, end);
+        const frac = pickPercent(p) / 100;
+        return acc + months * frac;
+      }, 0);
+    }
+    
+    const isBT = isPlacementBTPhase;
+    
+    return dbPlacements.reduce((acc, p: any) => {
+      const start = p.startDate || p.startISO || p.start || "";
+      if (!start) return acc;
+      
+      const end = p.endDate || p.endISO || p.end || today;
+      const months = monthDiffExact(start, end);
+      const frac = pickPercent(p) / 100;
+      
+      if (!isBT(p)) {
+        return acc + months * frac;
+      }
+      
+      if (p.fulfillsStGoals) {
+        return acc + months * frac;
+      }
+      
+      return acc;
+    }, 0);
+  }, [dbPlacements, profile, isPlacementBTPhase]);
+
+  // Total tid från BT-start till ST-slut (för 2021) eller ST-start till ST-slut (för 2015)
+  const totalCombinedMonths = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv !== "2021") {
+      return totalPlanMonths || 60;
+    }
+    
+    // För 2021: räkna från BT-start till ST-slut
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return totalPlanMonths || 66;
+    
+    // Beräkna ST-slutdatum
+    const stEndManual = (profile as any)?.stEndDate;
+    if (stEndManual && /^\d{4}-\d{2}-\d{2}$/.test(stEndManual)) {
+      const months = monthDiffExact(btStart, stEndManual);
+      return months > 0 ? months : (totalPlanMonths || 66);
+    }
+    
+    // Om stEndISO finns, använd det
+    if (stEndISO) {
+      const months = monthDiffExact(btStart, stEndISO);
+      return months > 0 ? months : (totalPlanMonths || 66);
+    }
+    
+    // Fallback: använd totalPlanMonths
+    return totalPlanMonths || 66;
+  }, [profile, stEndISO, totalPlanMonths]);
+
+  // Genomförd tid från BT-start (för 2021) eller ST-start (för 2015) till idag
+  const workedCombinedFteMonths = useMemo(() => {
+    if (!dbPlacements || dbPlacements.length === 0) return 0;
+    
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const today = todayISO();
+    
+    if (gv !== "2021") {
+      // För 2015: räkna alla placeringar
+      return dbPlacements.reduce((acc, p: any) => {
+        const start = p.startDate || p.startISO || p.start || "";
+        const end = p.endDate || p.endISO || p.end || today;
+        const months = monthDiffExact(start, end);
+        const frac = pickPercent(p) / 100;
+        return acc + months * frac;
+      }, 0);
+    }
+    
+    // För 2021: räkna alla placeringar från BT-start till idag
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart) return workedStFteMonths;
+    
+    return dbPlacements.reduce((acc, p: any) => {
+      const start = p.startDate || p.startISO || p.start || "";
+      if (!start) return acc;
+      
+      // Bara placeringar som startar efter eller vid BT-start
+      const startMs = new Date(start + "T00:00:00").getTime();
+      const btStartMs = new Date(btStart + "T00:00:00").getTime();
+      if (startMs < btStartMs) return acc;
+      
+      const end = p.endDate || p.endISO || p.end || today;
+      const endDate = end > today ? today : end;
+      const months = monthDiffExact(start, endDate);
+      const frac = pickPercent(p) / 100;
+      return acc + months * frac;
+    }, 0);
+  }, [dbPlacements, profile, workedStFteMonths]);
+
+  // Progress för tid
+  const progressPct = useMemo(() => {
+    if (!totalCombinedMonths || totalCombinedMonths <= 0) return 0;
+    const raw = (workedCombinedFteMonths / totalCombinedMonths) * 100;
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, raw));
+  }, [workedCombinedFteMonths, totalCombinedMonths]);
+
+  // Totala antalet delmål (BT + ST för 2021, eller ST för 2015)
+  const totalMilestones = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    if (gv === "2021") {
+      // BT + ST = 18 + 46 = 64 delmål
+      return 64;
+    } else {
+      return 50;
+    }
+  }, [profile]);
+
+  // Beräkna uppfyllda delmål (alla delmål för 2021, både BT och ST)
+  const fulfilledMilestones = useMemo(() => {
+    const fulfilled = new Set<string>();
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const is2021 = gv === "2021";
+
+    const normalizeBtCode = (x: unknown) => {
+      const s = String(x ?? "").trim();
+      const m = s.match(/^BT[\s\-_]*([0-9]+)/i);
+      return m ? "BT" + m[1] : null;
+    };
+
+    const normalizeStId = (x: unknown): string | null => {
+      const s = String(x ?? "").trim();
+      if (!s) return null;
+      return s.toUpperCase().replace(/\s+/g, "");
+    };
+
+    const today = todayISO();
+
+    // BT-delmål (endast för 2021 - räknas alltid)
+    if (is2021) {
+      for (const a of dbAchievements) {
+        const cand = [a.goalId, a.milestoneId, a.id, (a as any).code, (a as any).milestone].filter(Boolean);
+        for (const c of cand) {
+          const code = normalizeBtCode(c);
+          if (code) fulfilled.add(code);
+        }
+      }
+
+      for (const p of dbPlacements as any[]) {
+        const end = p.endDate || p.endISO || p.end || "";
+        if (!end || end >= today) continue;
+        const arrs = [p?.btMilestones, p?.btGoals, p?.milestones, p?.goals, p?.goalIds, p?.milestoneIds];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) fulfilled.add(code);
+          }
+        }
+      }
+
+      for (const c of dbCourses as any[]) {
+        const cert = c.certificateDate || "";
+        const end = c.endDate || "";
+        const date = cert || end;
+        if (!date || date >= today) continue;
+        const arrs = [c?.btMilestones, c?.btGoals, c?.milestones, c?.goals, c?.goalIds, c?.milestoneIds];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) fulfilled.add(code);
+          }
+        }
+      }
+    }
+
+    // ST-delmål (för både 2021 och 2015)
+    {
+      const stMilestoneIdsFromPlacements = new Set<string>();
+      const stMilestoneIdsFromCourses = new Set<string>();
+      const stMilestoneIdsFromAchievements = new Set<string>();
+
+      for (const a of dbAchievements) {
+        const id = normalizeStId(a.milestoneId);
+        if (id && !normalizeBtCode(id)) {
+          stMilestoneIdsFromAchievements.add(id);
+        }
+      }
+
+      for (const p of dbPlacements as any[]) {
+        const end = p.endDate || p.endISO || p.end || "";
+        if (!end || end >= today) continue;
+        const arr = p?.milestones || p?.goals || p?.goalIds || p?.milestoneIds || [];
+        for (const v of arr as any[]) {
+          const id = normalizeStId(v);
+          if (id && !normalizeBtCode(id)) {
+            stMilestoneIdsFromPlacements.add(id);
+          }
+        }
+      }
+
+      for (const c of dbCourses as any[]) {
+        const cert = c.certificateDate || "";
+        const end = c.endDate || "";
+        const date = cert || end;
+        if (!date || date >= today) continue;
+        const arr = c?.milestones || c?.goals || c?.goalIds || c?.milestoneIds || [];
+        for (const v of arr as any[]) {
+          const id = normalizeStId(v);
+          if (id && !normalizeBtCode(id)) {
+            stMilestoneIdsFromCourses.add(id);
+          }
+        }
+      }
+
+      const allStMilestoneIds = new Set<string>();
+      for (const id of stMilestoneIdsFromAchievements) allStMilestoneIds.add(id);
+      for (const id of stMilestoneIdsFromPlacements) allStMilestoneIds.add(id);
+      for (const id of stMilestoneIdsFromCourses) allStMilestoneIds.add(id);
+
+      if (is2021 && goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
+        const allSt = (goalsCatalog as any).milestones as any[];
+        const hasStc = allSt.some((m: any) =>
+          /^STc\d+$/i.test(String((m as any).code ?? (m as any).id ?? ""))
+        );
+
+        if (hasStc) {
+          const stMilestones = allSt.filter((m: any) => {
+            const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
+            return /^ST[ABC]\d+$/i.test(code);
+          });
+
+          const existingKeys = new Set(
+            stMilestones.map((m: any) =>
+              String((m as any).code ?? (m as any).id ?? "")
+                .toUpperCase()
+                .replace(/\s+/g, "")
+            )
+          );
+
+          // Lägg till gemensamma STa/STb om de saknas
+          Object.values(COMMON_AB_MILESTONES).forEach((cm: any) => {
+            const codeRaw = String(cm.code ?? cm.id ?? "");
+            if (/^ST[AB]\d+$/i.test(codeRaw)) {
+              const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
+              if (!existingKeys.has(codeKey)) {
+                stMilestones.push(cm);
+              }
+            }
+          });
+
+          for (const m of stMilestones) {
+            const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
+            const hasPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
+            const hasCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+            
+            if (hasPlacement) fulfilled.add(`${code}-klin`);
+            if (hasCourse) fulfilled.add(`${code}-kurs`);
+          }
+        } else {
+          for (const id of allStMilestoneIds) {
+            fulfilled.add(id);
+          }
+        }
+      } else {
+        for (const id of allStMilestoneIds) {
+          fulfilled.add(id);
+        }
+      }
+    }
+
+    return fulfilled.size;
+  }, [profile, dbAchievements, dbPlacements, dbCourses, goalsCatalog]);
+
+  const milestoneProgressPct = useMemo(() => {
+    if (!totalMilestones || totalMilestones <= 0) return 0;
+    const raw = (fulfilledMilestones / totalMilestones) * 100;
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, raw));
+  }, [fulfilledMilestones, totalMilestones]);
 
   // Aktivitetsformulär (Placering/Vetenskap-/Förbättring/Ausk/ledigheter)
   type FormPlacement = {
@@ -799,11 +1272,6 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     startDate?: string; // (2015)
     endDate?: string;   // (2015)
     note: string;
-  };
-  const todayISO = () => {
-    const d = new Date();
-    const z = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
   };
   const [formC, setFormC] = useState<FormCourse>({
     title: "",
@@ -2323,6 +2791,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
   }
   setCourses(prev => prev.filter(c => c.id !== id));
   setSelectedCourseId(null);
+  setDirty(false);
 }
 
   async function deleteSelectedPlacement() {
@@ -2335,6 +2804,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
     }
     setActivities((prev) => prev.filter((x) => x.id !== a.id));
     setSelectedPlacementId(null);
+    setDirty(false);
     await refreshLists();
   }
 
@@ -2741,8 +3211,8 @@ react-hooks/exhaustive-deps
         <div className="pr-2" />
         <div className="relative">
           <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] text-xs text-slate-700">
-            {MONTH_NAMES.map((m) => (
-              <div key={m} className="col-span-2 text-center font-medium pb-1">{m}</div>
+            {MONTH_NAMES.map((m, idx) => (
+              <div key={m} className={`col-span-2 text-center font-medium pb-1 ${idx === 0 ? "border-l border-slate-300" : ""} ${idx === MONTH_NAMES.length - 1 ? "border-r border-slate-300" : ""}`}>{m}</div>
             ))}
           </div>
           
@@ -2872,15 +3342,27 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   className="pointer-events-none absolute inset-0"
   style={{
     zIndex: 10,
-    // EN tjockare månads-linje (mörkare), över halvmånaden, genom båda lanes
-    backgroundImage:
-      "linear-gradient(to right, rgba(100,116,139,.85) 2px, transparent 2px)",
-    backgroundSize: "calc(100% / 12) 100%",
-    backgroundRepeat: "repeat-x",
-backgroundPosition: "0 0",          // ← samma origin som halvmånad
-
   }}
-/>
+>
+  {/* Linjer för varje månad - exakt positionerade på månadsgränserna */}
+  {Array.from({ length: 13 }, (_, monthIdx) => {
+    // 13 linjer: en för varje månadstart (0-11) + en för slutet av sista månaden (12)
+    const leftPercent = (monthIdx / 12) * 100;
+    return (
+      <div
+        key={`month-line-${monthIdx}`}
+        style={{
+          position: "absolute",
+          left: `${leftPercent}%`,
+          top: 0,
+          bottom: "3px", // Pausa precis ovanför årsseparatorn (som på vänsterkanten)
+          width: "2px",
+          backgroundColor: "rgba(100,116,139,.85)",
+        }}
+      />
+    );
+  })}
+</div>
 
 {/* ÅRSSEPARATOR: vitt band precis under KURS-lanen */}
 <div
@@ -2905,12 +3387,18 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
 
               const monthIndex = Math.floor(i / 2);
               const insideCls = monthIndex % 2 ? "bg-slate-50" : INSIDE_BG_CELL;
+              const isFirstCol = i === 0;
+              const isLastCol = i === COLS - 1;
+              const isFirstHalfOfMonth = i % 2 === 0;
 
               return (
                 <div
                   key={`cell1-${i}`}
                   className={[
   "relative z-0 h-7 cursor-crosshair border-t border-slate-300",
+  isFirstCol ? "border-l border-slate-300" : "",
+  isLastCol ? "border-r border-slate-300" : "",
+  !isFirstCol && isFirstHalfOfMonth ? "border-l border-slate-300" : "",
   outside ? OUTSIDE_BG_CELL : insideCls,
   outside ? "" : "hover:bg-slate-100"
 ].join(" ")}
@@ -2919,10 +3407,19 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
                   onMouseEnter={() => setHover({ row: rowIndex, col: i })}
                   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
                   onClick={() => {
-                    // Om något är valt, stäng detaljrutan med varning om dirty
+                    // Om något är valt och dirty, stäng detaljrutan med varning
+                    // Om något är valt men inte dirty (sparad), skapa ny aktivitet direkt
                     if (selectedPlacementId || selectedCourseId) {
-                      closeDetailPanel();
-                      return;
+                      if (dirty) {
+                        closeDetailPanel();
+                        return;
+                      } else {
+                        // Aktivitet är sparad - skapa ny direkt
+                        setSelectedPlacementId(null);
+                        setSelectedCourseId(null);
+                        addActivityAt(globalSlot);
+                        return;
+                      }
                     } else {
                       // Annars skapa ny aktivitet
                       setSelectedCourseId(null);
@@ -2946,6 +3443,9 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
 
               const monthIndex = Math.floor(i / 2);
               const insideLaneCls = monthIndex % 2 ? "bg-slate-100" : INSIDE_BG_LANE;
+              const isFirstCol = i === 0;
+              const isLastCol = i === COLS - 1;
+              const isFirstHalfOfMonth = i % 2 === 0;
 
               return (
                 <div
@@ -2956,6 +3456,9 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
   outside ? OUTSIDE_BG_LANE : (monthIndex % 2 ? "bg-slate-200" : INSIDE_BG_LANE),
   outside ? "" : "hover:bg-slate-300",    // mörkare hover
 "border-y border-slate-300",            // ← NYTT: raka kanter
+  isFirstCol ? "border-l border-slate-300" : "",
+  isLastCol ? "border-r border-slate-300" : "",
+  !isFirstCol && isFirstHalfOfMonth ? "border-l border-slate-300" : "",
 ].join(" ")}
 
   style={{ gridRowStart: 2 }}
@@ -2964,14 +3467,23 @@ backgroundPosition: "0 0",          // ← samma origin som halvmånad
   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
   onClick={(e) => {
     e.stopPropagation();
-    // Om något är valt, stäng detaljrutan med varning om dirty
+    // Om något är valt och dirty, stäng detaljrutan med varning
+    // Om något är valt men inte dirty (sparad), skapa ny kurs direkt
     if (selectedPlacementId || selectedCourseId) {
-      closeDetailPanel();
-      return;
+      if (dirty) {
+        closeDetailPanel();
+        return;
+      } else {
+        // Kurs är sparad - skapa ny direkt
+        setSelectedPlacementId(null);
+        setSelectedCourseId(null);
+        createCourseAt(defaultISO);
+        return;
+      }
     } else {
       // Annars skapa ny kurs
-    setSelectedPlacementId(null);
-    createCourseAt(defaultISO);
+      setSelectedPlacementId(null);
+      createCourseAt(defaultISO);
     }
   }}
 />
@@ -4545,6 +5057,20 @@ function SaveInfoModal({
   open: boolean;
   onClose: () => void;
 }) {
+  // ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   async function handleSave() {
@@ -4830,6 +5356,16 @@ const [sta3SupervisorSite, setSta3SupervisorSite] = useState<string>("");
 
 // --- ändringsflagga för panelen ---
 const [dirty, setDirty] = useState(false);
+const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+// Pending switch när användaren försöker byta aktivitet med dirty=true
+const [pendingSwitchPlacementId, setPendingSwitchPlacementId] = useState<string | null>(null);
+const [pendingSwitchCourseId, setPendingSwitchCourseId] = useState<string | null>(null);
+// Delete confirmation dialog
+const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{
+  message: string;
+  onConfirm: () => void;
+} | null>(null);
 
 // Baseline/snapshot för att jämföra ändringar
 const baselineRef = useRef<{ placement?: any; course?: any } | null>(null);
@@ -4994,8 +5530,37 @@ const savePlacementToDb = useCallback(
         startDate: startISO,
         endDate: endISO,
         attendance: selAct.attendance ?? 100,
-        // Spara vald fas (BT/ST) – om ej satt, defaulta till "ST"
-        phase: (selAct as any)?.phase || "ST",
+        // Spara vald fas (BT/ST) – om ej satt, inferera baserat på BT-fönstret
+        phase: (selAct as any)?.phase || (() => {
+          const prof: any = profile || {};
+          const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
+          const btISO: string | null = prof?.btStartDate || null;
+          if (!is2021 || !btISO || !isValidISO(btISO)) return "ST";
+          
+          const btEndManual: string | null = prof?.btEndDate || null;
+          let btEndISO: string | null = null;
+          if (btEndManual && isValidISO(btEndManual)) {
+            btEndISO = btEndManual;
+          } else {
+            try {
+              const btDate = isoToDateSafe(btISO);
+              btEndISO = dateToISO(addMonths(btDate, 24));
+            } catch {
+              return "ST";
+            }
+          }
+          if (!btEndISO || !isValidISO(btEndISO)) return "ST";
+          
+          const btStartGlobal = dateToSlot(startYear, btISO, "start");
+          const btEndSlot = dateToSlot(startYear, btEndISO, "end");
+          const btEndGlobal = Number.isFinite(btEndSlot) ? btEndSlot : null;
+          if (!Number.isFinite(btStartGlobal) || btEndGlobal == null) return "ST";
+          
+          const s0 = selAct.startSlot;
+          const e0 = selAct.startSlot + selAct.lengthSlots;
+          const inBtWindow = s0 >= btStartGlobal && e0 <= btEndGlobal;
+          return inBtWindow ? "BT" : "ST";
+        })(),
         supervisor: selAct.supervisor || "",
         supervisorSpeciality: selAct.supervisorSpeciality || "",
         supervisorSite: selAct.supervisorSite || "",
@@ -5040,7 +5605,7 @@ const savePlacementToDb = useCallback(
       return false;
     }
   },
-  [wouldOverlap, refreshLists]
+  [wouldOverlap, refreshLists, profile, startYear]
 );
 
 const saveCourseToDb = useCallback(
@@ -5068,7 +5633,30 @@ const saveCourseToDb = useCallback(
         milestones: ((selCourse as any)?.milestones || []) as string[],
         btMilestones: ((selCourse as any)?.btMilestones || []) as string[],
         fulfillsStGoals: !!(selCourse as any)?.fulfillsStGoals,
-        phase: (selCourse as any)?.phase || "ST",
+        phase: (selCourse as any)?.phase || (() => {
+          const prof: any = profile || {};
+          const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
+          const btISO: string | null = prof?.btStartDate || null;
+          const startISO = selCourse.startDate || selCourse.endDate || "";
+          if (!is2021 || !btISO || !isValidISO(btISO) || !startISO || !isValidISO(startISO)) return "ST";
+          
+          const btEndManual: string | null = prof?.btEndDate || null;
+          let btEndISO: string | null = null;
+          if (btEndManual && isValidISO(btEndManual)) {
+            btEndISO = btEndManual;
+          } else {
+            try {
+              const btDate = isoToDateSafe(btISO);
+              btEndISO = dateToISO(addMonths(btDate, 24));
+            } catch {
+              return "ST";
+            }
+          }
+          if (!btEndISO || !isValidISO(btEndISO)) return "ST";
+          
+          const inBtWindow = startISO >= btISO && startISO <= btEndISO;
+          return inBtWindow ? "BT" : "ST";
+        })(),
         btAssessment: (selCourse as any)?.btAssessment || "",
         ...(typeof (selCourse as any)?.showAsInterval === "boolean"
           ? { showAsInterval: !!(selCourse as any).showAsInterval }
@@ -5104,35 +5692,115 @@ const saveCourseToDb = useCallback(
       return false;
     }
   },
-  [refreshLists]
+  [refreshLists, profile]
 );
 
-// ===== Osparade ändringar: använd confirm() istället för modal =====
-const closeDetailPanel = useCallback(async () => {
+// ===== Osparade ändringar: använd UnsavedChangesDialog =====
+const closeDetailPanel = useCallback(() => {
   if (dirty) {
-    // Fråga om användaren vill spara
-    if (confirm("Du har osparade ändringar. Vill du spara?")) {
-      // Spara och stäng
-      const ok = selectedPlacement
-        ? await savePlacementToDb(selectedPlacement)
-        : selectedCourse
-        ? await saveCourseToDb(selectedCourse)
-        : true;
-      if (!ok) return; // Om sparandet misslyckades, avbryt
-    } else {
-      // Användaren valde att inte spara, fråga om de verkligen vill stänga utan att spara
-      if (!confirm("Stäng utan att spara?")) return;
-      restoreBaseline();
-    }
-    setDirty(false);
-    setSelectedPlacementId(null);
-    setSelectedCourseId(null);
+    setShowCloseConfirm(true);
     return;
   }
   setDirty(false);
   setSelectedPlacementId(null);
   setSelectedCourseId(null);
-}, [dirty, selectedPlacement, selectedCourse]);
+}, [dirty]);
+
+const handleConfirmClose = useCallback(() => {
+  restoreBaseline();
+  setDirty(false);
+  setShowCloseConfirm(false);
+  
+  // Om det finns en pending switch, utför den nu
+  if (pendingSwitchPlacementId !== null || pendingSwitchCourseId !== null) {
+    setSelectedPlacementId(pendingSwitchPlacementId);
+    setSelectedCourseId(pendingSwitchCourseId);
+    setPendingSwitchPlacementId(null);
+    setPendingSwitchCourseId(null);
+  } else {
+    setSelectedPlacementId(null);
+    setSelectedCourseId(null);
+  }
+}, [restoreBaseline, pendingSwitchPlacementId, pendingSwitchCourseId]);
+
+const handleSaveAndClose = useCallback(async () => {
+  const ok = selectedPlacement
+    ? await savePlacementToDb(selectedPlacement)
+    : selectedCourse
+    ? await saveCourseToDb(selectedCourse)
+    : true;
+  if (!ok) return; // Om sparandet misslyckades, avbryt
+  setDirty(false);
+  setShowCloseConfirm(false);
+  
+  // Om det finns en pending switch, utför den nu
+  if (pendingSwitchPlacementId !== null || pendingSwitchCourseId !== null) {
+    setSelectedPlacementId(pendingSwitchPlacementId);
+    setSelectedCourseId(pendingSwitchCourseId);
+    setPendingSwitchPlacementId(null);
+    setPendingSwitchCourseId(null);
+  } else {
+    setSelectedPlacementId(null);
+    setSelectedCourseId(null);
+  }
+}, [selectedPlacement, selectedCourse, pendingSwitchPlacementId, pendingSwitchCourseId, savePlacementToDb, saveCourseToDb]);
+
+const handleCancelClose = useCallback(() => {
+  setShowCloseConfirm(false);
+  // Avbryt även pending switch
+  setPendingSwitchPlacementId(null);
+  setPendingSwitchCourseId(null);
+}, []);
+
+// Hjälpfunktioner för att öppna delete-dialogen
+const requestDeletePlacement = useCallback(() => {
+  if (!selectedPlacement) return;
+  const message = dirty 
+    ? "Du har osparade ändringar. Ta bort ändå?"
+    : "Vill du ta bort vald aktivitet?";
+  setDeleteConfirmConfig({
+    message,
+    onConfirm: async () => {
+      const a = selectedPlacement;
+      if (a.linkedPlacementId) {
+        try {
+          await db.placements.delete(a.linkedPlacementId);
+        } catch {}
+      }
+      setActivities((prev) => prev.filter((x) => x.id !== a.id));
+      setSelectedPlacementId(null);
+      setDirty(false);
+      await refreshLists();
+      setShowDeleteConfirm(false);
+      setDeleteConfirmConfig(null);
+    },
+  });
+  setShowDeleteConfirm(true);
+}, [selectedPlacement, dirty, refreshLists]);
+
+const requestDeleteCourse = useCallback(() => {
+  if (!selectedCourse) return;
+  const message = dirty 
+    ? "Du har osparade ändringar. Ta bort ändå?"
+    : "Vill du ta bort vald aktivitet?";
+  setDeleteConfirmConfig({
+    message,
+    onConfirm: async () => {
+      const id = selectedCourse.id;
+      const linkedId = selectedCourse.linkedCourseId;
+      if (linkedId) {
+        try { await (db as any).courses?.delete?.(linkedId); } catch {}
+        await refreshLists();
+      }
+      setCourses(prev => prev.filter(c => c.id !== id));
+      setSelectedCourseId(null);
+      setDirty(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmConfig(null);
+    },
+  });
+  setShowDeleteConfirm(true);
+}, [selectedCourse, dirty, refreshLists]);
 
 // Funktion för att byta aktivitet med varning.
 // Returnerar true om bytet accepteras/är onödigt, annars false (används för att avbryta drag/resize).
@@ -5143,33 +5811,11 @@ const switchActivity = useCallback(
     if (sameSelection) return true;
 
     if (dirty) {
-      // Fråga om användaren vill spara
-      if (confirm("Du har osparade ändringar. Vill du spara?")) {
-        // Spara och byt (async i bakgrunden)
-        (async () => {
-          const ok = selectedPlacement
-            ? await savePlacementToDb(selectedPlacement)
-            : selectedCourse
-            ? await saveCourseToDb(selectedCourse)
-            : true;
-          if (!ok) {
-            alert("Kunde inte spara. Ändringar behålls.");
-            return;
-          }
-          setDirty(false);
-          setSelectedPlacementId(newPlacementId);
-          setSelectedCourseId(newCourseId);
-        })();
-        return true; // Acceptera bytet direkt, sparandet sker i bakgrunden
-      } else {
-        // Användaren valde att inte spara, fråga om de verkligen vill byta utan att spara
-        if (!confirm("Byt utan att spara?")) return false;
-        restoreBaseline();
-        setDirty(false);
-        setSelectedPlacementId(newPlacementId);
-        setSelectedCourseId(newCourseId);
-        return true;
-      }
+      // Sätt pending switch och visa dialog
+      setPendingSwitchPlacementId(newPlacementId);
+      setPendingSwitchCourseId(newCourseId);
+      setShowCloseConfirm(true);
+      return false; // Vänta på användarens val
     }
 
     setDirty(false);
@@ -5177,39 +5823,85 @@ const switchActivity = useCallback(
     setSelectedCourseId(newCourseId);
     return true;
   },
-  [dirty, selectedPlacementId, selectedCourseId, selectedPlacement, selectedCourse]
+  [dirty, selectedPlacementId, selectedCourseId]
 );
 
-// Keyboard handler för Delete-tangenten
+// Keyboard handler för Delete-tangenten och Spara (Cmd/Ctrl+Enter)
 useEffect(() => {
   function handleKeyDown(e: KeyboardEvent) {
-    // Ignorera om användaren skriver i ett input-fält
-    if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") {
+    // Kolla om någon modal är öppen - dessa har egen keyboard-hantering
+    const anyModalOpen = saveInfoOpen || scanOpen || aboutOpen || profileOpen || 
+                        reportOpen || iupOpen || previewOpen || sta3Open || 
+                        courseModalOpen || btModalOpen || prepareOpen || showCloseConfirm || showDeleteConfirm;
+    
+    // Cmd/Ctrl+Enter för att spara (fungerar även i input-fält)
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      // Om en modal är öppen, låt modalen hantera kortkommandot först
+      // (modaler stoppar propagation om de hanterar det)
+      if (anyModalOpen) {
+        // Låt modalen hantera det - vi gör inget här
+        return;
+      }
+      
+      e.preventDefault();
+      
+      // Om en aktivitet är markerad och dirty, spara den
+      if (selectedPlacement && dirty) {
+        void savePlacementToDb(selectedPlacement);
+        return;
+      }
+      
+      // Om en kurs är markerad och dirty, spara den
+      if (selectedCourse && dirty) {
+        void saveCourseToDb(selectedCourse);
+        return;
+      }
+      
+      // Annars öppna huvud-Spara-dialogen
+      setSaveInfoOpen(true);
+      return;
+    }
+
+    // ESC för att stänga modaler och detaljpanelen
+    if (e.key === "Escape") {
+      // Om någon modal är öppen, låt modalen hantera ESC först
+      // (modaler stoppar propagation om de hanterar det och kollar dirty)
+      if (anyModalOpen) {
+        // Stoppa ESC-eventet helt när en modal är öppen
+        // Detta säkerställer att ESC inte stänger modalen även om window.confirm() visas
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        // Låt modalen hantera det - vi gör inget här
+        return;
+      }
+      
+      // Om ingen modal är öppen, stäng detaljpanelen (med varning om dirty)
+      if (selectedPlacementId || selectedCourseId) {
+        e.preventDefault();
+        void closeDetailPanel();
+        return;
+      }
+    }
+
+    // Ignorera övriga tangenter om användaren skriver i ett input-fält
+    const isInput = (e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA";
+    if (isInput) {
       return;
     }
 
     if (e.key === "Delete" || e.key === "Backspace") {
-      if (selectedPlacement) {
-        if (dirty) {
-          if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
-        } else {
-          if (!confirm("Vill du ta bort vald aktivitet?")) return;
-        }
-        deleteSelectedPlacement();
-      } else if (selectedCourse) {
-        if (dirty) {
-          if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
-        } else {
-          if (!confirm("Vill du ta bort vald aktivitet?")) return;
-        }
-        deleteSelectedCourse();
+      if (selectedPlacement && requestDeletePlacement) {
+        requestDeletePlacement();
+      } else if (selectedCourse && requestDeleteCourse) {
+        requestDeleteCourse();
       }
     }
   }
 
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, [selectedPlacement, selectedCourse, dirty]);
+  window.addEventListener("keydown", handleKeyDown, true);
+  return () => window.removeEventListener("keydown", handleKeyDown, true);
+}, [selectedPlacement, selectedCourse, dirty, savePlacementToDb, saveCourseToDb, selectedPlacementId, selectedCourseId, closeDetailPanel, saveInfoOpen, scanOpen, aboutOpen, profileOpen, reportOpen, iupOpen, previewOpen, sta3Open, courseModalOpen, btModalOpen, prepareOpen, showCloseConfirm, requestDeletePlacement, requestDeleteCourse]);
 
 
   // === Spara hela tidslinjen till DB så PrepareApplication/Profil/rapport läser samma källa ===
@@ -5488,7 +6180,7 @@ const persistTimelineToDb = async () => {
 <button
   onClick={() => setSaveInfoOpen(true)}
   className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px"
-  title="Spara (JSON-backup)"
+  title="Spara (JSON-backup) - Cmd/Ctrl+Enter"
 >
   <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2Zm0 2v3H7V5h10ZM7 10h10v9H7v-9Z"/>
@@ -6449,24 +7141,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
           <button
-  onClick={async () => {
-    const a = selAct;
-    if (!a) return;
-
-    if (dirty) {
-      if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
-    } else {
-      if (!confirm("Vill du ta bort vald aktivitet?")) return;
-    }
-
-    if (a.linkedPlacementId) {
-      try {
-        await db.placements.delete(a.linkedPlacementId);
-      } catch {}
-    }
-    setActivities((prev) => prev.filter((x) => x.id !== a.id));
-    setSelectedPlacementId(null);
-    await refreshLists();
+  onClick={() => {
+    requestDeletePlacement();
   }}
   className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 transition hover:border-red-400 hover:bg-red-200 active:translate-y-px"
 
@@ -6512,7 +7188,11 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           }
           
           if (!btISO || !isValidISO(btISO)) {
-            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            if (is2021) {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-5";
+            } else {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            }
           }
 
           // Effektivt BT-slut: manuellt fält eller 24 månader efter BT-start
@@ -6529,13 +7209,21 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             }
           }
           if (!btEndISO) {
-            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            if (is2021) {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-5";
+            } else {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            }
           }
 
           const startISO =
             selCourse.startDate || selCourse.endDate || "";
           if (!startISO || !isValidISO(startISO)) {
-            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            if (is2021) {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-5";
+            } else {
+              return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+            }
           }
 
           // Inom BT-fönstret om startdatum ligger mellan BT-start och Slutdatum för BT
@@ -6551,8 +7239,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             }
             return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
           } else {
-            // För övriga specialiteter: 5 kolumner om inom BT-fönstret (kurs, kursledare, start, slut, fas)
-            return inBtWindow ? "md:grid-cols-5" : "md:grid-cols-4";
+            // För övriga specialiteter 2021: 6 kolumner inom BT-fönstret (kurs, kursledare, start, slut, fas, intyg), 5 kolumner efter BT-slut (utan fas)
+            // För 2015: 5 kolumner om inom BT-fönstret, annars 4 kolumner
+            if (is2021) {
+              return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
+            } else {
+              return inBtWindow ? "md:grid-cols-5" : "md:grid-cols-4";
+            }
           }
         })(),
       ].join(" ")}
@@ -6666,7 +7359,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 );
               }}
               className="w-full h-10 rounded-lg border px-3"
-              placeholder="Ange kursens namn"
             />
           </div>
         );
@@ -6692,7 +7384,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   );
                 }}
                 className="w-full h-10 rounded-lg border px-3"
-                placeholder="Ange kursens titel"
               />
             </div>
           );
@@ -7101,17 +7792,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 </button>
 
           <button
-  onClick={async () => {
-    const c = selCourse;
-    if (!c) return;
-
-    if (dirty) {
-      if (!confirm("Du har osparade ändringar. Ta bort ändå?")) return;
-    } else {
-      if (!confirm("Vill du ta bort vald aktivitet?")) return;
-    }
-
-    await deleteSelectedCourse();
+  onClick={() => {
+    requestDeleteCourse();
   }}
   className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 transition hover:border-red-400 hover:bg-red-200 active:translate-y-px"
 
@@ -7808,14 +8490,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
     return (
       <div className="text-sm">
-        {/* Två kolumner:
+        {/* Tre kolumner:
             Vänster: Arbetad tid + Total tid BT+ST
-            Höger:  Beräknat slutdatum + Slutdatum BT */}
-<div className="mt-1 grid gap-2 md:grid-cols-2 max-w-4xl">
+            Mitten: Beräknat slutdatum + Slutdatum BT
+            Höger: BT/ST-väljare + Progress bars (rad 2 och 3) */}
+<div className="mt-1 grid gap-2 grid-cols-1 md:grid-cols-[1fr_1fr_1fr] w-full">
 
           {/* VÄNSTER KOLUMN */}
           <div className="space-y-3">
-            {/* Överst: Registrerad tid motsvarande heltid */}
+            {/* Rad 1: Registrerad tid motsvarande heltid */}
             <div>
               <span className="font-medium">Registrerad tid motsvarande heltid:</span>{" "}
               <span className="font-semibold">
@@ -7823,7 +8506,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               </span>
             </div>
 
-            {/* Under: Total tid för BT + ST */}
+            {/* Rad 2: Total tid för BT + ST */}
             <div className="flex items-center gap-2">
               <span className="font-medium">{totalLabel}</span>
               <select
@@ -7855,9 +8538,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             </div>
           </div>
 
-          {/* HÖGER KOLUMN */}
+          {/* MITTEN KOLUMN */}
           <div className="space-y-3">
-            {/* Överst: Beräknat slutdatum vid tjänstgöring på X % */}
+            {/* Rad 1: Beräknat slutdatum vid tjänstgöring på X % */}
             <div className="flex items-center gap-2">
               <span className="font-medium">
                 Slutdatum för ST vid tjänstgöring på
@@ -7878,7 +8561,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <span className="font-semibold">{stEndISO || "—"}</span>
             </div>
 
-                        {/* Under: Slutdatum för BT (med kalender) */}
+            {/* Rad 2: Slutdatum för BT (med kalender) */}
             {gv === "2021" && (
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -7915,8 +8598,41 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 ) : null}
               </div>
             )}
+          </div>
 
+          {/* HÖGER KOLUMN */}
+          <div className="space-y-3 w-full">
+            {/* Rad 2: Progressbar - Genomförd tid */}
+            <div className="w-full">
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="text-slate-900">Genomförd tid</span>
+                <span className="font-semibold text-slate-900">
+                  {progressPct.toFixed(0)} %
+                </span>
+              </div>
+              <div className="mt-1 h-4 w-full rounded-full bg-slate-200">
+                <div
+                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
 
+            {/* Rad 3: Progressbar - Delmålsuppfyllelse */}
+            <div className="w-full">
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="text-slate-900">Delmålsuppfyllelse</span>
+                <span className="font-semibold text-slate-900">
+                  {milestoneProgressPct.toFixed(0)} %
+                </span>
+              </div>
+              <div className="mt-1 h-4 w-full rounded-full bg-slate-200">
+                <div
+                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
+                  style={{ width: `${milestoneProgressPct}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -8371,6 +9087,34 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
+{/* === Osparade ändringar-dialog === */}
+<UnsavedChangesDialog
+  open={showCloseConfirm}
+  title="Osparade ändringar"
+  message={
+    pendingSwitchPlacementId !== null || pendingSwitchCourseId !== null
+      ? "Det finns osparade ändringar. Vill du spara innan du byter?"
+      : "Det finns osparade ändringar. Vill du stänga utan att spara?"
+  }
+  onCancel={handleCancelClose}
+  onDiscard={handleConfirmClose}
+  onSaveAndClose={handleSaveAndClose}
+/>
+
+{/* === Ta bort-bekräftelsedialog === */}
+<DeleteConfirmDialog
+  open={showDeleteConfirm}
+  title="Ta bort"
+  message={deleteConfirmConfig?.message || "Är du säker på att du vill ta bort detta?"}
+  onCancel={() => {
+    setShowDeleteConfirm(false);
+    setDeleteConfirmConfig(null);
+  }}
+  onConfirm={() => {
+    deleteConfirmConfig?.onConfirm();
+  }}
+/>
+
 {/* === Specialistansökan (gemensam modal för 2015/2021) === */}
 <PrepareApplicationModal
   open={prepareOpen}
@@ -8582,6 +9326,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
       {/* Överlapp ej möjligt: varningsblock borttaget enligt specifikation */}
-      </>
+    </>
   );
 }

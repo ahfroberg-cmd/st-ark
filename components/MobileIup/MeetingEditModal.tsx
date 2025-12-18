@@ -3,6 +3,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import type { IupMeeting } from "@/components/IupModal";
 
 type Props = {
@@ -48,6 +49,7 @@ export default function MeetingEditModal({ open, meeting, onSave, onDelete, onCl
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupMeeting | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!open || !meeting) return;
@@ -215,9 +217,7 @@ export default function MeetingEditModal({ open, meeting, onSave, onDelete, onCl
             <button
               type="button"
               onClick={() => {
-                if (window.confirm("Vill du ta bort detta handledarsamtal?")) {
-                  onDelete(draft.id);
-                }
+                setShowDeleteConfirm(true);
               }}
               className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 active:translate-y-px"
             >
@@ -234,6 +234,22 @@ export default function MeetingEditModal({ open, meeting, onSave, onDelete, onCl
           </button>
         </footer>
       </div>
+
+      {/* === Ta bort-bekräftelsedialog === */}
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        title="Ta bort"
+        message="Vill du ta bort detta handledarsamtal?"
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+        }}
+        onConfirm={() => {
+          if (onDelete && draft) {
+            onDelete(draft.id);
+          }
+          setShowDeleteConfirm(false);
+        }}
+      />
     </div>
   );
 }

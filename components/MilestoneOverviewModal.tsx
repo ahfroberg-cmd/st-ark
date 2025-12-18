@@ -26,11 +26,12 @@ type Props = {
   initialTab: "st" | "bt"; 
   title?: string;
   hideHeader?: boolean; // Hide the colored header (for laptop version)
+  onDirtyChange?: (dirty: boolean) => void; // Callback när planeringen ändras
 };
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideHeader }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideHeader, onDirtyChange }: Props) {
   console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -52,6 +53,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   const [detailPlanText, setDetailPlanText] = useState<string>("");
   const [detailDirty, setDetailDirty] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
+
+  // Meddela föräldern när dirty-state ändras (bara när det blir true)
+  useEffect(() => {
+    if (onDirtyChange && detailDirty) {
+      onDirtyChange(true);
+    }
+  }, [detailDirty, onDirtyChange]);
   const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
   const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
   const [planDatesByMilestone, setPlanDatesByMilestone] = useState<Record<string, string>>({});

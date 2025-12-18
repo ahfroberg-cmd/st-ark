@@ -9,6 +9,7 @@ import CalendarDatePicker from "@/components/CalendarDatePicker";
 import { PDFDocument, StandardFonts, PDFName } from "pdf-lib";
 import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
 import dynamic from "next/dynamic";
 const DesktopMilestonePicker = dynamic(() => import("@/components/DesktopMilestonePicker"), { ssr: false });
@@ -357,7 +358,6 @@ function LabeledInputLocal({
         value={local}
         onInput={(e) => setLocal((e.target as HTMLInputElement).value)}
         onBlur={handleBlur}
-        placeholder={placeholder}
         inputMode={inputMode}
         autoComplete="off"
         spellCheck={false}
@@ -570,7 +570,6 @@ function ThirdCountryTabContent2015({
                       setThirdCountryWorkplaces(next);
                     }}
                     className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                    placeholder="Tjänstgöringsställe"
         />
       </div>
                 <div className={idx === 0 ? "self-end w-[220px]" : "self-end w-[220px]"}>
@@ -659,7 +658,6 @@ function ThirdCountryTabContent2015({
           value={thirdCountryVerification}
           onChange={(e) => setThirdCountryVerification(e.target.value)}
           className="min-h-[200px] w-full rounded-xl border border-slate-300 px-3 py-2 text-sm placeholder-gray-400"
-          placeholder="Beskriv hur uppfyllelse har kontrollerats..."
         />
       </div>
 
@@ -710,8 +708,17 @@ export default function PrepareApplicationModal2015({ open, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const [dirty, setDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [baselineReady, setBaselineReady] = useState(false);
+  const baselineSetTimeRef = useRef<number>(0);
   useEffect(() => {
-    if (open) setDirty(false);
+    if (open) {
+      setDirty(false);
+      setShowCloseConfirm(false);
+      setBaselineReady(false);
+      baselineRef.current = null; // Nollställ baseline när modalen öppnas
+      baselineSetTimeRef.current = 0;
+    }
   }, [open]);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -719,7 +726,7 @@ export default function PrepareApplicationModal2015({ open, onClose }: Props) {
   // Detta är alltid 2015-versionen
   const is2015 = true;
 
-  const [tab, setTab] = useState<"applicant" | "signers" | "thirdCountry" | "attachments">("applicant");
+  const [tab, setTab] = useState<"signers" | "thirdCountry" | "attachments">("signers");
 
   // Data från DB
   const [placements, setPlacements] = useState<Placement[]>([]);
@@ -1486,13 +1493,6 @@ export default function PrepareApplicationModal2015({ open, onClose }: Props) {
     return { cardBg: s.bg, cardBd: s.bd, pillBg: s.pill, pillBd: s.pillBd };
   }
 
-  /** ESC för att stänga */
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleRequestClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
   // Sync från Profil -> "Uppgifter om sökande" (överstyr fälten när profil ändras/öppnas)
 // Inkluderar: examensland/datum, licensländer, samt TIDIGARE SPECIALITETER (längst ned).
 useEffect(() => {
@@ -1548,10 +1548,18 @@ useEffect(() => {
 
   // Ta baseline efter att allt är initierat
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setBaselineReady(false);
+      baselineRef.current = null;
+      return;
+    }
+    // Vänta längre för att säkerställa att all data är laddad och stabil
     const timer = setTimeout(() => {
       takeBaseline();
-    }, 200);
+      setBaselineReady(true);
+      setDirty(false); // Säkerställ att dirty är false när baseline sätts
+      baselineSetTimeRef.current = Date.now(); // Spara när baseline sattes
+    }, 300);
     return () => clearTimeout(timer);
   }, [open, profile, placements.length, courses.length]);
 
@@ -2214,31 +2222,124 @@ const restoreBaseline = () => {
 };
 
 /** Stäng med varning och ev. rollback */
-const handleRequestClose = () => {
-  if (!dirty) return onClose();
-  const goOn = window.confirm(
-    "Det finns osparade ändringar. Vill du stänga utan att spara?"
-  );
-  if (goOn) {
-    restoreBaseline(); // rulla tillbaka
-    setDirty(false);
+const handleRequestClose = useCallback(() => {
+  if (!dirty) {
     onClose();
+    return;
   }
-};
+  // Visa egen bekräftelsedialog istället för window.confirm()
+  setShowCloseConfirm(true);
+}, [dirty]);
+
+const handleConfirmClose = useCallback(() => {
+  restoreBaseline(); // rulla tillbaka
+  setDirty(false);
+  setShowCloseConfirm(false);
+  onClose();
+}, []);
+
+const handleCancelClose = useCallback(() => {
+  setShowCloseConfirm(false);
+}, []);
+
+/** Spara alla ändringar */
+const handleSaveAll = useCallback(async () => {
+  // Spara till IndexedDB istället för localStorage
+  const payload = {
+    id: "default",
+    // profile:  ⟵ medvetet utelämnad
+    placements,
+    courses,
+    applicant,
+    cert,
+    attachments,
+    paidFeeDate,
+    presetChecked,
+    presetDates,
+    tab,
+    userReordered,
+    // Third country data
+    thirdCountryDelmalCodes,
+    thirdCountryActivities,
+    thirdCountryVerification,
+    thirdCountryWorkplaces,
+    savedAt: new Date().toISOString(),
+    version: 8,
+  };
+  try {
+    await (db as any).specialistApplication?.put?.(payload);
+    localStorage.setItem(COLORMAP_KEY, JSON.stringify(GROUP_COLORS));
+    takeBaseline(); // Spara ny baseline efter sparning
+    setDirty(false); // Sätt dirty till false efter sparning
+  } catch (err) {
+    console.error("Kunde inte spara specialistansökan:", err);
+  }
+}, [placements, courses, applicant, cert, attachments, paidFeeDate, presetChecked, presetDates, tab, userReordered, thirdCountryDelmalCodes, thirdCountryActivities, thirdCountryVerification, thirdCountryWorkplaces]);
+
+const handleSaveAndClose = useCallback(async () => {
+  await handleSaveAll();
+  setShowCloseConfirm(false);
+  onClose();
+}, [handleSaveAll, onClose]);
+
+  /** ESC för att stänga, Cmd/Ctrl+Enter för att spara */
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      // Om bekräftelsedialogen är öppen, låt den hantera ALLA keyboard events
+      if (showCloseConfirm) {
+        // UnsavedChangesDialog hanterar keyboard events och stoppar propagation
+        return;
+      }
+      
+      if (e.key === "Escape") {
+        // Stoppa ESC-eventet helt innan vi gör något annat
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        // Anropa handleRequestClose direkt - den visar bekräftelsedialogen
+        handleRequestClose();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        void handleSaveAll();
+      }
+    };
+    // Använd capture-fas för att fånga ESC innan andra listeners
+    // Lägg till listener tidigt i capture-fasen för att säkerställa att vi fångar ESC först
+    window.addEventListener("keydown", onKey, { capture: true, passive: false });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [open, dirty, handleRequestClose, handleSaveAll, showCloseConfirm, handleCancelClose]);
 
   /** Uppdatera dirty-status baserat på baseline */
   useEffect(() => {
-    if (!open || !baselineRef.current) return;
-    const b = baselineRef.current;
-    const cur = currentSnapshot();
-    try {
-      const isDirty = JSON.stringify(cur) !== JSON.stringify(b);
-      setDirty(isDirty);
-    } catch {
-      setDirty(true);
+    if (!open || !baselineReady || !baselineRef.current) return;
+    
+    // Ignorera dirty-check om baseline just satts (inom 500ms)
+    const timeSinceBaseline = Date.now() - baselineSetTimeRef.current;
+    if (timeSinceBaseline < 500) {
+      setDirty(false);
+      return;
     }
+    
+    // Vänta lite extra för att säkerställa att baseline är helt stabil
+    const timer = setTimeout(() => {
+      const b = baselineRef.current;
+      if (!b) return;
+      const cur = currentSnapshot();
+      try {
+        const isDirty = JSON.stringify(cur) !== JSON.stringify(b);
+        setDirty(isDirty);
+      } catch {
+        // Vid fel, sätt inte dirty automatiskt - låt användarens ändringar sätta det
+      }
+    }, 100); // Längre delay för att säkerställa att allt är stabilt
+    return () => clearTimeout(timer);
   }, [
     open,
+    baselineReady,
     placements,
     courses,
     applicant,
@@ -2438,44 +2539,20 @@ const handleRequestClose = () => {
   }
 
 /** ===================== Persistens ===================== */
-async function onSaveAll() {
-  // Spara till IndexedDB istället för localStorage
-  const payload = {
-    id: "default",
-    // profile:  ⟵ medvetet utelämnad
-    placements,
-    courses,
-    applicant,
-    cert,
-    attachments,
-    paidFeeDate,
-    presetChecked,
-    presetDates,
-    tab,
-    userReordered,
-    // Third country data
-    thirdCountryDelmalCodes,
-    thirdCountryActivities,
-    thirdCountryVerification,
-    thirdCountryWorkplaces,
-    savedAt: new Date().toISOString(),
-    version: 8,
-  };
-  try {
-    await (db as any).specialistApplication?.put?.(payload);
-    localStorage.setItem(COLORMAP_KEY, JSON.stringify(GROUP_COLORS));
-    takeBaseline(); // Spara ny baseline efter sparning
-  } catch (err) {
-    console.error("Kunde inte spara specialistansökan:", err);
-  }
-  setDirty(false);
-}
+// onSaveAll har flyttats till handleSaveAll (useCallback) ovanför för att kunna användas i useEffect
 
 
   if (!open) return null;
 
   /** ===================== Render ===================== */
   return (
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
       <div
         ref={overlayRef}
         className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
@@ -2496,7 +2573,7 @@ async function onSaveAll() {
   <div className="flex items-center gap-2">
     <button
   disabled={!dirty}
-            onClick={() => { onSaveAll(); }}
+            onClick={() => { void handleSaveAll(); }}
   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
 >
   Spara
@@ -2515,7 +2592,6 @@ async function onSaveAll() {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "applicant",   label: "Uppgifter om sökande" },
             { id: "signers",     label: "Intygande personer" },
             // STa3 finns inte för 2015
             ...(profile?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredjeland" }] : []),
@@ -2541,112 +2617,6 @@ async function onSaveAll() {
           onChangeCapture={() => setDirty(true)}
         >
 
-
-
-          {/* ========== Uppgifter om sökande ========== */}
-          {tab === "applicant" && (
-            <div className="grid grid-cols-1 gap-4">
-              {/* Personuppgifter (readonly från Profil) */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Personuppgifter</h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <ReadonlyInput value={profile?.name ?? ""} label="Namn" />
-                  <ReadonlyInput value={String((profile as any)?.personalNumber ?? "")} label="Personnummer" />
-                  <ReadonlyInput value={String((profile as any)?.address ?? "")} label="Utdelningsadress" />
-                  <ReadonlyInput value={String((profile as any)?.postalCode ?? "")} label="Postnummer" />
-                  <ReadonlyInput value={String((profile as any)?.city ?? "")} label="Postort" />
-                  <ReadonlyInput value={String((profile as any)?.email ?? "")} label="E-postadress" />
-                  <ReadonlyInput value={String((profile as any)?.homeClinic ?? "")} label="Arbetsplats" />
-                  <ReadonlyInput value={String((profile as any)?.mobile ?? "")} label="Mobiltelefon" />
-                  <ReadonlyInput value={String((profile as any)?.phoneHome ?? "")} label="Telefon (bostad)" />
-                  <ReadonlyInput value={String((profile as any)?.phoneWork ?? "")} label="Telefon (arbete)" />
-                </div>
-              </div>
-
-
-              {/* Examen, legitimation och specialistkompetens */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Examen, legitimation och specialistkompetens</h3>
-
-                {/* Läkarexamen – land + datum (readonly från Profil) */}
-                <div className="mb-3 grid grid-cols-[minmax(0,1fr)_220px] gap-2">
-                  <ReadonlyInput
-                    label="Land för läkarexamen"
-                    value={String((profile as any)?.medDegreeCountry ?? "")}
-                  />
-                  <div className="self-end w-[220px]">
-                    <div
-                      className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-                      aria-readonly="true"
-                      title={'Ändras i "Profil"'}
-                    >
-                      {String((profile as any)?.medDegreeDate ?? "") || "—"}
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* Legitimation – readonly, hämtas från profil/applicant.licenseCountries */}
-                {applicant.licenseCountries.length > 0 && (
-                  <div className="grid gap-y-2">
-                    {applicant.licenseCountries.map((lc, idx) => (
-                      <div key={lc.id} className="grid grid-cols-[minmax(0,1fr)_220px] gap-2">
-                        <ReadonlyInput
-                          label="Land för legitimation"
-                          value={lc.country}
-                        />
-                        <div className="self-end w-[220px]">
-                          <div
-                            className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-                            aria-readonly="true"
-                            title={'Ändras i "Profil"'}
-                          >
-                            {lc.date || "—"}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Tidigare specialistbevis – readonly om det finns i applicant.previousSpecialties */}
-                {applicant.previousSpecialties &&
-                  applicant.previousSpecialties.length > 0 && (
-                    <div className="mt-4 rounded-lg border border-slate-200 p-3">
-                      <div className="mb-2 text-[13px] font-semibold text-slate-700">
-                        Har sedan tidigare bevis om specialistkompetens
-                      </div>
-                      <div className="grid gap-2">
-                        {applicant.previousSpecialties.map((row) => (
-                          <div
-                            key={row.id}
-                            className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px] items-end gap-2"
-                          >
-                            <ReadonlyInput
-                              label="Specialitet"
-                              value={row.specialty}
-                            />
-                            <ReadonlyInput
-                              label="Land"
-                              value={row.country}
-                            />
-                            <div className="w-[220px] self-end">
-                              <div
-                                className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-                                aria-readonly="true"
-                                title={'Ändras i "Profil"'}
-                              >
-                                {row.date || "—"}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            </div>
-          )}
 
 
           {/* ========== Intygande personer ========== */}
@@ -2721,7 +2691,6 @@ async function onSaveAll() {
                         mainSupervisor: { ...s.mainSupervisor, trainingYear: v },
                       }))
                     }
-                    placeholder=""
                     inputMode="numeric"
                   />
                 </div>
@@ -3047,6 +3016,7 @@ async function onSaveAll() {
         />
       </div>
     </div>
+    </>
   );
 }
 

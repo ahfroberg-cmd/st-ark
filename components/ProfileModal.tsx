@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -65,7 +66,6 @@ function Input({
         setLocal(v);
         commit(v); // uppdatera form direkt -> dirty tänds direkt
       }}
-      placeholder={placeholder}
       inputMode={inputMode}
       autoComplete="off"
       spellCheck={false}
@@ -119,10 +119,14 @@ export default function ProfileModal({ open, onClose }: Props) {
   const [tab, setTab] = useState<"person" | "st">("person");
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   // Ladda profil när modalen öppnas
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setShowCloseConfirm(false);
+      return;
+    }
     (async () => {
       const p = (await db.profile.get("default")) as any;
       const base = p ? { ...empty, ...p } : empty;
@@ -150,17 +154,74 @@ export default function ProfileModal({ open, onClose }: Props) {
 
   // Stäng med varning om osparat
   const requestClose = useCallback(() => {
-    if (dirty && !confirm("Du har osparade ändringar. Vill du stänga utan att spara?")) return;
+    if (dirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
     onClose();
   }, [dirty, onClose]);
 
-  // ESC stäng
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    onClose();
+  }, [onClose]);
+
+  const handleSaveAndClose = useCallback(async () => {
+    // Validera först
+    if (!form.name?.trim() || !form.specialty?.trim()) {
+      alert("Fyll i minst Namn och Specialitet.");
+      return;
+    }
+    // Validering beroende på målversion
+    if (form.goalsVersion === "2021") {
+      if (!form.btStartDate) {
+        alert("Fyll i startdatum för BT/ST.");
+        return;
+      }
+    } else {
+      if (!form.stStartDate) {
+        alert("Fyll i startdatum för ST.");
+        return;
+      }
+    }
+
+    try {
+      await handleSave();
+      setShowCloseConfirm(false);
+      onClose();
+    } catch (e) {
+      // Om sparandet misslyckades, stäng inte dialogen
+      console.error("Kunde inte spara profil:", e);
+    }
+  }, [form, handleSave, onClose]);
+
+  // ESC stäng, Cmd/Ctrl+Enter spara
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") requestClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, requestClose]);
+    const onKey = (e: KeyboardEvent) => {
+      // Om bekräftelsedialogen är öppen, låt den hantera ALLA keyboard events
+      if (showCloseConfirm) {
+        // UnsavedChangesDialog hanterar keyboard events och stoppar propagation
+        return;
+      }
+      
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        requestClose();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        void handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, requestClose, dirty, handleSave, showCloseConfirm]);
 
   // Klick utanför för att stänga
   function onOverlay(e: React.MouseEvent) {
@@ -194,7 +255,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
     await db.profile.put(toSave);
     setOrig(toSave);
-    onClose(); // stäng efter spara
+    // Spara utan att stänga - användaren kan stänga via Stäng-knappen eller ESC
 
   }
 
@@ -451,7 +512,7 @@ export default function ProfileModal({ open, onClose }: Props) {
           </label>
           {supervisorHasOtherSite && (
             <div className="mt-3">
-              <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} placeholder="Tjänsteställe" />
+              <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} />
             </div>
           )}
         </div>
@@ -469,7 +530,7 @@ export default function ProfileModal({ open, onClose }: Props) {
           </label>
           {studyDirectorHasOtherSite && (
             <div className="mt-3">
-              <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} placeholder="Tjänsteställe" />
+              <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} />
             </div>
           )}
         </div>
@@ -716,6 +777,13 @@ export default function ProfileModal({ open, onClose }: Props) {
   if (!open) return null;
 
   return (
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
     <div ref={overlayRef} onMouseDown={onOverlay} className="fixed inset-0 z-[70] grid place-items-center bg-black/40 p-4">
       <div onMouseDown={(e) => e.stopPropagation()} className="relative w-full max-w-[960px] rounded-2xl border border-slate-200 bg-white shadow-2xl">
         {/* Header */}
@@ -779,5 +847,6 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
       </div>
     </div>
+    </>
   );
 }

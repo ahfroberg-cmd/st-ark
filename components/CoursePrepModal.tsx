@@ -1,7 +1,7 @@
 // components/CoursePrepModal.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { exportCertificate } from "@/lib/exporters";
 import { db } from "@/lib/db";
 
@@ -495,6 +495,24 @@ const handleSave = async () => {
     }
     onClose();
   };
+
+  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        void handleSave();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, dirty, handleSave, handleClose]);
 
   if (!open || !course) return null;
 

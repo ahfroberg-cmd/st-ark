@@ -220,6 +220,24 @@ export default function Sta3PrepModal({
     setDirty(false);
   };
 
+  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSave();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, dirty, handleSave, handleClose, otherText, howVerifiedText, savedOther, savedHow]);
+
   if (!open) return null;
 
   // Välj automatiskt uppfångade aktiviteter om de finns, annars de som kom från PusslaDinST
@@ -356,7 +374,6 @@ export default function Sta3PrepModal({
                 value={otherText}
                 onChange={(e) => handleOtherChange(e.target.value)}
                 className="min-h-[100px] w-full rounded-xl border border-slate-300 px-3 py-2 text-sm placeholder-gray-400"
-                placeholder="Ange andra relevanta aktiviteter, t.ex. seminarier, litteraturstudier eller handledningsmoment."
               />
             </div>
           </div>
@@ -374,7 +391,6 @@ export default function Sta3PrepModal({
               value={howVerifiedText}
               onChange={(e) => handleHowChange(e.target.value)}
               className="min-h-[140px] w-full rounded-xl border border-slate-300 px-3 py-2 text-sm placeholder-gray-400"
-              placeholder="Beskriv hur kunskaperna har kontrollerats och bedömts."
             />
           </div>
         </div>

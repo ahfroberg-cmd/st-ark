@@ -165,7 +165,6 @@ function LabeledInputLocal({
         value={local}
         onInput={handleChange}
         onBlur={handleBlur}
-        placeholder={placeholder}
         inputMode={inputMode}
 
         autoComplete="off"
@@ -240,8 +239,12 @@ export default function PrepareBtModal({ open, onClose }: Props) {
 
   /** Dirty flag for enabling Save */
   const [dirty, setDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   useEffect(() => {
-    if (open) setDirty(false);
+    if (open) {
+      setDirty(false);
+      setShowCloseConfirm(false);
+    }
   }, [open]);
 
   /** Profile + DB content */
@@ -253,8 +256,8 @@ export default function PrepareBtModal({ open, onClose }: Props) {
 
   /** Tabs (match visual design of PrepareApplicationModal) */
   const [tab, setTab] = useState<
-    "applicant" | "btgoals" | "btfull" | "competence" | "attachments"
-  >("applicant");
+    "btgoals" | "btfull" | "competence" | "attachments"
+  >("btgoals");
 
   /** Applicant data (hämtar visning från Profil; lokalt behövs bara extra-fält) */
 const [applicant, setApplicant] = useState({
@@ -961,13 +964,30 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
   useEffect(() => {
   if (!open) return;
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape") handleRequestClose();
+    // Om bekräftelsedialogen är öppen, låt den hantera ALLA keyboard events
+    if (showCloseConfirm) {
+      // UnsavedChangesDialog hanterar keyboard events och stoppar propagation
+      return;
+    }
+    
+    // Cmd/Ctrl+Enter för att spara
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+      e.preventDefault();
+      handleSave();
+      return;
+    }
+    
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      handleRequestClose();
+    }
   };
-  window.addEventListener("keydown", onKey);
-  return () => window.removeEventListener("keydown", onKey);
+  window.addEventListener("keydown", onKey, true);
+  return () => window.removeEventListener("keydown", onKey, true);
   // onClose inte längre direkt beroende, handleRequestClose använder closure
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [open, dirty]);
+}, [open, dirty, showCloseConfirm]);
 
 
   /** ====== Dirty-tracking efter hydrering ====== */
@@ -1334,15 +1354,26 @@ function handleSave() {
 /** Stäng med varning och ev. rollback */
 function handleRequestClose() {
   if (!dirty) return onClose();
-  const goOn = window.confirm(
-    "Det finns osparade ändringar. Vill du stänga utan att spara?"
-  );
-  if (goOn) {
-    restoreBaseline(); // rulla tillbaka
-    setDirty(false);
-    onClose();
-  }
+  setShowCloseConfirm(true);
 }
+
+function handleConfirmClose() {
+  restoreBaseline(); // rulla tillbaka
+  setDirty(false);
+  setShowCloseConfirm(false);
+  onClose();
+}
+
+function handleSaveAndClose() {
+  handleSave();
+  setShowCloseConfirm(false);
+  onClose();
+}
+
+function handleCancelClose() {
+  setShowCloseConfirm(false);
+}
+
 
 /** Effekt A: när modalen öppnas, blockera dirty-spårning under init */
 useEffect(() => {
@@ -1813,6 +1844,13 @@ useEffect(() => {
   if (!open) return null;
 
   return (
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+        onSaveAndClose={handleSaveAndClose}
+      />
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
@@ -1853,7 +1891,6 @@ useEffect(() => {
         {/* Tabs (match PrepareApplicationModal) */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "applicant", label: "Uppgifter om sökande" },
             { id: "btgoals", label: "Skapa intyg: Delmål i BT" },
             { id: "btfull", label: "Fullgjord BT" },
             { id: "competence", label: "Uppnådd BT" },
@@ -1879,118 +1916,6 @@ useEffect(() => {
   className="max-h-[75vh] overflow-auto p-4"
 >
 
-
-
-          {/* 1) Uppgifter om sökande (readonly från Profil) */}
-{tab === "applicant" && (
-  <div className="grid grid-cols-1 gap-4">
-    {/* Personuppgifter från Profil + tilläggsfält */}
-    <div className="rounded-lg border border-slate-200 p-3">
-      <h3 className="mb-2 text-sm font-extrabold">Personuppgifter</h3>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <ReadonlyInput value={profile?.name ?? ""} label="Namn" />
-        <ReadonlyInput value={String((profile as any)?.personalNumber ?? "")} label="Personnummer" />
-        <ReadonlyInput value={String((profile as any)?.address ?? "")} label="Utdelningsadress" />
-        <ReadonlyInput value={String((profile as any)?.postalCode ?? "")} label="Postnummer" />
-        <ReadonlyInput value={String((profile as any)?.city ?? "")} label="Postort" />
-
-        {/* Telefonfält uppflyttade */}
-        <ReadonlyInput value={String((profile as any)?.mobile ?? "")} label="Mobiltelefon" />
-        <ReadonlyInput value={String((profile as any)?.phoneHome ?? "")} label="Telefon (bostad)" />
-        <ReadonlyInput value={String((profile as any)?.phoneWork ?? "")} label="Telefon (arbete)" />
-
-        {/* Nedersta raden: Emailadress (vänster, från profil, readonly) */}
-        <ReadonlyInput
-          label="Emailadress"
-          value={String((profile as any)?.email ?? "")}
-        />
-
-        {/* Nedersta raden: Arbetsplats (hemklinik, readonly) */}
-        <ReadonlyInput
-          label="Arbetsplats (hemklinik)"
-          value={String((profile as any)?.homeClinic ?? "")}
-        />
-
-      </div>
-    </div>
-
-
-
-    {/*      {/* Examen & legitimation (visning från Profil + BT-tillägg) */}
-    <div className="rounded-lg border border-slate-200 p-3">
-      <h3 className="mb-2 text-sm font-extrabold">Examen och legitimation</h3>
-
-      {/* Läkarexamen – land + datum (readonly från Profil) */}
-      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_220px] gap-2">
-        <ReadonlyInput
-          value={String((profile as any)?.medDegreeCountry ?? "")}
-          label="Land för läkarexamen"
-        />
-        <div className="self-end w-[220px]">
-          <div
-            className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-            title={'Ändras i "Profil"'}
-            aria-readonly="true"
-          >
-            {String((profile as any)?.medDegreeDate ?? "") || "—"}
-          </div>
-        </div>
-      </div>
-
-      {/* Legitimation – land + datum (readonly från Profil) */}
-      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_220px] gap-2">
-        <ReadonlyInput
-          value={String((profile as any)?.licenseCountry ?? "")}
-          label="Land för legitimation"
-        />
-        <div className="self-end w-[220px]">
-          <div
-            className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-            title={'Ändras i \"Profil\"'}
-            aria-readonly="true"
-          >
-            {String((profile as any)?.licenseDate ?? "") || "—"}
-          </div>
-        </div>
-      </div>
-
-      {/* Legitimation från annat land – readonly från Profil */}
-      {Array.isArray((profile as any)?.foreignLicenses) &&
-        (profile as any).foreignLicenses.length > 0 && (
-          <>
-            <div className="mb-1 text-[13px] font-semibold text-slate-700">
-              Legitimation från annat land
-            </div>
-            <div className="grid gap-y-2">
-              {(profile as any).foreignLicenses.map(
-                (lic: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-[minmax(0,1fr)_220px] gap-2"
-                  >
-                    <ReadonlyInput
-                      label="Land"
-                      value={String(lic?.country ?? "")}
-                    />
-                    <div className="self-end w-[220px]">
-                      <div
-                        className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-                        title={'Ändras i "Profil"'}
-                        aria-readonly="true"
-                      >
-                        {String(lic?.date ?? "") || "—"}
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </>
-        )}
-    </div>
-
-  </div>
-)}
 
 
 
@@ -2040,7 +1965,6 @@ useEffect(() => {
                               s.map((x) => (x.id === a.id ? { ...x, text: e.target.value } : x))
                             )
                           }
-                          placeholder="Beskriv aktivitet ..."
                           disabled={isReg}
                           readOnly={isReg}
                           className={`h-[40px] w-full rounded-lg border px-3 text-[14px] ${
@@ -3262,6 +3186,7 @@ useEffect(() => {
       />
 
     </div>
+    </>
   );
 }
 

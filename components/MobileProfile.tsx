@@ -66,7 +66,6 @@ function Input({
         setLocal(v);
         commit(v);
       }}
-      placeholder={placeholder}
       inputMode={inputMode}
       autoComplete="off"
       spellCheck={false}
@@ -475,7 +474,7 @@ export default function MobileProfile({ open, onClose }: Props) {
               </label>
               {supervisorHasOtherSite && (
                 <div className="mt-2">
-                  <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} placeholder="Tjänsteställe" />
+                  <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} />
                 </div>
               )}
             </div>
@@ -494,7 +493,7 @@ export default function MobileProfile({ open, onClose }: Props) {
               </label>
               {studyDirectorHasOtherSite && (
                 <div className="mt-2">
-                  <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} placeholder="Tjänsteställe" />
+                  <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} />
                 </div>
               )}
             </div>

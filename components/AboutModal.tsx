@@ -15,7 +15,7 @@
 //
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { aboutContent } from "@/lib/aboutContent";
 
 type TabId = "instruction" | "about" | "contact" | "download" | "privacy" | "license";
@@ -38,6 +38,20 @@ export default function AboutModal({ open, onClose }: Props) {
     setContactError("");
     onClose();
   };
+
+  // ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleRequestClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, handleRequestClose]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

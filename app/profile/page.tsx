@@ -120,7 +120,6 @@ function Input({
         setLocal(v);
         commit(v); // uppdatera form direkt -> dirty tänds direkt
       }}
-      placeholder={placeholder}
       inputMode={inputMode}
       autoComplete="off"
       spellCheck={false}
@@ -504,7 +503,6 @@ function ProfilePageInner() {
                     <Input
                       value={form.supervisorWorkplace}
                       onChange={(v) => setForm({ ...form, supervisorWorkplace: v })}
-                      placeholder="Tjänsteställe"
                     />
                   </div>
                 )}
@@ -527,7 +525,6 @@ function ProfilePageInner() {
                     <Input
                       value={form.studyDirectorWorkplace}
                       onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })}
-                      placeholder="Tjänsteställe"
                     />
                   </div>
                 )}

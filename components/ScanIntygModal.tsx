@@ -15,7 +15,7 @@
 //
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { ocrImage } from "@/lib/ocr";
 import { detectIntygKind, type IntygKind } from "@/lib/intygDetect";
 import { validateOcrFile } from "@/lib/validation";
@@ -67,6 +67,7 @@ export default function ScanIntygModal({
   const [parsed, setParsed] = useState<any>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
+  const [gdprModalOpen, setGdprModalOpen] = useState(false);
 
   const visible = open ? "" : "hidden";
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +90,21 @@ export default function ScanIntygModal({
     onClose();
     resetAll();
   }
+
+  // ESC för att stänga
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function onSelectFile(f: File | null) {
     if (!f) return;
@@ -1249,6 +1265,29 @@ export default function ScanIntygModal({
                     </button>
                   </div>
                 </div>
+
+                {/* Info om OCR-tjänst */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                  <p className="m-0">
+                    Bilden skickas till OCR-tjänsten{" "}
+                    <a
+                      href="https://ocr.space"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sky-700 underline hover:text-sky-800"
+                    >
+                      ocr.space
+                    </a>{" "}
+                    för textigenkänning.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setGdprModalOpen(true)}
+                      className="text-slate-700 inline"
+                    >
+                      <span className="text-sky-700 underline hover:text-sky-800 cursor-pointer">Läs mer</span> om GDPR vid användning av tredje parts uppgifter
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1280,7 +1319,6 @@ export default function ScanIntygModal({
                             fullName: e.target.value,
                           }))
                         }
-                        placeholder="Efternamn Förnamn"
                         className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
@@ -1296,7 +1334,6 @@ export default function ScanIntygModal({
                             personnummer: e.target.value,
                           }))
                         }
-                        placeholder="ÅÅMMDD-XXXX"
                         className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
@@ -1316,7 +1353,6 @@ export default function ScanIntygModal({
                             specialtyHeader: e.target.value.trim() || undefined,
                           }))
                         }
-                        placeholder={parsed?.specialtyHeader?.trim() ? undefined : "Psykiatri"}
                         className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                       />
                     </div>
@@ -1355,7 +1391,6 @@ export default function ScanIntygModal({
                             .filter(Boolean),
                         }))
                       }
-                      placeholder="t.ex. a1, a2, STa1"
                       className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                     />
                   </div>
@@ -1765,6 +1800,74 @@ export default function ScanIntygModal({
                   <li>Fokusera tydligt – texten ska vara skarp och läsbar</li>
                   <li>Titta igenom resultatet noggrant, det finns risk för fel</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GDPR modal för tredje parts uppgifter */}
+      {gdprModalOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setGdprModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="flex items-center justify-between border-b px-4 py-3">
+              <h3 className="m-0 text-lg font-semibold text-slate-900">GDPR – Tredje parts personuppgifter</h3>
+              <button
+                type="button"
+                onClick={() => setGdprModalOpen(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+              >
+                Stäng
+              </button>
+            </header>
+            <div className="p-6">
+              <div className="text-xs text-slate-900 space-y-3">
+                <p>
+                  Intygen kan innehålla personuppgifter om andra personer, till exempel handledare eller kursledare (namn, specialitet, tjänsteställe).
+                </p>
+                <p>
+                  När du skickar dokumentet till OCR-tjänsten för textigenkänning överförs även dessa personuppgifter till{" "}
+                  <a
+                    href="https://ocr.space"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-700 underline hover:text-sky-800"
+                  >
+                    ocr.space
+                  </a>
+                  .
+                </p>
+                <p>
+                  Enligt GDPR är du ansvarig för att du har rätt att behandla personuppgifter om andra personer. Genom att använda OCR-funktionen bekräftar du att du har rätt att skicka dokumentet som innehåller dessa uppgifter.
+                </p>
+                <p>
+                  OCR.space raderar alla dokument direkt efter bearbetning och lagrar inga personuppgifter.{" "}
+                  <a
+                    href="https://ocr.space/privacypolicy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-700 underline hover:text-sky-800"
+                  >
+                    Läs mer om hur OCR.space hanterar uppgifter
+                  </a>
+                  .
+                </p>
+                <p className="mt-4 pt-3 border-t border-slate-200">
+                  <a
+                    href="https://www.imy.se/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-700 underline hover:text-sky-800"
+                  >
+                    Läs mer om GDPR på Integritetsskyddsmyndighetens webbplats
+                  </a>
+                </p>
               </div>
             </div>
           </div>
