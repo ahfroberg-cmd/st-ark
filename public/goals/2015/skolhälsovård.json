@@ -1,0 +1,288 @@
+{
+  "specialty": "Skolhälsovård",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Tillväxt och utveckling",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om barns och ungdomars normala tillväxt, utveckling och fysiska och psykiska mognad samt avvikelser från den normala utvecklingen",
+          "behärska tillämpningen av program för hälsoövervakning av barn"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Hälsofrämjande - livsstil",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hälsofrämjande och förebyggande arbete med fokus på livsstilsfaktorer och god hälsa hos barn och ungdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Hälsofrämjande - psykisk hälsa",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hälsofrämjande och förebyggande arbete med fokus på stress och psykisk ohälsa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Hälsofrämjande - vaccination och smittspridning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hälsofrämjande och förebyggande arbete med fokus på vaccinationer, hygien och smittsamma sjukdomar i skolan"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Ungdomsmedicin",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hälsofrämjande och förebyggande arbete inom ungdomsmedicin inklusive sexuell hälsa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Sociala faktorer och barnets rättigheter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur sociala faktorer påverkar elevers skolsituation och psykiska hälsa",
+          "ha kunskap om socialtjänstens arbetssätt och regelverk",
+          "behärska kunskapen om barnets rättigheter samt kunna identifiera barn som far illa och vidta adekvata åtgärder, inklusive fullfölja anmälningsskyldigheten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Kognitiva och neuropsykiatriska funktionsnedsättningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur kognitiva och neuropsykiatriska funktionsnedsättningar påverkar elevers skolsituation och psykiska hälsa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Kroniska sjukdomstillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur kroniska sjukdomstillstånd och funktionsnedsättningar hos elever påverkar skolsituationen",
+          "ha kunskap om hur kroniska sjukdomstillstånd och funktionsnedsättningar hos elever kan ha betydelse för elevens framtida arbetsliv"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Inlärningssvårigheter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskaper om metoder för kartläggning av medicinska orsaker till inlärningssvårigheter",
+          "ha kunskaper om förebyggande åtgärder som främjar skolsituationen och inlärningen"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Uppväxtmiljö och utbildning",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om sambandet mellan barns uppväxtmiljö, barns tillgång till utbildning och barns fysiska och psykiska hälsa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Arbetsmiljö och skolmiljö",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om systematiskt arbetsmiljöarbete",
+          "ha kunskap om åtgärder för att anpassa skolmiljön vid funktionsnedsättningar och sjukdomstillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Migration",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur barns och ungdomars hälsa påverkas av migration"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

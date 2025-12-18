@@ -1,0 +1,283 @@
+{
+  "specialty": "Hematologi",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Akuta sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna självständigt identifiera, diagnostisera och handlägga akuta sjukdomar eller sjukdomstillstånd inom internmedicin och angränsande basspecialiteter, samt kunna handlägga akuta åtgärder avseende dessa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Vanliga och allvarliga internmedicinska sjukdomstillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "kunna självständigt handlägga vanliga och allvarliga internmedicinska sjukdomstillstånd samt vanliga och allvarliga tillstånd inom invärtesmedicinska och övriga angränsande basspecialiteter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Läkemedelsbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska läkemedelsanvändning i syfte att kunna individualisera behandlingen utifrån ålder, kön, vikt, njurfunktion och samsjuklighet",
+          "ha kunskap om läkemedelsrelaterade problem inklusive polyfarmaci"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Multisjuklighet",
+      "sections": {
+        "kompetenskrav": [
+          "kunna självständigt handlägga vanliga och allvarliga sjukdomstillstånd vid multisjuklighet hos patienter i allmänhet och hos äldre patienter i synnerhet",
+          "ha kunskap om hur helhetssyn tillämpas för individualiserad behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Palliativ vård",
+      "sections": {
+        "kompetenskrav": [
+          "kunna självständigt besluta om och initiera palliativ vård"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Hematologiska maligniteter",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, terapi och uppföljning vid hematologiska maligniteter inklusive lymfom",
+          "ha kännedom om strålbehandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Akuta komplikationer",
+      "sections": {
+        "kompetenskrav": [
+          "behärska akuta komplikationer av hematologiska sjukdomar och sjukdomstillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Understödjande behandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska understödjande behandling i samband med hematologiska sjukdomar och sjukdomstillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Benign hemotologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska benign hemotologi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Hemostasrubbningar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga hemostasrubbningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Allogen stamcellstransplantation",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga allogen stamcellstransplantation och högdosbehandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Antitumorala läkemedel",
+      "sections": {
+        "kompetenskrav": [
+          "behärska verkningsmekanismer, komplikationer och handhavandet av antitumorala läkemedel"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Hematologiska undersökningsmetoder",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hematologiska undersökningsmetoder",
+          "ha kunskap om hematologisk laboratoriediagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c14",
+      "code": "c14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

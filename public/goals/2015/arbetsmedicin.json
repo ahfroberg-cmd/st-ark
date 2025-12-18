@@ -1,0 +1,266 @@
+{
+  "specialty": "Arbetsmedicin",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Samband ohälsa och exponering",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om sambanden mellan ohälsa och exponering i den allmänna miljön",
+          "behärska bedömning av sambanden mellan ohälsa och exponering i arbetsmiljön"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Klinisk handläggning arbetsrelaterade tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "behärska klinisk handläggning av patienter med tillstånd som är relaterade till exponering i arbetsmiljön, med helhetssyn på patienten och beaktande av patientens medicinska, funktionella, psykologiska och sociala situation"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Hälsoundersökningar och kartläggningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om utformning av hälsoundersökningar eller andra kartläggningar av ohälsa på gruppnivå utifrån aktuell exponering",
+          "kunna genomföra hälsoundersökningar eller andra kartläggningar av ohälsa på gruppnivå utifrån aktuell exponering, och kunna återrapportera till berörda parter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Exponeringsutredningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om metoder för utredning av exponeringsförhållanden i olika arbetsmiljöer",
+          "kunna bedöma utredningar av exponeringsförhållanden i olika arbetsmiljöer",
+          "kunna tillämpa resultat av exponeringsutredningar vid handläggning av ärenden på individ- och gruppnivå"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Arbetsorganisation",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om arbetsorganisationens inverkan på individer och grupper"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Riskfaktorer i arbetsmiljön",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om identifiering, värdering och kontroll av riskfaktorer i arbetsmiljön samt om åtgärder för att förbättra ogynnsamma förhållanden",
+          "kunna tillämpa kunskaper om identifiering, värdering och kontroll av riskfaktorer i arbetsmiljön samt om åtgärder för att förbättra ogynnsamma förhållanden vid handläggning av individ- och gruppärenden"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Hälsofrämjande och förebyggande arbete",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hälsofrämjande och förebyggande arbete i arbetsmiljön och den allmänna miljön",
+          "kunna planera, genomföra och följa upp hälsofrämjande och förebyggande åtgärder"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Sjukdomstillstånd och arbetsförmåga",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om vanliga sjukdomstillstånd och funktionsnedsättningar, deras diagnostik och behandling samt deras påverkan på arbets- och livssituationen",
+          "kunna tillämpa kunskaper om vanliga sjukdomstillstånd och funktionsnedsättningar, deras diagnostik och behandling samt deras påverkan på arbets- och livssituationen vid handläggning av individärenden"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Arbetsförmåga och rehabilitering",
+      "sections": {
+        "kompetenskrav": [
+          "behärska bedömning av individuell arbetsförmåga, handläggning av arbetslivsinriktad rehabilitering och medverkan i medicinsk rehabilitering i samverkan med samhällets övriga resurser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Juridik och lagstiftning",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten inklusive ha kunskap om arbetsmiljö- och hälsoskyddslagstiftning samt arbetsrättsliga bestämmelser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Lagstadgade kontroller",
+      "sections": {
+        "kompetenskrav": [
+          "behärska genomförandet av lagstadgade medicinska kontroller och tjänstbarhetsbedömningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Medicinsk-etisk problematik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna identifiera och ta hänsyn till medicinsk-etisk problematik som uppstår i förhållande till individ, grupp och arbetsgivare samt tillsynsmyndigheter och andra samhällsaktörer"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    }
+  ]
+}

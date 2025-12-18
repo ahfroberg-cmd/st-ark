@@ -1,0 +1,285 @@
+{
+  "specialty": "Klinisk fysiologi",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Undersökningsresultat och metoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om undersökningsresultatens betydelse för vidare handläggning",
+          "ha kunskap om undersökningsmetodernas styrkor, svagheter och risker"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Anatomi, fysiologi och patofysiologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska anatomi, fysiologi och patofysiologi som har relevans för klinisk fysiologi",
+          "ha kunskap om anatomi, fysiologi och patofysiologi som har relevans för radiologi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Fysikaliska, tekniska och strålningsprinciper",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om fysikaliska, tekniska, matematiska och statistiska principer för metoder som ingår i kompetensområdet",
+          "ha kunskap om bildbearbetning för undersökningsmodaliteter inom kompetensområdet",
+          "ha kunskap om strålningsbiologi, strålningsfysik och strålskydd",
+          "kunna tillämpa lagar och andra föreskrifter som gäller för strålningsfysik och strålskydd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Nuklearmedicin",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om nuklearmedicin som har relevans för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Elektrokardiografi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom elektrokardiografi",
+          "kunna handlägga övriga undersökningar inom elektrokardiografi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Arbetsfysiologi och hemodynamik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom arbetsfysiologi och hemodynamik",
+          "kunna handlägga övriga undersökningar inom arbetsfysiologi och hemodynamik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Hjärtfunktionsdiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom hjärtfunktionsdiagnostik",
+          "kunna handlägga övriga undersökningar inom hjärtfunktionsdiagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Myokardperfusionsdiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom myokardperfusionsdiagnostik",
+          "kunna handlägga övriga undersökningar inom myokardperfusionsdiagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Lungfunktionsdiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom lungfunktionsdiagnostik",
+          "kunna handlägga övriga undersökningar inom lungfunktionsdiagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Fysiologisk kärldiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de vanligaste undersökningarna inom fysiologisk kärldiagnostik",
+          "kunna handlägga övriga undersökningar inom fysiologisk kärldiagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Fysiologisk njur- och urinvägsdiagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om de vanligaste undersökningarna inom fysiologisk njur- och urinvägsdiagnostik",
+          "kunna handlägga övriga undersökningar inom fysiologisk njur- och urinvägsdiagnostik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Fysiologisk gastrointestinal diagnostik, muskelfysiologi och pediatrisk klinisk fysiologi",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om de vanligaste undersökningarna inom fysiologisk gastrointestinal diagnostik, muskelfysiologi och pediatrisk klinisk fysiologi"
+        ],
+        "utbildningsaktiviteter": [
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

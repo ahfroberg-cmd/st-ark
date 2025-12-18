@@ -1,0 +1,273 @@
+{
+  "specialty": "Rättsmedicin",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Rättsmedicinsk undersökning av levande person",
+      "sections": {
+        "kompetenskrav": [
+          "behärska rättsmedicinsk undersökning av levande person"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Rättsmedicinsk undersökning av avliden person",
+      "sections": {
+        "kompetenskrav": [
+          "behärska rättsmedicinsk undersökning av avliden person"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Sakkunniguppdrag i domstol",
+      "sections": {
+        "kompetenskrav": [
+          "behärska sakkunniguppdrag i domstol"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Medsittning"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Rättsväsendets organisation",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om rättsväsendets organisation, styrning och regelverk"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Toxikologiska analysresultat",
+      "sections": {
+        "kompetenskrav": [
+          "kunna bedöma toxikologiska analysresultat"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Histologiska preparat",
+      "sections": {
+        "kompetenskrav": [
+          "kunna bedöma histologiska preparat"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Klassificering och registrering",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga klassificering av sjukdomar och skador samt registrering i myndighetens datasystem"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Fotografering och digital bildhantering",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga fotografering och digital bildhantering"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Arbete på fynd- och brottsplats",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga arbete på fynd- och brottsplats"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Tilläggsundersökningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om olika tilläggsundersökningar och hur dessa kan användas i diagnostiken"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Histopatologiska preparat",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om fixering, framställning och färgning av histopatologiska preparat"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Bild- och funktionsmedicinska undersökningar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna bedöma resultaten av bild- och funktionsmedicinska undersökningar som är relevanta för kunskapsområdet"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

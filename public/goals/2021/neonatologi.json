@@ -1,0 +1,308 @@
+{
+  "specialty": "Neonatologi",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Barns utveckling och rättigheter",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om det friska barnet och ungdomen och den påverkan som arv, kultur, miljö och samhälle har på barns och ungdomars utveckling och hälsa",
+          "behärska diagnostik av avvikelser från normal tillväxt och utveckling",
+          "ha kunskap om hälsofrämjande arbete",
+          "kunna handlägga psykosociala problem",
+          "behärska kunskapen om barnets rättigheter samt kunna identifiera barn som far illa och vidta adekvata åtgärder, inklusive fullfölja anmälningsskyldigheten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Basala och akuta tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av basala och akuta barn- och ungdomsmedicinska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Vanliga och viktiga tillstånd inom barn- och ungdomsmedicin",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga vanliga och viktiga tillstånd inom områdena neonatologi; allergologi och lungsjukdomar; neurologi och habilitering; endokrinologi och metabola sjukdomar; nefrologi; gastroenterologi, hepatologi och nutrition; infektionssjukdomar, immunologi och reumatologi; onkologi och hematologi; kardiologi samt ungdomsmedicin inklusive sociala och psykologiska aspekter och överföring till vuxenvård"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Barn- och ungdomspsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "kunna initialt handlägga vanliga och viktiga tillstånd inom området barn- och ungdomspsykiatri"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Graviditet och fosterutveckling",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om graviditet och fosterutveckling",
+          "ha kunskap om graviditets och fosterutvecklings betydelse för utvecklingen av olika sjukdomar",
+          "i samråd med obstetriker kunna handlägga sjukdomstillstånd hos fostret samt komplikationer under graviditet och förlossning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Respiratoriska och cirkulatoriska problem",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om respiratoriska, cirkulatoriska och kardiella problem hos nyfödda samt kunna självständigt handlägga dessa",
+          "kunna rutinerat och självständigt utföra hjärt-lungräddning av nyfödda barn",
+          "behärska etiska ställningstaganden i svåra medicinska situationer inom neonatalvården"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "För tidigt födda barn",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om det för tidigt födda barnet och de komplikationer i olika organsystem som den för tidiga födelsen kan medföra",
+          "kunna självständigt handlägga lätt, måttligt och extremt underburna barn både i akut fas, under vårdtiden på neonatal intensivvårdsavdelning och lättvårdsavdelning, och vid uppföljning",
+          "ha kunskap om omvårdnad av nyfödda barn, inklusive familjecentrerad neonatalvård"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Nutrition och gastroenterologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om nutrition och vätskebehandling av barn som vårdas på neonatalavdelning",
+          "kunna rutinerat och självständigt ordinera vätska samt parenteral och enteral nutrition till nyfödda barn med olika sjukdomstillstånd",
+          "behärska kunskapen om vanliga och allvarliga gastroenterologiska, hepatologiska och nefrologiska sjukdomar hos nyfödda samt kunna handlägga dessa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Neonatal neurologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om neonatal neurologi, inklusive hypoxisk ischemisk encefalopati, krampsjukdomar, intrakraniella blödningar, neonatal stroke och neuromuskulära sjukdomar samt kunna handlägga dessa tillstånd",
+          "ha kunskap om vanliga och allvarliga syndrom, missbildningar och andra ärftliga sjukdomar samt kunna handlägga misstänkta och verifierade sådana",
+          "behärska utvecklingsbedömning av barn i olika åldrar samt neurologisk uppföljning av riskbarn"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Metabola, endokrina och hematologiska rubbningar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om vanliga och allvarliga metabola, endokrina och hematologiska rubbningar (inklusive immuniseringar och koagulationsrubbningar) hos nyfödda barn samt kunna självständigt handlägga dessa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Infektionssjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om infektionssjukdomar hos nyfödda barn och självständigt och rutinerat kunna handlägga dessa",
+          "behärska hygienrutiner inom neonatalvården"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Medicinsk-teknisk utrustning och diagnostiska metoder",
+      "sections": {
+        "kompetenskrav": [
+          "behärska den medicinskt tekniska utrustningen samt de diagnostiska metoder som används inom neonatalvården och den neonatala intensivvården",
+          "ha goda teoretiska kunskaper om ultraljudsundersökning av hjärna och hjärta och tolkning av resultaten samt ha viss färdighet i att utföra sådana ultraljudsundersökningar",
+          "behärska kunskapen om neonatala transporter samt kunna självständigt genomföra transporter av intensivvårdskrävande nyfödda barn"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Läkemedelsbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens samlade läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten utifrån enskilda patienters ålder, kön, vikt, njur- och leverfunktion samt andra eventuella faktorer, till exempel övrig medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc14",
+      "code": "STc14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "uppvisa kunskap om lagar och andra författningar som är särskilt relevanta för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    }
+  ]
+}

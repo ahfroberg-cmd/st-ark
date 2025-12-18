@@ -1,0 +1,295 @@
+{
+  "specialty": "Allmänmedicin",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Hälsoproblem",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att utifrån ett professionellt och etiskt förhållningssätt bedöma och handlägga i landet förekommande hälsoproblem"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Medicinsk angelägenhetsgrad",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att avgöra medicinsk angelägenhetsgrad och på ett etiskt tillfredsställande sätt prioritera mellan vårdsökande"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Långtidsuppföljning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att följa och värdera förändringar i en patients hälsotillstånd över längre tid med hänsyn tagen till patientens hela livssituation, och i mötet med patienten ha förmåga att ta hänsyn till och utgå ifrån patientens och närståendes föreställningar, förväntningar och farhågor"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Folksjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att diagnostisera, behandla och följa patienter i alla åldrar med hälsoproblem och vanliga folksjukdomar, inklusive missbruk och beroende"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Remiss och uppföljning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att initialt bedöma, remittera och följa personer med sjukdomstillstånd som behöver vård utöver den egna enhetens resurser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Barn och ungdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hälso- och sjukvårdsarbete för barn och ungdomar",
+          "kunna identifiera och handlägga barn som misstänks fara illa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Gynekologi och mödrahälsovård",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av vanligt förekommande gynekologiska besvär och sjukdomar hos kvinnor i olika åldrar samt mödrahälsovård vid normala graviditeter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Äldre och palliativ vård",
+      "sections": {
+        "kompetenskrav": [
+          "behärska äldres specifika hälsoproblem",
+          "behärska hemsjukvård och palliativ vård i livets slutskede för personer i alla åldrar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Hembesök",
+      "sections": {
+        "kompetenskrav": [
+          "behärska hembesök som verktyg vid diagnostik och behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Rehabilitering",
+      "sections": {
+        "kompetenskrav": [
+          "behärska initiering av och medverkan i medicinsk rehabilitering och arbetsrehabilitering i samarbete med samhällets övriga resurser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Myndighetsuppdrag",
+      "sections": {
+        "kompetenskrav": [
+          "behärska de myndighetsuppdrag som ingår i tjänsten, inklusive smittskydd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Folkhälsa",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur man upptäcker, identifierar och motverkar skador och andra hälsoproblem i det lokala samhället",
+          "ha kunskap om hälsans bestämningsfaktorer och andra folkhälsoaspekter samt om metoder för hälsofrämjande och sjukdomsförebyggande insatser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Psykiska sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med betoning på de stora folksjukdomarna"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera vårdenheter med mottagningsverksamhet inom primärvården"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c14",
+      "code": "c14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

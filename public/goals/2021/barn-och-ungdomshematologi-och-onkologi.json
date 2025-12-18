@@ -1,0 +1,332 @@
+{
+  "specialty": "Barn- och ungdomshematologi och onkologi",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Barnets utveckling och hälsa",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om det friska barnet och ungdomen och den påverkan som arv, kultur, miljö och samhälle har på barns och ungdomars utveckling och hälsa",
+          "behärska diagnostik av avvikelser från normal tillväxt och utveckling",
+          "ha kunskap om hälsofrämjande arbete",
+          "kunna handlägga psykosociala problem",
+          "ha kunskap om strålningsbiologi, strålningsfysik och strålskydd",
+          "behärska kunskapen om barnets rättigheter samt kunna identifiera barn som far illa och vidta adekvata åtgärder, inklusive fullfölja anmälningsskyldigheten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Basala och akuta tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av basala och akuta barn- och ungdomsmedicinska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Vanliga och viktiga tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga vanliga och viktiga tillstånd inom områdena neonatologi; allergologi och lungsjukdomar; neurologi och habilitering; endokrinologi och metabola sjukdomar; nefrologi; gastroenterologi, hepatologi och nutrition; infektionssjukdomar, immunologi och reumatologi; onkologi och hematologi; kardiologi samt ungdomsmedicin inklusive sociala och psykologiska aspekter och överföring till vuxenvård"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Barn- och ungdomspsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "kunna initialt handlägga vanliga och viktiga tillstånd inom området barn- och ungdomspsykiatri"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Icke-malign hematologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska vanliga och viktiga tillstånd inom icke-malign hematologi hos barn och ungdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Hemoglobinopatier och koagulationssjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna bedöma barn och ungdomar med hemoglobinopatier, koagulationssjukdomar och ovanliga icke-maligna hematologiska sjukdomar och deras kroniska följdtillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "Leukemi och lymfom",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av leukemi och lymfom hos barn och ungdomar samt dessa sjukdomars akuta behandlingskomplikationer",
+          "behärska utförandet av benmärgsaspiration och benmärgsbiopsi samt intratekal cytostatikabehandling",
+          "ha kunskap om sena komplikationer till ovanstående sjukdomar och behandlingar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Tumörer i centrala nervsystemet",
+      "sections": {
+        "kompetenskrav": [
+          "kunna initialt handlägga utredning och behandling av barn och ungdomar med tumörer i centrala nervsystemet samt deras akuta komplikationer",
+          "ha kunskap om sena komplikationer till ovanstående sjukdom och behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Neuroblastom och njurtumörer",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga neuroblastom och njurtumörer hos barn och ungdomar",
+          "ha kunskap om sena komplikationer till ovanstående sjukdomar och deras behandlingar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Mjukdelssarkom och skelettumörer",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga mjukdelssarkom och skelettumörer hos barn och ungdomar",
+          "ha kunskap om sena komplikationer till ovanstående sjukdomar och deras behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Understödjande behandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska den understödjande behandlingen hos barn och ungdomar med cancersjukdom vid cytostatika- och strålbehandling samt behärska akuta komplikationer vid sådan behandling",
+          "ha kunskap om sena komplikationer till ovanstående sjukdomar och behandlingar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Stamcellstransplantation",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om allogen och autolog stamcellstransplantation hos barn och ungdomar",
+          "ha kunskap om immunsuppressiv behandling efter allogen stamcellstransplantation",
+          "ha kunskap om sena komplikationer till ovanstående behandlingar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Nutrition, antiemetisk behandling och smärtbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om nutrition, antiemetisk behandling och smärtbehandling för patientgruppen"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc14",
+      "code": "STc14",
+      "title": "Läkemedelsbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens samlade läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten utifrån enskilda patienters ålder, kön, vikt, njur- och leverfunktion samt andra eventuella faktorer, till exempel övrig medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc15",
+      "code": "STc15",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "uppvisa kunskap om lagar och andra författningar som är särskilt relevanta för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "eller",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    }
+  ]
+}

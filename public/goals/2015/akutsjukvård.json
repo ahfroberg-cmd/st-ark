@@ -1,0 +1,289 @@
+{
+  "specialty": "Akutsjukvård",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Livshotande tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "behärska identifiering och handläggning av livshotande, eller potentiellt livshotande, tillstånd hos patienter i alla åldrar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Medicinsk angelägenhetsgrad",
+      "sections": {
+        "kompetenskrav": [
+          "behärska bedömning av medicinsk angelägenhetsgrad hos patienter i alla åldrar och kunna prioritera mellan vårdsökande"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Symtomvärdering och sannolikhetsbedömning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska värdering av symtom utifrån differentialdiagnostiska kunskaper för patienter i alla åldrar",
+          "behärska sannolikhetsbedömning för olika tillstånd utifrån den information som är tillgänglig"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Akut smärtbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska akut smärtbehandling för patienter i alla åldrar och att anpassa smärtlindringen efter förväntad intensitet och duration av smärta"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Akuta diagnostiska och terapeutiska färdigheter",
+      "sections": {
+        "kompetenskrav": [
+          "behärska akuta diagnostiska och terapeutiska färdigheter för patienter i alla åldrar",
+          "behärska enhetens medicintekniska utrustning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Riktlinjer och multidisciplinärt arbetssätt",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskapen om aktuella riktlinjer för initial behandling av vanligt förekommande akuta diagnoser och tillstånd hos patienter i alla åldrar",
+          "ha kunskap om andra specialiteters verksamhet som är relevant för ett multidisciplinärt arbetssätt"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Risk-nyttavärdering",
+      "sections": {
+        "kompetenskrav": [
+          "behärska risk–nyttavärdering för olika handläggningsalternativ ur ett medicinskt, etiskt och logistiskt perspektiv samt ur ett patientsäkerhetsperspektiv för patienter i alla åldrar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Självständigt skriftligt arbete enligt vetenskapliga principer"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Prehospital handläggning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska prehospital handläggning av patienter i alla åldrar",
+          "behärska prehospitalt vårdteamarbete"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Träning i simulerad miljö",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Ledarskap",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att leda arbetet på en akutenhet och använda tillgänglig kompetens och tillgängliga resurser",
+          "kunna leda det medicinska arbetet prehospitalt och vid katastrof- och masskadesituationer"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Patientansvar och förlossning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att ansvara för patientens medicinska säkerhet tills ansvaret tagits över av annan vårdgivare, också under transporter",
+          "kunna handlägga normal förlossning",
+          "ha kunskap om vanliga komplikationer vid graviditet och förlossning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Träning i simulerad miljö",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Samverkan med samhällsresurser",
+      "sections": {
+        "kompetenskrav": [
+          "behärska samverkan med samhällets resurser utanför hälso- och sjukvården, särskilt när det gäller missbruk respektive barn som far illa",
+          "kunna vidta adekvata åtgärder vid misstanke om att barn far illa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Epidemiologi och prevention",
+      "sections": {
+        "kompetenskrav": [
+          "kunna identifiera epidemiologiska förändringar och behärska preventiva åtgärder för akutenhetens patienter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

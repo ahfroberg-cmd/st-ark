@@ -1,0 +1,314 @@
+{
+  "specialty": "Neuroradiologi",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Grundläggande radiologiska metoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om undersökningsresultatens betydelse för vidare handläggning",
+          "ha kunskap om undersökningsmetodernas styrkor, svagheter och risker",
+          "ha kunskap om fysikaliska, tekniska, matematiska och statistiska principer för metoder som ingår i kompetensområdet",
+          "behärska bildbearbetning för undersökningsmodaliteter inom kompetensområdet",
+          "behärska strålningsbiologi, strålningsfysik och strålskydd",
+          "behärska de vanligaste radiologiska undersökningarna och kunna initialt handlägga övriga undersökningar inom thorax-, gastro-, urogenital- muskeloskeletal- och barnradiologi",
+          "ha kunskap om vanliga och ha kännedom om övriga undersökningar inom radiologisk bröstdiagnostik",
+          "kunna handlägga vanliga och ha kunskap om övriga interventioner inom radiologi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Anatomi och fysiologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska anatomi som har relevans för radiologi med särskild tonvikt på neuroradiologi",
+          "ha kännedom om fysiologi och patofysiologi som har relevans för radiologi med särskild tonvikt på neuroradiologi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Neuroradiologiska tekniker",
+      "sections": {
+        "kompetenskrav": [
+          "behärska neuroradiologiska tekniker, inklusive deras indikationer, kontraindikationer, begränsningar, komplikationer och biverkningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Interventionell neuroradiologi",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om tekniker vid interventionell neuroradiologi, inklusive deras indikationer, kontraindikationer, begränsningar, komplikationer och biverkningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Funktionell neuroradiologi",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om tekniker vid funktionell neuroradiologi, inklusive indikationer, kontraindikationer och begränsningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Sjukdomar, skador och missbildningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om sjukdomar, skador och missbildningar i centrala nervsystemet, ryggen och öron-, näs- och halsområdet hos vuxna och barn"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Radiologisk diagnostik av centrala nervsystemet och ryggen",
+      "sections": {
+        "kompetenskrav": [
+          "behärska radiologisk diagnostik av sjukdomar i centrala nervsystemet och ryggen, och ha kunskap om den radiologiska diagnostikens betydelse för handläggning och vård av patienten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Radiologisk diagnostik av öron-, näs- och halsområdet",
+      "sections": {
+        "kompetenskrav": [
+          "behärska radiologisk diagnostik av sjukdomar i öron-, näs- och halsområdet, och ha kunskap om den radiologiska diagnostikens betydelse för handläggning och vård av patienten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Behandlingsuppföljning centrala nervsystemet och ryggen",
+      "sections": {
+        "kompetenskrav": [
+          "behärska radiologisk behandlingsuppföljning och diagnostik av postterapeutiska tillstånd i centrala nervsystemet och ryggen"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Behandlingsuppföljning öron-, näs- och halsområdet",
+      "sections": {
+        "kompetenskrav": [
+          "behärska radiologisk behandlingsuppföljning och diagnostik av postterapeutiska tillstånd i öron-, näs- och halsområdet"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Pediatrisk neuroradiologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska pediatriska tillämpningar av neuroradiologin, särskilt avseende hjärnans utveckling, barnmisshandel och strålskydd",
+          "kunna identifiera tecken som inger misstanke om att barn far illa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Klinisk diagnostik och behandling",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om klinisk diagnostik och behandling av sjukdomstillstånd som har relevans för neuroradiologisk diagnostik",
+          "kunna värdera klinisk information som är relaterad till neuroradiologisk diagnostik, och i samverkan över specialitetsgränserna medverka till att skapa optimal vård för patienten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Nuklearmedicin",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om nuklearmedicin som har relevans för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c14",
+      "code": "c14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

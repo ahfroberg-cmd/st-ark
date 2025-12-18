@@ -1,0 +1,280 @@
+{
+  "specialty": "Barn- och ungdomspsykiatri",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Akut barn- och ungdomspsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "behärska bedömning och handläggning av akuta barn- och ungdomspsykiatriska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i strukturerade fallseminarier",
+          "Medsittning vid akuta bedömningar",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Bedömning och prioritering av vårdbehov",
+      "sections": {
+        "kompetenskrav": [
+          "behärska bedömning och prioritering av barns och ungdomars psykiatriska vårdbehov mot bakgrund av biologiska, psykologiska och sociala faktorer som medför ökad risk för psykisk ohälsa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i strukturerade fallseminarier",
+          "Medsittning",
+          "Teoretiska studier och självständig litteraturgenomgång"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Vanliga och viktiga barn- och ungdomspsykiatriska tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, behandling och uppföljning av vanliga och viktiga barn- och ungdomspsykiatriska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som utreder och behandlar sådana tillstånd",
+          "Deltagande i en eller flera kurser som behandlar vanliga och viktiga barn- och ungdomspsykiatriska tillstånd"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Deltagande i seminarier",
+          "Medsittning och gemensam patientgenomgång",
+          "Egen fördjupning genom riktad litteratur och riktlinjer"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Bedömning av utveckling och kommunikation",
+      "sections": {
+        "kompetenskrav": [
+          "behärska bedömning av avvikande och normal utveckling i barn- och ungdomsåren",
+          "behärska samtal och kommunikation med barn och ungdomar med hänsyn till deras behov och utvecklingsnivå"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarier",
+          "Medsittning",
+          "Teoretiska studier och självständig litteraturgenomgång"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Läkemedelsbehandling inom specialiteten",
+      "sections": {
+        "kompetenskrav": [
+          "kunna göra en samlad bedömning av patientens totala läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten efter ålder, njur- och leverfunktion, annan medicinering, samsjuklighet, graviditet och amning",
+          "behärska farmakologisk behandling av barn- och ungdomspsykiatriska tillstånd",
+          "kunna identifiera och bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning med fokus på läkemedelsbehandling"
+        ],
+        "allmannaRad": [
+          "Deltagande i en eller flera kurser om läkemedelsbehandling",
+          "Journalgenomgång med fokus på polyfarmaci och interaktioner",
+          "Teoretiska studier av farmakologi och behandlingsrekommendationer"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav, utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Psykologiska behandlingsmetoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om psykologiska och psykoterapeutiska behandlingsmetoder vid barn- och ungdomspsykiatriska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning där psykologisk behandling erbjuds",
+          "Deltagande i kurs eller metodutbildning i psykologiska behandlingsmetoder"
+        ],
+        "allmannaRad": [
+          "Observation av psykologiska behandlingar",
+          "Diskussion av behandlingsupplägg på konferenser",
+          "Teoretiska studier av behandlingsmetoder och riktlinjer"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Samarbete med andra samhällsinstanser",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om barn- och ungdomspsykiatrins samarbete med andra samhällsinstanser"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Juridik och lagstiftning",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om lagstiftning med särskild betydelse för barn- och ungdomspsykiatrin, inklusive tvångsvårdslagstiftning",
+          "uppvisa kunskap om lagar och andra författningar om rättspsykiatrisk vård",
+          "kunna tillämpa övriga lagar och andra författningar som gäller för specialiteten, inklusive lagar och andra författningar som gäller för hälso- och sjukvård, socialtjänst och funktionshinderomsorg",
+          "behärska kunskapen om barnets rättigheter samt kunna identifiera barn som far illa och vidta adekvata åtgärder, inklusive fullfölja anmälningsskyldigheten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning där tvångsvård förekommer eller vid rättspsykiatrisk enhet",
+          "Deltagande i kurs eller utbildning om lagstiftning och rättspsykiatri"
+        ],
+        "allmannaRad": [
+          "Deltagande i tvångsvårdskonferenser",
+          "Auskultation vid rättspsykiatriska bedömningar eller förhandlingar",
+          "Egen fördjupning i lagtext och förarbeten"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Substansberoende och samsjuklighet",
+      "sections": {
+        "kompetenskrav": [
+          "behärska initial handläggning och ha kunskap om fortsatt handläggning av vanliga substansberoendetillstånd samt ha kunskap om deras samsjuklighet med barn- och ungdomspsykiatriska tillstånd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid beroendeenhet eller annan verksamhet med inriktning mot substansbruk",
+          "Deltagande i kurs om beroende, samsjuklighet och beroendeframkallande läkemedel"
+        ],
+        "allmannaRad": [
+          "Deltagande i behandlingskonferenser",
+          "Medsittning vid strukturerade beroendeutredningar",
+          "Teoretiska studier kring beroende och samsjuklighet"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Vuxenpsykiatri för BUP",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om psykiatriska tillstånd hos patienter i vuxen ålder, särskilt hos unga vuxna"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarier",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Barn- och ungdomsmedicin",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om barn- och ungdomsmedicin, särskilt barn- och ungdomsneurologi och habilitering"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i kurser eller seminarium om somatisk samsjuklighet"
+        ],
+        "allmannaRad": [
+          "Gemensamma ronddiskussioner med somatiska specialiteter",
+          "Medsittning med somatisk specialist",
+          "Egen fördjupning i riktlinjer kring somatisk samsjuklighet"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Rättspsykiatri",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om rättspsykiatrins organisation och arbetsuppgifter"
+        ],
+        "utbildningsaktiviteter": [
+          "Auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,287 @@
+{
+  "specialty": "Onkologi",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Kemoterapi och medicinsk behandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska principer för kemoterapi och annan medicinsk behandling av tumörsjukdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Strålbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska extern strålbehandling vid vanliga tumörsjukdomar samt ha kunskap om strålbehandlingens fysikaliska och biologiska principer",
+          "ha kunskap om strålningsbiologi, strålningsfysik och strålskydd"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Övriga strålbehandlingsmodaliteter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om övriga strålbehandlingsmodaliteter och strålbehandlingstekniker samt deras teoretiska grund"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Akuta onkologiska tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga akuta onkologiska tillstånd, vanliga komplikationer till tumörsjukdom och akuta sidoeffekter av behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Smärta och symtomlindring",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och medicinsk behandling av smärta och andra symtom relaterade till tumörsjukdomar i kurativ och palliativ fas"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Tumörbiologi",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om kliniskt relevant tumörbiologi, carcinogenes och genetik"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "Diagnostiska metoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om diagnostiska metoder, inklusive patologi, cytologi och bild- och funktionsmedicinsk diagnostik, för utredning, diagnostik och uppföljning av tumörsjukdom"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Utredning och diagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning och diagnostik av tumörsjukdomar",
+          "ha kunskap om tumörsjukdomarnas etiologi och epidemiologi samt behärska grunderna för prevention och screening"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Handläggning av tumörsjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska handläggning av patienter med vanliga tumörsjukdomar samt kunna initialt handlägga övriga tumörsjukdomar, i kurativ och palliativ fas"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Uppföljning och seneffekter",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga uppföljning av patienter som är behandlade för tumörsjukdomar, seneffekter av behandling samt inledande rehabilitering"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Gynekologiska och hematologiska maligniteter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om och kunna initialt bedöma gynekologiska maligniteter och deras vanliga komplikationer",
+          "ha kunskap om och kunna initialt bedöma hematologiska maligniteter inklusive lymfom och deras vanliga komplikationer"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Nuklearmedicinska tekniker",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om nuklearmedicinska tekniker och deras användning"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Läkemedelsbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens samlade läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten utifrån enskilda patienters ålder, kön, vikt, njur- och leverfunktion samt andra eventuella faktorer, till exempel övrig medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc14",
+      "code": "STc14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "uppvisa kunskap om lagar och andra författningar som är särskilt relevanta för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    }
+  ]
+}

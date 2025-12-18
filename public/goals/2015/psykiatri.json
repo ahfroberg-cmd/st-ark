@@ -5,15 +5,19 @@
     {
       "id": "c1",
       "code": "c1",
-      "title": "Vanliga och viktiga psykiska sjukdomar",
+      "title": "Psykiatrisk diagnostik",
       "sections": {
         "kompetenskrav": [
-          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med fokus på affektiva syndrom, ångestsyndrom, psykossjukdomar och personlighetsstörningar",
-          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar samt om principer för utredning och behandling"
+          "kunna arbeta med diagnostik och bedömningar både individuellt och i tvärprofessionella utredningsteam",
+          "kunna förklara den diagnostiska processen och innebörden av diagnos på ett begripligt sätt",
+          "kunna formulera diagnostiska utlåtanden korrekt och tydligt",
+          "kunna tillämpa etiska överväganden i diagnostiken",
+          "kunna använda genuskunskap och psykologiska utvecklingsperspektiv",
+          "kunna genomföra strukturerad psykiatrisk diagnostik med metoder som Best Estimate diagnosis eller LEAD"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som utreder och behandlar sådana tillstånd",
-          "Deltagande i en eller flera kurser som behandlar vanliga och viktiga psykiska sjukdomar"
+          "Deltagande i en eller flera kurser som behandlar psykiatrisk diagnostik"
         ],
         "allmannaRad": [
           "Deltagande i seminarier",
@@ -29,10 +33,12 @@
     {
       "id": "c2",
       "code": "c2",
-      "title": "Övriga psykiska sjukdomar",
+      "title": "Handläggning av övriga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna handlägga andra psykiska sjukdomar inom specialitetens område, inklusive mer ovanliga tillstånd",
+          "kunna utreda, diagnostisera och handlägga olika psykiska sjukdomar, såsom utvecklingsrelaterade funktionsnedsättningar (t.ex. ADHD, autism, Tourette), ätstörningar, sömnstörningar, postpartumpsykos, somatoforma tillstånd, anpassningsstörningar inklusive kriser och andra stresstillstånd, impulskontrollstörningar, psykiatriska symtom av somatisk orsak, dissociativa tillstånd",
+          "ha kunskap om intellektuell funktionsnedsättning, könsdysfori, självskadebeteende, transkulturella aspekter i psykiatrisk vård",
+          "ha kunskap om vetenskapliga förklaringsmodeller för uppkomst och behandling av dessa diagnosgrupper",
           "kunna bedöma behov av utredning, behandling och uppföljning vid dessa tillstånd"
         ],
         "utbildningsaktiviteter": [
@@ -53,9 +59,13 @@
     {
       "id": "c3",
       "code": "c3",
-      "title": "Akutpsykiatriska tillstånd och katastrofpsykiatri",
+      "title": "Akut psykiatri",
       "sections": {
         "kompetenskrav": [
+          "kunna avgöra vad som är akut behandlingskrävande och vad som kan vänta till planerad specialistvård",
+          "kunna identifiera akuta behov och hänvisa till relevanta insatser inom socialtjänst, primärvård, somatisk specialitet, polis etc.",
+          "kunna hantera lokala riktlinjer vid katastrofer och PKL-arbete",
+          "ha en solid grund i behandling av akuta tillstånd, lagstiftning och riskbedömning",
           "kunna bedöma och handlägga akuta psykiatriska tillstånd, inklusive suicidrisk, svår agitation och akuta psykoser",
           "kunna initialt handlägga situationer inom katastrofpsykiatri och större olyckor med psykiatriska konsekvenser"
         ],

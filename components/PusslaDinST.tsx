@@ -815,8 +815,8 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   });
 
   
-  // Komplett METIS-kurslista (rullista)
-const METIS_COURSES = [
+  // Komplett METIS-kurslista för vuxenpsykiatri (rullista)
+const METIS_COURSES_VUXEN = [
   "Akutpsykiatri",
   "Psykiatrisk diagnostik",
   "Psykiatrisk juridik",
@@ -844,8 +844,48 @@ const METIS_COURSES = [
   // Flyttat ut ur METIS: Psykoterapi, Ledarskap, Handledning
 ];
 
-// Automatisk mappning METIS-kurs → delmål (bas-koder a/b/c)
-const METIS_COURSE_GOALS: Record<string, string[]> = {
+// BUP-specifika METIS-kurser
+const METIS_COURSES_BUP = [
+  "BUP Akutpsykiatri",
+  "Grundläggande barn- och ungdomspsykiatrisk bedömning och diagnostik",
+  "BUP Suicidologi",
+  "BUP Utvecklingspsykologi",
+  "BUP Ångest- och tvångssyndrom",
+  "BUP Juridik",
+  "BUP Substansbrukssyndrom",
+  "BUP Psykofarmakologi",
+  "BUP Depression",
+  "BUP Neuropsykiatri",
+  "BUP Pediatrik",
+  "BUP Normbrytande beteende",
+  "BUP Bipolärt syndrom och psykos",
+  "BUP Trauma och migration",
+  "Ätstörningar",
+];
+
+// Hämta rätt METIS-kurslista baserat på specialitet
+function getMetisCoursesForSpecialty(specialty: string | null | undefined): string[] {
+  const spec = String(specialty || "").toLowerCase().trim();
+  if (spec.includes("barn") || spec.includes("ungdom") || spec.includes("bup")) {
+    return METIS_COURSES_BUP;
+  }
+  return METIS_COURSES_VUXEN;
+}
+
+// Kontrollera om specialiteten använder strukturerade METIS-kurser (rullista)
+function usesMetisCourses(specialty: string | null | undefined): boolean {
+  const spec = String(specialty || "").toLowerCase().trim();
+  return (
+    spec.includes("psykiatri") && 
+    !spec.includes("äldrepsykiatri") // Äldrepsykiatri är inte en psykiatrisk specialitet med METIS
+  );
+}
+
+// Bakåtkompatibilitet - använd den rätta listan
+const METIS_COURSES = METIS_COURSES_VUXEN;
+
+// Automatisk mappning METIS-kurs → delmål (bas-koder a/b/c) för vuxenpsykiatri
+const METIS_COURSE_GOALS_VUXEN: Record<string, string[]> = {
   "Akutpsykiatri": ["c2", "c3", "b1", "a2"],
   "Psykiatrisk diagnostik": ["c1", "c2", "b1", "a2"],
   "Psykiatrisk juridik": ["c10", "c13", "b1", "a2", "a6"],
@@ -853,7 +893,6 @@ const METIS_COURSE_GOALS: Record<string, string[]> = {
   "Suicidologi": ["c3", "b1", "a2"],
   "Levnadsvanor vid psykisk sjukdom": ["b1", "b2", "a2"],
   "Beroendelära": ["c6", "c13", "b1", "b2", "b3", "a2"],
-
   "Affektiva sjukdomar": ["c1", "c4", "b1", "a2"],
   "BUP för vuxenpsykiatriker": ["c8", "b1", "b3", "b4"],
   "Konsultationspsykiatri och psykosomatik": ["c10", "b1", "a2"],
@@ -864,7 +903,6 @@ const METIS_COURSE_GOALS: Record<string, string[]> = {
   "OCD- och relaterade syndrom": ["c1", "b1", "a2"],
   "Ångest-, trauma- och stressrelaterade syndrom": ["c1", "b1", "a2"],
   "Äldrepsykiatri": ["c7", "b1", "b3", "a2"],
-
   "Kritisk läkemedelsvärdering inom psykofarmakologi": ["c4", "b3", "a5"],
   "Medicinsk vetenskap": ["b1", "a2"],
   "Psykiatrisk neurovetenskap": ["c1"],
@@ -874,8 +912,43 @@ const METIS_COURSE_GOALS: Record<string, string[]> = {
   "Transkulturell psykiatri": ["c2", "c13", "b1", "a2"],
 };
 
+// Automatisk mappning METIS-kurs → delmål för BUP (bas-koder a/b/c)
+// Mappningarna är baserade på både BUP15 och BUP21 - funktionen mapMetisGoalsToMilestoneIds
+// konverterar automatiskt till rätt format baserat på goalsVersion
+const METIS_COURSE_GOALS_BUP: Record<string, string[]> = {
+  "BUP Akutpsykiatri": ["c1", "c5", "c8", "c9", "a2", "a6", "b1", "b2", "b3"],
+  "Grundläggande barn- och ungdomspsykiatrisk bedömning och diagnostik": ["c3", "c4", "a2", "b1"],
+  "BUP Suicidologi": ["c1", "c3", "c8", "a2", "a6", "b1", "b2"],
+  "BUP Utvecklingspsykologi": ["c4", "a2", "b1"],
+  "BUP Ångest- och tvångssyndrom": ["c3", "c5", "a2", "b2", "b3"],
+  "BUP Juridik": ["c8", "a2", "a6"],
+  "BUP Substansbrukssyndrom": ["c1", "c3", "c5", "c9", "a2", "b1", "b2"],
+  "BUP Psykofarmakologi": ["c3", "c5", "a2", "b3"],
+  "BUP Depression": ["c1", "c3", "c5", "c8", "a2", "a6", "b1", "b2", "b3"],
+  "BUP Neuropsykiatri": ["c3", "c4", "c5", "a2", "b1", "b2", "b3"],
+  "BUP Pediatrik": ["c4", "c11", "a2", "b1", "b2"],
+  "BUP Normbrytande beteende": ["c3", "c4", "c8", "c9", "c12", "a2", "a6", "b2"],
+  "BUP Bipolärt syndrom och psykos": ["c1", "c3", "c5", "c8", "a2", "a6", "b1", "b2", "b3"],
+  "BUP Trauma och migration": ["c3", "c5", "c8", "a2", "b1", "b2"],
+  "Ätstörningar": ["c3", "c10", "b1", "b3", "a2"],
+};
+
+// Hämta rätt mappning baserat på specialitet
+function getMetisCourseGoals(specialty: string | null | undefined): Record<string, string[]> {
+  const spec = String(specialty || "").toLowerCase().trim();
+  if (spec.includes("barn") || spec.includes("ungdom") || spec.includes("bup")) {
+    return METIS_COURSE_GOALS_BUP;
+  }
+  return METIS_COURSE_GOALS_VUXEN;
+}
+
+// Bakåtkompatibilitet
+const METIS_COURSE_GOALS = METIS_COURSE_GOALS_VUXEN;
+
 function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[] {
-  const baseList = METIS_COURSE_GOALS[courseTitle];
+  const specialty = (profile as any)?.specialty || (profile as any)?.speciality;
+  const goalsMap = getMetisCourseGoals(specialty);
+  const baseList = goalsMap[courseTitle];
   if (!baseList || baseList.length === 0) return [];
 
   const gv = normalizeGoalsVersion((profile as any)?.goalsVersion || "2021");
@@ -6419,16 +6492,28 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         "grid gap-3 grid-cols-1",
         (() => {
           const prof: any = profile || {};
+          const specialty = prof?.specialty || prof?.speciality;
+          const usesMetis = usesMetisCourses(specialty);
           const is2021 = String(prof?.goalsVersion || "").trim() === "2021";
           const btISO: string | null = prof?.btStartDate || null;
           
-          // För 2015: om "Annan kurs" är vald, använd 6 kolumner
+          // För övriga specialiteter (utan METIS): minska kolumner med 1
+          const baseColumns = usesMetis ? 0 : -1;
+          
+          // För 2015: om "Annan kurs" är vald, använd 6 kolumner (för psykiatri)
           if (!is2021) {
             const isAnnanKurs = selCourse.title === "Annan kurs";
-            return isAnnanKurs ? "md:grid-cols-6" : "md:grid-cols-5";
+            if (usesMetis) {
+              return isAnnanKurs ? "md:grid-cols-6" : "md:grid-cols-5";
+            } else {
+              // För övriga specialiteter: 4 kolumner (kurs, kursledare, start, slut)
+              return "md:grid-cols-4";
+            }
           }
           
-          if (!btISO || !isValidISO(btISO)) return "md:grid-cols-5";
+          if (!btISO || !isValidISO(btISO)) {
+            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+          }
 
           // Effektivt BT-slut: manuellt fält eller 24 månader efter BT-start
           const btEndManual: string | null = prof?.btEndDate || null;
@@ -6443,120 +6528,177 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               btEndISO = null;
             }
           }
-          if (!btEndISO) return "md:grid-cols-5";
+          if (!btEndISO) {
+            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+          }
 
           const startISO =
             selCourse.startDate || selCourse.endDate || "";
-          if (!startISO || !isValidISO(startISO)) return "md:grid-cols-5";
+          if (!startISO || !isValidISO(startISO)) {
+            return usesMetis ? "md:grid-cols-5" : "md:grid-cols-4";
+          }
 
           // Inom BT-fönstret om startdatum ligger mellan BT-start och Slutdatum för BT
           const inBtWindow =
             startISO >= btISO &&
             startISO <= btEndISO;
 
-          const isAnnanKurs = selCourse.title === "Annan kurs";
-          // Om "Annan kurs" är vald, lägg till en kolumn
-          if (isAnnanKurs) {
-            return inBtWindow ? "md:grid-cols-7" : "md:grid-cols-6";
+          if (usesMetis) {
+            const isAnnanKurs = selCourse.title === "Annan kurs";
+            // Om "Annan kurs" är vald, lägg till en kolumn
+            if (isAnnanKurs) {
+              return inBtWindow ? "md:grid-cols-7" : "md:grid-cols-6";
+            }
+            return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
+          } else {
+            // För övriga specialiteter: 5 kolumner om inom BT-fönstret (kurs, kursledare, start, slut, fas)
+            return inBtWindow ? "md:grid-cols-5" : "md:grid-cols-4";
           }
-          return inBtWindow ? "md:grid-cols-6" : "md:grid-cols-5";
         })(),
       ].join(" ")}
     >
       {/* Kurs */}
-      <div className={selCourse.title === "Annan kurs" ? "" : ""}>
-        <label className="block text-sm text-slate-700">Kurs</label>
-        <select
-          value={selCourse.title || ""}
-          onChange={async (e) => {
-            const nextTitle = e.target.value;
-            const autoMilestones = mapMetisGoalsToMilestoneIds(nextTitle, profile);
+      {(() => {
+        const specialty = (profile as any)?.specialty || (profile as any)?.speciality;
+        const usesMetis = usesMetisCourses(specialty);
+        
+        // För psykiatriska specialiteter: visa rullista med METIS-kurser
+        if (usesMetis) {
+          return (
+            <div>
+              <label className="block text-sm text-slate-700">Kurs</label>
+              <select
+                value={selCourse.title || ""}
+                onChange={async (e) => {
+                  const nextTitle = e.target.value;
+                  const autoMilestones = mapMetisGoalsToMilestoneIds(nextTitle, profile);
 
-            // Kontrollera om det finns befintliga delmål och om nästa kurs är en METIS-kurs
-            const existingMilestones = selCourse.milestones || [];
-            const isMetisCourse = METIS_COURSES.includes(nextTitle) || 
-                                  ["Psykoterapi", "Ledarskap", "Handledning", "Palliativ medicin"].includes(nextTitle);
-            
-            let shouldKeepMilestones = false;
-            
-            // Om det finns befintliga delmål OCH nästa kurs är en METIS-kurs, fråga användaren
-            if (existingMilestones.length > 0 && isMetisCourse && nextTitle !== "Annan kurs") {
-              const keepExisting = confirm(
-                "Vill du behålla valda delmål eller ändra till METIS-kursens förinställda?\n\n" +
-                "Klicka OK för att behålla valda delmål.\n" +
-                "Klicka Avbryt för att ändra till METIS-kursens förinställda delmål."
-              );
-              shouldKeepMilestones = keepExisting;
-            } else {
-              // Annars: behåll befintliga om de finns, annars använd METIS-mappningen
-              shouldKeepMilestones = existingMilestones.length > 0 && nextTitle !== "Annan kurs";
-            }
+                  // Kontrollera om det finns befintliga delmål och om nästa kurs är en METIS-kurs
+                  const existingMilestones = selCourse.milestones || [];
+                  const availableMetisCourses = getMetisCoursesForSpecialty(specialty);
+                  const isMetisCourse = availableMetisCourses.includes(nextTitle) || 
+                                        ["Psykoterapi", "Ledarskap", "Handledning", "Palliativ medicin"].includes(nextTitle);
+                  
+                  let shouldKeepMilestones = false;
+                  
+                  // Om det finns befintliga delmål OCH nästa kurs är en METIS-kurs, fråga användaren
+                  if (existingMilestones.length > 0 && isMetisCourse && nextTitle !== "Annan kurs") {
+                    const keepExisting = confirm(
+                      "Vill du behålla valda delmål eller ändra till METIS-kursens förinställda?\n\n" +
+                      "Klicka OK för att behålla valda delmål.\n" +
+                      "Klicka Avbryt för att ändra till METIS-kursens förinställda delmål."
+                    );
+                    shouldKeepMilestones = keepExisting;
+                  } else {
+                    // Annars: behåll befintliga om de finns, annars använd METIS-mappningen
+                    shouldKeepMilestones = existingMilestones.length > 0 && nextTitle !== "Annan kurs";
+                  }
 
-            setCourses((prev) =>
-              prev.map((c) => {
-                if (c.id !== selCourse.id) return c;
+                  setCourses((prev) =>
+                    prev.map((c) => {
+                      if (c.id !== selCourse.id) return c;
 
-                const isPsyTitle = /(^|\s)psykoterapi/.test((nextTitle || "").toLowerCase());
-                const existingFlag = (c as any).showAsInterval;
-                const nextShowAsInterval =
-                  typeof existingFlag === "boolean" ? existingFlag : isPsyTitle;
+                      const isPsyTitle = /(^|\s)psykoterapi/.test((nextTitle || "").toLowerCase());
+                      const existingFlag = (c as any).showAsInterval;
+                      const nextShowAsInterval =
+                        typeof existingFlag === "boolean" ? existingFlag : isPsyTitle;
 
-                return {
-                  ...c,
-                  title: nextTitle,
-                  // Om användaren valde att behålla befintliga delmål, behåll dem
-                  // Annars använd METIS-mappningen
-                  milestones: shouldKeepMilestones ? existingMilestones : autoMilestones,
-                  showAsInterval: nextShowAsInterval,
-                };
-              })
-            );
-            // Dirty-state uppdateras automatiskt via checkDirty
-          }}
-          className="w-full h-10 rounded-lg border px-3"
-        >
-          <option value="" disabled hidden data-placeholder="1">
-            Välj kurs …
-          </option>
+                      return {
+                        ...c,
+                        title: nextTitle,
+                        // Om användaren valde att behålla befintliga delmål, behåll dem
+                        // Annars använd METIS-mappningen
+                        milestones: shouldKeepMilestones ? existingMilestones : autoMilestones,
+                        showAsInterval: nextShowAsInterval,
+                      };
+                    })
+                  );
+                  // Dirty-state uppdateras automatiskt via checkDirty
+                }}
+                className="w-full h-10 rounded-lg border px-3"
+              >
+                <option value="" disabled hidden data-placeholder="1">
+                  Välj kurs …
+                </option>
 
-          <optgroup label="— METISKURSER —">
-            {METIS_COURSES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </optgroup>
+                <optgroup label="— METISKURSER —">
+                  {getMetisCoursesForSpecialty(specialty).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </optgroup>
 
-          <optgroup label="— ÖVRIGA —">
-            <option value="Psykoterapi">Psykoterapi</option>
-            <option value="Ledarskap">Ledarskap</option>
-            <option value="Handledning">Handledning</option>
-            <option value="Palliativ medicin">Palliativ medicin</option>
-            <option value="Annan kurs">Annan kurs</option>
-          </optgroup>
-        </select>
-      </div>
+                <optgroup label="— ÖVRIGA —">
+                  <option value="Psykoterapi">Psykoterapi</option>
+                  <option value="Ledarskap">Ledarskap</option>
+                  <option value="Handledning">Handledning</option>
+                  <option value="Palliativ medicin">Palliativ medicin</option>
+                  <option value="Annan kurs">Annan kurs</option>
+                </optgroup>
+              </select>
+            </div>
+          );
+        }
+        
+        // För övriga specialiteter: visa fritextfält
+        return (
+          <div>
+            <label className="block text-sm text-slate-700">Kurs</label>
+            <input
+              type="text"
+              value={selCourse.title || ""}
+              onChange={(e) => {
+                const nextTitle = e.target.value;
+                setCourses((prev) =>
+                  prev.map((c) => {
+                    if (c.id !== selCourse.id) return c;
+                    const isPsyTitle = /(^|\s)psykoterapi/.test((nextTitle || "").toLowerCase());
+                    const existingFlag = (c as any).showAsInterval;
+                    const nextShowAsInterval =
+                      typeof existingFlag === "boolean" ? existingFlag : isPsyTitle;
+                    return {
+                      ...c,
+                      title: nextTitle,
+                      showAsInterval: nextShowAsInterval,
+                    };
+                  })
+                );
+              }}
+              className="w-full h-10 rounded-lg border px-3"
+              placeholder="Ange kursens namn"
+            />
+          </div>
+        );
+      })()}
 
-      {/* Kursens titel - visas endast när "Annan kurs" är vald */}
-      {selCourse.title === "Annan kurs" && (
-        <div>
-          <label className="block text-sm text-slate-700">Kursens titel</label>
-          <input
-            value={(selCourse as any)?.courseTitle || ""}
-            onChange={(e) => {
-              setCourses((prev) =>
-                prev.map((c) =>
-                  c.id === selCourse.id
-                    ? { ...c, courseTitle: e.target.value }
-                    : c
-                )
-              );
-            }}
-            className="w-full h-10 rounded-lg border px-3"
-            placeholder="Ange kursens titel"
-          />
-        </div>
-      )}
+      {/* Kursens titel - visas endast när "Annan kurs" är vald för psykiatriska specialiteter */}
+      {(() => {
+        const specialty = (profile as any)?.specialty || (profile as any)?.speciality;
+        const usesMetis = usesMetisCourses(specialty);
+        if (usesMetis && selCourse.title === "Annan kurs") {
+          return (
+            <div>
+              <label className="block text-sm text-slate-700">Kursens titel</label>
+              <input
+                value={(selCourse as any)?.courseTitle || ""}
+                onChange={(e) => {
+                  setCourses((prev) =>
+                    prev.map((c) =>
+                      c.id === selCourse.id
+                        ? { ...c, courseTitle: e.target.value }
+                        : c
+                    )
+                  );
+                }}
+                className="w-full h-10 rounded-lg border px-3"
+                placeholder="Ange kursens titel"
+              />
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Fas BT/ST – visas endast om kursens startdatum ligger mellan BT-start och Slutdatum för BT */}
       {(() => {

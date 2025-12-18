@@ -1,0 +1,302 @@
+{
+  "specialty": "Palliativ medicin",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Hospicefilosofi och definitioner",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hospicefilosofin och framväxten av palliativ medicin samt om definitioner, termer och begrepp som är centrala inom området"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Behovsberäkning",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om hur behovet av palliativ vård beräknas"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Värdegrund och etik",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om den palliativa vårdens värdegrund",
+          "ha förmåga att handlägga svåra kliniska situationer och etiska dilemman och problem"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Sjukdomslära och symtombedömning",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om livshotande tillstånds och sjukdomars biologi, patofysiologi och naturliga förlopp och om sjukdomsmodifierande terapier, samt kunna skilja mellan sjukdomssymtom och behandlingsrelaterade biverkningar",
+          "ha kunskap om de plågsamma symtom som kan uppträda i livets slutskede och betydelsen av samtidig komplex multisjuklighet",
+          "ha förmåga att under sjukdomsförloppet handlägga patientens olika behandlingar i samråd med andra specialister"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Symtomlindring",
+      "sections": {
+        "kompetenskrav": [
+          "behärska att med helhetssyn och fokus på individens situation diagnostisera, förebygga, behandla och utvärdera basala och komplexa somatiska och psykiska symtom samt sociala och existentiella problem hos patienter med obotlig, progredierande, livshotande sjukdom, med syfte att lindra lidande och uppnå bästa möjliga livskvalitet för patienter och närstående",
+          "behärska farmakologiska metoder för lindring av avancerade symtom hos patienter med obotlig, progredierande, livshotande sjukdom",
+          "behärska att ifrågasätta, avstå från och skonsamt avsluta läkemedelsbehandling som inte tillför patientnytta"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Icke-farmakologiska metoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om icke-farmakologiska metoder för att lindra symtom och lidande",
+          "ha kännedom om komplementära och alternativa behandlingsmetoder som används av patienter i palliativ vård samt lagar och andra föreskrifter som gäller för dessa metoder"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Psykologiska aspekter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om psykologiska reaktioner på kris, förlust, osäkerhet och kroppsliga symtom samt om hur psykologiska försvarsmekanismer ter sig och copingstrategier kan användas",
+          "ha förmåga att bedöma och handlägga patienter med ångest, depression och konfusion samt andra psykologiska och psykiatriska problem, med farmakologiska och icke-farmakologiska behandlingar",
+          "ha kunskap om familjerelationers och ekonomiska faktorers inverkan på upplevelse av symtom och välbefinnande samt ha förmåga att hänvisa till relevant yrkesprofession"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Existentiella och kulturella aspekter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om religiös och kulturell påverkan, inklusive språk, på alla aspekter av palliativ vård",
+          "ha förmåga att uppmärksamma och bemöta patienters existentiella behov och meningssökande samt kunna skilja det från religiösa behov"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Kommunikation",
+      "sections": {
+        "kompetenskrav": [
+          "behärska effektiv och empatisk kommunikation med patienter, närstående och vårdare i samband med anamnes, information, svåra eller hotfulla besked och existentiella samtal"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Multiprofessionellt team",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om funktionen hos ett multiprofessionellt team samt om hur teamets struktur, process och gruppdynamik påverkar arbetsresultatet",
+          "behärska att skapa och leda samt samarbeta i ett palliativt team"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Närstående",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om samhällets stödresurser till närstående",
+          "kunna bedöma närståendes individuella behov av praktiskt och emotionellt stöd samt kunna bedöma hur närstående kan involveras i vårdens planering för att skapa trygghet och meningsfullhet",
+          "ha kunskap om anticipatorisk sorg, sorgereaktionens beståndsdelar och patologisk sorg samt om hur patologisk sorg kan förebyggas hos närstående"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Personlig utveckling",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om den palliativa medicinens möjligheter och begränsningar",
+          "ha kunskap om egna personliga värde- och trossystem och attityder till döden, samt om hur dessa kan påverka den professionella hållningen och förmågan till närhet och distans",
+          "ha kunskap om betydelsen av att kontinuerligt utsättas för sorg och förluster, hur personliga förluster och sorg påverkar arbetet, värdet av handledning samt när och var man kan få hjälp"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i inom- eller mellanprofessionell reflektion i grupp",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}

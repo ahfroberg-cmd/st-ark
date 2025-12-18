@@ -1,0 +1,323 @@
+{
+  "specialty": "Hörsel- och balansrubbningar",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Vanliga och basala sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik samt kirurgisk och icke-kirurgisk behandling av vanliga och basala sjukdomar inom specialiteten öron-, näs- och halssjukdomar, särskilt de akuta tillstånden, inklusive akut initial handläggning av trauma"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Basal klinisk undersökning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska basal klinisk undersökning samt basal tolkning av bilddiagnostik, funktionsdiagnostik och laborativ diagnostik inom specialiteten öron-, näs- och halssjukdomar",
+          "ha kunskap om grundläggande stel och flexibel endoskopisk diagnostik och behandling, inklusive matstrupe och andningsvägar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Öron-, näs- och halssjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och initial handläggning av sjukdomar i näsa och bihåla",
+          "behärska diagnostik och initial handläggning av misstänkta tumörsjukdomar",
+          "kunna kirurgiskt handlägga de vanliga och viktiga godartade sjukdomarna i mjukdelarna i huvud- och halsregionen",
+          "kunna utreda och behandla vanliga och viktiga infektiösa, allergologiska och inflammatoriska tillstånd inom området öron-, näs- och halssjukdomar",
+          "kunna utreda och handlägga behandling av sjukdomar och funktionsstörningar i munhåla, svalg och matstrupe",
+          "kunna utreda och handlägga behandling av kirurgiska sjukdomar i öra, tinningben och lateral skallbas",
+          "ha kunskap om främre skallbasens sjukdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier",
+          "Träning i simulerad miljö",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Larynx och andningsvägar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska klinisk undersökning och basal behandling av de vanliga och viktiga sjukdomstillstånden i larynx och andningsvägar samt av störd röst- och talfunktion"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Hörselnedsättning hos vuxna",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, behandling och uppföljning av orsakerna till perifer och central hörselnedsättning hos vuxna"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Hörselnedsättning hos barn",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, behandling och uppföljning av orsakerna till perifer och central hörselnedsättning hos barn"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "Tinnitus och dysakusi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, behandling och uppföljning vid tinnitus och dysakusi hos barn och vuxna"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Vestibulär yrselsjukdom och balansstörning",
+      "sections": {
+        "kompetenskrav": [
+          "behärska utredning, diagnostik, behandling och uppföljning av vestibulär yrselsjukdom och balansstörning samt kunna bedöma andra sjukdomar eller tillstånd som påverkar balanssystemet hos barn och vuxna"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Rehabilitering av hörselproblem",
+      "sections": {
+        "kompetenskrav": [
+          "behärska medicinsk, teknisk, psykosocial och pedagogisk rehabilitering av vuxna och barn med perifera och centrala hörselproblem"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Audiologiska, vestibulära och otoneurologiska testmetoder",
+      "sections": {
+        "kompetenskrav": [
+          "ha kännedom om utförandet och behärska tolkningen av förekommande audiologiska, vestibulära och otoneurologiska testmetoder"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Hörselhjälpmedel och rehabiliterande åtgärder",
+      "sections": {
+        "kompetenskrav": [
+          "behärska indikationer för hörselhjälpmedel, inklusive hörselimplantat",
+          "behärska övriga tekniska, pedagogiska, kirurgiska och medicinska rehabiliterande åtgärder",
+          "ha kännedom om hörselskadades och dövas situation i skola, arbete och andra sociala sammanhang",
+          "ha kunskap om alternativa kommunikationssätt för hörselskadade och döva personer",
+          "ha kännedom om patient- och brukarorganisationer med anknytning till ämnesområdet"
+        ],
+        "utbildningsaktiviteter": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Teoretiska studier",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Ljudfysik och akustik",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om ljudfysik och akustik",
+          "ha kunskap om ljudmiljöns betydelse för hälsan"
+        ],
+        "utbildningsaktiviteter": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Läkemedelsbehandling",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens samlade läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten utifrån enskilda patienters ålder, kön, vikt, njur- och leverfunktion samt andra eventuella faktorer, till exempel övrig medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning"
+        ],
+        "allmannaRad": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc14",
+      "code": "STc14",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "uppvisa kunskap om lagar och andra författningar som är särskilt relevanta för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "eller",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare eller kursledare"
+        ]
+      }
+    }
+  ]
+}

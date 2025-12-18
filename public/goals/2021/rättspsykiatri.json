@@ -1,0 +1,310 @@
+{
+  "specialty": "Rättspsykiatri",
+  "version": "2021",
+  "milestones": [
+    {
+      "id": "STc1",
+      "code": "STc1",
+      "title": "Vanliga och viktiga psykiska sjukdomar med betydelse för kriminellt beteende",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och handläggning av vanliga och mindre vanliga psykiska sjukdomar med betoning på de tillstånd som kan ha betydelse för uppkomsten av kriminellt beteende",
+          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar och om deras behandling"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc2",
+      "code": "STc2",
+      "title": "Differentialdiagnostik och somatiska tillstånd",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om differentialdiagnostik mellan internmedicinska och neurologiska sjukdomar, inklusive demenstillstånd",
+          "kunna bedöma hur olika somatiska sjukdomar kan påverka risken för kriminellt beteende",
+          "kunna upptäcka och initialt handlägga somatiska tillstånd hos patienter med psykisk sjukdom"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc3",
+      "code": "STc3",
+      "title": "Rättspsykiatrisk vård och behandling",
+      "sections": {
+        "kompetenskrav": [
+          "kunna bedöma vårdbehov och planera rättspsykiatrisk vård och behandling",
+          "kunna tillämpa behandlingsmetoder anpassade för rättspsykiatrisk verksamhet",
+          "ha kunskap om kontinuitet och återkommande risk- och behovsanalys i den rättspsykiatriska vårdkedjan"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc4",
+      "code": "STc4",
+      "title": "Psykofarmakologisk behandling",
+      "sections": {
+        "kompetenskrav": [
+          "behärska psykofarmakologisk behandling med särskilt fokus på rättspsykiatrisk verksamhet",
+          "kunna bedöma läkemedelsbehandling med hänsyn till riskbedömning och säkerhet"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc5",
+      "code": "STc5",
+      "title": "Substansberoende och samsjuklighet",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga vanliga substansberoendetillstånd och ha kunskap om deras samsjuklighet med psykiska sjukdomar",
+          "kunna bedöma hur substansbruk påverkar risken för kriminellt beteende"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc6",
+      "code": "STc6",
+      "title": "Rättspsykiatrisk lagstiftning och juridik",
+      "sections": {
+        "kompetenskrav": [
+          "tillämpa lagar och andra författningar som reglerar rättspsykiatrisk vård",
+          "uppvisa kunskap om rättspsykiatrisk vård och dess juridiska ramar",
+          "ha kunskap om rättspsykiatrins organisation och ansvarsfördelning",
+          "kunna bedöma vårdbehov och risk i situationer där tvångsåtgärder kan bli aktuella"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som bedriver eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc7",
+      "code": "STc7",
+      "title": "Riskbedömning och säkerhet",
+      "sections": {
+        "kompetenskrav": [
+          "kunna genomföra strukturerade riskbedömningar för våldsamt beteende",
+          "kunna bedöma och hantera säkerhetsrisker i rättspsykiatrisk verksamhet",
+          "ha kunskap om återkommande risk- och behovsanalys"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc8",
+      "code": "STc8",
+      "title": "Rättsintyg och bedömningar",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om rättsintyg och bedömningar inom rättspsykiatrisk verksamhet",
+          "kunna samverka med rättsväsendet och andra myndigheter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid enheter som bedriver sådan verksamhet",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc9",
+      "code": "STc9",
+      "title": "Kriminalvårdskunskap och samverkan",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om kriminalvårdens organisation och verksamhet",
+          "kunna samverka med kriminalvården och andra aktörer i rättskedjan"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc10",
+      "code": "STc10",
+      "title": "Kriminologi och beteendevetenskap",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om kriminologiska teorier och faktorer som påverkar kriminellt beteende",
+          "kunna tillämpa kriminologisk kunskap i det kliniska arbetet"
+        ],
+        "utbildningsaktiviteter": [
+          "Deltagande i en eller flera kurser",
+          "Klinisk tjänstgöring under handledning"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav",
+          "Intyg från kursledare eller handledare vid kursbaserade aktiviteter"
+        ]
+      }
+    },
+    {
+      "id": "STc11",
+      "code": "STc11",
+      "title": "Samordning och uppföljning i vårdkedjan",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om hur patienter i rättspsykiatrisk vård behöver samordnad och kontinuerlig uppföljning",
+          "kunna samverka med aktörer inom och utanför hälso- och sjukvården",
+          "kunna planera övergångar mellan olika delar av vårdkedjan"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Deltagande i seminarium",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg från handledare om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav"
+        ]
+      }
+    },
+    {
+      "id": "STc12",
+      "code": "STc12",
+      "title": "Socialtjänst och andra myndigheter",
+      "sections": {
+        "kompetenskrav": [
+          "ha kunskap om socialtjänstens organisation och regelverk",
+          "ha kunskap om andra för området relevanta myndigheters organisation, uppdrag och förutsättningar",
+          "kunna samverka med socialtjänst, Försäkringskassan, Arbetsförmedlingen och andra myndigheter"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "STc13",
+      "code": "STc13",
+      "title": "Läkemedelsbehandling inom specialiteten",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa en helhetssyn på patientens totala läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten efter individuella faktorer: ålder, kön, vikt, njur- och leverfunktion, annan medicinering, samsjuklighet, graviditet och amning",
+          "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning"
+        ],
+        "allmannaRad": [
+          "Deltagande i en eller flera kurser"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav, utfärdat av handledare"
+        ]
+      }
+    }
+  ]
+}

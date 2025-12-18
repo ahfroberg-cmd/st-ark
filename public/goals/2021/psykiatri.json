@@ -5,11 +5,15 @@
     {
       "id": "STc1",
       "code": "STc1",
-      "title": "Vanliga och viktiga psykiska sjukdomar",
+      "title": "Psykiatrisk diagnostik",
       "sections": {
         "kompetenskrav": [
-          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med betoning på de stora folksjukdomarna, såsom affektiva sjukdomar, ångestsyndrom, psykossjukdomar och personlighetsstörningar",
-          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar och om deras behandling"
+          "kunna arbeta med diagnostik och bedömningar både individuellt och i tvärprofessionella utredningsteam",
+          "kunna förklara den diagnostiska processen och innebörden av diagnos på ett begripligt sätt",
+          "kunna formulera diagnostiska utlåtanden korrekt och tydligt",
+          "kunna tillämpa etiska överväganden i diagnostiken",
+          "kunna använda genuskunskap och psykologiska utvecklingsperspektiv",
+          "kunna genomföra strukturerad psykiatrisk diagnostik med metoder som Best Estimate diagnosis eller LEAD"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
@@ -29,10 +33,12 @@
     {
       "id": "STc2",
       "code": "STc2",
-      "title": "Övriga psykiska sjukdomar",
+      "title": "Handläggning av övriga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna handlägga övriga psykiska sjukdomar"
+          "kunna utreda, diagnostisera och handlägga olika psykiska sjukdomar, såsom utvecklingsrelaterade funktionsnedsättningar (t.ex. ADHD, autism, Tourette), ätstörningar, sömnstörningar, postpartumpsykos, somatoforma tillstånd, anpassningsstörningar inklusive kriser och andra stresstillstånd, impulskontrollstörningar, psykiatriska symtom av somatisk orsak, dissociativa tillstånd",
+          "ha kunskap om intellektuell funktionsnedsättning, könsdysfori, självskadebeteende, transkulturella aspekter i psykiatrisk vård",
+          "ha kunskap om vetenskapliga förklaringsmodeller för uppkomst och behandling av dessa diagnosgrupper"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
@@ -52,10 +58,13 @@
     {
       "id": "STc3",
       "code": "STc3",
-      "title": "Akutpsykiatriska tillstånd och katastrofpsykiatri",
+      "title": "Akut psykiatri",
       "sections": {
         "kompetenskrav": [
-          "kunna handlägga akutpsykiatriska tillstånd samt kunna initialt handlägga katastrofpsykiatriska situationer"
+          "kunna avgöra vad som är akut behandlingskrävande och vad som kan vänta till planerad specialistvård",
+          "kunna identifiera akuta behov och hänvisa till relevanta insatser inom socialtjänst, primärvård, somatisk specialitet, polis etc.",
+          "kunna hantera lokala riktlinjer vid katastrofer och PKL-arbete",
+          "ha en solid grund i behandling av akuta tillstånd, lagstiftning och riskbedömning"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",

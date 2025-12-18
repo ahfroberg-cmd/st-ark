@@ -1,0 +1,292 @@
+{
+  "specialty": "Röst- och talrubbningar",
+  "version": "2015",
+  "milestones": [
+    {
+      "id": "c1",
+      "code": "c1",
+      "title": "Basal diagnostik och behandling inom ÖNH",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik samt kirurgisk och icke-kirurgisk behandling av vanliga och basala sjukdomar inom specialiteten ÖNH, särskilt de akuta tillstånden, inklusive akut initial handläggning av trauma",
+          "kunna vidta adekvata åtgärder vid misstanke om att barn far illa"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "code": "c2",
+      "title": "Basal klinisk undersökning och endoskopisk diagnostik",
+      "sections": {
+        "kompetenskrav": [
+          "behärska basal klinisk undersökning samt basal tolkning av bilddiagnostik, funktionsdiagnostik och laborativ diagnostik inom specialiteten ÖNH",
+          "ha kunskap om grundläggande stel och flexibel endoskopisk diagnostik och behandling, inklusive matstrupe och andningsvägar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Teoretiska studier",
+          "Träning i simulerad miljö"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "code": "c3",
+      "title": "Diagnostik och behandling av öron-, näs- och halssjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och initial handläggning av sjukdomar inom näsa och bihåla",
+          "behärska diagnostik och initial handläggning av misstänkta tumörsjukdomar",
+          "kunna kirurgiskt handlägga de vanliga och viktiga godartade sjukdomarna i mjukdelarna i huvud- och halsregionen",
+          "kunna utreda och behandla vanliga och viktiga infektiösa, allergologiska och inflammatoriska tillstånd inom området ÖNH",
+          "kunna utreda och handlägga behandling av sjukdomar och funktionsstörningar i munhåla, svalg och matstrupe",
+          "kunna utreda och handlägga behandling av kirurgiska sjukdomar i öra, tinningben och lateral skallbas",
+          "ha kunskap om främre skallbasens sjukdomar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier",
+          "Träning i simulerad miljö",
+          "Vårdteamarbete"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "code": "c4",
+      "title": "Hörsel- och vestibularisfunktion",
+      "sections": {
+        "kompetenskrav": [
+          "behärska basal utredning av hörsel- och vestibularisfunktion",
+          "kunna initialt handlägga behandling av de vanliga och viktiga sjukdomarna i hörsel- och balansorganen"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "code": "c5",
+      "title": "Röstorganets anatomi och röstfysiologi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska kunskaper om röstorganets anatomi och röstfysiologi",
+          "behärska diagnostik och kunna handlägga behandling av röstrubbningar till följd av belastning på röstorganen, inklusive professionell röstanvändning",
+          "kunna handlägga förebyggande röstvård"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "code": "c6",
+      "title": "Röst- och andningsrubbningar i larynx",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och behandling, inklusive basal kirurgi, vid röst- och andningsrubbningar orsakade av strukturella förändringar i larynx, inklusive larynxtrauma"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c7",
+      "code": "c7",
+      "title": "Dysfagi",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och behandling av dysfagi med tonvikt på orofaryngeal dysfagi inklusive fiberendoskopisk undersökning av sväljning samt stel och flexibel esofagoskopi"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Deltagande i större yrkesrelaterad sammankomst",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c8",
+      "code": "c8",
+      "title": "Larynxcancer",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och uppföljning av larynxcancer",
+          "kunna handlägga behandling av larynxcancer och rehabilitering vid stympande tumörbehandlingar inom röst- och talorganen"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [
+          "Deltagande i diagnostik- och behandlingskonferens",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "code": "c9",
+      "title": "Språk-, tal- och röstrubbningar vid neurologiska sjukdomar",
+      "sections": {
+        "kompetenskrav": [
+          "behärska diagnostik och kunna handlägga behandling av språk-, tal- och röstrubbningar samt oralmotoriska rubbningar vid neurologiska sjukdomar och dysfunktioner",
+          "kunna handlägga utredning och diagnostik vid stamning och andra talrytmrubbningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "code": "c10",
+      "title": "Habilitering och rehabilitering av språk-, tal- och oralmotoriska rubbningar",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga utredning, habilitering och rehabilitering av barn och vuxna med rubbningar i språk, tal och oralmotorik orsakade av missbildningar eller utvecklingsstörningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning alternativt auskultation vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c11",
+      "code": "c11",
+      "title": "Rubbningar i verbal kommunikation av psykologisk eller psykiatrisk orsak",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga diagnostik och behandling av patienter med rubbningar i verbal kommunikation eller sväljning orsakade av psykologiska, psykiatriska eller beteendemässiga störningar"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c12",
+      "code": "c12",
+      "title": "Röstrubbningar orsakade av respiratorisk dysfunktion",
+      "sections": {
+        "kompetenskrav": [
+          "kunna handlägga diagnostik och behandling av röstrubbningar orsakade av respiratorisk dysfunktion"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
+        ],
+        "allmannaRad": [
+          "Auskultation",
+          "Teoretiska studier"
+        ],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
+        ]
+      }
+    },
+    {
+      "id": "c13",
+      "code": "c13",
+      "title": "Juridik",
+      "sections": {
+        "kompetenskrav": [
+          "kunna tillämpa lagar och andra föreskrifter som gäller för specialiteten"
+        ],
+        "utbildningsaktiviteter": [
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
+        ],
+        "allmannaRad": [],
+        "intyg": [
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+        ]
+      }
+    }
+  ]
+}
