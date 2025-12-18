@@ -19,6 +19,7 @@ import "./globals.css";
 import SWRegister from "./sw-register";
 import { TitleOverride } from "./TitleOverride";
 import BetaGuard from "@/components/BetaGuard";
+import GlobalEscHandler from "@/components/GlobalEscHandler";
 
 export const metadata: Metadata = {
   title: {
@@ -53,6 +54,7 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body>
+        <GlobalEscHandler />
         <SWRegister />
         <TitleOverride />
         <BetaGuard>{children}</BetaGuard>

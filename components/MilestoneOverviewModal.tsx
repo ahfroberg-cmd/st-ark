@@ -1,12 +1,14 @@
 // components/MilestoneOverviewModal.tsx
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { db } from "@/lib/db";
 import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
 
 /** Trim av rubriker utan flimmer */
@@ -53,6 +55,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   const [detailPlanText, setDetailPlanText] = useState<string>("");
   const [detailDirty, setDetailDirty] = useState(false);
   const [detailSaving, setDetailSaving] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   // Meddela föräldern när dirty-state ändras (bara när det blir true)
   useEffect(() => {
@@ -665,39 +668,62 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     setDetailSelectedSuggestions({});
   };
 
-  const handleCloseDetail = () => {
+  const handleRequestCloseDetail = useCallback(() => {
     if (detailDirty) {
-      const ok = window.confirm("Du har osparade ändringar. Vill du stänga utan att spara?");
-      if (!ok) return;
-      // Återställ ändringarna om användaren väljer att stänga utan att spara
-      if (detailId) {
-        const initial = planByMilestone[detailId] ?? "";
-        setDetailPlanText(initial);
-        setDetailDirty(false);
-      }
+      setShowCloseConfirm(true);
+      return;
     }
     setDetailId(null);
-  };
+  }, [detailDirty]);
 
-  // ESC-hantering: stäng det översta fönstret
+  const handleConfirmCloseDetail = useCallback(() => {
+    // Återställ ändringarna om användaren väljer att stänga utan att spara
+    if (detailId) {
+      const initial = planByMilestone[detailId] ?? "";
+      setDetailPlanText(initial);
+      setDetailDirty(false);
+    }
+    setShowCloseConfirm(false);
+    setDetailId(null);
+  }, [detailId, planByMilestone]);
+
+  const handleSaveAndCloseDetail = useCallback(async () => {
+    if (detailId) {
+      await savePlanForMilestone(detailId, detailPlanText);
+    }
+    setShowCloseConfirm(false);
+    setDetailId(null);
+  }, [detailId, detailPlanText]);
+
+  const handleCancelCloseDetail = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
+  // Registrera detaljvyn för planering i modalRegistry när den öppnas
+  const detailOverlayRef = useRef<HTMLDivElement | null>(null);
+  const handleCloseBtDetail = useCallback(() => {
+    setDetailId(null);
+  }, []);
+  
   useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        // Om detaljvy är öppen, stäng den först
-        if (detailId) {
-          handleCloseDetail();
-        } else {
-          // Annars stäng hela panelen
-          onClose();
-        }
+    if (!detailId || !detailOverlayRef.current) {
+      // Avregistrera om detaljvyn stängs
+      if (detailOverlayRef.current) {
+        unregisterModal(detailOverlayRef.current);
+        detailOverlayRef.current = null;
       }
+      return;
+    }
+    // Registrera detaljvyn när den öppnas
+    const element = detailOverlayRef.current;
+    // Använd rätt close-handler beroende på om det är ST eller BT
+    const isBt = /^BT\d+$/i.test(String(detailId));
+    const closeHandler = isBt ? handleCloseBtDetail : handleRequestCloseDetail;
+    registerModal(element, closeHandler);
+    return () => {
+      unregisterModal(element);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, detailId, detailDirty, onClose]);
+  }, [detailId, handleRequestCloseDetail, handleCloseBtDetail]);
 
   const savePlanForMilestone = async (mid: string, text: string) => {
     try {
@@ -1031,8 +1057,17 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   // Use tab state for BT check - this reflects the current selection
   const isBtTab = tab === "bt";
 
-      return (
-        <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
+  return (
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        title="Osparade ändringar"
+        message="Du har osparade ändringar i planeringen för detta delmål. Vill du stänga utan att spara?"
+        onCancel={handleCancelCloseDetail}
+        onDiscard={handleConfirmCloseDetail}
+        onSaveAndClose={handleSaveAndCloseDetail}
+      />
+      <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
 
           {/* Header - only show if not hidden (for laptop version) */}
           {!hideHeader && (
@@ -1257,10 +1292,11 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
           return (
             <div
+              ref={detailOverlayRef}
               className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
-                  handleCloseDetail();
+                  handleRequestCloseDetail();
                 }
               }}
             >
@@ -1401,7 +1437,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   </button>
                   <button
                     type="button"
-                    onClick={handleCloseDetail}
+                    onClick={handleRequestCloseDetail}
                     className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
                   >
                     Stäng
@@ -1421,11 +1457,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
           const m = btMilestones.find((x) => x.id === id) as BtMilestone | undefined;
           return (
             <div
+              ref={detailOverlayRef}
               className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
                   // BT-delmål har inga ändringar, så vi kan stänga direkt
-                  setDetailId(null);
+                  handleCloseBtDetail();
                 }
               }}
             >
@@ -1545,7 +1582,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
           </div>
         )}
       </div>
-  );
+        </>
+      );
 }
 
 type ModalProps = {

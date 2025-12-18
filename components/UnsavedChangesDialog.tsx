@@ -14,7 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 interface UnsavedChangesDialogProps {
   open: boolean;
@@ -33,6 +34,8 @@ export default function UnsavedChangesDialog({
   onDiscard,
   onSaveAndClose,
 }: UnsavedChangesDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
   // Kortkommandon: ESC = Avbryt, Cmd/Ctrl+Enter = Spara och stäng, Delete eller Cmd/Ctrl+Backspace = Stäng utan att spara
   useEffect(() => {
     if (!open) return;
@@ -67,10 +70,21 @@ export default function UnsavedChangesDialog({
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [open, onCancel, onSaveAndClose, onDiscard]);
 
+  // Registrera dialogen för global ESC-hantering
+  useEffect(() => {
+    if (!open || !overlayRef.current) return;
+    const element = overlayRef.current;
+    registerModal(element, onCancel);
+    return () => {
+      unregisterModal(element);
+    };
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   return (
     <div 
+      ref={overlayRef}
       className="fixed inset-0 z-[300] grid place-items-center bg-black/60 p-4"
       onKeyDown={(e) => {
         // Fånga event även på overlay-nivå som backup

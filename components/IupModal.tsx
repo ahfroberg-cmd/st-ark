@@ -15,6 +15,7 @@ import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
 import { ReportPanel } from "@/components/ReportPrintModal";
 import type { Profile } from "@/lib/types";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 
 
@@ -235,7 +236,7 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
       return;
     }
     onClose();
-  }, [dirty]);
+  }, [dirty, onClose]);
 
   const handleSave = useCallback(() => {
     if (!draft) return;
@@ -259,7 +260,24 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
     setShowCloseConfirm(false);
   }, []);
 
-  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  // Registrera modalen för global ESC-hantering
+  useEffect(() => {
+    if (!open || !overlayRef.current || !draft) return;
+    // Använd requestAnimationFrame för att säkerställa att DOM-elementet är helt renderat
+    const rafId = requestAnimationFrame(() => {
+      if (overlayRef.current) {
+        registerModal(overlayRef.current, handleRequestClose);
+      }
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (overlayRef.current) {
+        unregisterModal(overlayRef.current);
+      }
+    };
+  }, [open, handleRequestClose, draft]);
+
+  // Cmd/Ctrl+Enter för att spara
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -276,31 +294,11 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
         e.stopPropagation();
         e.stopImmediatePropagation();
         handleSave();
-      } else if (e.key === "Escape") {
-        // Kontrollera om det finns en delete-dialog eller unsaved-dialog öppen genom att kolla DOM
-        const dialog = document.querySelector('[class*="z-[300]"]');
-        if (dialog) {
-          // Om det finns en dialog med högre z-index, låt den hantera ESC
-          return;
-        }
-        // Stoppa propagation FÖRE anropet för att förhindra att huvudmodalen fångar ESC
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
-        handleRequestClose();
       }
     };
-    // Använd capture-fas för att fånga ESC innan huvudmodalen
-    // Registrera med requestAnimationFrame för att säkerställa att denna listener registreras EFTER huvudmodalen
-    const raf = requestAnimationFrame(() => {
-      window.addEventListener("keydown", onKey, { capture: true, passive: false });
-    });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("keydown", onKey, { capture: true });
-    };
-  }, [open, dirty, handleSave, handleRequestClose, showCloseConfirm]);
+    window.addEventListener("keydown", onKey, { capture: true, passive: false });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [open, dirty, handleSave, showCloseConfirm]);
 
      const updateDraft = (patch: Partial<IupMeeting>) => {
     setDraft((prev) => {
@@ -563,7 +561,7 @@ function AssessmentModal({
       return;
     }
     onClose();
-  }, [dirty]);
+  }, [dirty, onClose]);
 
   const handleSave = useCallback(() => {
     if (!draft) return;
@@ -587,7 +585,24 @@ function AssessmentModal({
     setShowCloseConfirm(false);
   }, []);
 
-  // Keyboard shortcut: Cmd/Ctrl+Enter för att spara, ESC för att stänga
+  // Registrera modalen för global ESC-hantering
+  useEffect(() => {
+    if (!open || !overlayRef.current || !draft) return;
+    // Använd requestAnimationFrame för att säkerställa att DOM-elementet är helt renderat
+    const rafId = requestAnimationFrame(() => {
+      if (overlayRef.current) {
+        registerModal(overlayRef.current, handleRequestClose);
+      }
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (overlayRef.current) {
+        unregisterModal(overlayRef.current);
+      }
+    };
+  }, [open, handleRequestClose, draft]);
+
+  // Cmd/Ctrl+Enter för att spara (ESC hanteras nu av global ESC-handler)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -604,31 +619,12 @@ function AssessmentModal({
         e.stopPropagation();
         e.stopImmediatePropagation();
         handleSave();
-      } else if (e.key === "Escape") {
-        // Kontrollera om det finns en delete-dialog eller unsaved-dialog öppen genom att kolla DOM
-        const dialog = document.querySelector('[class*="z-[300]"]');
-        if (dialog) {
-          // Om det finns en dialog med högre z-index, låt den hantera ESC
-          return;
-        }
-        // Stoppa propagation FÖRE anropet för att förhindra att huvudmodalen fångar ESC
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
-        handleRequestClose();
       }
+      // ESC hanteras nu av global ESC-handler som hittar det översta fönstret
     };
-    // Använd capture-fas för att fånga ESC innan huvudmodalen
-    // Registrera med requestAnimationFrame för att säkerställa att denna listener registreras EFTER huvudmodalen
-    const raf = requestAnimationFrame(() => {
-      window.addEventListener("keydown", onKey, { capture: true, passive: false });
-    });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("keydown", onKey, { capture: true });
-    };
-  }, [open, dirty, handleSave, handleRequestClose, showCloseConfirm]);
+    window.addEventListener("keydown", onKey, { capture: true, passive: false });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [open, dirty, handleSave, showCloseConfirm]);
 
   const updateDraft = (patch: Partial<IupAssessment>) => {
     setDraft((prev) => {
@@ -1703,6 +1699,22 @@ export default function IupModal({
     onClose();
   }, [dirty, onClose]);
 
+  // Registrera modalen för global ESC-hantering
+  // VIKTIGT: Registrera INTE huvudmodalen när en undermodal är öppen
+  useEffect(() => {
+    if (!open || !overlayRef.current) return;
+    // Om en undermodal är öppen, registrera inte huvudmodalen
+    if (editingMeetingId !== null || editingAssessmentId !== null || instrumentsModalOpen) {
+      return;
+    }
+    registerModal(overlayRef.current, handleRequestClose);
+    return () => {
+      if (overlayRef.current) {
+        unregisterModal(overlayRef.current);
+      }
+    };
+  }, [open, handleRequestClose, editingMeetingId, editingAssessmentId, instrumentsModalOpen]);
+
   const handleConfirmClose = useCallback(() => {
     setShowCloseConfirm(false);
     onClose();
@@ -1718,10 +1730,7 @@ export default function IupModal({
     setShowCloseConfirm(false);
   }, []);
 
-  // ESC-hantering: stäng det översta fönstret
-  // Om MilestoneOverviewPanel är öppen (tab === "delmal"), låt den hantera ESC först
-  // Annars stäng IupModal
-  // Cmd/Ctrl+Enter för att spara
+  // Cmd/Ctrl+Enter för att spara (ESC hanteras nu av global ESC-handler)
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1740,40 +1749,11 @@ export default function IupModal({
         return;
       }
       
-      if (e.key === "Escape") {
-        // Viktigt: Kontrollera om någon undermodal är öppen FÖRST
-        // Om AssessmentModal är öppen, låt den hantera ESC - gör ingenting här
-        if (editingAssessmentId !== null) {
-          return;
-        }
-        // Om MeetingModal är öppen, låt den hantera ESC - gör ingenting här
-        if (editingMeetingId !== null) {
-          return;
-        }
-        // Om InstrumentsModal är öppen, låt den hantera ESC - gör ingenting här
-        if (instrumentsModalOpen) {
-          return;
-        }
-        // Om vi är i delmal-tab, låt MilestoneOverviewPanel hantera ESC
-        // (den kommer att stoppa propagation om den hanterar det)
-        if (tab === "delmal") {
-          return;
-        }
-        // Annars stäng IupModal (med varning om dirty)
-        // VIKTIGT: Stoppa propagation FÖRE anropet så att andra listeners inte fångar ESC
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        // Anropa direkt - handleRequestClose kommer att öppna dialogen om dirty är true
-        handleRequestClose();
-        return;
-      }
+      // ESC hanteras nu av global ESC-handler som hittar det översta fönstret
     };
-    // Använd capture-fas med hög prioritet för att säkerställa att vi fångar ESC
-    // Registrera direkt utan timeout för att få högsta prioritet
     window.addEventListener("keydown", handleKeyDown, { capture: true, passive: false });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [open, tab, handleRequestClose, dirty, handleSave, editingAssessmentId, editingMeetingId, instrumentsModalOpen, showCloseConfirm, showDeleteConfirm]);
+  }, [open, dirty, handleSave, showCloseConfirm, showDeleteConfirm]);
 
 
 

@@ -15,10 +15,12 @@
 //
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { ocrImage } from "@/lib/ocr";
 import { detectIntygKind, type IntygKind } from "@/lib/intygDetect";
 import { validateOcrFile } from "@/lib/validation";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 // 2015
 import { parse_2015_bilaga3 } from "@/lib/intygParsers/parse_2015_bilaga3";
@@ -68,10 +70,30 @@ export default function ScanIntygModal({
   const [warning, setWarning] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [gdprModalOpen, setGdprModalOpen] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [baselineParsed, setBaselineParsed] = useState<any>(null);
 
   const visible = open ? "" : "hidden";
+  const overlayRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dirty-state: true om en fil är vald, ett intyg är skannat eller om formuläret är ändrat
+  const dirty = useMemo(() => {
+    // Om en fil är vald (syns i fönstret)
+    if (file !== null || previewUrl !== null) {
+      return true;
+    }
+    // Om vi är i review-steget och har ett skannat intyg
+    if (step === "review" && parsed !== null) {
+      return true;
+    }
+    // Om parsed har ändrats från baseline
+    if (baselineParsed !== null && parsed !== null) {
+      return JSON.stringify(parsed) !== JSON.stringify(baselineParsed);
+    }
+    return false;
+  }, [file, previewUrl, step, parsed, baselineParsed]);
 
   function resetAll() {
     setStep("upload");
@@ -84,27 +106,43 @@ export default function ScanIntygModal({
     setParsed(null);
     setWarning(null);
     setTipsOpen(false);
+    setBaselineParsed(null);
+    setShowCloseConfirm(false);
   }
 
-  function handleClose() {
+  const handleRequestClose = useCallback(() => {
+    if (dirty) {
+      setShowCloseConfirm(true);
+      return;
+    }
     onClose();
     resetAll();
+  }, [dirty, onClose]);
+
+  const handleConfirmClose = useCallback(() => {
+    setShowCloseConfirm(false);
+    onClose();
+    resetAll();
+  }, [onClose]);
+
+  const handleCancelClose = useCallback(() => {
+    setShowCloseConfirm(false);
+  }, []);
+
+  function handleClose() {
+    handleRequestClose();
   }
 
-  // ESC för att stänga
+  // Registrera modalen för global ESC-hantering
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClose();
+    if (!open || !overlayRef.current) return;
+    registerModal(overlayRef.current, handleRequestClose);
+    return () => {
+      if (overlayRef.current) {
+        unregisterModal(overlayRef.current);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, handleRequestClose]);
 
   function onSelectFile(f: File | null) {
     if (!f) return;
@@ -1028,6 +1066,8 @@ export default function ScanIntygModal({
       }
 
       onSaved?.();
+      // Återställ baseline när intyget sparas
+      setBaselineParsed(null);
       handleClose();
     } finally {
       setBusy(false);
@@ -1149,12 +1189,21 @@ export default function ScanIntygModal({
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-    >
+    <>
+      <UnsavedChangesDialog
+        open={showCloseConfirm}
+        title="Osparade ändringar"
+        message="Du har skannat in ett intyg eller gjort ändringar i formuläret. Vill du stänga utan att spara?"
+        onCancel={handleCancelClose}
+        onDiscard={handleConfirmClose}
+      />
+      <div
+        ref={overlayRef}
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleRequestClose();
+        }}
+      >
       <div
         className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -1873,7 +1922,8 @@ export default function ScanIntygModal({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

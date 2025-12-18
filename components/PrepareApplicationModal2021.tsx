@@ -18,6 +18,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, Fragment, useCallback } from "react";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 import { db } from "@/lib/db";
 import type { Profile, Placement, Course } from "@/lib/types";
@@ -2206,36 +2207,38 @@ const coordsIntyg2015 = {
     }
   }, [placements, courses, applicant, cert, attachments, paidFeeDate, presetChecked, presetDates, tab, userReordered, sta3OtherText, sta3HowVerifiedText, thirdCountryMilestones, thirdCountryActivities, thirdCountryVerification]);
 
-  /** ESC för att stänga, Cmd/Ctrl+Enter för att spara */
+  // Registrera modalen för global ESC-hantering
+  useEffect(() => {
+    if (!open || !overlayRef.current) return;
+    registerModal(overlayRef.current, handleRequestClose);
+    return () => {
+      if (overlayRef.current) {
+        unregisterModal(overlayRef.current);
+      }
+    };
+  }, [open, handleRequestClose]);
+
+  /** Cmd/Ctrl+Enter för att spara (ESC hanteras nu av global ESC-handler) */
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { 
+    const onKey = (e: KeyboardEvent) => {
       // Om bekräftelsedialogen är öppen, låt den hantera ALLA keyboard events
       if (showCloseConfirm) {
         // UnsavedChangesDialog hanterar keyboard events och stoppar propagation
         return;
       }
       
-      if (e.key === "Escape") {
-        // Stoppa ESC-eventet helt innan vi gör något annat
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
-        // Anropa handleRequestClose direkt - den visar bekräftelsedialogen
-        handleRequestClose();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && dirty) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         void handleSaveAll();
       }
+      // ESC hanteras nu av global ESC-handler som hittar det översta fönstret
     };
-    // Använd capture-fas för att fånga ESC innan andra listeners
-    // Lägg till listener tidigt i capture-fasen för att säkerställa att vi fångar ESC först
     window.addEventListener("keydown", onKey, { capture: true, passive: false });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [open, handleRequestClose, showCloseConfirm, handleCancelClose, dirty, handleSaveAll]);
+  }, [open, dirty, handleSaveAll, showCloseConfirm]);
 
   /** Uppdatera dirty-status baserat på baseline */
   useEffect(() => {

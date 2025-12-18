@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { db } from "@/lib/db";
 import type { Profile, Placement, Course } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
 
 /** ========= Dependencies (popups) ========= */
