@@ -290,6 +290,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
               onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
               title="Stäng"
+              data-info="Stänger ST-delmål-dialogen. De markerade delmålen behålls."
             >
             ✕
             </button>
@@ -413,6 +414,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                       onClick={() => setDetailId(null)}
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
                       title="Stäng"
+                      data-info="Stänger detaljvyn för detta ST-delmål och återgår till listan."
                     >
                     ✕
                     </button>
@@ -482,6 +484,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
                         ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
                         : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
                     }
+                    data-info={isMarked ? "Avmarkera delmål" : "Markera delmål"}
                   >
                     {isMarked ? "Avmarkera delmål" : "Markera delmål"}
                   </button>
@@ -516,6 +519,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
             ? "border-emerald-200 bg-emerald-50" + (hoveredCheckbox === mid ? "" : " hover:bg-emerald-100")
             : "border-slate-200 bg-slate-50" + (hoveredCheckbox === mid ? "" : " hover:bg-slate-100"))
         }
+        data-info={`Klicka för att öppna detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()}. ${isChecked ? "Delmålet är markerat." : "Delmålet är inte markerat."}`}
       >
 
 
@@ -525,6 +529,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
           onClick={() => setDetailId(mid)}
           className="dm-row flex min-w-0 items-center gap-2 text-left text-slate-800"
           title="Visa information om delmålet"
+          data-info={`Öppnar detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()} där du kan se fullständig beskrivning och markera/avmarkera delmålet.`}
         >
           <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
             {String((m as any).code ?? "").toLowerCase()}
@@ -540,6 +545,7 @@ export default function MilestonePicker({ open, title, goals, checked, onToggle,
           onClick={(e) => e.stopPropagation()}
           onMouseEnter={() => setHoveredCheckbox(mid)}
           onMouseLeave={() => setHoveredCheckbox((v) => (v === mid ? null : v))}
+          data-info={isChecked ? "Avmarkera delmål" : "Markera delmål"}
         >
 
           <input

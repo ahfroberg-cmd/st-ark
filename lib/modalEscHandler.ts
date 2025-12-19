@@ -135,6 +135,19 @@ export function setupGlobalEscHandler() {
   globalEscHandler = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     
+    // Don't close modals if info view is active
+    // Check for info view banner (bg-sky-700) or any data-info-view element
+    const infoViewBanner = document.querySelector('[data-info-view][class*="bg-sky-700"]');
+    const infoViewActive = document.querySelector('[data-info-view]');
+    const bodyHasInfoViewClass = document.body.classList.contains('info-view-active');
+    
+    if (infoViewBanner || (infoViewActive && bodyHasInfoViewClass)) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return; // Block ESC completely when info view is active
+    }
+    
     // Om vi har en modal registrerad, trigga dess stäng-funktion
     if (triggerCloseOnTopmostModal()) {
       e.preventDefault();

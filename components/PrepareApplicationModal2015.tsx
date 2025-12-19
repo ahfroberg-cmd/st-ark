@@ -527,6 +527,7 @@ function ThirdCountryTabContent2015({
               type="button"
               onClick={() => setMilestonePickerOpen(true)}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+              data-info="Välj delmål"
             >
               Välj delmål
             </button>
@@ -644,6 +645,7 @@ function ThirdCountryTabContent2015({
                 setThirdCountryWorkplaces([...thirdCountryWorkplaces, { id: makeId(), site: "", startDate: isoToday(), endDate: isoToday() }]);
               }}
               className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+              data-info="Lägg till tjänstgöringsställe"
             >
               + Lägg till tjänstgöringsställe
             </button>
@@ -669,6 +671,7 @@ function ThirdCountryTabContent2015({
           onClick={handleGenerate}
           disabled={downloading}
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px disabled:opacity-60 disabled:pointer-events-none"
+          data-info="Intyg uppfyllda kompetenskrav"
         >
             {downloading ? "Skapar förhandsgranskning…" : "Intyg uppfyllda kompetenskrav"}
         </button>
@@ -683,6 +686,7 @@ function ThirdCountryTabContent2015({
             type="button"
             onClick={handleGenerate8b}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+            data-info="Intyg Uppnådd specialistkompetens"
           >
             Intyg Uppnådd specialistkompetens
           </button>
@@ -2595,10 +2599,10 @@ const handleSaveAndClose = useCallback(async () => {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "signers",     label: "Intygande personer" },
+            { id: "signers",     label: "Intygande personer", info: "Här anger du vilka personer som ska intyga ansökan: huvudhandledare, studierektor, verksamhetschef och eventuellt utsedd chef. Dessa uppgifter används när intygen genereras." },
             // STa3 finns inte för 2015
-            ...(profile?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredjeland" }] : []),
-            { id: "attachments", label: "Ordna bilagor" },
+            ...(profile?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredjeland", info: "Här kan du skapa intyg för specialistläkare från tredje land. Du anger vilka delmål som uppfyllts, vilka utbildningsaktiviteter som genomförts och hur det har kontrollerats. Detta används för ansökan om specialistkompetens." }] : []),
+            { id: "attachments", label: "Ordna bilagor", info: "Här kan du se alla bilagor som ska inkluderas i ansökan och ändra deras ordning genom att dra och släppa. Du kan också lägga till eller ta bort bilagor som ska inkluderas i ansökan." },
           ].map((t) => (
             <button
               key={t.id}
@@ -2609,6 +2613,7 @@ const handleSaveAndClose = useCallback(async () => {
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
+              data-info={t.info || t.label}
             >
               {t.label}
             </button>
@@ -2861,6 +2866,7 @@ const handleSaveAndClose = useCallback(async () => {
                           role="button"
                           aria-grabbed={dragIndex === idx && dragActive}
                           title="Dra för att flytta"
+                          data-info={`${getBilagaName(a.type) || a.type} - ${formatAttachmentLabel(a)}. Kan flyttas för att ändra ordning.`}
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -2903,7 +2909,7 @@ const handleSaveAndClose = useCallback(async () => {
 
                 {/* Intyg */}
                 <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                  <label className="inline-flex items-center gap-2 text-[13px]">
+                  <label className="inline-flex items-center gap-2 text-[13px]" data-info="Intyg om uppnådd specialistkompetens. Detta är huvudintyget som bekräftar att du har uppnått alla delmål och kompetenser som krävs för specialistkompetens enligt SOSFS 2015:8. Intyget inkluderas som bilaga i ansökan.">
                     <input type="checkbox" checked={presetChecked.intyg} onChange={() => togglePreset("intyg")} />
                     <span>Intyg om uppnådd specialistkompetens</span>
                   </label>
@@ -2920,7 +2926,7 @@ const handleSaveAndClose = useCallback(async () => {
                 {/* Uppfyllda kompetenskrav för specialistläkare från tredjeland - direkt efter "Uppnådd specialistkompetens" */}
                 {profile?.isThirdCountrySpecialist && (
                   <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                    <label className="inline-flex items-center gap-2 text-[13px]">
+                    <label className="inline-flex items-center gap-2 text-[13px]" data-info="Uppfyllda kompetenskrav för specialistläkare från tredjeland. Detta intyg bekräftar att du har uppfyllt de kompetenskrav som krävs för specialistläkare från tredje land. Intyget skapas i fliken 'Specialistläkare från tredjeland' och kan inkluderas som bilaga i ansökan.">
                       <input type="checkbox" checked={presetChecked.thirdCountry} onChange={() => togglePreset("thirdCountry")} />
                       <span>Uppfyllda kompetenskrav för specialistläkare från tredjeland</span>
                     </label>
@@ -2950,9 +2956,17 @@ const handleSaveAndClose = useCallback(async () => {
                       thirdCountry: "Uppfyllda kompetenskrav för specialistläkare från tredjeland",
                       individProg: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
                     };
+                    const infoTexts: Record<PresetKey, string> = {
+                      intyg: "Intyg om uppnådd specialistkompetens. Huvudintyget som bekräftar att alla delmål och kompetenser är uppnådda.",
+                      svDoc: "Godkänd svensk doktorsexamen. Dokumentation av din svenska doktorsexamen som bilaga i ansökan.",
+                      foreignDocEval: "Bedömning av utländsk doktorsexamen. Dokumentation av bedömning av din utländska doktorsexamen som bilaga i ansökan.",
+                      foreignService: "Intyg om utländsk tjänstgöring. Dokumentation av utländsk tjänstgöring som kan räknas in i utbildningen.",
+                      thirdCountry: "Uppfyllda kompetenskrav för specialistläkare från tredjeland. Bekräftar att kompetenskrav för tredjelandspecialister är uppfyllda.",
+                      individProg: "Individuellt utbildningsprogram för specialistläkare från tredjeland. Dokumentation av ditt individuella utbildningsprogram.",
+                    };
                     return (
                       <div key={k} className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                        <label className="inline-flex items-center gap-2 text-[13px]">
+                        <label className="inline-flex items-center gap-2 text-[13px]" data-info={infoTexts[k]}>
                           <input type="checkbox" checked={presetChecked[k]} onChange={() => togglePreset(k)} />
                           <span>{labels[k]}</span>
                         </label>
@@ -2995,12 +3009,14 @@ const handleSaveAndClose = useCallback(async () => {
             <button
               onClick={onPrintIntyg}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Intyg om uppnådd specialistkompetens. Skapar och öppnar en PDF med intyg om uppnådd specialistkompetens enligt SOSFS 2015:8. Detta är huvudintyget som bekräftar att alla delmål och kompetenser är uppnådda. Intyget kan skrivas ut eller sparas och inkluderas som bilaga i ansökan."
             >
               Intyg om uppnådd specialistkompetens
             </button>
             <button
               onClick={onPrintAnsokan}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Ansökan om bevis om specialistkompetens. Skapar och öppnar en komplett PDF-ansökan enligt SOSFS 2015:8 med alla bilagor i rätt ordning. Ansökan innehåller alla intyg, aktiviteter och kurser som du har valt att inkludera."
             >
               Ansökan om bevis om specialistkompetens
             </button>

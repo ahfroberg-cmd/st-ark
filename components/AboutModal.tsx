@@ -108,6 +108,7 @@ export default function AboutModal({ open, onClose }: Props) {
             <button
               onClick={handleRequestClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Stänger Om-modalen och återgår till huvudvyn."
             >
               Stäng
             </button>
@@ -117,12 +118,12 @@ export default function AboutModal({ open, onClose }: Props) {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "instruction", label: "Instruktion" },
-            { id: "about", label: "Upphov och syfte" },
-            { id: "download", label: "Ladda ned projektet" },
-            { id: "privacy", label: "Integritet och dataskydd" },
-            { id: "license", label: "Licensvillkor" },
-            { id: "contact", label: "Kontakt" },
+            { id: "instruction", label: "Instruktion", info: "Här hittar du instruktioner för hur du använder ST-ARK, inklusive grundläggande funktioner, kortkommandon och tips för att få ut mesta möjliga av verktyget." },
+            { id: "about", label: "Upphov och syfte", info: "Här kan du läsa om projektets syfte, bakgrund och vem som har utvecklat ST-ARK. Du får också information om projektets mål och vision." },
+            { id: "download", label: "Ladda ned projektet", info: "Här kan du ladda ned projektets källkod från GitHub för att använda lokalt eller bidra till utvecklingen. Projektet är öppet källkod och fritt att använda." },
+            { id: "privacy", label: "Integritet och dataskydd", info: "Här kan du läsa om hur ST-ARK hanterar dina personuppgifter och data. All data sparas lokalt i din webbläsare och ingen information skickas till servrar." },
+            { id: "license", label: "Licensvillkor", info: "Här kan du läsa projektets licensvillkor. ST-ARK är licensierad under Apache License 2.0, vilket innebär att du fritt kan använda, modifiera och distribuera projektet." },
+            { id: "contact", label: "Kontakt", info: "Här hittar du kontaktuppgifter för att komma i kontakt med projektets utvecklare om du har frågor, förslag eller behöver hjälp." },
           ].map((t) => (
             <button
               key={t.id}
@@ -133,6 +134,7 @@ export default function AboutModal({ open, onClose }: Props) {
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
+              data-info={t.info}
             >
               {t.label}
             </button>
@@ -142,8 +144,45 @@ export default function AboutModal({ open, onClose }: Props) {
         {/* Content */}
         <section className="max-h-[75vh] overflow-auto p-4">
           {tab === "instruction" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <p className="text-slate-700">{aboutContent.instruction.text}</p>
+              
+              {aboutContent.instruction.gettingStarted && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {aboutContent.instruction.gettingStarted.title}
+                  </h3>
+                  <p className="text-slate-700">
+                    {aboutContent.instruction.gettingStarted.description}
+                  </p>
+                  <div className="space-y-3">
+                    {aboutContent.instruction.gettingStarted.tracks.map((track, index) => (
+                      <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <h4 className="font-semibold text-slate-900 mb-1">{track.name}</h4>
+                        <p className="text-sm text-slate-700">{track.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {aboutContent.instruction.shortcuts && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {aboutContent.instruction.shortcuts.title}
+                  </h3>
+                  {aboutContent.instruction.shortcuts.sections.map((section, sectionIndex) => (
+                    <div key={sectionIndex} className="space-y-2">
+                      <h4 className="font-semibold text-slate-900">{section.name}</h4>
+                      <ul className="list-disc space-y-1 pl-5 text-slate-700">
+                        {section.items.map((item, itemIndex) => (
+                          <li key={itemIndex} className="text-sm">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -210,6 +249,7 @@ export default function AboutModal({ open, onClose }: Props) {
                   type="submit"
                   disabled={contactSubmitting}
                   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+                  data-info="Skickar kontaktmeddelandet till projektets utvecklare. Du får svar via e-post så snart som möjligt."
                 >
                   {contactSubmitting ? "Skickar..." : "Skicka meddelande"}
                 </button>
@@ -238,6 +278,7 @@ export default function AboutModal({ open, onClose }: Props) {
                   href={aboutContent.download.githubZipUrl}
                   download
                   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
+                  data-info="Laddar ned projektets källkod som en ZIP-fil från GitHub. Du kan sedan bygga och köra applikationen lokalt."
                 >
                   Ladda ned projektet (ZIP)
                 </a>
@@ -268,6 +309,7 @@ export default function AboutModal({ open, onClose }: Props) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sky-600 hover:text-sky-700 underline"
+                  data-info="Öppnar den fullständiga licenstexten i en ny flik. Licensen är Apache License 2.0."
                 >
                   LICENSE
                 </a>{" "}

@@ -766,10 +766,16 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             {/* Progressbar - Genomförd tid */}
             <div className="mb-3">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="text-slate-900">
+                <span 
+                  className="text-slate-900"
+                  data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
+                >
                   Genomförd tid
                 </span>
-                <span className="font-semibold text-slate-900">
+                <span 
+                  className="font-semibold text-slate-900"
+                  data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
+                >
                   {progressPct.toFixed(0)} %
                 </span>
               </div>
@@ -786,10 +792,16 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
             {/* Progressbar - Delmålsuppfyllelse */}
             <div className="mb-3">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="text-slate-900">
+                <span 
+                  className="text-slate-900"
+                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                >
                   Delmålsuppfyllelse
                 </span>
-                <span className="font-semibold text-slate-900">
+                <span 
+                  className="font-semibold text-slate-900"
+                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                >
                   {milestoneProgressPct.toFixed(0)} %
                 </span>
               </div>

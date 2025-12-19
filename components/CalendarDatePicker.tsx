@@ -14,6 +14,7 @@ type Props = {
   align?: "left" | "right";      // popover-placering, default "left"
   className?: string;            // extra klasser för trigger-knappen
   forceDirection?: "up" | "down"; // Tvinga riktning (default: auto)
+  "data-info"?: string;          // Info-text för informationsvyn
 };
 
 export default function CalendarDatePicker({
@@ -27,6 +28,7 @@ export default function CalendarDatePicker({
   align = "left",
   className,
   forceDirection,
+  "data-info": dataInfo,
 }: Props) {
   const normalized = parseISO(value) ?? todayISO();
   const init = new Date(normalized + "T00:00:00");
@@ -187,6 +189,7 @@ export default function CalendarDatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         className={className ? `${triggerClasses} ${className}` : triggerClasses}
+        data-info={dataInfo}
       >
 
         <span className="truncate text-slate-900">{fmtHuman(isoValue)}</span>

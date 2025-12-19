@@ -470,6 +470,7 @@ const handleSave = async () => {
               onClick={(e) => {
                 if (!url) e.preventDefault();
               }}
+              data-info="Laddar ner kursintyget som en PDF-fil som du kan spara på din dator eller skriva ut."
             >
               Ladda ned PDF
             </a>
@@ -477,6 +478,7 @@ const handleSave = async () => {
               onClick={onClose}
               className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
               title="Stäng förhandsvisningen"
+              data-info="Stänger förhandsvisningen av kursintyget och återgår till redigeringsvyn."
             >
               Stäng
             </button>
@@ -538,6 +540,7 @@ const handleSave = async () => {
               onClick={handleSave}
               className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
               title="Spara ändringar i denna modal"
+              data-info="Sparar alla ändringar i kursintyget till databasen. Knappen är endast aktiv när det finns osparade ändringar."
             >
               Spara
             </button>
@@ -545,6 +548,7 @@ const handleSave = async () => {
               onClick={handleClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
               title="Stäng – varnar om osparade ändringar"
+              data-info="Stäng"
             >
               Stäng
             </button>
@@ -563,7 +567,7 @@ const handleSave = async () => {
 
                                         {/* Välj typ av underskrivare */}
               <div className="flex flex-wrap gap-3 pr-6 text-sm">
-                <label className="inline-flex items-center gap-2">
+                <label className="inline-flex items-center gap-2" data-info="Välj att handledaren ska underteckna kursintyget. Handledarens uppgifter hämtas från profilen eller kan anges manuellt.">
                   <input
                     type="radio"
                     className="h-4 w-4.5"
@@ -576,7 +580,7 @@ const handleSave = async () => {
                   <span>Handledare</span>
                 </label>
 
-                <label className="inline-flex items-center gap-2">
+                <label className="inline-flex items-center gap-2" data-info="Välj att kursledaren ska underteckna kursintyget. Kursledarens uppgifter anges manuellt.">
                   <input
                     type="radio"
                     className="h-4 w-4.5"
@@ -630,6 +634,7 @@ const handleSave = async () => {
                     }
                   }}
                   className="h-[32px] rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                  data-info="Välj om handledaren ska vara huvudhandledaren från profilen eller en annan handledare med manuellt angivna uppgifter."
                 >
                   <option value="PROFILE">Huvudhandledare</option>
                   <option value="CUSTOM">Annan handledare</option>
@@ -642,7 +647,7 @@ const handleSave = async () => {
               <>
                 {/* Handledare */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-0.5" data-info="Namn på handledaren som ska underteckna kursintyget.">
                     Handledare
                   </label>
                   <input
@@ -654,12 +659,13 @@ const handleSave = async () => {
                       markDirty({ hName: v });
                     }}
                     className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    data-info="Ange namn på handledaren som ska underteckna kursintyget."
                   />
                 </div>
 
                 {/* Handledares tjänsteställe */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-0.5" data-info="Tjänsteställe för handledaren som ska underteckna kursintyget.">
                     Handledares tjänsteställe
                   </label>
                   <input
@@ -671,12 +677,13 @@ const handleSave = async () => {
                       markDirty({ hSite: v });
                     }}
                     className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    data-info="Ange tjänsteställe för handledaren som ska underteckna kursintyget."
                   />
                 </div>
 
                 {/* Handledares specialitet */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-0.5" data-info="Specialitet för handledaren som ska underteckna kursintyget.">
                     Handledares specialitet
                   </label>
                   <input
@@ -688,6 +695,7 @@ const handleSave = async () => {
                       markDirty({ hSpec: v });
                     }}
                     className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    data-info="Ange specialitet för handledaren som ska underteckna kursintyget."
                   />
                 </div>
 
@@ -701,7 +709,7 @@ const handleSave = async () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   {/* Kursledare – namn (hämtas från kursen, går att justera) */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-700">
+                    <label className="block text-xs font-medium text-slate-700" data-info="Namn på kursledaren som ska underteckna kursintyget.">
                       Kursledares namn
                     </label>
                     <input
@@ -712,13 +720,14 @@ const handleSave = async () => {
                         setKName(v);
                         markDirty({ kName: v });
                       }}
+                      data-info="Ange namn på kursledaren som ska underteckna kursintyget."
                     />
 
                   </div>
 
                   {/* Kursledare – tjänsteställe */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-700">
+                    <label className="block text-xs font-medium text-slate-700" data-info="Tjänsteställe för kursledaren som ska underteckna kursintyget.">
                       Kursledares tjänsteställe
                     </label>
                     <input
@@ -729,6 +738,7 @@ const handleSave = async () => {
                         setKSite(v);
                         markDirty({ kSite: v });
                       }}
+                      data-info="Ange tjänsteställe för kursledaren som ska underteckna kursintyget."
                     />
 
                   </div>
@@ -736,7 +746,7 @@ const handleSave = async () => {
                   {/* Kursledare – specialitet - visas endast för 2015 */}
                   {profile.goalsVersion === "2015" && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-700">
+                      <label className="block text-xs font-medium text-slate-700" data-info="Specialitet för kursledaren som ska underteckna kursintyget. Visas endast för 2015-versionen.">
                         Kursledares specialitet
                       </label>
                       <input
@@ -747,6 +757,7 @@ const handleSave = async () => {
                           setKSpec(v);
                           markDirty({ kSpec: v });
                         }}
+                        data-info="Ange specialitet för kursledaren som ska underteckna kursintyget. Detta fält visas endast för 2015-versionen."
                       />
                     </div>
                   )}
@@ -882,6 +893,7 @@ const handleSave = async () => {
                   : "bg-white text-slate-900 hover:border-slate-400 hover:bg-slate-100"
               }`}
               title={downloading ? "Skapar intyget..." : "Förhandsgranska intyg"}
+              data-info="Skapar och öppnar en förhandsvisning av kursintyget som PDF. Du kan sedan skriva ut eller spara intyget."
             >
               {downloading ? "Skapar..." : "Kursintyg"}
             </button>

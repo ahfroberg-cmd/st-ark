@@ -360,7 +360,7 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
         </header>
 
         {/* Body */}
-        <section className="max-h-[75vh] overflow-auto p-4 space-y-4">
+        <section className="max-h-[75vh] overflow-auto p-4 space-y-4" data-info="Fyll i information om handledarsamtalet: datum, rubrik/fokus, sammanfattning av diskussionen, överenskomna åtgärder och eventuellt nästa planerade samtal.">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
@@ -944,6 +944,7 @@ function InstrumentsModal({
                     type="button"
                     onClick={() => handleRemove(name)}
                     className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 hover:border-rose-300 active:translate-y-px"
+                    data-info="Tar bort detta bedömningsinstrument från listan. Det kommer inte längre att vara tillgängligt vid skapande av nya progressionsbedömningar."
                   >
                     Ta bort
                   </button>
@@ -1027,7 +1028,7 @@ function NewPlanningSectionModal({
             Stäng
           </button>
         </header>
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-3 px-4 py-3" data-info="Skapa en anpassad planeringsrubrik med egen titel och innehåll. Denna rubrik kommer att visas i planeringsfliken tillsammans med de fördefinierade rubrikerna.">
           <div>
             <label className="mb-1 block text-sm text-slate-700">
               Rubrik
@@ -1045,6 +1046,7 @@ function NewPlanningSectionModal({
               type="button"
               onClick={handleRequestClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+              data-info="Avbryter skapandet av den nya planeringsrubriken och stänger dialogen."
             >
               Avbryt
             </button>
@@ -1053,6 +1055,7 @@ function NewPlanningSectionModal({
               onClick={handleSave}
               disabled={!title.trim()}
               className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-sky-700 hover:border-sky-800 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+              data-info="Lägger till den nya planeringsrubriken med angiven titel och innehåll i planeringsfliken. Knappen är endast aktiv när en titel har angivits."
             >
               Lägg till
             </button>
@@ -2074,6 +2077,7 @@ export default function IupModal({
                 onClick={handleSave}
                 className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 hover:border-sky-800 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
                 title="Spara ändringar i IUP"
+                data-info="Sparar alla ändringar i IUP till databasen. Knappen är endast aktiv när det finns osparade ändringar."
               >
                 Spara
               </button>
@@ -2082,6 +2086,7 @@ export default function IupModal({
                 onClick={handleRequestClose}
                 className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
                 title="Stäng – varnar om osparade ändringar"
+                data-info="Stäng"
               >
                 Stäng
               </button>
@@ -2091,10 +2096,10 @@ export default function IupModal({
           {/* Tabs */}
           <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
             {[
-              { id: "planering", label: "Planering" },
-              { id: "handledning", label: "Utveckling" },
-              { id: "delmal", label: "Delmål" },
-              { id: "rapport", label: "Rapport" },
+              { id: "planering", label: "Planering", info: "Här kan du dokumentera din övergripande planering för ST-utbildningen. Du kan skapa anpassade planeringsrubriker och dokumentera mål, kliniska tjänstgöringar, kurser, handledning och andra utbildningsaktiviteter. Planeringen används för att strukturera din utbildning och kan inkluderas i rapporter." },
+              { id: "handledning", label: "Utveckling", info: "Här kan du registrera handledarsamtal och progressionsbedömningar. Handledarsamtal dokumenterar möten med din huvudhandledare med datum, fokus, sammanfattning och överenskomna åtgärder. Progressionsbedömningar är strukturerade bedömningar av din utveckling med olika bedömningsinstrument. Du kan välja om dessa ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen och gula stjärnor för att öppna progressionsbedömningar." },
+              { id: "delmal", label: "Delmål", info: "Här kan du se en översikt över alla delmål (ST-delmål och BT-delmål) och planera hur de ska uppfyllas. Du kan se vilka aktiviteter och kurser som är kopplade till varje delmål, planera framtida aktiviteter och spåra din framsteg mot att uppfylla alla delmål." },
+              { id: "rapport", label: "Rapport", info: "Här kan du generera och förhandsgranska rapporter baserade på din IUP-data. Rapporterna kan inkludera planering, handledarsamtal, progressionsbedömningar, utbildningsmoment och delmål. Rapporterna kan användas för att dokumentera din utbildning och framsteg." },
             ].map((t) => (
               <button
                 key={t.id}
@@ -2109,6 +2114,7 @@ export default function IupModal({
                     ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                     : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
                 }`}
+                data-info={t.info}
               >
                 {t.label}
               </button>
@@ -2119,7 +2125,7 @@ export default function IupModal({
           {/* Body */}
           <section className="max-h-[75vh] overflow-auto p-4">
             {tab === "handledning" && (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2" data-info="Här kan du registrera handledarsamtal och progressionsbedömningar. Klicka på ett befintligt tillfälle för att redigera det, eller skapa ett nytt. Du kan också välja om handledarsamtal och bedömningar ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen och gula stjärnor för att öppna progressionsbedömningar.">
                 {/* Vänster: lista med handledarsamtal */}
                 <div className="flex flex-col">
                   <div className="mb-1 flex items-center justify-between gap-2">
@@ -2130,6 +2136,7 @@ export default function IupModal({
                       type="button"
                       onClick={addMeeting}
                       className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                      data-info="Skapar ett nytt handledningstillfälle (handledarsamtal) som du kan registrera med datum, fokus, sammanfattning och överenskomna åtgärder."
                     >
                       + Skapa handledningstillfälle
                     </button>
@@ -2220,6 +2227,7 @@ export default function IupModal({
                                     removeMeeting(m.id);
                                   }}
                                   className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                                  data-info="Tar bort detta handledarsamtal permanent från databasen. Du kommer att få en bekräftelse innan borttagningen genomförs."
                                 >
                                   Ta bort
                                 </button>
@@ -2243,6 +2251,7 @@ export default function IupModal({
                         type="button"
                         onClick={() => setInstrumentsModalOpen(true)}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                        data-info="Öppnar en lista där du kan hantera bedömningsinstrument (t.ex. Mini-CEX, Medsittning/Sit-in) som används vid progressionsbedömningar."
                       >
                         Instrument
                       </button>
@@ -2250,6 +2259,7 @@ export default function IupModal({
                         type="button"
                         onClick={addAssessment}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                        data-info="Skapar en ny progressionsbedömning som du kan registrera med datum, fas (BT/ST), klinisk tjänstgöring, instrument, sammanfattning, styrkor och utvecklingsområden."
                       >
                         + Ny bedömning
                       </button>
@@ -2360,6 +2370,7 @@ export default function IupModal({
                                     removeAssessment(a.id);
                                   }}
                                   className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                                  data-info="Tar bort denna progressionsbedömning permanent från databasen. Du kommer att få en bekräftelse innan borttagningen genomförs."
                                 >
                                   Ta bort
                                 </button>
@@ -2375,7 +2386,7 @@ export default function IupModal({
             )}
 
                                     {tab === "planering" && (
-              <div className="space-y-4">
+              <div className="space-y-4" data-info="Fyll i din planering för ST-utbildningen. Här kan du dokumentera övergripande mål, kliniska tjänstgöringar, kurser, handledning, teoretiska studier, vetenskapligt arbete och andra utbildningsaktiviteter. Du kan också lägga till egna rubriker.">
 
                 {/* Övergripande mål */}
                 <div>
@@ -2401,6 +2412,7 @@ export default function IupModal({
                     type="button"
                     onClick={() => setNewSectionModalOpen(true)}
                     className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    data-info="Öppnar en dialog där du kan lägga till en anpassad planeringsrubrik med egen titel och innehåll."
                   >
                     + Lägg till rubrik
                   </button>
@@ -2467,6 +2479,7 @@ export default function IupModal({
                           type="button"
                           onClick={() => removePlanningSection(sec.id)}
                           className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                          data-info="Tar bort denna anpassade planeringsrubrik permanent från databasen."
                         >
                           Ta bort
                         </button>
@@ -2508,9 +2521,9 @@ export default function IupModal({
                 {/* Lokalt fliksystem för rapporten */}
                 <div className="flex gap-2 border-b pb-2">
                                     {[
-                    { id: "plan_hand", label: "Planering och handledning" },
-                    { id: "moment", label: "Utbildningsmoment" },
-                    { id: "delmal", label: "Delmål" },
+                    { id: "plan_hand", label: "Planering och handledning", info: "Växlar till rapportfliken för planering och handledning där du kan se och förhandsgranska rapporter baserade på din IUP-planering och handledarsamtal. Rapporten inkluderar din övergripande planering, handledarsamtal och progressionsbedömningar." },
+                    { id: "moment", label: "Utbildningsmoment", info: "Växlar till rapportfliken för utbildningsmoment där du kan se och förhandsgranska rapporter baserade på dina registrerade utbildningsaktiviteter. Rapporten visar alla kliniska tjänstgöringar, kurser och andra aktiviteter som är kopplade till din utbildning." },
+                    { id: "delmal", label: "Delmål", info: "Växlar till rapportfliken för delmål där du kan se och förhandsgranska rapporter baserade på dina delmål och planerade aktiviteter. Rapporten visar vilka delmål som är uppfyllda, påbörjade eller planerade, samt vilka aktiviteter som är kopplade till varje delmål." },
                   ].map((rt) => (
                     <button
                       key={rt.id}
@@ -2525,6 +2538,7 @@ export default function IupModal({
                           ? "bg-sky-600 text-white"
                           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       }`}
+                      data-info={rt.info}
                     >
                       {rt.label}
                     </button>
@@ -2533,7 +2547,9 @@ export default function IupModal({
 
                 {/* Planering och handledning – sammanslagen vy */}
                 {reportTab === "plan_hand" && (
-                  <div>
+                  <div
+                    data-info="Rapportfliken för planering och handledning visar rapporter baserade på din IUP-planering och handledarsamtal. Här kan du se din övergripande planering, handledarsamtal och progressionsbedömningar. Du kan välja vilka delar som ska inkluderas i rapporten genom att kryssa i rutorna för respektive sektion och kolumner."
+                  >
 
                     <div className="mb-4 flex items-center justify-between gap-2">
                       <h3 className="m-0 text-sm font-semibold text-slate-800">
@@ -2543,6 +2559,7 @@ export default function IupModal({
                         type="button"
                         onClick={() => setPlanHandPreviewOpen(true)}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                        data-info="Förhandsgranska. Öppnar en förhandsvisning av rapporten för planering och handledning som visar din övergripande planering, handledarsamtal och progressionsbedömningar. Du kan skriva ut eller spara rapporten som PDF."
             >
                         Förhandsgranska
                       </button>
@@ -2550,12 +2567,17 @@ export default function IupModal({
 
                     <div className="space-y-6">
                       {/* Övergripande planering */}
-                      <div>
+                      <div
+                        data-info="Visar din övergripande planering för ST-utbildningen. Här kan du se alla planeringsrubriker som du har fyllt i under fliken 'Planering' i IUP. Du kan välja om planeringen ska inkluderas i rapporten genom att kryssa i rutan 'Visa i rapport'."
+                      >
                         <div className="mb-2 flex items-center justify-between gap-2">
-                          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <h4 
+                            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            data-info="Visar din övergripande planering för ST-utbildningen. Här kan du se alla planeringsrubriker som du har fyllt i under fliken 'Planering' i IUP. Du kan välja om planeringen ska inkluderas i rapporten genom att kryssa i rutan 'Visa i rapport'."
+                          >
                             Övergripande planering
                           </h4>
-                          <label className="flex items-center gap-1 text-sm text-slate-600">
+                          <label className="flex items-center gap-1 text-xs text-slate-600">
                             <input
                               type="checkbox"
                               className="h-3 w-3 rounded border-slate-300"
@@ -2563,8 +2585,9 @@ export default function IupModal({
                               onChange={(e) =>
                                 setShowPlanOverview(e.target.checked)
                               }
+                              data-info="Kryssa i denna ruta för att inkludera övergripande planering i rapporten. När rutan är ikryssad kommer din planering att visas i rapporten för planering och handledning."
                             />
-                            <span>Visa i rapport</span>
+                            <span data-info="Kryssa i denna ruta för att inkludera övergripande planering i rapporten. När rutan är ikryssad kommer din planering att visas i rapporten för planering och handledning.">Visa i rapport</span>
                           </label>
                         </div>
                                                {showPlanOverview &&
@@ -2633,9 +2656,14 @@ export default function IupModal({
                       </div>
 
                                             {/* Handledarsamtal */}
-                      <div>
+                      <div
+                        data-info="Visar alla handledarsamtal som du har registrerat. Du kan välja vilka handledarsamtal som ska inkluderas i rapporten genom att kryssa i rutorna för 'Genomförda' och/eller 'Planerade'. Du kan också välja vilka kolumner som ska visas i rapporten (Fokus, Sammanfattning, Åtgärder / nästa steg)."
+                      >
                         <div className="mb-2 flex items-center justify-between gap-2">
-                          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <h4 
+                            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            data-info="Visar alla handledarsamtal som du har registrerat. Du kan välja vilka handledarsamtal som ska inkluderas i rapporten genom att kryssa i rutorna för 'Genomförda' och/eller 'Planerade'. Du kan också välja vilka kolumner som ska visas i rapporten (Fokus, Sammanfattning, Åtgärder / nästa steg)."
+                          >
                             Handledarsamtal
                           </h4>
                           <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -2651,8 +2679,9 @@ export default function IupModal({
                                     done: e.target.checked,
                                   }))
                                 }
+                                data-info="Kryssa i denna ruta för att inkludera genomförda handledarsamtal i rapporten. Genomförda handledarsamtal är samtal med ett datum som ligger i det förflutna."
                               />
-                              <span>Genomförda</span>
+                              <span data-info="Kryssa i denna ruta för att inkludera genomförda handledarsamtal i rapporten. Genomförda handledarsamtal är samtal med ett datum som ligger i det förflutna.">Genomförda</span>
                             </label>
                             <label className="inline-flex items-center gap-1">
                               <input
@@ -2665,8 +2694,9 @@ export default function IupModal({
                                     planned: e.target.checked,
                                   }))
                                 }
+                                data-info="Kryssa i denna ruta för att inkludera planerade handledarsamtal i rapporten. Planerade handledarsamtal är samtal med ett datum i framtiden."
                               />
-                              <span>Planerade</span>
+                              <span data-info="Kryssa i denna ruta för att inkludera planerade handledarsamtal i rapporten. Planerade handledarsamtal är samtal med ett datum i framtiden.">Planerade</span>
                             </label>
                           </div>
                         </div>
@@ -2708,8 +2738,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowMeetingFocus(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Fokus' i rapporten för handledarsamtal. Fokus-kolumnen visar rubriken eller huvudämnet för varje handledarsamtal."
                                           />
-                                          <span>Fokus</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Fokus' i rapporten för handledarsamtal. Fokus-kolumnen visar rubriken eller huvudämnet för varje handledarsamtal.">Fokus</span>
                                         </label>
                                       </th>
                                       <th
@@ -2725,8 +2756,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowMeetingSummary(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Sammanfattning' i rapporten för handledarsamtal. Sammanfattning-kolumnen visar en sammanfattning av diskussionen under handledarsamtalet."
                                           />
-                                          <span>Sammanfattning</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Sammanfattning' i rapporten för handledarsamtal. Sammanfattning-kolumnen visar en sammanfattning av diskussionen under handledarsamtalet.">Sammanfattning</span>
                                         </label>
                                       </th>
                                       <th
@@ -2742,8 +2774,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowMeetingActions(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Åtgärder / nästa steg' i rapporten för handledarsamtal. Denna kolumn visar överenskomna åtgärder och nästa steg från handledarsamtalet."
                                           />
-                                          <span>Åtgärder / nästa steg</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Åtgärder / nästa steg' i rapporten för handledarsamtal. Denna kolumn visar överenskomna åtgärder och nästa steg från handledarsamtalet.">Åtgärder / nästa steg</span>
                                         </label>
                                       </th>
                                     </tr>
@@ -2800,9 +2833,14 @@ export default function IupModal({
 
 
                                             {/* Progressionsbedömningar */}
-                      <div>
+                      <div
+                        data-info="Visar alla progressionsbedömningar som du har registrerat. Du kan välja vilka progressionsbedömningar som ska inkluderas i rapporten genom att kryssa i rutorna för 'Genomförda' och/eller 'Planerade'. Du kan också välja vilka kolumner som ska visas i rapporten (Fas, Klinisk tjänstgöring, Instrument, Sammanfattning)."
+                      >
                         <div className="mb-2 flex items-center justify-between gap-2">
-                          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <h4 
+                            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            data-info="Visar alla progressionsbedömningar som du har registrerat. Du kan välja vilka progressionsbedömningar som ska inkluderas i rapporten genom att kryssa i rutorna för 'Genomförda' och/eller 'Planerade'. Du kan också välja vilka kolumner som ska visas i rapporten (Fas, Klinisk tjänstgöring, Instrument, Sammanfattning)."
+                          >
                             Progressionsbedömningar
                           </h4>
                           <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -2818,8 +2856,9 @@ export default function IupModal({
                                     done: e.target.checked,
                                   }))
                                 }
+                                data-info="Kryssa i denna ruta för att inkludera genomförda progressionsbedömningar i rapporten. Genomförda progressionsbedömningar är bedömningar med ett datum som ligger i det förflutna."
                               />
-                              <span>Genomförda</span>
+                              <span data-info="Kryssa i denna ruta för att inkludera genomförda progressionsbedömningar i rapporten. Genomförda progressionsbedömningar är bedömningar med ett datum som ligger i det förflutna.">Genomförda</span>
                             </label>
                             <label className="inline-flex items-center gap-1">
                               <input
@@ -2832,8 +2871,9 @@ export default function IupModal({
                                     planned: e.target.checked,
                                   }))
                                 }
+                                data-info="Kryssa i denna ruta för att inkludera planerade progressionsbedömningar i rapporten. Planerade progressionsbedömningar är bedömningar med ett datum i framtiden."
                               />
-                              <span>Planerade</span>
+                              <span data-info="Kryssa i denna ruta för att inkludera planerade progressionsbedömningar i rapporten. Planerade progressionsbedömningar är bedömningar med ett datum i framtiden.">Planerade</span>
                             </label>
                           </div>
                         </div>
@@ -2876,8 +2916,9 @@ export default function IupModal({
                                               onChange={(e) =>
                                                 setShowAssessPhase(e.target.checked)
                                               }
+                                              data-info="Kryssa i denna ruta för att inkludera kolumnen 'Fas' i rapporten för progressionsbedömningar. Fas-kolumnen visar om bedömningen är kopplad till BT (bastjänstgöring) eller ST (specialiseringstjänstgöring)."
                                             />
-                                            <span>Fas</span>
+                                            <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Fas' i rapporten för progressionsbedömningar. Fas-kolumnen visar om bedömningen är kopplad till BT (bastjänstgöring) eller ST (specialiseringstjänstgöring).">Fas</span>
                                           </label>
                                         </th>
                                       )}
@@ -2895,8 +2936,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowAssessLevel(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Klinisk tjänstgöring' i rapporten för progressionsbedömningar. Denna kolumn visar vilken klinisk tjänstgöring som bedömningen är kopplad till."
                                           />
-                                          <span>Klinisk tjänstgöring</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Klinisk tjänstgöring' i rapporten för progressionsbedömningar. Denna kolumn visar vilken klinisk tjänstgöring som bedömningen är kopplad till.">Klinisk tjänstgöring</span>
                                         </label>
                                       </th>
                                       <th
@@ -2912,8 +2954,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowAssessInstrument(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Instrument' i rapporten för progressionsbedömningar. Instrument-kolumnen visar vilket bedömningsinstrument som användes vid bedömningen."
                                           />
-                                          <span>Instrument</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Instrument' i rapporten för progressionsbedömningar. Instrument-kolumnen visar vilket bedömningsinstrument som användes vid bedömningen.">Instrument</span>
                                         </label>
                                       </th>
                                       <th
@@ -2929,8 +2972,9 @@ export default function IupModal({
                                             onChange={(e) =>
                                               setShowAssessSummary(e.target.checked)
                                             }
+                                            data-info="Kryssa i denna ruta för att inkludera kolumnen 'Sammanfattning' i rapporten för progressionsbedömningar. Sammanfattning-kolumnen visar en sammanfattning av bedömningen och resultaten."
                                           />
-                                          <span>Sammanfattning</span>
+                                          <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Sammanfattning' i rapporten för progressionsbedömningar. Sammanfattning-kolumnen visar en sammanfattning av bedömningen och resultaten.">Sammanfattning</span>
                                         </label>
                                       </th>
                                     </tr>
@@ -3002,7 +3046,10 @@ export default function IupModal({
 
                 {/* Utbildningsmoment – befintlig rapportpanel + statusfilter ovanför */}
                 {reportTab === "moment" && (
-                  <div className="space-y-3">
+                  <div 
+                    className="space-y-3"
+                    data-info="Rapportfliken för utbildningsmoment visar rapporter baserade på dina registrerade utbildningsaktiviteter. Här kan du se alla kliniska tjänstgöringar, kurser och andra aktiviteter som är kopplade till din utbildning. Du kan välja vilka aktiviteter som ska visas baserat på status (genomförda, pågående, planerade) och vilka kolumner som ska inkluderas (handledare, delmål, beskrivning)."
+                  >
                     
 
                     {/* Själva rapportlistan för utbildningsmoment */}
@@ -3013,7 +3060,10 @@ export default function IupModal({
 
                                 {/* Delmål – rapport med tabell */}
                 {reportTab === "delmal" && (
-                  <div className="space-y-3">
+                  <div 
+                    className="space-y-3"
+                    data-info="Rapportfliken för delmål visar rapporter baserade på dina delmål och planerade aktiviteter. Här kan du se vilka delmål som är uppfyllda, påbörjade eller planerade, samt vilka aktiviteter som är kopplade till varje delmål. Du kan välja vilka kolumner som ska inkluderas i rapporten (metoder och bedömningsinstrument, aktiviteter som uppfyller delmål)."
+                  >
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <h3 className="m-0 text-sm font-semibold text-slate-900">
                         Delmål och utbildningsaktiviteter
@@ -3022,6 +3072,7 @@ export default function IupModal({
                         type="button"
                         onClick={() => setGoalPreviewOpen(true)}
                         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                        data-info="Förhandsgranska. Öppnar en förhandsvisning av rapporten för delmål och utbildningsaktiviteter som visar vilka delmål som är uppfyllda, påbörjade eller planerade, samt vilka aktiviteter och kurser som är kopplade till varje delmål. Du kan skriva ut eller spara rapporten som PDF."
                       >
                         Förhandsgranska
                       </button>
@@ -3053,8 +3104,9 @@ export default function IupModal({
                                       onChange={(e) =>
                                         setShowGoalMethods(e.target.checked)
                                       }
+                                      data-info="Kryssa i denna ruta för att inkludera kolumnen 'Metoder och bedömningsinstrument' i rapporten för delmål. Denna kolumn visar vilka metoder och bedömningsinstrument som planeras eller används för att uppfylla varje delmål."
                                     />
-                                    <span>Metoder och bedömningsinstrument</span>
+                                    <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Metoder och bedömningsinstrument' i rapporten för delmål. Denna kolumn visar vilka metoder och bedömningsinstrument som planeras eller används för att uppfylla varje delmål.">Metoder och bedömningsinstrument</span>
                                   </label>
                                 </th>
                                 <th
@@ -3070,17 +3122,23 @@ export default function IupModal({
                                       onChange={(e) =>
                                         setShowGoalActivities(e.target.checked)
                                       }
+                                      data-info="Kryssa i denna ruta för att inkludera kolumnen 'Aktiviteter som uppfyller delmål' i rapporten för delmål. Denna kolumn visar vilka aktiviteter (kliniska tjänstgöringar, kurser eller andra utbildningsmoment) som är kopplade till varje delmål och som hjälper till att uppfylla det."
                                     />
-                                    <span>Aktiviteter som uppfyller delmål</span>
+                                    <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Aktiviteter som uppfyller delmål' i rapporten för delmål. Denna kolumn visar vilka aktiviteter (kliniska tjänstgöringar, kurser eller andra utbildningsmoment) som är kopplade till varje delmål och som hjälper till att uppfylla det.">Aktiviteter som uppfyller delmål</span>
                                   </label>
                                 </th>
                               </tr>
                             </thead>
                             <tbody>
-                              {goalReportRows.map((row) => (
+                              {goalReportRows.map((row) => {
+                                const code = shortMilestoneCode(row.milestoneCode);
+                                const displayCode = isGoals2021 
+                                  ? (code ? `ST${code}` : "—")
+                                  : (code ? code.toLowerCase() : "—");
+                                return (
                                 <tr key={row.milestoneCode} className="align-top">
                                   <td className="border border-slate-200 px-3 py-2 align-top whitespace-nowrap text-[11px] text-slate-800">
-                                    {shortMilestoneCode(row.milestoneCode) || "—"}
+                                    {displayCode}
                                   </td>
                                                                     <td
                                     className={`border border-slate-200 px-3 py-2 align-top whitespace-pre-line text-[11px] ${
@@ -3098,7 +3156,8 @@ export default function IupModal({
                                     {row.activities.join("\n")}
                                   </td>
                                 </tr>
-                              ))}
+                              );
+                              })}
                             </tbody>
 
                           </table>
@@ -3622,10 +3681,15 @@ export default function IupModal({
                             </tr>
                           </thead>
                           <tbody>
-                            {goalReportRows.map((row) => (
+                            {goalReportRows.map((row) => {
+                              const code = shortMilestoneCode(row.milestoneCode);
+                              const displayCode = isGoals2021 
+                                ? (code ? `ST${code}` : "—")
+                                : (code ? code.toLowerCase() : "—");
+                              return (
                               <tr key={row.milestoneCode} className="align-top">
                                 <td className="border border-slate-200 px-3 py-2 align-top whitespace-nowrap text-[11px] text-slate-800">
-                                  {shortMilestoneCode(row.milestoneCode) || "—"}
+                                  {displayCode}
                                 </td>
                                 {showGoalMethods && (
                                   <td className="border border-slate-200 px-3 py-2 align-top text-[11px] text-slate-800">
@@ -3638,7 +3702,8 @@ export default function IupModal({
                                   </td>
                                 )}
                               </tr>
-                            ))}
+                            );
+                            })}
                           </tbody>
 
                         </table>

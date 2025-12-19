@@ -34,6 +34,7 @@ import { loadGoals } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
+import { daysBetweenInclusive, fteDays } from "@/lib/dateutils";
 
 import dynamic from "next/dynamic";
 const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ssr: false });
@@ -778,6 +779,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [dbCourses, setDbCourses] = useState<any[]>([]);
   const [dbAchievements, setDbAchievements] = useState<any[]>([]);
   const [goalsCatalog, setGoalsCatalog] = useState<GoalsCatalog | null>(null);
+  const [progressDetailOpen, setProgressDetailOpen] = useState<"time" | "milestones" | null>(null);
 
   // Ladda data från databas för progress-beräkningar
   useEffect(() => {
@@ -1020,27 +1022,31 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     return totalPlanMonths || 66;
   }, [profile, stEndISO, totalPlanMonths]);
 
-  // Genomförd tid från BT-start (för 2021) eller ST-start (för 2015) till idag
-  const workedCombinedFteMonths = useMemo(() => {
+  // Genomförd tid från BT-start (för 2021) eller ST-start (för 2015) till idag (i dagar)
+  const workedCombinedFteDays = useMemo(() => {
     if (!dbPlacements || dbPlacements.length === 0) return 0;
     
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     const today = todayISO();
     
     if (gv !== "2021") {
-      // För 2015: räkna alla placeringar
+      // För 2015: räkna alla placeringar från ST-start till idag
+      const stStart = stStartISO;
+      if (!stStart) return 0;
+      
       return dbPlacements.reduce((acc, p: any) => {
         const start = p.startDate || p.startISO || p.start || "";
         const end = p.endDate || p.endISO || p.end || today;
-        const months = monthDiffExact(start, end);
-        const frac = pickPercent(p) / 100;
-        return acc + months * frac;
+        const endDate = end > today ? today : end;
+        const percent = pickPercent(p);
+        const days = fteDays(start, endDate, percent);
+        return acc + days;
       }, 0);
     }
     
     // För 2021: räkna alla placeringar från BT-start till idag
     const btStart = (profile as any)?.btStartDate;
-    if (!btStart) return workedStFteMonths;
+    if (!btStart) return 0;
     
     return dbPlacements.reduce((acc, p: any) => {
       const start = p.startDate || p.startISO || p.start || "";
@@ -1053,19 +1059,36 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       
       const end = p.endDate || p.endISO || p.end || today;
       const endDate = end > today ? today : end;
-      const months = monthDiffExact(start, endDate);
-      const frac = pickPercent(p) / 100;
-      return acc + months * frac;
+      const percent = pickPercent(p);
+      const days = fteDays(start, endDate, percent);
+      return acc + days;
     }, 0);
-  }, [dbPlacements, profile, workedStFteMonths]);
+  }, [dbPlacements, profile, stStartISO]);
+
+  // Total tid från startdatum till beräknat slutdatum (i dagar)
+  const totalCombinedDays = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    
+    if (gv !== "2021") {
+      // För 2015: från ST-start till stEndISO
+      const stStart = stStartISO;
+      if (!stStart || !stEndISO) return 0;
+      return fteDays(stStart, stEndISO, 100);
+    }
+    
+    // För 2021: från BT-start till stEndISO
+    const btStart = (profile as any)?.btStartDate;
+    if (!btStart || !stEndISO) return 0;
+    return fteDays(btStart, stEndISO, 100);
+  }, [profile, stStartISO, stEndISO]);
 
   // Progress för tid
   const progressPct = useMemo(() => {
-    if (!totalCombinedMonths || totalCombinedMonths <= 0) return 0;
-    const raw = (workedCombinedFteMonths / totalCombinedMonths) * 100;
+    if (!totalCombinedDays || totalCombinedDays <= 0) return 0;
+    const raw = (workedCombinedFteDays / totalCombinedDays) * 100;
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
-  }, [workedCombinedFteMonths, totalCombinedMonths]);
+  }, [workedCombinedFteDays, totalCombinedDays]);
 
   // Totala antalet delmål (BT + ST för 2021, eller ST för 2015)
   const totalMilestones = useMemo(() => {
@@ -1241,6 +1264,252 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
   }, [fulfilledMilestones, totalMilestones]);
+
+  // Beräkningar för detaljvy: BT/ST separat för genomförd tid (i dagar)
+  // Genomförd tid = dagar från startdatum till idag
+  // Total tid = dagar från startdatum till beräknat slutdatum (stEndISO)
+  const timeDetails = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const today = todayISO();
+    const btStart = (profile as any)?.btStartDate;
+    const btEnd = btEndISO;
+    const stStart = stStartISO;
+    
+    if (gv === "2021" && btStart && btEnd && stStart && stEndISO) {
+      // BT: placeringar mellan BT-start och BT-slut
+      let btDays = 0;
+      let stDays = 0;
+      
+      for (const p of dbPlacements as any[]) {
+        const start = p.startDate || p.startISO || p.start || "";
+        if (!start) continue;
+        
+        // Bara placeringar som startar efter eller vid BT-start
+        const startMs = new Date(start + "T00:00:00").getTime();
+        const btStartMs = new Date(btStart + "T00:00:00").getTime();
+        if (startMs < btStartMs) continue;
+        
+        const end = p.endDate || p.endISO || p.end || today;
+        const endDate = end > today ? today : end;
+        
+        // Beräkna FTE-dagar (samma som förstasidan men i dagar)
+        const percent = pickPercent(p);
+        const days = fteDays(start, endDate, percent);
+        
+        // Bestäm om placeringen är BT eller ST
+        const btEndMs = new Date(btEnd + "T00:00:00").getTime();
+        const stStartMs = new Date(stStart + "T00:00:00").getTime();
+        
+        if (startMs >= btStartMs && startMs < btEndMs) {
+          // BT-period
+          btDays += days;
+        } else if (startMs >= stStartMs) {
+          // ST-period
+          stDays += days;
+        }
+      }
+      
+      // Beräkna totala planerade dagar från startdatum till beräknat slutdatum
+      const totalBtDays = fteDays(btStart, btEnd, 100);
+      const totalStDays = fteDays(stStart, stEndISO, 100);
+      
+      return {
+        bt: { worked: btDays, total: totalBtDays },
+        st: { worked: stDays, total: totalStDays },
+      };
+    } else {
+      // 2015: endast ST
+      let stDays = 0;
+      
+      if (!stStart || !stEndISO) {
+        return {
+          bt: { worked: 0, total: 0 },
+          st: { worked: 0, total: 0 },
+        };
+      }
+      
+      for (const p of dbPlacements as any[]) {
+        const start = p.startDate || p.startISO || p.start || "";
+        const end = p.endDate || p.endISO || p.end || today;
+        const endDate = end > today ? today : end;
+        const percent = pickPercent(p);
+        const days = fteDays(start, endDate, percent);
+        stDays += days;
+      }
+      
+      const totalStDays = fteDays(stStart, stEndISO, 100);
+      
+      return {
+        bt: { worked: 0, total: 0 },
+        st: { worked: stDays, total: totalStDays },
+      };
+    }
+  }, [profile, dbPlacements, btEndISO, stStartISO, stEndISO]);
+
+  // Beräkningar för detaljvy: BT/ST delmål separat
+  const milestoneDetails = useMemo(() => {
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const is2021 = gv === "2021";
+    const today = todayISO();
+    
+    const normalizeBtCode = (x: unknown) => {
+      const s = String(x ?? "").trim();
+      const m = s.match(/^BT[\s\-_]*([0-9]+)/i);
+      return m ? "BT" + m[1] : null;
+    };
+    
+    const normalizeStId = (x: unknown): string | null => {
+      const s = String(x ?? "").trim();
+      if (!s) return null;
+      return s.toUpperCase().replace(/\s+/g, "");
+    };
+    
+    // BT-delmål (endast för 2021)
+    const btFulfilled = new Set<string>();
+    if (is2021) {
+      for (const a of dbAchievements) {
+        const cand = [a.goalId, a.milestoneId, a.id, (a as any).code, (a as any).milestone].filter(Boolean);
+        for (const c of cand) {
+          const code = normalizeBtCode(c);
+          if (code) btFulfilled.add(code);
+        }
+      }
+      
+      for (const p of dbPlacements as any[]) {
+        const end = p.endDate || p.endISO || p.end || "";
+        if (!end || end >= today) continue;
+        const arrs = [p?.btMilestones, p?.btGoals, p?.milestones, p?.goals, p?.goalIds, p?.milestoneIds];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) btFulfilled.add(code);
+          }
+        }
+      }
+      
+      for (const c of dbCourses as any[]) {
+        const cert = c.certificateDate || "";
+        const end = c.endDate || "";
+        const date = cert || end;
+        if (!date || date >= today) continue;
+        const arrs = [c?.btMilestones, c?.btGoals, c?.milestones, c?.goals, c?.goalIds, c?.milestoneIds];
+        for (const arr of arrs) {
+          if (!arr) continue;
+          for (const v of arr as any[]) {
+            const code = normalizeBtCode(v);
+            if (code) btFulfilled.add(code);
+          }
+        }
+      }
+    }
+    
+    // ST-delmål
+    const stFulfilled = new Set<string>();
+    const stMilestoneIdsFromPlacements = new Set<string>();
+    const stMilestoneIdsFromCourses = new Set<string>();
+    const stMilestoneIdsFromAchievements = new Set<string>();
+    
+    for (const a of dbAchievements) {
+      const id = normalizeStId(a.milestoneId);
+      if (id && !normalizeBtCode(id)) {
+        stMilestoneIdsFromAchievements.add(id);
+      }
+    }
+    
+    for (const p of dbPlacements as any[]) {
+      const end = p.endDate || p.endISO || p.end || "";
+      if (!end || end >= today) continue;
+      const arr = p?.milestones || p?.goals || p?.goalIds || p?.milestoneIds || [];
+      for (const v of arr as any[]) {
+        const id = normalizeStId(v);
+        if (id && !normalizeBtCode(id)) {
+          stMilestoneIdsFromPlacements.add(id);
+        }
+      }
+    }
+    
+    for (const c of dbCourses as any[]) {
+      const cert = c.certificateDate || "";
+      const end = c.endDate || "";
+      const date = cert || end;
+      if (!date || date >= today) continue;
+      const arr = c?.milestones || c?.goals || c?.goalIds || c?.milestoneIds || [];
+      for (const v of arr as any[]) {
+        const id = normalizeStId(v);
+        if (id && !normalizeBtCode(id)) {
+          stMilestoneIdsFromCourses.add(id);
+        }
+      }
+    }
+    
+    const allStMilestoneIds = new Set<string>();
+    for (const id of stMilestoneIdsFromAchievements) allStMilestoneIds.add(id);
+    for (const id of stMilestoneIdsFromPlacements) allStMilestoneIds.add(id);
+    for (const id of stMilestoneIdsFromCourses) allStMilestoneIds.add(id);
+    
+    if (is2021 && goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
+      const allSt = (goalsCatalog as any).milestones as any[];
+      const hasStc = allSt.some((m: any) =>
+        /^STc\d+$/i.test(String((m as any).code ?? (m as any).id ?? ""))
+      );
+      
+      if (hasStc) {
+        const stMilestones = allSt.filter((m: any) => {
+          const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
+          return /^ST[ABC]\d+$/i.test(code);
+        });
+        
+        const existingKeys = new Set(
+          stMilestones.map((m: any) =>
+            String((m as any).code ?? (m as any).id ?? "")
+              .toUpperCase()
+              .replace(/\s+/g, "")
+          )
+        );
+        
+        Object.values(COMMON_AB_MILESTONES).forEach((cm: any) => {
+          const codeRaw = String(cm.code ?? cm.id ?? "");
+          if (/^ST[AB]\d+$/i.test(codeRaw)) {
+            const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
+            if (!existingKeys.has(codeKey)) {
+              stMilestones.push(cm);
+            }
+          }
+        });
+        
+        for (const m of stMilestones) {
+          const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
+          const hasPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
+          const hasCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+          
+          if (hasPlacement) stFulfilled.add(`${code}-klin`);
+          if (hasCourse) stFulfilled.add(`${code}-kurs`);
+        }
+      } else {
+        for (const id of allStMilestoneIds) {
+          stFulfilled.add(id);
+        }
+      }
+    } else {
+      for (const id of allStMilestoneIds) {
+        stFulfilled.add(id);
+      }
+    }
+    
+    // Använd samma logik som fulfilledMilestones på förstasidan
+    // För 2021: BT (18) + ST (46) = 64 totalt
+    // För 2015: ST (50) totalt
+    // Men för detaljvyn behöver vi räkna ST separat
+    // För 2021: ST kan uppfyllas av både klin och kurs, så stFulfilled.size kan vara upp till 92
+    // Men totalt antal ST-delvärden är 46 (samma som totalMilestones - 18 BT)
+    const totalStMilestones = is2021 ? 46 : 50;
+    
+    return {
+      bt: { fulfilled: btFulfilled.size, total: is2021 ? 18 : 0 },
+      st: { fulfilled: stFulfilled.size, total: totalStMilestones },
+    };
+  }, [profile, dbAchievements, dbPlacements, dbCourses, goalsCatalog]);
 
   // Aktivitetsformulär (Placering/Vetenskap-/Förbättring/Ausk/ledigheter)
   type FormPlacement = {
@@ -3404,6 +3673,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 ].join(" ")}
 
                   title={`${MONTH_NAMES[monthIndex]} ${year} · ${i%2 ? "H2" : "H1"}`}
+                  data-info="Detta är spåret för placeringar (kliniska tjänstgöringar, auskultationer, arbeten, ledighet). Klicka här för att lägga till en ny aktivitet vid detta datum. Detta är det bredare spåret i tidslinjen."
                   onMouseEnter={() => setHover({ row: rowIndex, col: i })}
                   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
                   onClick={() => {
@@ -3463,6 +3733,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 
   style={{ gridRowStart: 2 }}
   title={`Klicka för datum ${defaultISO}`}
+  data-info="Detta är spåret för kurser. Klicka här för att lägga till en ny kurs vid detta datum. Detta är det smalare spåret under placeringar-spåret i tidslinjen."
   onMouseEnter={() => setHover({ row: rowIndex, col: i })}
   onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
   onClick={(e) => {
@@ -3750,8 +4021,8 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
       "cursor-grab active:cursor-grabbing hover:shadow-lg hover:-translate-y-[1px]",
       // Markerat: bas = lite ljusare än psykoterapi-linjen, hover = exakt psykoterapi-färgen
       (sel && !isLeave(a.type))
-// Endast markerad utbildningsaktivitet: tunnare blå ram, mörk text.
-? "z-[80] ring-1 ring-sky-600 border border-sky-600 text-slate-900"
+// Endast markerad utbildningsaktivitet: tjockare blå ram, mörk text.
+? "z-[80] ring-2 ring-sky-600 border-2 border-sky-600 text-slate-900"
 
 // Övrigt (inkl. ledighet och ej markerade): oförändrat utseende
 : "z-[65] border-slate-200",
@@ -3771,6 +4042,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 }}
 
     title={label}
+    data-info={`Klicka för att välja denna aktivitet: ${label || a.type}. När aktiviteten är vald kan du redigera den i detaljpanelen nedan.`}
     onClick={(e) => { e.preventDefault(); e.stopPropagation(); switchActivity(a.id, null); }}
     onDoubleClick={(e) => {
   e.preventDefault();
@@ -4019,6 +4291,7 @@ dragPlacementRef.current = {
               ? `${s.title} (${s.dateISO})`
               : s.dateISO
           }
+          data-info={`Möte med huvudhandledare. Klicka här för att öppna detta handledningstillfälle i IUP-modalen där du kan redigera datum, fokus, sammanfattning och överenskomna åtgärder.`}
         >
           <span
             aria-hidden="true"
@@ -4112,6 +4385,7 @@ dragPlacementRef.current = {
               ? `${a.title} (${a.dateISO})`
               : a.dateISO
           }
+          data-info={`Progressionsbedömning. Klicka här för att öppna denna progressionsbedömning i IUP-modalen där du kan redigera datum, bedömningsinstrument och bedömningsresultat.`}
         >
           <svg
             aria-hidden="true"
@@ -4259,7 +4533,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
         title={`${getCourseDisplayTitle(c)} start — ${c.startDate || c.certificateDate}`}
-
+        data-info={`Startmarkör för kursen: ${getCourseDisplayTitle(c)}. Klicka för att välja kursen och redigera den i detaljpanelen.`}
         onClick={(e) => {
           e.stopPropagation();
           switchActivity(null, c.id);
@@ -4424,7 +4698,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
         title={`${getCourseDisplayTitle(c)} slut — ${c.endDate || c.certificateDate}`}
-
+        data-info={`Slutmarkör för kursen: ${getCourseDisplayTitle(c)}. Klicka för att välja kursen och redigera den i detaljpanelen.`}
         onClick={(e) => {
           e.stopPropagation();
           switchActivity(null, c.id);
@@ -4605,6 +4879,7 @@ if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c
           transform: hovered ? "translate(-50%, -58%)" : "translate(-50%, -50%)",
         }}
         title={getCourseDisplayTitle(c)}
+        data-info={`Klicka för att välja denna kurs: ${getCourseDisplayTitle(c)}. När kursen är vald kan du redigera den i detaljpanelen nedan.`}
         onClick={(e) => {
           e.stopPropagation();
           switchActivity(null, c.id);
@@ -5177,7 +5452,7 @@ async function openPreviewForPlacement(a: Activity) {
       notes: (a as any).note || "",
     };
 
-    const blob = (await exportCertificate(
+    const result = await exportCertificate(
       {
         goalsVersion: gv,
         activityType: activityType as any,
@@ -5187,14 +5462,22 @@ async function openPreviewForPlacement(a: Activity) {
         milestones: toMilestoneIds((a as any).milestones),
       },
       { output: "blob", filename: "preview.pdf" }
-    )) as Blob;
+    );
 
-    const url = URL.createObjectURL(blob);
+    // Kontrollera att result är en Blob
+    if (!(result instanceof Blob)) {
+      console.error("exportCertificate returnerade inte en Blob:", result);
+      alert("Kunde inte skapa förhandsvisningen. Felaktigt returvärde från exportCertificate.");
+      return;
+    }
+
+    const url = URL.createObjectURL(result);
     setPreviewUrl(url);
     setPreviewOpen(true);
   } catch (e) {
-    console.error(e);
-    alert("Kunde inte skapa förhandsvisningen.");
+    console.error("Fel vid skapande av förhandsvisning:", e);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    alert(`Kunde inte skapa förhandsvisningen: ${errorMessage}`);
   }
 }
 
@@ -6106,6 +6389,7 @@ const persistTimelineToDb = async () => {
     onClick={() => setBtModalOpen(true)}
     className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
     title="Intyg bastjänstgöring"
+    data-info="Öppnar formulär för att skapa intyg för bastjänstgöring (BT). Här kan du registrera BT-tjänstgöringar, delmål och bedömningar som behövs för att ansöka om ST."
   >
     Intyg bastjänstgöring
   </button>
@@ -6116,7 +6400,8 @@ const persistTimelineToDb = async () => {
   onClick={() => setPrepareOpen(true)}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
   title="Specialistansökan"
->
+  data-info="Öppnar formulär för att skapa specialistansökan. Här kan du sammanställa alla dina aktiviteter, kurser och delmål som ska ingå i ansökan om specialistkompetens."
+  >
   Specialistansökan
 </button>
 
@@ -6144,6 +6429,7 @@ const persistTimelineToDb = async () => {
   }}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
   title="IUP – Individuell utbildningsplan"
+  data-info="Öppnar IUP (Individuell utbildningsplan) där du kan hantera planering, handledarsamtal, progressionsbedömningar och delmål. IUP är en central del av din ST-utbildning."
 >
   IUP
 </button>
@@ -6155,6 +6441,7 @@ const persistTimelineToDb = async () => {
   onClick={() => setScanOpen(true)}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
   title="Skanna intyg"
+  data-info="Öppnar verktyg för att skanna in intyg med OCR (optisk teckenigenkänning). Ladda upp en bild av ett intyg så fylls formuläret automatiskt i med information från intyget."
 >
   Skanna intyg
 </button>
@@ -6172,6 +6459,7 @@ const persistTimelineToDb = async () => {
             onClick={() => setProfileOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
             title="Profil"
+            data-info="Öppnar profilformuläret där du kan redigera dina personuppgifter, specialitet, handledare och andra grundläggande uppgifter som används i intyg och ansökningar."
           >
             Profil
           </button>
@@ -6181,6 +6469,7 @@ const persistTimelineToDb = async () => {
   onClick={() => setSaveInfoOpen(true)}
   className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px"
   title="Spara (JSON-backup) - Cmd/Ctrl+Enter"
+  data-info="Sparar all din data (profil, aktiviteter, kurser, IUP) som en JSON-fil som du kan ladda ner och använda som backup. Du kan senare ladda upp filen för att fortsätta ditt arbete."
 >
   <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2Zm0 2v3H7V5h10ZM7 10h10v9H7v-9Z"/>
@@ -6194,6 +6483,7 @@ const persistTimelineToDb = async () => {
             onClick={() => setAboutOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 active:translate-y-px"
             title="Om"
+            data-info="Öppnar informationsfönster med instruktioner, information om projektet, kontaktuppgifter, integritetspolicy och licensvillkor."
           >
             Om
           </button>
@@ -6218,8 +6508,8 @@ const persistTimelineToDb = async () => {
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setYearsBelow(y => y + 1); }}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50 translate-y-[6px]"
-
             title="Lägg till senare år"
+            data-info="Lägger till ett nytt år längre fram i tidslinjen så att du kan planera aktiviteter även för framtida år."
           >+</button>
         </div>
 {/* Förklaring (legend) + förlängning av ST */}
@@ -6297,7 +6587,7 @@ const persistTimelineToDb = async () => {
             <div className="w-20" />
 
             {showSupervisionOnTimeline && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" data-info="Möte med huvudhandledare. Grön trekant i tidslinjen visar handledningstillfällen. Klicka på en trekant för att öppna det handledningstillfället i IUP-modalen där du kan redigera datum, fokus, sammanfattning och överenskomna åtgärder.">
                 <span
                   aria-hidden="true"
                   style={{
@@ -6314,7 +6604,7 @@ const persistTimelineToDb = async () => {
             )}
 
             {showAssessmentsOnTimeline && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" data-info="Progressionsbedömning. Gul stjärna i tidslinjen visar progressionsbedömningar. Klicka på en stjärna för att öppna den progressionsbedömningen i IUP-modalen där du kan redigera datum, bedömningsinstrument och bedömningsresultat.">
                 <svg
                   aria-hidden="true"
                   width={14}
@@ -7026,6 +7316,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             <button
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
               onClick={() => setBtMilestonePicker({ open: true, mode: "placement" })}
+              data-info="Öppnar en lista där du kan välja vilka BT-delmål (bastjänstgöring) som uppfylls av denna aktivitet. BT-delmål är specifika för bastjänstgöringen."
             >
               BT-delmål
             </button>
@@ -7056,6 +7347,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <button
                 className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
                 onClick={() => setMilestonePicker({ open: true, mode: "placement" })}
+                data-info="Öppnar en lista där du kan välja vilka ST-delmål (specialiseringstjänstgöring) som uppfylls av denna aktivitet. ST-delmål är de mål som ska uppfyllas under din ST-utbildning."
               >
                 ST-delmål
               </button>
@@ -7088,6 +7380,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <button
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
           onClick={() => setMilestonePicker({ open: true, mode: "placement" })}
+          data-info="Delmål"
         >
           Delmål
         </button>
@@ -7126,6 +7419,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         await savePlacementToDb(selAct);
                       }}
   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+  data-info="Spara"
 >
   Spara
 </button>
@@ -7135,6 +7429,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   onClick={closeDetailPanel}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
   title="Stäng panelen"
+  data-info="Stäng"
 >
   Stäng
 </button>
@@ -7145,8 +7440,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     requestDeletePlacement();
   }}
   className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 transition hover:border-red-400 hover:bg-red-200 active:translate-y-px"
-
   title="Ta bort vald aktivitet"
+  data-info="Ta bort"
 >
   Ta bort
 </button>
@@ -7684,6 +7979,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <button
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
           onClick={() => setBtMilestonePicker({ open: true, mode: "course" })}
+          data-info="BT-delmål"
         >
           BT-delmål
         </button>
@@ -7714,6 +8010,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           <button
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
             onClick={() => setMilestonePicker({ open: true, mode: "course" })}
+            data-info="ST-delmål"
           >
             ST-delmål
           </button>
@@ -7745,6 +8042,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       <button
         className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
         onClick={() => setMilestonePicker({ open: true, mode: "course" })}
+        data-info="Delmål"
       >
         Delmål
       </button>
@@ -7777,6 +8075,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               await saveCourseToDb(selCourse);
   }}
   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+  data-info="Spara"
 >
   Spara
 </button>
@@ -7787,6 +8086,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   onClick={closeDetailPanel}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
   title="Stäng panelen"
+  data-info="Stäng"
 >
   Stäng
 </button>
@@ -7796,8 +8096,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     requestDeleteCourse();
   }}
   className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-900 transition hover:border-red-400 hover:bg-red-200 active:translate-y-px"
-
   title="Ta bort vald kurs"
+  data-info="Ta bort"
 >
   Ta bort
 </button>
@@ -7988,7 +8288,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
                     >
-                      <td className="px-3 py-1.5">
+                      <td className="px-3 py-1.5" data-info={title}>
   {(() => {
     const baseStyle: React.CSSProperties =
       a.type === "Forskning"
@@ -8036,10 +8336,10 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 </td>
 
 
-                      <td className="px-3 py-1.5 text-center">{startISO}</td>
-                      <td className="px-3 py-1.5 text-center">{endISO}</td>
-                      <td className="px-3 py-1.5 text-center">{isLeave(a.type) ? "—" : (a.attendance ?? 100)}</td>
-                      <td className="px-3 py-1.5 text-center">{isLeave(a.type) ? "—" : fteMonths.toFixed(1)}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={startISO}>{startISO}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={endISO}>{endISO}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={isLeave(a.type) ? "—" : String(a.attendance ?? 100)}>{isLeave(a.type) ? "—" : (a.attendance ?? 100)}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={isLeave(a.type) ? "—" : fteMonths.toFixed(1)}>{isLeave(a.type) ? "—" : fteMonths.toFixed(1)}</td>
                       
 
 
@@ -8062,6 +8362,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     openPreviewForBtGoals(a);
   }}
   title="Delmål i bastjänstgöringen"
+  data-info="BT-intyg"
 >
   BT-intyg
 </button>
@@ -8086,6 +8387,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             openPreviewForPlacement(a);
           }}
           title="Intyg för klinisk tjänstgöring i ST"
+          data-info="ST-intyg"
         >
           ST-intyg
         </button>
@@ -8169,7 +8471,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
         openPreviewForPlacement(a);
       }}
-
+      data-info="Intyg"
     >
       Intyg
     </button>
@@ -8288,7 +8590,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
               >
-                                <td className="px-3 py-1.5">
+                                <td className="px-3 py-1.5" data-info={c.title || "—"}>
   <span className="inline-flex items-center">
     <span>{c.title || "—"}</span>
     {c.phase === "BT" && (
@@ -8309,7 +8611,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
                
-                <td className="px-3 py-1.5">{c.endDate || "—"}</td>
+                <td className="px-3 py-1.5" data-info={c.endDate || "—"}>{c.endDate || "—"}</td>
 
                                           <td className="px-3 py-1.5 text-right">
                   {c.phase === "BT" ? (
@@ -8348,6 +8650,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
                           void openPreviewForBtGoals(dummyActivity);
                         }}
+                        data-info="BT-intyg"
                       >
                         BT-intyg
                       </button>
@@ -8370,6 +8673,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             setCourseForModal(c);
                             setCourseModalOpen(true);
                           }}
+                          data-info="ST-intyg"
                         >
                           ST-intyg
                         </button>
@@ -8393,6 +8697,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         setCourseForModal(c);
                         setCourseModalOpen(true);
                       }}
+                      data-info="Intyg"
                     >
                       Intyg
                     </button>
@@ -8605,12 +8910,25 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             {/* Rad 2: Progressbar - Genomförd tid */}
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="text-slate-900">Genomförd tid</span>
-                <span className="font-semibold text-slate-900">
+                <span 
+                  className="text-slate-900 cursor-pointer hover:text-slate-700"
+                  data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
+                  onClick={() => setProgressDetailOpen("time")}
+                >
+                  Genomförd tid
+                </span>
+                <span 
+                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-700"
+                  data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
+                  onClick={() => setProgressDetailOpen("time")}
+                >
                   {progressPct.toFixed(0)} %
                 </span>
               </div>
-              <div className="mt-1 h-4 w-full rounded-full bg-slate-200">
+              <div 
+                className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
+                onClick={() => setProgressDetailOpen("time")}
+              >
                 <div
                   className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
                   style={{ width: `${progressPct}%` }}
@@ -8621,12 +8939,25 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             {/* Rad 3: Progressbar - Delmålsuppfyllelse */}
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="text-slate-900">Delmålsuppfyllelse</span>
-                <span className="font-semibold text-slate-900">
+                <span 
+                  className="text-slate-900 cursor-pointer hover:text-slate-700"
+                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                  onClick={() => setProgressDetailOpen("milestones")}
+                >
+                  Delmålsuppfyllelse
+                </span>
+                <span 
+                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-700"
+                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                  onClick={() => setProgressDetailOpen("milestones")}
+                >
                   {milestoneProgressPct.toFixed(0)} %
                 </span>
               </div>
-              <div className="mt-1 h-4 w-full rounded-full bg-slate-200">
+              <div 
+                className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
+                onClick={() => setProgressDetailOpen("milestones")}
+              >
                 <div
                   className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
                   style={{ width: `${milestoneProgressPct}%` }}
@@ -8641,6 +8972,213 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   })()}
 </div>
 
+      {/* Progress Detail Modal */}
+      {progressDetailOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setProgressDetailOpen(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900">
+                  {progressDetailOpen === "time" ? "Genomförd tid - Detaljer" : "Delmålsuppfyllelse - Detaljer"}
+                </h2>
+                <button
+                  onClick={() => setProgressDetailOpen(null)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              {progressDetailOpen === "time" ? (
+                <div className="space-y-4">
+                  {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
+                    <>
+                      {/* BT */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">BT (Bastjänstgöring)</span>
+                          <span className="text-sm text-slate-600">
+                            {timeDetails.bt.total > 0 
+                              ? `${((timeDetails.bt.worked / timeDetails.bt.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-sky-500 transition-[width] duration-300"
+                            style={{ width: `${timeDetails.bt.total > 0 ? Math.min(100, (timeDetails.bt.worked / timeDetails.bt.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Genomförda dagar: {Math.round(timeDetails.bt.worked)} dagar
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          Totalt planerade dagar: {Math.round(timeDetails.bt.total)} dagar
+                        </div>
+                      </div>
+                      
+                      {/* ST */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
+                          <span className="text-sm text-slate-600">
+                            {timeDetails.st.total > 0 
+                              ? `${((timeDetails.st.worked / timeDetails.st.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* 2015: Endast ST */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
+                          <span className="text-sm text-slate-600">
+                            {timeDetails.st.total > 0 
+                              ? `${((timeDetails.st.worked / timeDetails.st.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
+                    <>
+                      {/* BT */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">BT-delmål</span>
+                          <span className="text-sm text-slate-600">
+                            {milestoneDetails.bt.total > 0 
+                              ? `${((milestoneDetails.bt.fulfilled / milestoneDetails.bt.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-sky-500 transition-[width] duration-300"
+                            style={{ width: `${milestoneDetails.bt.total > 0 ? Math.min(100, (milestoneDetails.bt.fulfilled / milestoneDetails.bt.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Uppfyllda delmål: {milestoneDetails.bt.fulfilled} av {milestoneDetails.bt.total}
+                        </div>
+                      </div>
+                      
+                      {/* ST */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">ST-delmål</span>
+                          <span className="text-sm text-slate-600">
+                            {milestoneDetails.st.total > 0 
+                              ? `${((milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
+                        <p className="mb-2">
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Totalt {milestoneDetails.st.total} delmål. Varje delmål är uppdelat i två delar: en del som kan uppfyllas genom kurser och en del som kan uppfyllas genom klinisk tjänstgöring, vetenskapligt arbete eller förbättringsarbete. BT-delmål kan uppfyllas genom aktiviteter eller bedömningar.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProgressDetailOpen(null);
+                            setIupOpen(true);
+                            setIupInitialTab("delmal");
+                          }}
+                          className="text-sky-600 hover:text-sky-700 underline font-medium"
+                        >
+                          Öppna delmålssidan (IUP → Delmål) →
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* 2015: Endast ST */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">ST-delmål</span>
+                          <span className="text-sm text-slate-600">
+                            {milestoneDetails.st.total > 0 
+                              ? `${((milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200">
+                          <div
+                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
+                        <p className="mb-2">
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Totalt {milestoneDetails.st.total} delmål. Varje delmål är uppdelat i två delar: en del som kan uppfyllas genom kurser och en del som kan uppfyllas genom klinisk tjänstgöring, vetenskapligt arbete eller förbättringsarbete.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProgressDetailOpen(null);
+                            setIupOpen(true);
+                            setIupInitialTab("delmal");
+                          }}
+                          className="text-sky-600 hover:text-sky-700 underline font-medium"
+                        >
+                          Öppna delmålssidan (IUP → Delmål) →
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       
       </div>

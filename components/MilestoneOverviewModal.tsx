@@ -1092,7 +1092,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             {/* Vänster: Radioknappar för ST-delmål/BT-delmål (endast för 2021) */}
             {is2021 && (
               <div className="flex items-center gap-4">
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+                <label className="inline-flex items-center gap-2 cursor-pointer" data-info="Växlar till vyn för ST-delmål (specialiseringstjänstgöring) där du kan se alla ST-delmål, planera hur de ska uppfyllas och se vilka aktiviteter som är kopplade till varje delmål.">
                   <input
                     type="radio"
                     name="milestone-tab"
@@ -1103,7 +1103,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   />
                   <span className="text-sm font-medium text-slate-900">ST-delmål</span>
                 </label>
-                <label className="inline-flex items-center gap-2 cursor-pointer">
+                <label className="inline-flex items-center gap-2 cursor-pointer" data-info="Växlar till vyn för BT-delmål (bastjänstgöring) där du kan se alla BT-delmål, planera hur de ska uppfyllas och se vilka aktiviteter som är kopplade till varje delmål.">
                   <input
                     type="radio"
                     name="milestone-tab"
@@ -1118,7 +1118,10 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
             )}
             
             {/* Höger: Utbildningsaktiviteter med kryssrutor på samma rad */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div 
+              className="flex items-center gap-3 flex-wrap"
+              data-info="Här kan du filtrera vilka utbildningsaktiviteter som ska visas för varje delmål. Genomförda aktiviteter är aktiviteter som har ett slutdatum som ligger i det förflutna. Pågående aktiviteter är aktiviteter som har startat men inte avslutats ännu. Planerade aktiviteter är aktiviteter med ett startdatum i framtiden. Du kan välja en eller flera av dessa alternativ för att visa relevanta aktiviteter för varje delmål. Aktiviteterna kan vara kliniska tjänstgöringar, kurser eller andra utbildningsmoment som är kopplade till delmålen."
+            >
               <span className="text-[13px] font-semibold text-slate-900">
                 Utbildningsaktiviteter:
               </span>
@@ -1129,8 +1132,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
                     checked={showDone}
                     onChange={() => setShowDone((v) => !v)}
+                    data-info="Visa genomförda utbildningsaktiviteter. Dessa är aktiviteter (kliniska tjänstgöringar eller kurser) som har ett slutdatum som ligger i det förflutna och som är kopplade till delmålen."
                   />
-                  <span>Genomförda</span>
+                  <span data-info="Visa genomförda utbildningsaktiviteter. Dessa är aktiviteter (kliniska tjänstgöringar eller kurser) som har ett slutdatum som ligger i det förflutna och som är kopplade till delmålen.">Genomförda</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
                   <input
@@ -1138,8 +1142,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
                     checked={showOngoing}
                     onChange={() => setShowOngoing((v) => !v)}
+                    data-info="Visa pågående utbildningsaktiviteter. Dessa är aktiviteter som har startat men inte avslutats ännu, dvs. de har ett startdatum i det förflutna men inget slutdatum eller ett slutdatum i framtiden."
                   />
-                  <span>Pågående</span>
+                  <span data-info="Visa pågående utbildningsaktiviteter. Dessa är aktiviteter som har startat men inte avslutats ännu, dvs. de har ett startdatum i det förflutna men inget slutdatum eller ett slutdatum i framtiden.">Pågående</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-[13px] text-slate-900">
                   <input
@@ -1147,8 +1152,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                     className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-300"
                     checked={showPlanned}
                     onChange={() => setShowPlanned((v) => !v)}
+                    data-info="Visa planerade utbildningsaktiviteter. Dessa är aktiviteter med ett startdatum i framtiden som är kopplade till delmålen och som planeras att genomföras."
                   />
-                  <span>Planerade</span>
+                  <span data-info="Visa planerade utbildningsaktiviteter. Dessa är aktiviteter med ett startdatum i framtiden som är kopplade till delmålen och som planeras att genomföras.">Planerade</span>
                 </label>
               </div>
             </div>
@@ -1708,6 +1714,7 @@ function StGrid({
                   onClick={() => openDetail(m.id)}
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
+                  data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                     {(
@@ -1736,6 +1743,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Klin</span>
                     <span className="min-w-[1.2ch] text-right">{p}</span>
@@ -1751,6 +1759,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Kurs</span>
                     <span className="min-w-[1.2ch] text-right">{c}</span>
@@ -1773,6 +1782,7 @@ function StGrid({
                   onClick={() => openDetail(m.id)}
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
+                  data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                     {(
@@ -1801,6 +1811,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Klin</span>
                     <span className="min-w-[1.2ch] text-right">{p}</span>
@@ -1816,6 +1827,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Kurs</span>
                     <span className="min-w-[1.2ch] text-right">{c}</span>
@@ -1841,6 +1853,7 @@ function StGrid({
                   onClick={() => openDetail(m.id)}
                   className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
                   title="Visa information om delmålet"
+                  data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                     {(
@@ -1869,6 +1882,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Klin</span>
                     <span className="min-w-[1.2ch] text-right">{p}</span>
@@ -1884,6 +1898,7 @@ function StGrid({
                         : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                     }
                     title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                   >
                     <span>Kurs</span>
                     <span className="min-w-[1.2ch] text-right">{c}</span>
@@ -1920,6 +1935,7 @@ function BtList({
               onClick={() => openDetail(row.code)}
               className="dm-row flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-900 hover:bg-slate-100"
               title="Visa information om delmålet"
+              data-info="Öppnar en detaljvy för detta BT-delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
             >
               <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
                 {row.code.toLowerCase()}
@@ -1939,6 +1955,7 @@ function BtList({
                     : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                 }
                 title={total > 0 ? "Visa intyg (alla kopplingar)" : "Inga kopplade intyg ännu"}
+                data-info="Visar antalet intyg som är kopplade till detta BT-delmål. Klicka för att se en lista över alla kopplade intyg. Dessa är intyg som har skapats för att bekräfta att delmålet har uppfyllts."
               >
                 <span>Intyg</span>
                 <span className="min-w-[1.2ch] text-right">{total}</span>

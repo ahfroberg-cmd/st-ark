@@ -334,6 +334,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
             <button
               onClick={onClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+              data-info="Sparar valda ST-delmål och stänger dialogen. De markerade delmålen kopplas till aktiviteten."
             >
               Spara och stäng
             </button>
@@ -471,6 +472,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
                     background: isDetailChecked ? "#ef4444" : "#10b981",
                     borderColor: isDetailChecked ? "#ef4444" : "#10b981",
                   }}
+                  data-info={isDetailChecked ? "Avmarkera delmål" : "Markera delmål"}
                 >
                   {isDetailChecked ? "Avmarkera delmål" : "Markera delmål"}
                 </button>
@@ -478,6 +480,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
                   type="button"
                   onClick={() => setDetailId(null)}
                   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                  data-info="Stänger detaljvyn för detta ST-delmål och återgår till listan."
                 >
                   Stäng
                 </button>
@@ -506,6 +509,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
             ? "border-emerald-200 bg-emerald-50" + (hoveredCheckbox === mid ? "" : " hover:bg-emerald-100")
             : "border-slate-200 bg-slate-50" + (hoveredCheckbox === mid ? "" : " hover:bg-slate-100"))
         }
+        data-info={`Klicka för att öppna detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()}. ${isChecked ? "Delmålet är markerat." : "Delmålet är inte markerat."}`}
       >
         {/* Vänster: chip + titel (öppnar info) */}
         <button
@@ -513,6 +517,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
           onClick={() => setDetailId(mid)}
           className="dm-row flex min-w-0 items-center gap-2 text-left text-slate-800"
           title="Visa information om delmålet"
+          data-info={`Öppnar detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()} där du kan se fullständig beskrivning och markera/avmarkera delmålet.`}
         >
           <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
             {String((m as any).code ?? "").toLowerCase()}
@@ -527,6 +532,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
           onClick={(e) => e.stopPropagation()}
           onMouseEnter={() => setHoveredCheckbox(mid)}
           onMouseLeave={() => setHoveredCheckbox((v) => (v === mid ? null : v))}
+          data-info={isChecked ? "Avmarkera delmål" : "Markera delmål"}
         >
           <input
             type="checkbox"

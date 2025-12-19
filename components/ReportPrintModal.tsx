@@ -179,6 +179,7 @@ function ReportPreview(props: ReportPreviewProps) {
   type="button"
   onClick={onDownloadPdf}
   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+  data-info="Skapar och laddar ner rapporten som PDF. Du kan sedan skriva ut eller spara rapporten."
 >
   Skriv ut rapport
 </button>
@@ -187,6 +188,7 @@ function ReportPreview(props: ReportPreviewProps) {
               type="button"
               onClick={onClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Stänger förhandsvisningen av rapporten och återgår till huvudvyn."
             >
               Stäng
             </button>
@@ -463,11 +465,9 @@ export function ReportPanel() {
 
     (async () => {
       try {
-        const p = await (db as any).profile?.toCollection?.().first?.();
-        const placementsRaw = ((await (db as any).placements?.toArray?.()) ??
-          []) as Placement[];
-        const coursesRaw = ((await (db as any).courses?.toArray?.()) ??
-          []) as Course[];
+        const p = await db.profile.get("default");
+        const placementsRaw = ((await db.placements.toArray()) ?? []) as Placement[];
+        const coursesRaw = ((await db.courses.toArray()) ?? []) as Course[];
 
         if (!live) return;
 
@@ -642,7 +642,10 @@ export function ReportPanel() {
   return (
     <>
 
-            <div className="space-y-4 text-sm text-slate-900">
+            <div 
+              className="space-y-4 text-sm text-slate-900"
+              data-info="Rapportfliken för utbildningsmoment visar rapporter baserade på dina registrerade utbildningsaktiviteter. Här kan du se alla kliniska tjänstgöringar, kurser och andra aktiviteter som är kopplade till din utbildning. Du kan välja vilka aktiviteter som ska visas baserat på status (genomförda, pågående, planerade) och vilka kolumner som ska inkluderas (handledare, delmål, beskrivning)."
+            >
         {/* Skärmvy: konfiguration */}
         <div className="space-y-4">
           {/* Rubrik + Förhandsgranska på samma rad */}
@@ -653,6 +656,7 @@ export function ReportPanel() {
             <button
               onClick={() => setPreviewOpen(true)}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Öppnar en förhandsvisning av rapporten där du kan se hur den kommer att se ut när den skrivs ut eller exporteras till PDF."
             >
               Förhandsgranska
             </button>
@@ -671,8 +675,9 @@ export function ReportPanel() {
                   className="h-3 w-3"
                   checked={showDone}
                   onChange={(e) => setShowDone(e.target.checked)}
+                  data-info="Kryssa i denna ruta för att visa genomförda utbildningsaktiviteter i rapporten. Genomförda aktiviteter är aktiviteter som har ett slutdatum som ligger i det förflutna."
                 />
-                Genomförda
+                <span data-info="Kryssa i denna ruta för att visa genomförda utbildningsaktiviteter i rapporten. Genomförda aktiviteter är aktiviteter som har ett slutdatum som ligger i det förflutna.">Genomförda</span>
               </label>
               <label className="inline-flex items-center gap-1 text-sm text-slate-800">
                 <input
@@ -680,8 +685,9 @@ export function ReportPanel() {
                   className="h-3 w-3"
                   checked={showOngoing}
                   onChange={(e) => setShowOngoing(e.target.checked)}
+                  data-info="Kryssa i denna ruta för att visa pågående utbildningsaktiviteter i rapporten. Pågående aktiviteter är aktiviteter som har startat men inte avslutats ännu."
                 />
-                Pågående
+                <span data-info="Kryssa i denna ruta för att visa pågående utbildningsaktiviteter i rapporten. Pågående aktiviteter är aktiviteter som har startat men inte avslutats ännu.">Pågående</span>
               </label>
               <label className="inline-flex items-center gap-1 text-sm text-slate-800">
                 <input
@@ -689,8 +695,9 @@ export function ReportPanel() {
                   className="h-3 w-3"
                   checked={showPlanned}
                   onChange={(e) => setShowPlanned(e.target.checked)}
+                  data-info="Kryssa i denna ruta för att visa planerade utbildningsaktiviteter i rapporten. Planerade aktiviteter är aktiviteter med ett startdatum i framtiden."
                 />
-                Planerade
+                <span data-info="Kryssa i denna ruta för att visa planerade utbildningsaktiviteter i rapporten. Planerade aktiviteter är aktiviteter med ett startdatum i framtiden.">Planerade</span>
               </label>
             </div>
           </div>
@@ -726,8 +733,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Handledare' i rapporten för utbildningsmoment. Denna kolumn visar namnet på handledaren för varje klinisk tjänstgöring."
                       />
-                      Handledare
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Handledare' i rapporten för utbildningsmoment. Denna kolumn visar namnet på handledaren för varje klinisk tjänstgöring.">Handledare</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -748,8 +756,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Delmål' i rapporten för utbildningsmoment. Denna kolumn visar vilka delmål som är kopplade till varje aktivitet."
                       />
-                      Delmål
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Delmål' i rapporten för utbildningsmoment. Denna kolumn visar vilka delmål som är kopplade till varje aktivitet.">Delmål</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -770,8 +779,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Beskrivning' i rapporten för utbildningsmoment. Denna kolumn visar en beskrivning av aktiviteten om sådan finns angiven."
                       />
-                      Beskrivning
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Beskrivning' i rapporten för utbildningsmoment. Denna kolumn visar en beskrivning av aktiviteten om sådan finns angiven.">Beskrivning</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -814,6 +824,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && e.target.checked,
                             }))
                           }
+                          data-info="Kryssa i denna ruta för att inkludera handledaren för denna kliniska tjänstgöring i rapporten. Om tjänstgöringen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -829,6 +840,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && checked,
                             }));
                           }}
+                          data-info="Kryssa i denna ruta för att inkludera delmålen för denna kliniska tjänstgöring i rapporten. Om tjänstgöringen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -843,6 +855,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && e.target.checked,
                             }))
                           }
+                          data-info="Kryssa i denna ruta för att inkludera beskrivningen för denna kliniska tjänstgöring i rapporten. Om tjänstgöringen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -871,6 +884,7 @@ export function ReportPanel() {
                               }));
                             }
                           }}
+                          data-info="Kryssa i denna ruta för att dölja denna kliniska tjänstgöring i rapporten. När en tjänstgöring är dold kommer den inte att visas i rapporten och alla dess kolumner (handledare, delmål, beskrivning) kommer automatiskt att avmarkeras."
                         />
                       </td>
                     </tr>
@@ -924,8 +938,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Kursledare' i rapporten för kurser. Denna kolumn visar namnet på kursledaren för varje kurs."
                       />
-                      Kursledare
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Kursledare' i rapporten för kurser. Denna kolumn visar namnet på kursledaren för varje kurs.">Kursledare</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -946,8 +961,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Delmål' i rapporten för kurser. Denna kolumn visar vilka delmål som är kopplade till varje kurs."
                       />
-                      Delmål
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Delmål' i rapporten för kurser. Denna kolumn visar vilka delmål som är kopplade till varje kurs.">Delmål</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -968,8 +984,9 @@ export function ReportPanel() {
                             return next;
                           });
                         }}
+                        data-info="Kryssa i denna ruta för att inkludera kolumnen 'Beskrivning' i rapporten för kurser. Denna kolumn visar en beskrivning av kursen om sådan finns angiven."
                       />
-                      Beskrivning
+                      <span data-info="Kryssa i denna ruta för att inkludera kolumnen 'Beskrivning' i rapporten för kurser. Denna kolumn visar en beskrivning av kursen om sådan finns angiven.">Beskrivning</span>
                     </label>
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -1012,6 +1029,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && e.target.checked,
                             }))
                           }
+                          data-info="Kryssa i denna ruta för att inkludera kursledaren för denna kurs i rapporten. Om kursen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -1027,6 +1045,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && checked,
                             }));
                           }}
+                          data-info="Kryssa i denna ruta för att inkludera delmålen för denna kurs i rapporten. Om kursen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -1041,6 +1060,7 @@ export function ReportPanel() {
                               [r.id]: !hidden && e.target.checked,
                             }))
                           }
+                          data-info="Kryssa i denna ruta för att inkludera beskrivningen för denna kurs i rapporten. Om kursen är dold i rapporten är rutan inaktiverad."
                         />
                       </td>
                       <td className="px-3 py-2 align-top">
@@ -1069,6 +1089,7 @@ export function ReportPanel() {
                               }));
                             }
                           }}
+                          data-info="Kryssa i denna ruta för att dölja denna kurs i rapporten. När en kurs är dold kommer den inte att visas i rapporten och alla dess kolumner (kursledare, delmål, beskrivning) kommer automatiskt att avmarkeras."
                         />
                       </td>
                     </tr>
@@ -1206,6 +1227,7 @@ export default function ReportPrintModal({
             type="button"
             onClick={onClose}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+            data-info="Stänger rapport-modalen och återgår till huvudvyn."
           >
             Stäng
           </button>

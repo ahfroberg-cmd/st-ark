@@ -1875,6 +1875,7 @@ useEffect(() => {
       id="save-2021"
       className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
       title="Spara ändringar i denna modal"
+      data-info="Sparar alla ändringar i BT-intyget till databasen. Detta inkluderar alla fält som du har fyllt i på alla flikar (Delmål i BT, Fullgjord BT, Uppnådd BT, Ordna bilagor). Knappen är endast aktiv när det finns osparade ändringar. Efter att du har sparat kan du stänga fönstret utan att förlora dina ändringar."
     >
       Spara
     </button>
@@ -1882,6 +1883,7 @@ useEffect(() => {
       onClick={handleRequestClose}
       className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
       title="Stäng – varnar om osparade ändringar"
+      data-info="Stänger BT-intygsfönstret. Om du har osparade ändringar kommer du att få en varning och möjlighet att spara innan du stänger. Om du redan har sparat dina ändringar stängs fönstret direkt."
     >
       Stäng
     </button>
@@ -1892,10 +1894,10 @@ useEffect(() => {
         {/* Tabs (match PrepareApplicationModal) */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "btgoals", label: "Skapa intyg: Delmål i BT" },
-            { id: "btfull", label: "Fullgjord BT" },
-            { id: "competence", label: "Uppnådd BT" },
-            { id: "attachments", label: "Ordna bilagor" },
+            { id: "btgoals", label: "Skapa intyg: Delmål i BT", info: "Här kan du skapa intyg för delmål i bastjänstgöringen (BT). Du väljer vilka BT-tjänstgöringar som ska inkluderas och vilka BT-delmål som uppfyllts. Intyget kan sedan användas i ansökan om specialistkompetens." },
+            { id: "btfull", label: "Fullgjord BT", info: "Här kan du skapa intyg för fullgjord bastjänstgöring. Detta intyg bekräftar att du har genomfört hela bastjänstgöringen enligt kraven." },
+            { id: "competence", label: "Uppnådd BT", info: "Här kan du skapa intyg för uppnådd kompetens i bastjänstgöringen. Detta intyg bekräftar att du har uppnått de kompetenser som krävs för bastjänstgöringen." },
+            { id: "attachments", label: "Ordna bilagor", info: "Här kan du se alla bilagor som ska inkluderas i Ansökan om intyg om godkänd BT och ändra deras ordning genom att dra och släppa. Du kan också lägga till eller ta bort bilagor som ska inkluderas." },
           ].map((t) => (
             <button
               key={t.id}
@@ -1906,6 +1908,7 @@ useEffect(() => {
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
+              data-info={t.info || t.label}
             >
               {t.label}
             </button>
@@ -1935,6 +1938,7 @@ useEffect(() => {
                     type="button"
                     onClick={() => setChooserOpen(true)}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    data-info="Öppnar en dialog där du kan välja bland redan registrerade utbildningsaktiviteter från tidslinjen. Dessa aktiviteter kan sedan inkluderas i intyget med sina kopplade BT-delmål."
                   >
                     Välj bland registrerade
                   </button>
@@ -1942,6 +1946,7 @@ useEffect(() => {
                     type="button"
                     onClick={addEmptyActivityRow}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    data-info="Lägger till en ny tom rad där du kan manuellt ange en utbildningsaktivitet som inte är registrerad i tidslinjen. Du kan ange aktivitetens namn, startdatum och slutdatum."
                   >
                     + Lägg till aktivitet
                   </button>
@@ -2022,6 +2027,7 @@ useEffect(() => {
                           }}
                           className="h-[40px] w-[40px] rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none hover:bg-slate-100"
                           title="Ta bort"
+                          data-info="Tar bort denna utbildningsaktivitet från listan. Om aktiviteten är vald från registrerade aktiviteter kommer den också avmarkeras i urvalsdialogen."
                         >
                           –
                         </button>
@@ -2039,6 +2045,7 @@ useEffect(() => {
                     type="button"
                     onClick={() => setPickerOpen(true)}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    data-info="Öppnar en dialog där du kan välja vilka BT-delmål (bastjänstgöring delmål) som intyget ska avse. Du kan välja flera delmål som ska bekräftas i intyget."
                   >
                     Delmål som intyget avser
                   </button>
@@ -2063,7 +2070,10 @@ useEffect(() => {
               </div>
 
               <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">
+                <h3 
+                  className="mb-2 text-sm font-extrabold"
+                  data-info="Beskrivning av hur delmålen har kontrollerats. Denna text kommer att inkluderas i intyget och ska beskriva de metoder och processer som använts för att verifiera att delmålen har uppnåtts, t.ex. genom handledarsamtal, bedömningar, observationer eller andra metoder."
+                >
                   Hur det kontrollerats att delmålen uppnåtts
                 </h3>
                 <textarea
@@ -2071,6 +2081,7 @@ useEffect(() => {
                   onChange={(e) => setControlHow(e.target.value)}
                   rows={6}
                   className="w-full rounded-lg border border-slate-300 p-3 text-[14px]"
+                  data-info="Beskrivning av hur delmålen har kontrollerats. Denna text kommer att inkluderas i intyget och ska beskriva de metoder och processer som använts för att verifiera att delmålen har uppnåtts, t.ex. genom handledarsamtal, bedömningar, observationer eller andra metoder."
                 />
               </div>
 
@@ -2080,8 +2091,9 @@ useEffect(() => {
                     type="checkbox"
                     checked={mainSupervisorPrints}
                     onChange={(e) => setMainSupervisorPrints(e.currentTarget.checked)}
+                    data-info="Kryssa i denna ruta om någon annan än huvudhandledaren ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet, specialiteten och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget."
                   />
-                  <span>Någon annan än huvudhandledare utfärdar intyg</span>
+                  <span data-info="Kryssa i denna ruta om någon annan än huvudhandledaren ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet, specialiteten och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget.">Någon annan än huvudhandledare utfärdar intyg</span>
                 </label>
 
                 {mainSupervisorPrints && (
@@ -2174,6 +2186,7 @@ useEffect(() => {
 
   }}
   className="rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
+  data-info={editingSavedKey ? "Sparar ändringarna i det befintliga intyget och uppdaterar det i listan över sparade intyg. Det uppdaterade intyget återfinns under fliken 'Ordna bilagor'." : "Sparar intyget som en bilaga som kan inkluderas i ansökan. Det sparade intyget återfinns under fliken 'Ordna bilagor' där det kan väljas för att inkluderas i ansökan. Intyget sparas med ett nummer och kan senare redigeras eller användas i andra intyg."}
 >
   {editingSavedKey ? "Spara ändringar" : "Spara som bilaga"}
 </button>
@@ -2194,6 +2207,7 @@ useEffect(() => {
 
                     }}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    data-info="Rensar alla fält i formuläret så att du kan börja om från början. Detta påverkar inte redan sparade intyg."
                   >
                     Rensa formulär
                   </button>
@@ -2205,6 +2219,7 @@ useEffect(() => {
                     type="button"
                     onClick={handlePreviewBtGoals}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
+                    data-info="Genererar och visar en förhandsvisning av intyget som PDF. Intyget innehåller alla angivna utbildningsaktiviteter, valda delmål och information om hur delmålen har kontrollerats."
                   >
                     Intyg
                   </button>
@@ -2219,7 +2234,10 @@ useEffect(() => {
           {tab === "btfull" && (
             <div className="grid grid-cols-1 gap-4">
               <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">
+                <h3 
+                  className="mb-2 text-sm font-extrabold"
+                  data-info="Visar en tabell över alla kliniska tjänstgöringar som genomförts under bastjänstgöringen (BT). Tabellen innehåller tjänstgöringens namn, period, sysselsättningsprocent, månader i heltid samt om tjänstgöringen är inom primärvård eller akut sjukvård. Denna information kommer att inkluderas i intyget för fullgjord BT."
+                >
                   Kliniska tjänstgöringar under BT
                 </h3>
 
@@ -2287,8 +2305,9 @@ useEffect(() => {
                     type="checkbox"
                     checked={otherThanManager}
                     onChange={(e) => setOtherThanManager(e.currentTarget.checked)}
+                    data-info="Kryssa i denna ruta om någon annan än verksamhetschefen ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget för fullgjord BT."
                   />
-                  <span>Någon annan än verksamhetschef utfärdar intyg</span>
+                  <span data-info="Kryssa i denna ruta om någon annan än verksamhetschefen ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget för fullgjord BT.">Någon annan än verksamhetschef utfärdar intyg</span>
                 </label>
 
                 {otherThanManager && (
@@ -2319,7 +2338,12 @@ useEffect(() => {
               
               {/* Huvudhandledare (gråmarkerade fält, från Profil) */}
               <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Huvudhandledare</h3>
+                <h3 
+                  className="mb-2 text-sm font-extrabold"
+                  data-info="Visar information om huvudhandledaren som är hämtad från din profil. Denna information är skrivskyddad här och kan ändras i profilinställningarna. Information om huvudhandledaren kommer att inkluderas i intyget för uppnådd baskompetens."
+                >
+                  Huvudhandledare
+                </h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <ReadonlyInput
                     label="Namn"
@@ -2337,7 +2361,12 @@ useEffect(() => {
               </div>
 {/* Extern bedömare */}
               <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Extern bedömare</h3>
+                <h3 
+                  className="mb-2 text-sm font-extrabold"
+                  data-info="Här kan du ange information om en extern bedömare som har bedömt din baskompetens. Om en extern bedömare har använts kan du ange deras namn, specialitet och tjänsteställe. Denna information kommer att inkluderas i intyget för uppnådd baskompetens om den är ifylld."
+                >
+                  Extern bedömare
+                </h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <LabeledInputLocal
                     label="Namn på extern bedömare"
@@ -2437,6 +2466,7 @@ useEffect(() => {
                 role="button"
                 onPointerDown={(e) => onPointerDownCard(idx, e)}
                 className={`rounded-md border px-3 py-2 ${dragIndex === idx ? "ring-2 ring-sky-300" : ""}`}
+                data-info={`${kind} - ${title || kind}. Kan flyttas för att ändra ordning.`}
                 style={{
                   cursor: (dragActive ? "grabbing" : "grab") as any,
                   ...((
@@ -2475,7 +2505,10 @@ useEffect(() => {
     </div>
 
     {/* Högersida – Lägg till bilaga */}
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div 
+      className="rounded-lg border border-slate-200 p-3"
+      data-info="Här kan du välja vilka bilagor som ska inkluderas i ansökan om intyg om godkänd BT. Du kan välja bland registrerade utbildningsmoment (kliniska tjänstgöringar) och sparade intyg från fliken 'Skapa intyg: Delmål i BT'. När du kryssar i en bilaga läggs den automatiskt till i listan här ovan där du kan ändra ordningen genom att dra och släppa. Bilagorna kommer att inkluderas i ansökan när du genererar 'Ansökan om intyg om godkänd BT'."
+    >
       <div className="mb-2 text-sm font-extrabold">Inkludera bilagor</div>
 
       {/* === Delmål i BT (NY) === */}
@@ -2522,6 +2555,7 @@ useEffect(() => {
                     type="button"
                     className="shrink-0 rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
                     title="Öppna förhandsvisning av intyg för detta moment"
+                    data-info="Genererar och visar en förhandsvisning av intyget för denna registrerade kliniska tjänstgöring. Intyget innehåller aktivitetens information och de BT-delmål som är kopplade till den."
                     onClick={async () => {
                       try {
                         if (!profile) {
@@ -2632,6 +2666,7 @@ useEffect(() => {
                       type="button"
                       className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
                       title="Öppna och fyll i fliken ”Delmål i BT” med intygets sparade uppgifter"
+                      data-info="Öppnar fliken 'Skapa intyg: Delmål i BT' och fyller i formuläret med detta sparade intygs uppgifter så att du kan redigera dem. När du sparar kommer ändringarna att uppdatera detta intyg."
                       onClick={() => {
                         const saved = btSavedCerts[key]!;
                         setBtGoals(structuredClone(saved.goals));
@@ -2656,6 +2691,7 @@ useEffect(() => {
                       type="button"
                       className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
                       title="Öppna förhandsvisning av intyget"
+                      data-info="Genererar och öppnar en förhandsvisning av detta sparade intyg som PDF. Du kan granska intyget innan det används i ansökan."
                       onClick={async () => {
                         try {
                           if (!profile) {
@@ -2756,7 +2792,10 @@ useEffect(() => {
 
                   {/* === Övriga BT-specifika tillägg === */}
       {/* Tjänstgöring före legitimation */}
-      <div className="mb-2">
+      <div 
+        className="mb-2"
+        data-info="Här kan du inkludera intyg för tjänstgöring som genomförts före legitimation. Kryssa i rutan för att aktivera funktionen. Ange sedan antal bilagor (intyg) som behövs i nummerfältet och klicka på OK för att bekräfta. Detta skapar motsvarande antal bilagor i listan här ovan som du kan redigera genom att klicka på dem. Varje bilaga kan innehålla information om tjänstgöringens plats, period, handledare och hur delmål har kontrollerats. Bilagorna kommer att inkluderas i ansökan om intyg om godkänd BT."
+      >
         <div className="flex items-center gap-2">
           <label className="inline-flex items-center gap-2 text-[13px]">
             <input
@@ -2845,6 +2884,7 @@ useEffect(() => {
                   : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
               }`}
               title="Bekräfta antal"
+              data-info="Bekräftar antalet bilagor för tjänstgöring före legitimation. När du klickar på OK skapas motsvarande antal bilagor i listan till vänster som du kan redigera."
             >
               OK
             </button>
@@ -2974,6 +3014,7 @@ useEffect(() => {
               onClick={handlePreviewBtFull}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
               title="Öppna förhandsvisning – Intyg fullgjord BT"
+              data-info="Genererar och visar en förhandsvisning av intyget för fullgjord bastjänstgöring (BT). Detta intyg bekräftar att hela bastjänstgöringen har genomförts enligt kraven, inklusive alla kliniska tjänstgöringar med deras perioder, sysselsättningsprocent och månader i heltid. Intyget kan användas i ansökan om specialistkompetens."
             >
               Intyg fullgjord BT
             </button>
@@ -2983,6 +3024,7 @@ useEffect(() => {
               onClick={handlePreviewBtCompetence}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
               title="Öppna förhandsvisning – Intyg uppnådd baskompetens"
+              data-info="Genererar och visar en förhandsvisning av intyget för uppnådd baskompetens i bastjänstgöringen. Detta intyg bekräftar att de kompetenser som krävs för bastjänstgöringen har uppnåtts. Intyget innehåller information om huvudhandledare och extern bedömare om sådan finns angiven."
             >
               Intyg uppnådd BT
             </button>
@@ -2992,6 +3034,7 @@ useEffect(() => {
               onClick={handlePreviewBtApplication}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
               title="Öppna förhandsvisning – Ansökan om intyg om godkänd BT"
+              data-info="Genererar och visar en förhandsvisning av ansökan om intyg om godkänd bastjänstgöring. Detta är en komplett ansökan som inkluderar alla bilagor som har valts i fliken 'Ordna bilagor', inklusive intyg för delmål, kliniska tjänstgöringar och andra dokument. Ansökan kan användas för att ansöka om intyg om godkänd BT."
             >
               Ansökan om intyg om godkänd BT
             </button>

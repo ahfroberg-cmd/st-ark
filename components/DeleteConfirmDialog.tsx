@@ -120,6 +120,7 @@ export default function DeleteConfirmDialog({
           <button
             onClick={onCancel}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+            data-info="Avbryter borttagningen och stänger bekräftelsedialogen. Inget tas bort."
           >
             Avbryt
           </button>
@@ -136,6 +137,7 @@ export default function DeleteConfirmDialog({
             <button
               onClick={onConfirm}
               className="inline-flex items-center justify-center rounded-lg border border-red-600 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:border-red-700 hover:bg-red-700 active:translate-y-px"
+              data-info={`Bekräftar borttagningen. ${confirmLabel} tas bort permanent från databasen. Du kan också trycka Enter för att bekräfta.`}
             >
               {confirmLabel}
             </button>

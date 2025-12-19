@@ -47,6 +47,7 @@ export default function HomePage() {
     }
 
     setImporting(true);
+    
     try {
       // Dexie öppnar databasen automatiskt vid första query
       const txt = await f.text();
@@ -70,6 +71,11 @@ export default function HomePage() {
       if (Array.isArray(courses))    for (const c of courses)    { try { await (db as any).courses?.put?.(c); } catch {} }
       if (Array.isArray(achievements))for (const a of achievements){ try { await (db as any).achievements?.put?.(a); } catch {} }
 
+      // Markera välkomstmeddelandet som sett när man laddar in JSON
+      if (typeof window !== "undefined") {
+        localStorage.setItem("st-ark-welcome-seen", "true");
+      }
+
       router.replace("/planera-st");
     } catch (err) {
       console.error(err);
@@ -85,6 +91,7 @@ export default function HomePage() {
       <button
         onClick={() => setAboutOpen(true)}
         className="absolute right-6 top-6 inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50"
+        data-info="Öppnar informationsfönster med instruktioner, information om projektet, kontaktuppgifter, integritetspolicy och licensvillkor."
       >
         Om
       </button>
@@ -113,6 +120,7 @@ export default function HomePage() {
           onClick={pickFile}
           className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-60"
           disabled={importing}
+          data-info="Låter dig ladda upp en tidigare sparad JSON-fil med din data (profil, aktiviteter, kurser, IUP) för att fortsätta ditt arbete där du slutade."
         >
           <div className="text-lg font-extrabold">Fortsätt tidigare arbete</div>
           <p className="mt-1 text-slate-600">Ladda upp din JSON-fil och fortsätt i tidslinjen.</p>

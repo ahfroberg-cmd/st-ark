@@ -668,6 +668,7 @@ function Sta3TabContent({
           onClick={handleGenerate}
           disabled={downloading}
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px disabled:opacity-60 disabled:pointer-events-none"
+          data-info="Intyg delmål STa3"
         >
           {downloading ? "Skapar förhandsgranskning…" : "Intyg delmål STa3"}
         </button>
@@ -771,6 +772,7 @@ function ThirdCountryTabContent({
             type="button"
             onClick={() => setThirdCountryMilestonePickerOpen(true)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px"
+            data-info="Välj delmål"
           >
             {thirdCountryMilestones.size > 0 ? "Ändra delmål" : "Välj delmål"}
           </button>
@@ -816,6 +818,7 @@ function ThirdCountryTabContent({
           onClick={handleGenerate}
           disabled={downloading}
           className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px disabled:opacity-60 disabled:pointer-events-none"
+          data-info="Intyg"
         >
           {downloading ? "Skapar förhandsgranskning…" : "Intyg"}
         </button>
@@ -830,10 +833,13 @@ export default function PrepareApplicationModal2021({ open, onClose }: Props) {
 
   const [dirty, setDirty] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const baselineReadyRef = useRef(false);
+  
   useEffect(() => {
     if (open) {
       setDirty(false);
       setShowCloseConfirm(false);
+      baselineReadyRef.current = false; // Nollställ när modalen öppnas
     }
   }, [open]);
 
@@ -2114,6 +2120,9 @@ const coordsIntyg2015 = {
 
   const takeBaseline = () => {
     baselineRef.current = currentSnapshot();
+    baselineReadyRef.current = true;
+    // Nollställ dirty när baseline tas
+    setDirty(false);
   };
 
   const restoreBaseline = () => {
@@ -2242,7 +2251,7 @@ const coordsIntyg2015 = {
 
   /** Uppdatera dirty-status baserat på baseline */
   useEffect(() => {
-    if (!open || !baselineRef.current) return;
+    if (!open || !baselineRef.current || !baselineReadyRef.current) return;
     const b = baselineRef.current;
     const cur = currentSnapshot();
     try {
@@ -2304,6 +2313,7 @@ const coordsIntyg2015 = {
   disabled={!dirty}
             onClick={() => { void handleSaveAll(); }}
   className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+  data-info="Spara"
 >
   Spara
 </button>
@@ -2311,6 +2321,7 @@ const coordsIntyg2015 = {
     <button
       onClick={handleRequestClose}
       className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+      data-info="Stäng"
     >
       Stäng
     </button>
@@ -2321,10 +2332,10 @@ const coordsIntyg2015 = {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "signers",     label: "Intygande personer" },
-            { id: "sta3",        label: "Delmål STa3" }, // STa3 finns i 2021
-            ...((profile as any)?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredje land" }] : []),
-            { id: "attachments", label: "Ordna bilagor" },
+            { id: "signers",     label: "Intygande personer", info: "Här anger du vilka personer som ska intyga ansökan: huvudhandledare, intygsutfärdande specialistläkare, verksamhetschef och eventuellt utsedd chef. Dessa uppgifter används när intygen genereras." },
+            { id: "sta3",        label: "Delmål STa3", info: "Här kan du skapa intyg för delmål STa3 (specialiseringstjänstgöring delmål A3). Du anger vilka aktiviteter och kurser som uppfyller delmålet och hur det har kontrollerats. Intyget kan sedan inkluderas som bilaga i ansökan." },
+            ...((profile as any)?.isThirdCountrySpecialist ? [{ id: "thirdCountry", label: "Specialistläkare från tredje land", info: "Här kan du skapa intyg för specialistläkare från tredje land. Du anger vilka delmål som uppfyllts, vilka utbildningsaktiviteter som genomförts och hur det har kontrollerats. Detta används för ansökan om specialistkompetens." }] : []),
+            { id: "attachments", label: "Ordna bilagor", info: "Här kan du se alla bilagor som ska inkluderas i ansökan och ändra deras ordning genom att dra och släppa. Du kan också lägga till eller ta bort bilagor som ska inkluderas i ansökan." },
           ].map((t) => (
             <button
               key={t.id}
@@ -2335,6 +2346,7 @@ const coordsIntyg2015 = {
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
+              data-info={t.info || t.label}
             >
               {t.label}
             </button>
@@ -2556,6 +2568,7 @@ const coordsIntyg2015 = {
                           role="button"
                           aria-grabbed={dragIndex === idx && dragActive}
                           title="Dra för att flytta"
+                          data-info={`${getBilagaName2021(a.type) || a.type} - ${formatAttachmentLabel2021(a)}. Kan flyttas för att ändra ordning.`}
                           style={{
                             userSelect: "none",
                             WebkitUserSelect: "none",
@@ -2600,7 +2613,7 @@ const coordsIntyg2015 = {
 
                 {/* Intyg om fullgjord specialiseringstjänstgöring */}
                 <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                  <label className="inline-flex items-center gap-2 text-[13px]">
+                  <label className="inline-flex items-center gap-2 text-[13px]" data-info="Intyg om fullgjord specialiseringstjänstgöring. Detta intyg bekräftar att du har genomfört hela specialiseringstjänstgöringen enligt kraven. Intyget inkluderas som bilaga i ansökan om specialistkompetens.">
                     <input type="checkbox" checked={presetChecked.fullgjordST ?? true} onChange={() => togglePreset("fullgjordST")} />
                     <span>Intyg om fullgjord specialiseringstjänstgöring</span>
                   </label>
@@ -2616,7 +2629,7 @@ const coordsIntyg2015 = {
 
                 {/* Intyg */}
                 <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                  <label className="inline-flex items-center gap-2 text-[13px]">
+                  <label className="inline-flex items-center gap-2 text-[13px]" data-info="Intyg om uppnådd specialistkompetens. Detta är huvudintyget som bekräftar att du har uppnått alla delmål och kompetenser som krävs för specialistkompetens. Intyget inkluderas som bilaga i ansökan.">
                     <input type="checkbox" checked={presetChecked.intyg} onChange={() => togglePreset("intyg")} />
                     <span>Intyg om uppnådd specialistkompetens</span>
                   </label>
@@ -2632,7 +2645,7 @@ const coordsIntyg2015 = {
 
                 {/* Intyg delmål STa3 */}
                 <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                  <label className="inline-flex items-center gap-2 text-[13px]">
+                  <label className="inline-flex items-center gap-2 text-[13px]" data-info="Intyg delmål STa3. Detta intyg bekräftar att du har uppfyllt delmål STa3 (specialiseringstjänstgöring delmål A3) genom olika aktiviteter och kurser. Intyget skapas i fliken 'Delmål STa3' och kan inkluderas som bilaga i ansökan.">
                     <input type="checkbox" checked={presetChecked.sta3} onChange={() => togglePreset("sta3")} />
                     <span>Intyg delmål STa3</span>
                   </label>
@@ -2649,7 +2662,7 @@ const coordsIntyg2015 = {
                 {/* Delmål för specialistläkare från tredjeland (om användaren är specialistläkare från tredjeland) */}
                 {(profile as any)?.isThirdCountrySpecialist && (
                   <div className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                    <label className="inline-flex items-center gap-2 text-[13px]">
+                    <label className="inline-flex items-center gap-2 text-[13px]" data-info="Delmål för specialistläkare från tredjeland. Detta intyg bekräftar att du har uppfyllt de delmål som krävs för specialistläkare från tredje land. Intyget skapas i fliken 'Specialistläkare från tredje land' och kan inkluderas som bilaga i ansökan.">
                       <input type="checkbox" checked={presetChecked.thirdCountry} onChange={() => togglePreset("thirdCountry")} />
                       <span>Delmål för specialistläkare från tredjeland</span>
                     </label>
@@ -2682,9 +2695,19 @@ const coordsIntyg2015 = {
                       thirdCountry: "Delmål för specialistläkare från tredjeland",
                       individProg: "Individuellt utbildningsprogram för specialistläkare från tredjeland",
                     };
+                    const infoTexts: Record<PresetKey, string> = {
+                      fullgjordST: "Intyg om fullgjord specialiseringstjänstgöring. Bekräftar att hela specialiseringstjänstgöringen är genomförd.",
+                      intyg: "Intyg om uppnådd specialistkompetens. Huvudintyget som bekräftar att alla delmål och kompetenser är uppnådda.",
+                      sta3: "Intyg delmål STa3. Bekräftar att delmål STa3 är uppfyllt.",
+                      svDoc: "Svensk doktorsexamen. Dokumentation av din svenska doktorsexamen som bilaga i ansökan.",
+                      foreignDocEval: "Bedömning av utländsk doktorsexamen. Dokumentation av bedömning av din utländska doktorsexamen som bilaga i ansökan.",
+                      foreignService: "Utländsk tjänstgöring. Dokumentation av utländsk tjänstgöring som kan räknas in i utbildningen.",
+                      thirdCountry: "Delmål för specialistläkare från tredjeland. Bekräftar att delmål för tredjelandspecialister är uppfyllda.",
+                      individProg: "Individuellt utbildningsprogram för specialistläkare från tredjeland. Dokumentation av ditt individuella utbildningsprogram.",
+                    };
                     return (
                       <div key={k} className="mb-2 grid grid-cols-[minmax(0,1fr)_220px] items-center gap-2">
-                        <label className="inline-flex items-center gap-2 text-[13px]">
+                        <label className="inline-flex items-center gap-2 text-[13px]" data-info={infoTexts[k]}>
                           <input type="checkbox" checked={presetChecked[k]} onChange={() => togglePreset(k)} />
                           <span>{labels[k]}</span>
                         </label>
@@ -2742,18 +2765,21 @@ const coordsIntyg2015 = {
             <button
               onClick={onPrintFullgjord}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Intyg fullgjord ST. Skapar och öppnar en PDF med intyg om fullgjord specialiseringstjänstgöring. Intyget kan skrivas ut eller sparas och inkluderas som bilaga i ansökan."
             >
               Intyg fullgjord ST
             </button>
             <button
               onClick={onPrintIntyg}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Intyg uppnådd ST. Skapar och öppnar en PDF med intyg om uppnådd specialistkompetens. Detta är huvudintyget som bekräftar att alla delmål och kompetenser är uppnådda. Intyget kan skrivas ut eller sparas och inkluderas som bilaga i ansökan."
             >
               Intyg uppnådd ST
             </button>
             <button
               onClick={onPrintAnsokan}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Ansökan om bevis om specialistkompetens. Skapar och öppnar en komplett PDF-ansökan med alla bilagor i rätt ordning. Ansökan innehåller alla intyg, aktiviteter och kurser som du har valt att inkludera."
             >
               Ansökan om bevis om specialistkompetens
             </button>

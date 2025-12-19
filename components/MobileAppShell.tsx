@@ -33,11 +33,11 @@ const ScanIntygModal = dynamic(
 
 type TabKey = "home" | "placements" | "courses" | "iup";
 
-const TABS: { id: TabKey; label: string }[] = [
-  { id: "home",       label: "Hem" },
-  { id: "placements", label: "Tjänstgöring" },
-  { id: "courses",    label: "Kurser" },
-  { id: "iup",        label: "IUP" },
+const TABS: { id: TabKey; label: string; info: string }[] = [
+  { id: "home",       label: "Hem", info: "Växlar till startsidan där du kan se en översikt över din utbildning, tidslinje och snabbåtkomst till viktiga funktioner som att skanna intyg eller förbereda ansökningar." },
+  { id: "placements", label: "Tjänstgöring", info: "Växlar till vyn för klinisk tjänstgöring där du kan se, lägga till och redigera alla dina kliniska tjänstgöringar, auskultationer, arbeten och ledighet." },
+  { id: "courses",    label: "Kurser", info: "Växlar till vyn för kurser där du kan se, lägga till och redigera alla dina kurser och utbildningsmoment." },
+  { id: "iup",        label: "IUP", info: "Växlar till IUP-vyn (Individuell utbildningsplan) där du kan hantera planering, handledarsamtal, progressionsbedömningar och delmål." },
 ];
 
 export default function MobileAppShell() {
@@ -147,6 +147,7 @@ export default function MobileAppShell() {
                     ? "text-emerald-700"
                     : "text-slate-900 hover:text-slate-700",
                 ].join(" ")}
+                data-info={t.info}
               >
                 <span
                   className={[

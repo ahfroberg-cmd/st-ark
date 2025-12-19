@@ -268,12 +268,14 @@ export default function Sta3PrepModal({
               onClick={handleSave}
               className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
               title="Spara ändringar i denna modal"
+              data-info="Sparar alla ändringar i STa3-intyget till databasen. Knappen är endast aktiv när det finns osparade ändringar."
             >
               Spara
             </button>
             <button
               onClick={handleClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+              data-info="Stäng"
             >
               Stäng
             </button>
@@ -493,6 +495,7 @@ export default function Sta3PrepModal({
               }}
               disabled={downloading}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-100 active:translate-y-px disabled:opacity-60 disabled:pointer-events-none"
+              data-info="Skapar och öppnar en förhandsvisning av STa3-intyget som PDF. Du kan sedan skriva ut eller spara intyget."
             >
               {downloading ? "Skapar förhandsgranskning…" : "Intyg delmål STa3"}
             </button>
@@ -550,6 +553,7 @@ function CertificatePreview({ open, url, onClose }: CertificatePreviewProps) {
             onClick={(e) => {
               if (!url) e.preventDefault();
             }}
+            data-info="Laddar ner STa3-intyget som en PDF-fil som du kan spara på din dator eller skriva ut."
           >
             Ladda ned PDF
           </a>
@@ -558,6 +562,7 @@ function CertificatePreview({ open, url, onClose }: CertificatePreviewProps) {
             onClick={onClose}
             className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
             title="Stäng förhandsvisningen"
+            data-info="Stänger förhandsvisningen av STa3-intyget och återgår till redigeringsvyn."
           >
             Stäng
           </button>

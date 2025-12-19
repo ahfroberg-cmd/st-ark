@@ -67,6 +67,7 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
             onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-900 hover:bg-slate-100 active:translate-y-px shrink-0"
             title="Stäng"
+            data-info="Stänger BT-delmål-dialogen. De markerade delmålen behålls."
           >
             ✕
           </button>
@@ -156,6 +157,7 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
                         ? "bg-rose-500 hover:bg-rose-600 active:translate-y-px"
                         : "bg-emerald-500 hover:bg-emerald-600 active:translate-y-px")
                     }
+                    data-info={isMarked ? "Avmarkera delmål" : "Markera delmål"}
                   >
                     {isMarked ? "Avmarkera delmål" : "Markera delmål"}
                   </button>
@@ -186,6 +188,7 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
             ? "border-emerald-200 bg-emerald-50" + (hoveredCheckbox === mid ? "" : " hover:bg-emerald-100")
             : "border-slate-200 bg-slate-50" + (hoveredCheckbox === mid ? "" : " hover:bg-slate-100"))
         }
+        data-info={`Klicka för att öppna detaljvyn för BT-delmål ${mid}. ${isChecked ? "Delmålet är markerat." : "Delmålet är inte markerat."}`}
       >
         {/* Vänster: chip + titel (öppnar info) */}
         <button
@@ -207,6 +210,7 @@ export default function BtMilestonePicker({ open, title, checked, onToggle, onCl
           onClick={(e) => e.stopPropagation()}
           onMouseEnter={() => setHoveredCheckbox(mid)}
           onMouseLeave={() => setHoveredCheckbox((v) => (v === mid ? null : v))}
+          data-info={isChecked ? "Avmarkera delmål" : "Markera delmål"}
         >
           <input
             type="checkbox"

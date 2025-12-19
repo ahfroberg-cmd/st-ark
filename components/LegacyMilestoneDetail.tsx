@@ -49,7 +49,7 @@ export default function LegacyMilestoneDetail({
           <div style={{ fontWeight:700, fontSize:16 }}>
             {m.code} – {m.title}
           </div>
-          <button onClick={onClose} style={btnX} aria-label="Stäng">×</button>
+          <button onClick={onClose} style={btnX} aria-label="Stäng" data-info="Stänger detaljvyn för detta delmål och återgår till listan.">×</button>
         </header>
 
         <div style={{ padding:14, maxHeight:"70vh", overflow:"auto" }}>
@@ -69,7 +69,7 @@ export default function LegacyMilestoneDetail({
           {m.sourceUrl && (
             <div style={{ fontSize:12, marginTop:10 }}>
               Källa:{" "}
-              <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{ textDecoration:"underline" }}>
+              <a href={m.sourceUrl} target="_blank" rel="noreferrer" style={{ textDecoration:"underline" }} data-info="Öppnar den officiella målbeskrivningen för detta delmål i en ny flik.">
                 målbeskrivningen
               </a>
             </div>
@@ -81,12 +81,13 @@ export default function LegacyMilestoneDetail({
             <button
               onClick={() => { onToggle(m.id); onClose(); }}
               style={checked ? btnDanger : btnPrimary}
+              data-info={checked ? "Avmarkerar detta delmål så att det inte längre kopplas till aktiviteten." : "Markerar detta delmål så att det kopplas till aktiviteten."}
             >
               {checked ? "Avmarkera delmål" : "Välj delmål"}
             </button>
           )}
           <div style={{ marginLeft:"auto" }} />
-          <button onClick={onClose} style={btn}>Stäng</button>
+          <button onClick={onClose} style={btn} data-info="Stänger detaljvyn för detta delmål och återgår till listan.">Stäng</button>
         </footer>
       </div>
     </div>

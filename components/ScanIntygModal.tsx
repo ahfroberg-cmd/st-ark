@@ -1215,6 +1215,7 @@ export default function ScanIntygModal({
               type="button"
               onClick={() => setTipsOpen(true)}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+              data-info="Visar tips och råd för hur du får bästa möjliga resultat när du skannar intyg med OCR. Inkluderar information om bildkvalitet, ljusförhållanden och positionering."
             >
               Tips för bästa resultat
             </button>
@@ -1222,6 +1223,7 @@ export default function ScanIntygModal({
               type="button"
               onClick={handleClose}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+              data-info="Stänger skanna intyg-modalen. Om du har valt en fil eller gjort ändringar i formuläret visas en varning innan modalen stängs."
             >
               Stäng
             </button>
@@ -1265,6 +1267,7 @@ export default function ScanIntygModal({
                     type="button"
                     onClick={() => cameraInputRef.current?.click()}
                     className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px md:hidden"
+                    data-info="Öppnar kameran för att fotografera ett intyg direkt med din enhet. Endast synlig på mobila enheter."
                   >
                     Fota intyg
                   </button>
@@ -1273,6 +1276,7 @@ export default function ScanIntygModal({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
+                    data-info="Öppnar en filväljare där du kan välja en bildfil av ett intyg från din enhet. Bilden skickas sedan till OCR-tjänsten för textigenkänning."
                   >
                     Ladda upp bild
                   </button>
@@ -1309,6 +1313,7 @@ export default function ScanIntygModal({
                       onClick={handleScan}
                       disabled={!canScan}
                       className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-info="Skickar den valda bilden till OCR-tjänsten (ocr.space) för textigenkänning. Efter skanning fylls formuläret automatiskt i med information från intyget som du kan granska och justera."
                     >
                       {busy ? "Skannar…" : "Skanna"}
                     </button>
@@ -1391,7 +1396,7 @@ export default function ScanIntygModal({
                   {/* Rad 2: Specialitet + Tjänstgöringsställe */}
                   <div className={`grid grid-cols-1 gap-3 ${clinicLabel ? "md:grid-cols-2" : ""}`}>
                     <div className="space-y-2">
-                      <label className="block text-xs fonDt-medium text-slate-900">
+                      <label className="block text-xs font-medium text-slate-900" data-info="Specialitet som ansökan avser - den specialitet som intyget gäller för.">
                         Specialitet som ansökan avser
                       </label>
                       <input
@@ -1403,11 +1408,12 @@ export default function ScanIntygModal({
                           }))
                         }
                         className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                        data-info="Ange specialitet som ansökan avser. Detta är den specialitet som intyget gäller för."
                       />
                     </div>
                     {clinicLabel && (
                       <div className="space-y-2">
-                        <label className="block text-xs font-medium text-slate-900">
+                        <label className="block text-xs font-medium text-slate-900" data-info={`${clinicLabel} - kliniken eller verksamheten där aktiviteten genomfördes.`}>
                           {clinicLabel}
                         </label>
                         <input
@@ -1419,6 +1425,7 @@ export default function ScanIntygModal({
                             }))
                           }
                           className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                          data-info={`Ange ${clinicLabel.toLowerCase()} - kliniken eller verksamheten där aktiviteten genomfördes.`}
                         />
                       </div>
                     )}
@@ -1426,7 +1433,7 @@ export default function ScanIntygModal({
 
                   {/* Rad 3: Delmål */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-medium text-slate-900">
+                    <label className="block text-xs font-medium text-slate-900" data-info="Delmål som intyget avser - ange delmålskoder separerade med kommatecken (t.ex. 'a1, a2, b3').">
                       Delmål (komma-separerade)
                     </label>
                     <input
@@ -1441,6 +1448,7 @@ export default function ScanIntygModal({
                         }))
                       }
                       className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                      data-info="Ange delmålskoder som intyget avser, separerade med kommatecken. Exempel: 'a1, a2, b3'. Dessa delmål kopplas till aktiviteten i tidslinjen."
                     />
                   </div>
 
@@ -1467,6 +1475,7 @@ export default function ScanIntygModal({
                             })
                           }
                           align="left"
+                          data-info="Välj startdatum för aktiviteten. Detta är datumet när aktiviteten börjar och används för placering i tidslinjen."
                         />
                       </div>
                       <div>
@@ -1484,6 +1493,7 @@ export default function ScanIntygModal({
                             }))
                           }
                           align="right"
+                          data-info="Välj slutdatum för aktiviteten. Detta är datumet när aktiviteten slutar och måste vara samma eller senare än startdatumet."
                         />
                       </div>
                     </div>
@@ -1516,6 +1526,7 @@ export default function ScanIntygModal({
                               })
                             }
                             align="left"
+                            data-info="Välj startdatum för kursen. Detta är datumet när kursen börjar och används för placering i tidslinjen."
                           />
                         </div>
                         <div>
@@ -1534,10 +1545,11 @@ export default function ScanIntygModal({
                               }))
                             }
                             align="right"
+                            data-info="Välj slutdatum för kursen. Detta är datumet när kursen slutar och måste vara samma eller senare än startdatumet."
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-900 mb-1">
+                          <label className="block text-xs font-medium text-slate-900 mb-1" data-info="Välj hur kursen ska visas i tidslinjen - antingen som en punkt vid slutdatum eller som ett intervall från start till slut.">
                             Visa i tidslinjen
                           </label>
                           <select
@@ -1549,6 +1561,7 @@ export default function ScanIntygModal({
                               }))
                             }
                             className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                            data-info="Välj hur kursen ska visas i tidslinjen: 'Enbart slutdatum' visar kursen som en punkt vid slutdatum, 'Start till slut' visar kursen som ett intervall."
                           >
                             <option value="date">Enbart slutdatum</option>
                             <option value="interval">Start till slut</option>
@@ -1585,6 +1598,7 @@ export default function ScanIntygModal({
                               })
                             }
                             align="left"
+                            data-info="Välj startdatum för utvecklingsarbetet. Detta är datumet när arbetet börjar och används för placering i tidslinjen."
                           />
                         </div>
                         <div>
@@ -1603,6 +1617,7 @@ export default function ScanIntygModal({
                               }))
                             }
                             align="right"
+                            data-info="Välj slutdatum för utvecklingsarbetet. Detta är datumet när arbetet slutar och måste vara samma eller senare än startdatumet."
                           />
                         </div>
                       </div>
@@ -1812,6 +1827,7 @@ export default function ScanIntygModal({
               onClick={handleSave}
               disabled={busy || !parsed}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
+              data-info="Spara"
             >
               {busy ? "Sparar…" : "Spara"}
             </button>

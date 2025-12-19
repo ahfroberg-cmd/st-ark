@@ -17,6 +17,53 @@
 export const aboutContent = {
   instruction: {
     text: "Instruktionsvideo kommer inom kort.",
+    gettingStarted: {
+      title: "Kom igång",
+      description: "För att börja planera din ST-tjänstgöring, klicka i något av spåren i tidslinjen:",
+      tracks: [
+        {
+          name: "Placeringar (bredare spår)",
+          description: "Det övre, bredare spåret i varje årsrad används för att lägga till kliniska tjänstgöringar, auskultationer, arbeten och ledighet. Klicka var som helst i detta spår för att börja lägga till en aktivitet.",
+        },
+        {
+          name: "Kurser (smalare spår)",
+          description: "Det nedre, smalare spåret i varje årsrad används för att lägga till kurser. Klicka var som helst i detta spår för att börja lägga till en kurs.",
+        },
+      ],
+    },
+    shortcuts: {
+      title: "Kortkommandon",
+      sections: [
+        {
+          name: "Allmänt",
+          items: [
+            "ESC - Stäng öppet fönster eller avbryt",
+          ],
+        },
+        {
+          name: "Varningsrutor (osparade ändringar)",
+          items: [
+            "ESC - Avbryt och behåll ändringar",
+            "Cmd/Ctrl + Enter - Spara och stäng",
+            "Delete eller Cmd/Ctrl + Backspace - Stäng utan att spara",
+          ],
+        },
+        {
+          name: "Bekräftelsedialoger (ta bort)",
+          items: [
+            "ESC - Avbryt",
+            "Enter - Bekräfta och ta bort",
+          ],
+        },
+        {
+          name: "I formulär och modaler",
+          items: [
+            "Cmd/Ctrl + Enter - Spara ändringar (när det finns osparade ändringar)",
+            "ESC - Stäng fönster (visar varning om det finns osparade ändringar)",
+          ],
+        },
+      ],
+    },
   },
   
   about: {

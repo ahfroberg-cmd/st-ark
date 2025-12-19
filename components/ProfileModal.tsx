@@ -33,12 +33,14 @@ function Input({
   type = "text",
   placeholder,
   inputMode,
+  info,
 }: {
   value: any;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  info?: string;
 }) {
   const [local, setLocal] = useState<string>(value ?? "");
 
@@ -70,6 +72,7 @@ function Input({
       autoComplete="off"
       spellCheck={false}
       className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+      data-info={info}
     />
   );
 }
@@ -79,8 +82,12 @@ function Input({
 
 
 
-function Labeled({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1 block text-sm text-slate-700">{children}</label>;
+function Labeled({ children, info }: { children: React.ReactNode; info?: string }) {
+  return (
+    <label className="mb-1 block text-sm text-slate-700" data-info={info}>
+      {children}
+    </label>
+  );
 }
 
 export default function ProfileModal({ open, onClose }: Props) {
@@ -295,43 +302,43 @@ export default function ProfileModal({ open, onClose }: Props) {
   const personuppgifterView = (
     <div className="grid grid-cols-1 gap-3">
       <div>
-        <Labeled>Namn</Labeled>
-        <Input value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+        <Labeled info="Ditt fullständiga namn som används i intyg och ansökningar.">Namn</Labeled>
+        <Input value={form.name} onChange={(v) => setForm({ ...form, name: v })} info="Ange ditt fullständiga namn. Detta används i alla intyg och ansökningar som genereras." />
       </div>
       <div>
-        <Labeled>Personnummer</Labeled>
-        <Input value={form.personalNumber} onChange={(v) => setForm({ ...form, personalNumber: v })} inputMode="numeric" />
+        <Labeled info="Ditt personnummer (YYYYMMDD-XXXX) som används i intyg och ansökningar.">Personnummer</Labeled>
+        <Input value={form.personalNumber} onChange={(v) => setForm({ ...form, personalNumber: v })} inputMode="numeric" info="Ange ditt personnummer i formatet YYYYMMDD-XXXX. Detta används i intyg och ansökningar." />
       </div>
       <div>
-        <Labeled>Utdelningsadress</Labeled>
-        <Input value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
+        <Labeled info="Din utdelningsadress där du får post.">Utdelningsadress</Labeled>
+        <Input value={form.address} onChange={(v) => setForm({ ...form, address: v })} info="Ange din utdelningsadress (gata och nummer)." />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <Labeled>Postnummer</Labeled>
-          <Input value={form.postalCode} onChange={(v) => setForm({ ...form, postalCode: v })} inputMode="numeric" />
+          <Labeled info="Postnummer för din adress.">Postnummer</Labeled>
+          <Input value={form.postalCode} onChange={(v) => setForm({ ...form, postalCode: v })} inputMode="numeric" info="Ange postnummer (5 siffror)." />
         </div>
         <div className="col-span-2">
-          <Labeled>Postort</Labeled>
-          <Input value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
+          <Labeled info="Postort för din adress.">Postort</Labeled>
+          <Input value={form.city} onChange={(v) => setForm({ ...form, city: v })} info="Ange postort (stad eller ort)." />
         </div>
       </div>
       <div>
-        <Labeled>E-postadress</Labeled>
-        <Input value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
+        <Labeled info="Din e-postadress för kontakt.">E-postadress</Labeled>
+        <Input value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" info="Ange din e-postadress för kontakt." />
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <Labeled>Mobiltelefon</Labeled>
-          <Input value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} inputMode="tel" />
+          <Labeled info="Ditt mobiltelefonnummer.">Mobiltelefon</Labeled>
+          <Input value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v })} inputMode="tel" info="Ange ditt mobiltelefonnummer." />
         </div>
         <div>
-          <Labeled>Telefon (bostad)</Labeled>
-          <Input value={form.phoneHome} onChange={(v) => setForm({ ...form, phoneHome: v })} inputMode="tel" />
+          <Labeled info="Ditt telefonnummer till bostaden.">Telefon (bostad)</Labeled>
+          <Input value={form.phoneHome} onChange={(v) => setForm({ ...form, phoneHome: v })} inputMode="tel" info="Ange telefonnummer till din bostad." />
         </div>
         <div>
-          <Labeled>Telefon (arbete)</Labeled>
-          <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" />
+          <Labeled info="Ditt telefonnummer på arbetsplatsen.">Telefon (arbete)</Labeled>
+          <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" info="Ange telefonnummer på din arbetsplats." />
         </div>
       </div>
 
@@ -352,7 +359,7 @@ export default function ProfileModal({ open, onClose }: Props) {
       {/* Rad 1: Specialitet (vänster) + Målversion (höger) */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Labeled>Specialitet</Labeled>
+          <Labeled info="Din specialitet inom läkarvetenskapen. Detta påverkar vilka delmål och krav som gäller för din ST-utbildning.">Specialitet</Labeled>
           <select
             value={form.specialty}
             onChange={(e) => {
@@ -366,6 +373,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                 : undefined
             }
             className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            data-info="Välj din specialitet. Detta påverkar vilka delmål, krav och intygstyper som är relevanta för din ST-utbildning. Specialiteten kan inte ändras efter att profil är låst."
           >
             <option value="">— Välj —</option>
             {specialtiesSorted.map((s) => (
@@ -376,7 +384,7 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
 
         <div>
-          <Labeled>Målversion</Labeled>
+          <Labeled info="Målversionen som gäller för din ST-utbildning - antingen SOSFS 2015:8 eller HSLF-FS 2021:8. Detta påverkar vilka delmål och krav som gäller.">Målversion</Labeled>
           <select
             value={form.goalsVersion}
             onChange={(e) => {
@@ -395,6 +403,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                 : undefined
             }
             className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            data-info="Välj målversion: SOSFS 2015:8 (60 månader ST) eller HSLF-FS 2021:8 (66 månader inklusive BT). Detta påverkar vilka delmål och krav som gäller. Målversionen kan inte ändras efter att profil är låst."
           >
             <option value="2015">SOSFS 2015:8</option>
             <option value="2021">HSLF-FS 2021:8</option>
@@ -407,14 +416,15 @@ export default function ProfileModal({ open, onClose }: Props) {
       {form.goalsVersion === "2021" && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <Labeled>Startdatum för BT/ST</Labeled>
+            <Labeled info="Startdatum för din BT (bastjänstgöring) och ST (specialiseringstjänstgöring). För 2021-versionen börjar BT och ST samtidigt.">Startdatum för BT/ST</Labeled>
             <CalendarDatePicker
               value={form.btStartDate || ""}
               onChange={(v: string) => setForm({ ...form, btStartDate: v })}
+              data-info="Välj startdatum för din BT (bastjänstgöring) och ST (specialiseringstjänstgöring). För 2021-versionen börjar BT och ST samtidigt."
             />
           </div>
           <div>
-            <Labeled>ST-längd i månader (inklusive BT)</Labeled>
+            <Labeled info="Total längd för ST-utbildningen i månader, inklusive BT. Standard är 66 månader för 2021-versionen.">ST-längd i månader (inklusive BT)</Labeled>
           <select
             value={String(form.stTotalMonths ?? (form.goalsVersion === "2021" ? 66 : 60))}
             onChange={(e) =>
@@ -425,6 +435,7 @@ export default function ProfileModal({ open, onClose }: Props) {
             }
             className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
             title="Planerad total tid i månader"
+            data-info="Välj total längd för ST-utbildningen i månader, inklusive BT. Standard är 66 månader för 2021-versionen. Detta påverkar tidslinjens omfattning."
           >
             {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
               const isSix = m % 6 === 0;
@@ -448,14 +459,15 @@ export default function ProfileModal({ open, onClose }: Props) {
       {form.goalsVersion === "2015" && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <Labeled>Startdatum för ST</Labeled>
+            <Labeled info="Startdatum för din ST (specialiseringstjänstgöring). För 2015-versionen börjar ST efter BT.">Startdatum för ST</Labeled>
             <CalendarDatePicker
               value={form.stStartDate || ""}
               onChange={(v: string) => setForm({ ...form, stStartDate: v })}
+              data-info="Välj startdatum för din ST (specialiseringstjänstgöring). För 2015-versionen börjar ST efter BT."
             />
           </div>
           <div>
-            <Labeled>ST-längd i månader</Labeled>
+            <Labeled info="Total längd för ST-utbildningen i månader. Standard är 60 månader för 2015-versionen.">ST-längd i månader</Labeled>
             <select
               value={String(form.stTotalMonths ?? 60)}
               onChange={(e) =>
@@ -466,6 +478,7 @@ export default function ProfileModal({ open, onClose }: Props) {
               }
               className="h-[40px] w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
               title="Planerad total tid i månader"
+              data-info="Välj total längd för ST-utbildningen i månader. Standard är 60 månader för 2015-versionen. Detta påverkar tidslinjens omfattning."
             >
               {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
                 const isSix = m % 6 === 0;
@@ -487,16 +500,16 @@ export default function ProfileModal({ open, onClose }: Props) {
 
       {/* Hemklinik */}
       <div>
-        <Labeled>Hemklinik</Labeled>
-        <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} />
+        <Labeled info="Din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet.">Hemklinik</Labeled>
+        <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} info="Ange din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet. Detta används i intyg och ansökningar." />
       </div>
 
       {/* Huvudhandledare och Studierektor – bredvid varandra */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <Labeled>Huvudhandledare</Labeled>
-          <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} />
-          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none">
+          <Labeled info="Namn på din huvudhandledare - den som har huvudansvaret för din ST-utbildning.">Huvudhandledare</Labeled>
+          <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} info="Ange namn på din huvudhandledare. Detta används i intyg och ansökningar." />
+          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om huvudhandledaren har ett annat tjänsteställe än din hemklinik.">
             <input
               type="checkbox"
               checked={supervisorHasOtherSite}
@@ -512,15 +525,15 @@ export default function ProfileModal({ open, onClose }: Props) {
           </label>
           {supervisorHasOtherSite && (
             <div className="mt-3">
-              <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} />
+              <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} info="Ange huvudhandledarens tjänsteställe om det skiljer sig från din hemklinik." />
             </div>
           )}
         </div>
 
         <div>
-          <Labeled>Studierektor</Labeled>
-          <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} />
-          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none">
+          <Labeled info="Namn på studierektorn - den som har ansvar för ST-utbildningen på din institution.">Studierektor</Labeled>
+          <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} info="Ange namn på studierektorn. Detta används i intyg och ansökningar." />
+          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om studierektorn har ett annat tjänsteställe än din hemklinik.">
             <input
               type="checkbox"
               checked={studyDirectorHasOtherSite}
@@ -530,7 +543,7 @@ export default function ProfileModal({ open, onClose }: Props) {
           </label>
           {studyDirectorHasOtherSite && (
             <div className="mt-3">
-              <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} />
+              <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} info="Ange studierektorns tjänsteställe om det skiljer sig från din hemklinik." />
             </div>
           )}
         </div>
@@ -539,23 +552,23 @@ export default function ProfileModal({ open, onClose }: Props) {
       {/* Chef + Verksamhetschef */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Labeled>Chef</Labeled>
-          <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} />
+          <Labeled info="Namn på din chef - den som har personalansvar för dig.">Chef</Labeled>
+          <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} info="Ange namn på din chef. Detta används i intyg och ansökningar." />
         </div>
         <div>
-          <Labeled>Verksamhetschef</Labeled>
-          <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} />
+          <Labeled info="Namn på verksamhetschefen - den som har ansvar för verksamheten där du arbetar.">Verksamhetschef</Labeled>
+          <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} info="Ange namn på verksamhetschefen. Detta används i intyg och ansökningar." />
         </div>
       </div>
 
       {/* Land + datum läkarexamen */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Labeled>Land för läkarexamen</Labeled>
-          <Input value={form.medDegreeCountry} onChange={(v) => setForm({ ...form, medDegreeCountry: v })} />
+          <Labeled info="Land där du avlade läkarexamen.">Land för läkarexamen</Labeled>
+          <Input value={form.medDegreeCountry} onChange={(v) => setForm({ ...form, medDegreeCountry: v })} info="Ange land där du avlade läkarexamen. Detta används i intyg och ansökningar." />
         </div>
         <div>
-          <Labeled>Datum för läkarexamen</Labeled>
+          <Labeled info="Datum när du avlade läkarexamen.">Datum för läkarexamen</Labeled>
           <CalendarDatePicker value={form.medDegreeDate || ""} onChange={(v: string) => setForm({ ...form, medDegreeDate: v })} />
         </div>
       </div>
@@ -563,12 +576,16 @@ export default function ProfileModal({ open, onClose }: Props) {
       {/* Land + Datum för legitimation (precis under läkarexamen) */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
-          <Labeled>Land för legitimation</Labeled>
-          <Input value={form.licenseCountry} onChange={(v) => setForm({ ...form, licenseCountry: v })} />
+          <Labeled info="Land där du har legitimation som läkare.">Land för legitimation</Labeled>
+          <Input value={form.licenseCountry} onChange={(v) => setForm({ ...form, licenseCountry: v })} info="Ange land där du har legitimation som läkare. Detta används i intyg och ansökningar." />
         </div>
         <div>
-          <Labeled>Datum för legitimation</Labeled>
-          <CalendarDatePicker value={form.licenseDate || ""} onChange={(v: string) => setForm({ ...form, licenseDate: v })} />
+          <Labeled info="Datum när du fick legitimation som läkare.">Datum för legitimation</Labeled>
+          <CalendarDatePicker 
+            value={form.licenseDate || ""} 
+            onChange={(v: string) => setForm({ ...form, licenseDate: v })} 
+            data-info="Välj datum när du fick legitimation som läkare. Detta används i intyg och ansökningar."
+          />
         </div>
       </div>
 
@@ -630,6 +647,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                       }}
                       className="h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
                       title="Ta bort"
+                      data-info="Tar bort denna legitimation från listan."
                     >
                       –
                     </button>
@@ -716,6 +734,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                         next[idx] = { ...(row || { speciality: "", country: "", date: "" }), date: v };
                         setForm({ ...form, priorSpecialties: next });
                       }}
+                      data-info="Välj datum när du fick specialistkompetens i denna specialitet. Detta används i intyg och ansökningar."
                     />
                   </div>
                   {idx > 0 && (
@@ -727,6 +746,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                       }}
                       className="h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
                       title="Ta bort"
+                      data-info="Tar bort denna tidigare specialitet från listan."
                     >
                       –
                     </button>
@@ -811,8 +831,8 @@ export default function ProfileModal({ open, onClose }: Props) {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
-            { id: "person", label: "Personuppgifter" },
-            { id: "st", label: "Uppgifter om ST" },
+            { id: "person", label: "Personuppgifter", info: "Här kan du redigera dina personuppgifter som namn, personnummer, adress, kontaktuppgifter och utbildningsbakgrund." },
+            { id: "st", label: "Uppgifter om ST", info: "Här kan du redigera uppgifter om din ST-utbildning som specialitet, målversion (2015 eller 2021), startdatum, handledare, studierektor och verksamhetschef." },
           ].map((t) => (
             <button
               key={t.id}
@@ -823,6 +843,7 @@ export default function ProfileModal({ open, onClose }: Props) {
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
+              data-info={t.info}
             >
               {t.label}
             </button>

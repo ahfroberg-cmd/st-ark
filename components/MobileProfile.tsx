@@ -269,8 +269,8 @@ export default function MobileProfile({ open, onClose }: Props) {
         {/* Tabs */}
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
         {[
-          { id: "person", label: "Personuppgifter" },
-          { id: "st", label: "Uppgifter om ST" },
+          { id: "person", label: "Personuppgifter", info: "Här kan du redigera dina personuppgifter som namn, personnummer, adress, kontaktuppgifter och utbildningsbakgrund. Dessa uppgifter används i intyg och ansökningar." },
+          { id: "st", label: "Uppgifter om ST", info: "Här kan du redigera uppgifter om din ST-utbildning som specialitet, målversion (2015 eller 2021), startdatum, handledare, studierektor och verksamhetschef. Dessa uppgifter påverkar hur intyg och ansökningar genereras." },
         ].map((t) => (
           <button
             key={t.id}
@@ -281,6 +281,7 @@ export default function MobileProfile({ open, onClose }: Props) {
                 ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                 : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
             }`}
+            data-info={t.info}
           >
             {t.label}
           </button>
