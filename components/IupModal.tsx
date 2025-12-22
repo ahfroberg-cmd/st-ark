@@ -16,6 +16,7 @@ import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
 import { ReportPanel } from "@/components/ReportPrintModal";
 import type { Profile } from "@/lib/types";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
+import { addMonths, toISO, parseISO } from "@/lib/dateutils";
 
 
 
@@ -183,6 +184,50 @@ function cloneAssessment(a: IupAssessment): IupAssessment {
     strengths: a.strengths,
     development: a.development,
   };
+}
+
+// Hjälpfunktion för att bestämma fas baserat på datum och profil
+function determineAssessmentPhase(dateISO: string | null | undefined, prof: Profile | null): IupAssessmentPhase {
+  if (!dateISO || !prof) {
+    return "ST";
+  }
+
+  const isGoals2021 = String(prof.goalsVersion || "").trim() === "2021";
+  if (!isGoals2021) {
+    return "ST";
+  }
+
+  const btStartISO = (prof as any)?.btStartDate;
+  if (!btStartISO) {
+    return "ST";
+  }
+
+  // Beräkna BT-slutdatum
+  const btEndManual = (prof as any)?.btEndDate;
+  let btEndISO: string;
+  if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+    btEndISO = btEndManual;
+  } else {
+    try {
+      const btStartDate = parseISO(btStartISO);
+      if (!btStartDate) {
+        return "ST";
+      }
+      const btEndDate = addMonths(btStartDate, 24);
+      btEndISO = toISO(btEndDate);
+    } catch {
+      return "ST";
+    }
+  }
+
+  // Jämför datum
+  if (dateISO >= btStartISO && dateISO <= btEndISO) {
+    // Inom BT-period: förinställ BT
+    return "BT";
+  } else {
+    // Efter BT-slut eller före BT-start: sätt ST automatiskt
+    return "ST";
+  }
 }
 
 
@@ -504,16 +549,65 @@ function AssessmentModal({
   const [dirty, setDirty] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
+  // Funktion för att bestämma fas baserat på datum och profil
+  const determinePhase = useCallback((dateISO: string | null | undefined, prof: Profile | null): { phase: IupAssessmentPhase; showDropdown: boolean } => {
+    const phase = determineAssessmentPhase(dateISO, prof);
+    if (!dateISO || !prof) {
+      return { phase, showDropdown: false };
+    }
+
+    const isGoals2021 = String(prof.goalsVersion || "").trim() === "2021";
+    if (!isGoals2021) {
+      return { phase, showDropdown: false };
+    }
+
+    const btStartISO = (prof as any)?.btStartDate;
+    if (!btStartISO) {
+      return { phase, showDropdown: false };
+    }
+
+    // Beräkna BT-slutdatum
+    const btEndManual = (prof as any)?.btEndDate;
+    let btEndISO: string;
+    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
+      btEndISO = btEndManual;
+    } else {
+      try {
+        const btStartDate = parseISO(btStartISO);
+        if (!btStartDate) {
+          return { phase, showDropdown: false };
+        }
+        const btEndDate = addMonths(btStartDate, 24);
+        btEndISO = toISO(btEndDate);
+      } catch {
+        return { phase, showDropdown: false };
+      }
+    }
+
+    // Jämför datum
+    if (dateISO >= btStartISO && dateISO <= btEndISO) {
+      // Inom BT-period: förinställ BT, visa dropdown
+      return { phase: "BT", showDropdown: true };
+    } else {
+      // Efter BT-slut eller före BT-start: sätt ST automatiskt, dölj dropdown
+      return { phase: "ST", showDropdown: false };
+    }
+  }, []);
+
   useEffect(() => {
     if (!open || !assessment) {
       setShowCloseConfirm(false);
       return;
     }
-    setDraft(cloneAssessment(assessment));
+    const cloned = cloneAssessment(assessment);
+    // Bestäm fas automatiskt baserat på datum
+    const phaseInfo = determinePhase(cloned.dateISO, profile);
+    cloned.phase = phaseInfo.phase;
+    setDraft(cloned);
     setDirty(false);
-  }, [open, assessment]);
+  }, [open, assessment, determinePhase, profile]);
 
-  // Uppdatera klinisk tjänstgöring automatiskt baserat på valt datum
+  // Uppdatera klinisk tjänstgöring och fas automatiskt baserat på valt datum
   useEffect(() => {
     if (!open) return;
     if (!draft || !draft.dateISO) return;
@@ -522,6 +616,19 @@ function AssessmentModal({
 
     (async () => {
       try {
+        // Uppdatera fas baserat på datum
+        const phaseInfo = determinePhase(draft.dateISO, profile);
+        if (!cancelled) {
+          setDraft((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  phase: phaseInfo.phase,
+                }
+              : prev
+          );
+        }
+
         const allPlacements = await db.placements.toArray();
         const date = draft.dateISO;
         // Hitta placering som är aktiv under valt datum
@@ -553,7 +660,7 @@ function AssessmentModal({
     return () => {
       cancelled = true;
     };
-  }, [open, draft?.dateISO]);
+  }, [open, draft?.dateISO, determinePhase, profile]);
 
   const handleRequestClose = useCallback(() => {
     if (dirty) {
@@ -640,6 +747,10 @@ function AssessmentModal({
   const isGoals2021 =
     String(profile?.goalsVersion || "").trim() === "2021";
 
+  // Bestäm om dropdown ska visas
+  const phaseInfo = determinePhase(draft.dateISO, profile);
+  const showPhaseDropdown = isGoals2021 && phaseInfo.showDropdown;
+
   return (
     <>
       <UnsavedChangesDialog
@@ -703,16 +814,22 @@ function AssessmentModal({
               <div className="grid grid-cols-[minmax(0,120px)_minmax(0,1fr)] gap-3">
                 <div>
                   <label className="mb-1 block text-sm text-slate-700">Fas</label>
-                  <select
-                    value={draft.phase}
-                    onChange={(e) =>
-                      updateDraft({ phase: e.target.value as IupAssessmentPhase })
-                    }
-                    className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                  >
-                    <option value="BT">BT</option>
-                    <option value="ST">ST</option>
-                  </select>
+                  {showPhaseDropdown ? (
+                    <select
+                      value={draft.phase}
+                      onChange={(e) =>
+                        updateDraft({ phase: e.target.value as IupAssessmentPhase })
+                      }
+                      className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                    >
+                      <option value="BT">BT</option>
+                      <option value="ST">ST</option>
+                    </select>
+                  ) : (
+                    <div className="h-[40px] w-full rounded-lg border border-slate-300 bg-slate-50 px-3 flex items-center text-[14px] text-slate-600">
+                      {draft.phase}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-slate-700">
@@ -1938,10 +2055,12 @@ export default function IupModal({
 
   const addAssessment = () => {
     const id = `a_${Math.random().toString(36).slice(2, 10)}`;
+    const todayISO = isoToday();
+    const phase = determineAssessmentPhase(todayISO, profile);
     const a: IupAssessment = {
       id,
-      dateISO: isoToday(),
-      phase: "ST",
+      dateISO: todayISO,
+      phase,
       level: "",
       instrument: instruments[0] ?? "",
       summary: "",

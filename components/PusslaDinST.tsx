@@ -3790,7 +3790,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
             left: `${pct}%`,
             width: 0,
             borderLeft: `3.5px solid ${START_LINE_COLOR}`,
-            transform: "translateX(0.75px)",
+            transform: "translateX(-0.25px)",
           }}
           title={btSlotGlobal != null ? "BT start" : "ST start"}
         />
@@ -3810,7 +3810,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
           left: `${pct}%`,
           width: 0,
           borderLeft: `3.5px solid ${START_LINE_COLOR}`,
-          transform: "translateX(0.75px)",
+          transform: "translateX(-0.25px)",
         }}
         title="ST start"
       />
@@ -3864,7 +3864,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
           left: `${pct}%`,
           width: 0,
           borderLeft: `3.5px solid ${MID_LINE_COLOR}`,
-          transform: "translateX(0.75px)",
+          transform: "translateX(-0.25px)",
         }}
         title={yellowTitle}
       />
@@ -3884,7 +3884,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
           left: `${pct}%`,
           width: 0,
           borderLeft: `3.5px solid ${END_LINE_COLOR}`,
-          transform: "translateX(-0.25px)",
+          transform: "translateX(-0.75px)",
         }}
         title="ST slut"
       />
@@ -8930,7 +8930,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 onClick={() => setProgressDetailOpen("time")}
               >
                 <div
-                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
+                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -8959,7 +8959,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 onClick={() => setProgressDetailOpen("milestones")}
               >
                 <div
-                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500"
+                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
                   style={{ width: `${milestoneProgressPct}%` }}
                 />
               </div>
@@ -8976,19 +8976,21 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       {progressDetailOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" onClick={() => setProgressDetailOpen(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-900">
-                  {progressDetailOpen === "time" ? "Genomförd tid - Detaljer" : "Delmålsuppfyllelse - Detaljer"}
+            <div>
+              <header className="flex items-center justify-between border-b px-4 py-3">
+                <h2 className="m-0 text-lg font-extrabold text-slate-900">
+                  {progressDetailOpen === "time" ? "Genomförd tid" : "Delmålsuppfyllelse"}
                 </h2>
                 <button
+                  type="button"
                   onClick={() => setProgressDetailOpen(null)}
-                  className="text-slate-500 hover:text-slate-700"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
                 >
-                  ✕
+                  Stäng
                 </button>
-              </div>
+              </header>
               
+              <div className="p-6">
               {progressDetailOpen === "time" ? (
                 <div className="space-y-4">
                   {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
@@ -9029,7 +9031,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200">
                           <div
-                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            className="h-6 rounded-full bg-emerald-500/80 transition-[width] duration-300"
                             style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
                           />
                         </div>
@@ -9055,7 +9057,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200">
                           <div
-                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            className="h-6 rounded-full bg-emerald-500/80 transition-[width] duration-300"
                             style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
                           />
                         </div>
@@ -9106,7 +9108,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200">
                           <div
-                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            className="h-6 rounded-full bg-emerald-500/80 transition-[width] duration-300"
                             style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
                           />
                         </div>
@@ -9128,7 +9130,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           }}
                           className="text-sky-600 hover:text-sky-700 underline font-medium"
                         >
-                          Öppna delmålssidan (IUP → Delmål) →
+                          Öppna delmålssidan
                         </button>
                       </div>
                     </>
@@ -9146,7 +9148,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200">
                           <div
-                            className="h-6 rounded-full bg-emerald-500 transition-[width] duration-300"
+                            className="h-6 rounded-full bg-emerald-500/80 transition-[width] duration-300"
                             style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
                           />
                         </div>
@@ -9168,13 +9170,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           }}
                           className="text-sky-600 hover:text-sky-700 underline font-medium"
                         >
-                          Öppna delmålssidan (IUP → Delmål) →
+                          Öppna delmålssidan
                         </button>
                       </div>
                     </>
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
