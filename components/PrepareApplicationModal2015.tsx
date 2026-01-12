@@ -302,8 +302,8 @@ const GROUP_COLORS: Record<AttachGroup, Swatch> = {
   "Vetenskapligt arbete":         { bg: "hsl(265 25% 94%/.96)", bd: "hsl(265 20% 72%/.96)", pill: "hsl(265 30% 98%/.96)", pillBd: "hsl(265 18% 84%/.96)" },
 
   // Bilagor för specialistläkare från tredjeland - samma färg för båda
-  "Uppfyllda kompetenskrav för specialistläkare från tredjeland": { bg: "hsl(200 35% 94%/.96)", bd: "hsl(200 25% 75%/.96)", pill: "hsl(200 40% 98%/.96)", pillBd: "hsl(200 23% 85%/.96)" },
-  "Uppnådd specialistkompetens för specialistläkare från tredjeland": { bg: "hsl(200 35% 94%/.96)", bd: "hsl(200 25% 75%/.96)", pill: "hsl(200 40% 98%/.96)", pillBd: "hsl(200 23% 85%/.96)" },
+  "Uppfyllda kompetenskrav för specialistläkare från tredjeland": { bg: "hsl(160 30% 94%/.96)", bd: "hsl(160 22% 72%/.96)", pill: "hsl(160 35% 98%/.96)", pillBd: "hsl(160 20% 84%/.96)" },
+  "Uppnådd specialistkompetens för specialistläkare från tredjeland": { bg: "hsl(160 30% 94%/.96)", bd: "hsl(160 22% 72%/.96)", pill: "hsl(160 35% 98%/.96)", pillBd: "hsl(160 20% 84%/.96)" },
   
   // Fyra presets med samma grå
   "Svensk doktorsexamen":         { bg: GREY_BG, bd: GREY_BD, pill: GREY_PILL, pillBd: GREY_PILLBD },
@@ -357,7 +357,11 @@ function LabeledInputLocal({
       <input
         type="text"
         value={local}
-        onInput={(e) => setLocal((e.target as HTMLInputElement).value)}
+        onInput={(e) => {
+          const v = (e.target as HTMLInputElement).value;
+          setLocal(v);
+          if ((value ?? "") !== v) onCommit(v);
+        }}
         onBlur={handleBlur}
         inputMode={inputMode}
         autoComplete="off"
@@ -424,6 +428,16 @@ function ThirdCountryTabContent2015({
   const [milestonePickerOpen, setMilestonePickerOpen] = useState(false);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
 
+  const isValidISO = useCallback((iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(String(iso || "")), []);
+
+  const addDaysISO = useCallback((iso: string, days: number) => {
+    if (!isValidISO(iso)) return "";
+    const d = new Date(iso + "T00:00:00");
+    if (Number.isNaN(d.getTime())) return "";
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }, [isValidISO]);
+
   // Ladda goals när komponenten monteras
   useEffect(() => {
     loadGoals("2015").then(setGoals).catch((err) => {
@@ -463,6 +477,19 @@ function ThirdCountryTabContent2015({
     setDownloading(true);
     try {
       const { exportThirdCountryCertificate2015 } = await import("@/lib/exporters");
+
+      const vcName = String((profile as any)?.verksamhetschef || "");
+      const certForExport = {
+        ...cert,
+        managerSelf: {
+          ...cert.managerSelf,
+          name: vcName,
+        },
+        managerAppointed: {
+          ...cert.managerAppointed,
+          managerName: vcName,
+        },
+      };
       
       const blob = await exportThirdCountryCertificate2015(
         {
@@ -471,7 +498,7 @@ function ThirdCountryTabContent2015({
           activitiesText: thirdCountryActivities,
           verificationText: thirdCountryVerification,
           workplaces: thirdCountryWorkplaces,
-          cert: cert,
+          cert: certForExport,
         },
         { output: "blob", filename: "intyg-bilaga8a-2015.pdf" }
       );
@@ -492,11 +519,28 @@ function ThirdCountryTabContent2015({
     setDownloading(true);
     try {
       const { exportThirdCountryCertificate2015_8b } = await import("@/lib/exporters");
+
+      const vcName = String((profile as any)?.verksamhetschef || "");
+      const certForExport = {
+        ...cert,
+        managerSelf: {
+          ...cert.managerSelf,
+          name: vcName,
+        },
+        managerAppointed: {
+          ...cert.managerAppointed,
+          managerName: vcName,
+        },
+      };
       
       const blob = await exportThirdCountryCertificate2015_8b(
         {
           profile: profile as any,
-          cert: cert,
+          cert: certForExport,
+          workplaces: thirdCountryWorkplaces,
+          delmalCodes: thirdCountryDelmalCodes,
+          activitiesText: thirdCountryActivities,
+          verificationText: thirdCountryVerification,
         },
         { output: "blob", filename: "intyg-bilaga8b-2015.pdf" }
       );
@@ -578,9 +622,11 @@ function ThirdCountryTabContent2015({
                   {idx === 0 && <label className="mb-1 block text-sm text-slate-700">Start</label>}
                   <CalendarDatePicker
                     value={row.startDate}
+                    minDate={idx > 0 ? addDaysISO(thirdCountryWorkplaces[idx - 1]?.endDate || "", 1) : undefined}
                     onChange={(v: string) => {
                       const next = [...thirdCountryWorkplaces];
-                      const newStartDate = v;
+                      const minStart = idx > 0 ? addDaysISO(thirdCountryWorkplaces[idx - 1]?.endDate || "", 1) : "";
+                      const newStartDate = minStart && v && v < minStart ? minStart : v;
                       let newEndDate = row.endDate;
                       
                       // Säkerställ att slutdatum alltid är minst lika stort som startdatum
@@ -588,6 +634,17 @@ function ThirdCountryTabContent2015({
                         if (!newEndDate || newStartDate > newEndDate) {
                           // Om slutdatum saknas eller är tidigare än startdatum, sätt slutdatum till samma som startdatum
                           newEndDate = newStartDate;
+                        }
+                      }
+
+                      // Förhindra överlapp med nästa rad: om nästa start ligger inom/innan vårt slut,
+                      // flytta nästa start till dagen efter vårt slut.
+                      if (idx + 1 < next.length && newEndDate) {
+                        const n = next[idx + 1];
+                        if (n?.startDate && n.startDate <= newEndDate) {
+                          const shiftedStart = addDaysISO(newEndDate, 1);
+                          const shiftedEnd = n.endDate && n.endDate < shiftedStart ? shiftedStart : n.endDate;
+                          next[idx + 1] = { ...n, startDate: shiftedStart, endDate: shiftedEnd };
                         }
                       }
                       
@@ -602,6 +659,8 @@ function ThirdCountryTabContent2015({
                     {idx === 0 && <label className="mb-1 block text-sm text-slate-700">Slut</label>}
                     <CalendarDatePicker
                       value={row.endDate}
+                      minDate={row.startDate || undefined}
+                      align="right"
                       onChange={(v: string) => {
                         const next = [...thirdCountryWorkplaces];
                         const newEndDate = v;
@@ -611,6 +670,17 @@ function ThirdCountryTabContent2015({
                           if (newEndDate < row.startDate) {
                             // Om slutdatum är tidigare än startdatum, ignorera ändringen
                             return;
+                          }
+                        }
+
+                        // Förhindra överlapp med nästa rad: om nästa start ligger inom/innan vårt slut,
+                        // flytta nästa start till dagen efter vårt slut.
+                        if (idx + 1 < next.length && newEndDate) {
+                          const n = next[idx + 1];
+                          if (n?.startDate && n.startDate <= newEndDate) {
+                            const shiftedStart = addDaysISO(newEndDate, 1);
+                            const shiftedEnd = n.endDate && n.endDate < shiftedStart ? shiftedStart : n.endDate;
+                            next[idx + 1] = { ...n, startDate: shiftedStart, endDate: shiftedEnd };
                           }
                         }
                         
@@ -642,7 +712,13 @@ function ThirdCountryTabContent2015({
             <button
               type="button"
               onClick={() => {
-                setThirdCountryWorkplaces([...thirdCountryWorkplaces, { id: makeId(), site: "", startDate: isoToday(), endDate: isoToday() }]);
+                const last = thirdCountryWorkplaces[thirdCountryWorkplaces.length - 1];
+                const prevEnd = last?.endDate && isValidISO(last.endDate) ? last.endDate : "";
+                const start = prevEnd ? (addDaysISO(prevEnd, 1) || isoToday()) : isoToday();
+                setThirdCountryWorkplaces([
+                  ...thirdCountryWorkplaces,
+                  { id: makeId(), site: "", startDate: start, endDate: start },
+                ]);
               }}
               className="mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
               data-info="Lägg till tjänstgöringsställe"
@@ -2512,8 +2588,8 @@ const handleSaveAndClose = useCallback(async () => {
 
       // --- STUDIEREKTOR ---
       {
-        const srFullName = cert.studyDirector || (profile as any)?.studyDirector || "";
-        const srWork     = cert.studyDirectorWorkplace || (profile as any)?.homeClinic || "";
+        const srFullName = (profile as any)?.studyDirector || "";
+        const srWork     = (profile as any)?.studyDirectorWorkplace || (profile as any)?.homeClinic || "";
 
         if (/\s/.test(srFullName)) {
           const sr = splitName(srFullName);

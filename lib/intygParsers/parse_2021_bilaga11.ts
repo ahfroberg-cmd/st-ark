@@ -89,7 +89,7 @@ function parseByOcrSpaceHeadings(raw: string): ParsedIntyg | null {
     if (!l) return true;
     // Blockera alla rader som börjar med "HSLF"
     if (/^HSLF/i.test(l.trim())) return true;
-    const n = norm(l);
+    const n = norm(l); 
     // Kontrollera IGNORE-mönster
     if (IGNORE.some((re) => re.test(l))) return true;
     // Ytterligare kontroll för HSLF- FS med siffror och kolon

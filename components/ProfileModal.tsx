@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -168,6 +169,17 @@ export default function ProfileModal({ open, onClose }: Props) {
     onClose();
   }, [dirty, onClose]);
 
+  // Registrera i central ESC-hantering så att ESC alltid stänger profilen från toppnivån.
+  useEffect(() => {
+    if (!open) return;
+    const el = overlayRef.current;
+    if (!el) return;
+    registerModal(el, requestClose);
+    return () => {
+      unregisterModal(el);
+    };
+  }, [open, requestClose]);
+
   const handleCancelClose = useCallback(() => {
     setShowCloseConfirm(false);
   }, []);
@@ -262,6 +274,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
     await db.profile.put(toSave);
     setOrig(toSave);
+    setForm(toSave);
     // Spara utan att stänga - användaren kan stänga via Stäng-knappen eller ESC
 
   }

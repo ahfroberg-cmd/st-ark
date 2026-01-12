@@ -551,7 +551,12 @@ function ProfilePageInner() {
               </div>
               <div>
                 <Labeled>Datum för läkarexamen</Labeled>
-                <CalendarDatePicker value={form.medDegreeDate || ""} onChange={(v: string) => setForm({ ...form, medDegreeDate: v })} />
+                <CalendarDatePicker
+                  value={form.medDegreeDate || ""}
+                  onChange={(v: string) => setForm({ ...form, medDegreeDate: v })}
+                  align="right"
+                  forceDirection="up"
+                />
               </div>
             </div>
 
@@ -563,7 +568,12 @@ function ProfilePageInner() {
               </div>
               <div>
                 <Labeled>Datum för legitimation</Labeled>
-                <CalendarDatePicker value={form.licenseDate || ""} onChange={(v: string) => setForm({ ...form, licenseDate: v })} />
+                <CalendarDatePicker
+                  value={form.licenseDate || ""}
+                  onChange={(v: string) => setForm({ ...form, licenseDate: v })}
+                  align="right"
+                  forceDirection="up"
+                />
               </div>
             </div>
 

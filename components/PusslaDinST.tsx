@@ -28,6 +28,8 @@ import IupModal from "@/components/IupModal";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
+import { registerModal, triggerCloseOnTopmostModal, unregisterModal } from "@/lib/modalEscHandler";
+
 
 import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
@@ -781,28 +783,45 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [goalsCatalog, setGoalsCatalog] = useState<GoalsCatalog | null>(null);
   const [progressDetailOpen, setProgressDetailOpen] = useState<"time" | "milestones" | null>(null);
 
-  // Ladda data från databas för progress-beräkningar
+  // Live-uppdatera data från DB för progress-beräkningar
   useEffect(() => {
-    (async () => {
-      try {
-        const pls = await (db as any).placements?.toArray?.() ?? [];
-        const crs = await (db as any).courses?.toArray?.() ?? [];
-        const ach = await (db as any).achievements?.toArray?.() ?? [];
-        setDbPlacements(pls);
-        setDbCourses(crs);
-        setDbAchievements(ach);
-        
-        // Ladda goals-katalog
-        const prof = await (db as any).profile?.toArray?.();
-        const p = Array.isArray(prof) ? prof[0] : null;
-        if (p?.goalsVersion && (p.specialty || p.speciality)) {
-          try {
-            const g = await loadGoals(p.goalsVersion, p.specialty || p.speciality);
-            setGoalsCatalog(g);
-          } catch {}
+    const sub = liveQuery(async () => {
+      const anyDb: any = db as any;
+      const [pls, crs, ach, profArr] = await Promise.all([
+        anyDb.placements?.toArray?.() ?? [],
+        anyDb.courses?.toArray?.() ?? [],
+        anyDb.achievements?.toArray?.() ?? [],
+        anyDb.profile?.toArray?.() ?? [],
+      ]);
+
+      const p = Array.isArray(profArr) ? profArr[0] : null;
+      let g: GoalsCatalog | null = null;
+      if (p?.goalsVersion && (p.specialty || p.speciality)) {
+        try {
+          g = await loadGoals(p.goalsVersion, p.specialty || p.speciality);
+        } catch {
+          g = null;
         }
+      }
+
+      return { pls, crs, ach, g };
+    }).subscribe({
+      next: ({ pls, crs, ach, g }) => {
+        setDbPlacements(Array.isArray(pls) ? pls : []);
+        setDbCourses(Array.isArray(crs) ? crs : []);
+        setDbAchievements(Array.isArray(ach) ? ach : []);
+        setGoalsCatalog(g ?? null);
+      },
+      error: () => {
+        // Ignorera - UI kan leva med senaste värden.
+      },
+    });
+
+    return () => {
+      try {
+        sub.unsubscribe();
       } catch {}
-    })();
+    };
   }, []);
 
   // Bestäm förinställning för viewMode baserat på dagens datum
@@ -1405,6 +1424,10 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     }
     
     // ST-delmål
+    // För 2021 räknar vi varje ST-delmål som två halvor:
+    // - kursdel (0,5)
+    // - klinisk del (0,5)
+    // I UI presenterar vi detta som "x,5 av 23".
     const stFulfilled = new Set<string>();
     const stMilestoneIdsFromPlacements = new Set<string>();
     const stMilestoneIdsFromCourses = new Set<string>();
@@ -1497,17 +1520,23 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       }
     }
     
-    // Använd samma logik som fulfilledMilestones på förstasidan
-    // För 2021: BT (18) + ST (46) = 64 totalt
-    // För 2015: ST (50) totalt
-    // Men för detaljvyn behöver vi räkna ST separat
-    // För 2021: ST kan uppfyllas av både klin och kurs, så stFulfilled.size kan vara upp till 92
-    // Men totalt antal ST-delvärden är 46 (samma som totalMilestones - 18 BT)
-    const totalStMilestones = is2021 ? 46 : 50;
+    // ST i 2021-spåret:
+    // - stFulfilled.size räknar "delar" (klin + kurs) => 0..46
+    // - "hela" delmål räknas som halvor (0,5 + 0,5) => 0..23
+    const totalStParts = is2021 ? 46 : 50;
+    const totalStMilestones = is2021 ? 23 : 50;
+
+    // Hur många ”hela” ST-delmål som är uppfyllda (halvor räknas som 0,5)
+    const stFulfilledMilestones = is2021 ? stFulfilled.size / 2 : stFulfilled.size;
     
     return {
       bt: { fulfilled: btFulfilled.size, total: is2021 ? 18 : 0 },
-      st: { fulfilled: stFulfilled.size, total: totalStMilestones },
+      st: {
+        fulfilled: stFulfilled.size,
+        total: totalStParts,
+        fulfilledMilestones: stFulfilledMilestones,
+        totalMilestones: totalStMilestones,
+      },
     };
   }, [profile, dbAchievements, dbPlacements, dbCourses, goalsCatalog]);
 
@@ -5332,18 +5361,17 @@ function SaveInfoModal({
   open: boolean;
   onClose: () => void;
 }) {
-  // ESC för att stänga
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Registrera i central ESC-hantering (stänger via overlayns onClose)
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
+    const el = overlayRef.current;
+    if (!el) return;
+    registerModal(el, onClose);
+    return () => {
+      unregisterModal(el);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -5380,7 +5408,7 @@ function SaveInfoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/50 flex items-center justify-center p-4">
+    <div ref={overlayRef} className="fixed inset-0 z-[300] bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
         <div className="px-5 py-4 border-b flex items-center justify-between">
   <h2 className="text-base font-semibold">Spara din data som fil</h2>
@@ -6147,16 +6175,17 @@ useEffect(() => {
 
     // ESC för att stänga modaler och detaljpanelen
     if (e.key === "Escape") {
-      // Om någon modal är öppen, låt modalen hantera ESC först
-      // (modaler stoppar propagation om de hanterar det och kollar dirty)
+      // Om någon modal är öppen: stäng den översta via central registry.
+      // Detta fungerar även för modaler med dirty-state (onClose kan visa varning).
       if (anyModalOpen) {
-        // Stoppa ESC-eventet helt när en modal är öppen
-        // Detta säkerställer att ESC inte stänger modalen även om window.confirm() visas
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        // Låt modalen hantera det - vi gör inget här
-        return;
+        const closed = triggerCloseOnTopmostModal();
+        if (closed) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+        // Om inget kunde stängas: fall back till befintligt beteende.
       }
       
       // Om ingen modal är öppen, stäng detaljpanelen (med varning om dirty)
@@ -6374,7 +6403,7 @@ const persistTimelineToDb = async () => {
       <>
               {/* Rubrik + toppknappar */}
       <div className="flex items-center gap-3 mb-3">
-        <h1 className="text-center text-4xl font-extrabold tracking-tight">
+        <h1 className="select-none caret-transparent text-center text-4xl font-extrabold tracking-tight">
   <span className="text-sky-700">ST</span>
   <span className="text-emerald-700">ARK</span></h1>
 
@@ -7477,8 +7506,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             if (usesMetis) {
               return isAnnanKurs ? "md:grid-cols-6" : "md:grid-cols-5";
             } else {
-              // För övriga specialiteter: 4 kolumner (kurs, kursledare, start, slut)
-              return "md:grid-cols-4";
+              // För övriga specialiteter: 5 kolumner
+              return "md:grid-cols-5";
             }
           }
           
@@ -8850,18 +8879,21 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <span className="font-medium">
                 Slutdatum för ST vid tjänstgöring på
               </span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={5}
-                value={Math.max(0, Math.min(100, restAttendance))}
+              <select
+                value={String(Math.max(5, Math.min(100, Math.round(restAttendance / 5) * 5)))}
                 onChange={(e) => {
-                  const v = Number(e.target.value) || 0;
-                  setRestAttendance(Math.max(0, Math.min(100, v)));
+                  const v = Number((e.target as HTMLSelectElement).value) || 100;
+                  setRestAttendance(Math.max(5, Math.min(100, v)));
                 }}
-                className="w-15 rounded-lg border px-2 py-0.9 text-left"
-              />
+                className="h-8 rounded-lg border px-2 text-sm w-[90px]"
+                title="Sysselsättningsgrad"
+              >
+                {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
               <span>%:</span>
               <span className="font-semibold">{stEndISO || "—"}</span>
             </div>
@@ -8881,6 +8913,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       }}
                       weekStartsOn={1}
                       className="h-8 w-full"
+                      align="right"
                       forceDirection="up"
                     />
                   </div>
@@ -8910,20 +8943,22 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             {/* Rad 2: Progressbar - Genomförd tid */}
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
-                <span 
-                  className="text-slate-900 cursor-pointer hover:text-slate-700"
+                <button
+                  type="button"
+                  className="text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
                   data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
                   onClick={() => setProgressDetailOpen("time")}
                 >
                   Genomförd tid
-                </span>
-                <span 
-                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-700"
+                </button>
+                <button
+                  type="button"
+                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
                   data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
                   onClick={() => setProgressDetailOpen("time")}
                 >
                   {progressPct.toFixed(0)} %
-                </span>
+                </button>
               </div>
               <div 
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
@@ -8939,20 +8974,22 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             {/* Rad 3: Progressbar - Delmålsuppfyllelse */}
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
-                <span 
-                  className="text-slate-900 cursor-pointer hover:text-slate-700"
+                <button
+                  type="button"
+                  className="text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
                   data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
                   onClick={() => setProgressDetailOpen("milestones")}
                 >
                   Delmålsuppfyllelse
-                </span>
-                <span 
-                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-700"
+                </button>
+                <button
+                  type="button"
+                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
                   data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
                   onClick={() => setProgressDetailOpen("milestones")}
                 >
                   {milestoneProgressPct.toFixed(0)} %
-                </span>
+                </button>
               </div>
               <div 
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
@@ -9113,13 +9150,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           />
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
+                          Uppfyllda delmål: {(milestoneDetails.st.fulfilledMilestones ?? 0).toFixed(1).replace(".", ",")} av {milestoneDetails.st.totalMilestones}
                         </div>
                       </div>
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Totalt {milestoneDetails.st.total} delmål. Varje delmål är uppdelat i två delar: en del som kan uppfyllas genom kurser och en del som kan uppfyllas genom klinisk tjänstgöring, vetenskapligt arbete eller förbättringsarbete. BT-delmål kan uppfyllas genom aktiviteter eller bedömningar.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Totalt {milestoneDetails.st.totalMilestones} delmål. Varje delmål har två delar: en kursdel och en klinisk del. Om bara en del är uppfylld räknas det som <strong>0,5 delmål</strong>, och när båda delarna är uppfyllda räknas det som <strong>1 delmål</strong>. BT-delmål räknas separat.
                         </p>
                         <button
                           type="button"

@@ -143,7 +143,9 @@ async function fetchPublicPdf(path: string): Promise<ArrayBuffer> {
 }
 
 function downloadBytes(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes], { type: "application/pdf" });
+  const safe = new Uint8Array(bytes as any);
+  const buf = safe.buffer.slice(safe.byteOffset, safe.byteOffset + safe.byteLength);
+  const blob = new Blob([buf], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement("a");
@@ -159,6 +161,353 @@ function downloadBytes(bytes: Uint8Array, filename: string) {
   } finally {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+}
+
+function toPdfBlob(bytes: Uint8Array) {
+  const safe = new Uint8Array(bytes as any);
+  const buf = safe.buffer.slice(safe.byteOffset, safe.byteOffset + safe.byteLength);
+  return new Blob([buf], { type: "application/pdf" });
+}
+
+function normalizePdfFieldKey(s: string) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[\u00e5]/g, "a")
+    .replace(/[\u00e4]/g, "a")
+    .replace(/[\u00f6]/g, "o")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function formatDelmalCodes2015(input: string) {
+  const raw = String(input ?? "");
+  if (!raw.trim()) return "";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((code) => code.replace(/^st\s*/i, "").toLowerCase())
+    .join(", ");
+}
+
+function splitForPdf(text: string, maxChars: number) {
+  const s = String(text ?? "");
+  if (!s) return { a: "", b: "" };
+  if (s.length <= maxChars) return { a: s, b: "" };
+
+  const cut = s.lastIndexOf("\n", maxChars);
+  const cut2 = s.lastIndexOf(" ", maxChars);
+  const idx = Math.max(cut, cut2, maxChars);
+  return {
+    a: s.slice(0, idx).trimEnd(),
+    b: s.slice(idx).trimStart(),
+  };
+}
+
+function isLikelySecondPageField(k: string, raw: string) {
+  const kk = String(k || "");
+  const rr = String(raw || "").toLowerCase();
+  return (
+    kk.includes("sida2") ||
+    kk.includes("page2") ||
+    /(?:_|-|\b)2$/.test(kk) ||
+    rr.includes("sida 2") ||
+    rr.includes("page 2")
+  );
+}
+
+function fillSequentialTextFields(opts: {
+  form: any;
+  predicate: (normalizedName: string, rawName: string) => boolean;
+  text: string;
+  chunkSize: number;
+}) {
+  const fields: any[] = opts.form.getFields?.() ?? [];
+  const candidates: Array<{ raw: string; norm: string; field: any }> = [];
+  for (const f of fields) {
+    const raw = String(f.getName?.() ?? "");
+    if (!raw) continue;
+    const norm = normalizePdfFieldKey(raw);
+    if (!opts.predicate(norm, raw)) continue;
+    candidates.push({ raw, norm, field: f });
+  }
+
+  if (!candidates.length) return { used: false, overflow: "" };
+
+  // Sortera: sida1 först, sida2 sist om vi kan ana det, annars alfabetiskt.
+  candidates.sort((a, b) => {
+    const a2 = isLikelySecondPageField(a.norm, a.raw) ? 1 : 0;
+    const b2 = isLikelySecondPageField(b.norm, b.raw) ? 1 : 0;
+    if (a2 !== b2) return a2 - b2;
+    return a.raw.localeCompare(b.raw, "sv");
+  });
+
+  let rest = String(opts.text ?? "");
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
+    let chunk = rest;
+    if (rest.length > opts.chunkSize) {
+      const s = splitForPdf(rest, opts.chunkSize);
+      chunk = s.a;
+      rest = s.b;
+    } else {
+      rest = "";
+    }
+
+    try {
+      if (typeof c.field.setText === "function") {
+        c.field.setText(String(chunk ?? "").replace(/\n/g, "\r\n"));
+      }
+    } catch {}
+
+    if (!rest) {
+      // Töm resterande fält för att undvika dubblering/överspill
+      for (let j = i + 1; j < candidates.length; j++) {
+        try {
+          const f = candidates[j]?.field;
+          if (f && typeof f.setText === "function") {
+            f.setText("");
+          }
+        } catch {}
+      }
+      break;
+    }
+  }
+
+  return { used: true, overflow: rest };
+}
+
+function splitForPdfLines(text: string, maxLines: number) {
+  const s = String(text ?? "").replace(/\r\n/g, "\n");
+  if (!s) return { a: "", b: "" };
+  const lines = s.split("\n");
+  if (lines.length <= maxLines) return { a: s, b: "" };
+  const a = lines.slice(0, maxLines).join("\n").trimEnd();
+  const b = lines.slice(maxLines).join("\n").trimStart();
+  return { a, b };
+}
+
+function fillSequentialTextFieldsByLines(opts: {
+  form: any;
+  predicate: (normalizedName: string, rawName: string) => boolean;
+  text: string;
+  maxLinesPerField: number;
+}) {
+  const fields: any[] = opts.form.getFields?.() ?? [];
+  const candidates: Array<{ raw: string; norm: string; field: any }> = [];
+  for (const f of fields) {
+    const raw = String(f.getName?.() ?? "");
+    if (!raw) continue;
+    const norm = normalizePdfFieldKey(raw);
+    if (!opts.predicate(norm, raw)) continue;
+    candidates.push({ raw, norm, field: f });
+  }
+
+  if (!candidates.length) return { used: false, overflow: "" };
+
+  candidates.sort((a, b) => {
+    const a2 = isLikelySecondPageField(a.norm, a.raw) ? 1 : 0;
+    const b2 = isLikelySecondPageField(b.norm, b.raw) ? 1 : 0;
+    if (a2 !== b2) return a2 - b2;
+    return a.raw.localeCompare(b.raw, "sv");
+  });
+
+  let rest = String(opts.text ?? "");
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
+    const s = splitForPdfLines(rest, opts.maxLinesPerField);
+    const chunk = s.a;
+    rest = s.b;
+
+    try {
+      if (typeof c.field.setText === "function") {
+        c.field.setText(String(chunk ?? "").replace(/\n/g, "\r\n"));
+      }
+    } catch {}
+
+    if (!rest) {
+      for (let j = i + 1; j < candidates.length; j++) {
+        try {
+          const f = candidates[j]?.field;
+          if (f && typeof f.setText === "function") {
+            f.setText("");
+          }
+        } catch {}
+      }
+      break;
+    }
+  }
+
+  return { used: true, overflow: rest };
+}
+
+function fillPdfTextFields(
+  pdfDoc: any,
+  rules: Array<{ test: (k: string, raw: string) => boolean; value: string }>,
+  options?: { flatten?: boolean }
+) {
+  let form: any;
+  try {
+    form = pdfDoc.getForm();
+  } catch {
+    return false;
+  }
+
+  let anyFilled = false;
+  const fields: any[] = form.getFields?.() ?? [];
+  for (const f of fields) {
+    const rawName = String(f.getName?.() ?? "");
+    if (!rawName) continue;
+    const k = normalizePdfFieldKey(rawName);
+
+    for (const r of rules) {
+      if (!r.test(k, rawName)) continue;
+      try {
+        if (typeof (f as any).setText === "function") {
+          const v = String(r.value ?? "").replace(/\n/g, "\r\n");
+          (f as any).setText(v);
+          anyFilled = true;
+        }
+      } catch {}
+      break;
+    }
+  }
+
+  const shouldFlatten = options?.flatten ?? true;
+  try {
+    if (anyFilled && shouldFlatten) {
+      form.flatten();
+    }
+  } catch {}
+
+  return anyFilled;
+}
+
+function fillPdfCheckFields(
+  pdfDoc: any,
+  rules: Array<{ test: (k: string, raw: string) => boolean; checked: boolean }>,
+  options?: { flatten?: boolean }
+) {
+  let form: any;
+  try {
+    form = pdfDoc.getForm();
+  } catch {
+    return false;
+  }
+
+  let anyFilled = false;
+  const fields: any[] = form.getFields?.() ?? [];
+  for (const f of fields) {
+    const rawName = String(f.getName?.() ?? "");
+    if (!rawName) continue;
+    const k = normalizePdfFieldKey(rawName);
+
+    for (const r of rules) {
+      if (!r.test(k, rawName)) continue;
+      try {
+        if (typeof (f as any).check === "function" && typeof (f as any).uncheck === "function") {
+          if (r.checked) (f as any).check();
+          else (f as any).uncheck();
+          anyFilled = true;
+        }
+      } catch {}
+      break;
+    }
+  }
+
+  const shouldFlatten = options?.flatten ?? true;
+  try {
+    if (anyFilled && shouldFlatten) {
+      form.flatten();
+    }
+  } catch {}
+
+  return anyFilled;
+}
+
+function drawWrappedPreserveNewlines(
+  page: any,
+  font: any,
+  text: string,
+  x: number,
+  yStart: number,
+  maxWidth: number,
+  size = 11,
+  lineHeight = 14
+) {
+  const parts = String(text ?? "").split(/\n/);
+  let y = yStart;
+  for (const p of parts) {
+    y = drawWrapped(page, font, p, x, y, maxWidth, size, lineHeight);
+  }
+  return y;
+}
+
+function fillThirdCountryWorkplacesTable2015(form: any, workplaces: Array<{ site: string; startDate: string; endDate: string }>) {
+  const fields: any[] = form.getFields?.() ?? [];
+  if (!fields.length) return false;
+
+  const rowSite: Record<number, any[]> = {};
+  const rowPeriod: Record<number, any[]> = {};
+
+  const add = (m: Record<number, any[]>, row: number, f: any) => {
+    if (!m[row]) m[row] = [];
+    m[row].push(f);
+  };
+
+  for (const f of fields) {
+    const rawName = String(f.getName?.() ?? "");
+    if (!rawName) continue;
+    const k = normalizePdfFieldKey(rawName);
+
+    // Försök hitta radnummer i fältnamn (vanligt i AcroForms)
+    const m = k.match(/(\d+)/);
+    const row = m ? parseInt(m[1], 10) : NaN;
+    if (!Number.isFinite(row) || row <= 0) continue;
+
+    // Kolumn: tjänstgöringsställe
+    if (
+      k.includes("tjanstgoringsstalle") ||
+      k.includes("tjanstgoringsstallen") ||
+      k.includes("arbetsplats") ||
+      k.includes("tjanstgoringstalle")
+    ) {
+      add(rowSite, row, f);
+      continue;
+    }
+
+    // Kolumn: period
+    if (k.includes("period") || k.includes("tjanstgoringsperiod")) {
+      add(rowPeriod, row, f);
+      continue;
+    }
+  }
+
+  let any = false;
+  workplaces.forEach((w, i) => {
+    const row = i + 1;
+    const period = `${w.startDate || ""}${w.endDate ? ` – ${w.endDate}` : ""}`.trim();
+    const site = String(w.site || "").trim();
+
+    for (const f of rowSite[row] ?? []) {
+      try {
+        if (typeof f.setText === "function") {
+          f.setText(site);
+          any = true;
+        }
+      } catch {}
+    }
+    for (const f of rowPeriod[row] ?? []) {
+      try {
+        if (typeof f.setText === "function") {
+          f.setText(period);
+          any = true;
+        }
+      } catch {}
+    }
+  });
+
+  return any;
 }
 
 function drawText(opts: {
@@ -206,6 +555,10 @@ const TEMPLATE_2015_AUSKULTATION  = "/pdf/2015/blankett-specialistkompetens-ausk
 const TEMPLATE_2015_SKRIFTLIGT    = "/pdf/2015/blankett-specialistkompetens-skriftligt-arbete-sosfs20158.pdf";
 const TEMPLATE_2015_KVALITET      = "/pdf/2015/blankett-specialistkompetens-kvalitet-utveckling-sosfs20158.pdf";
 const TEMPLATE_2015_KURS          = "/pdf/2015/blankett-specialistkompetens-kurs-sosfs20158.pdf";
+
+// Specialistläkare från tredje land (2015) – bilaga 8a/8b
+const TEMPLATE_2015_TREDJELAND_8A = "/pdf/2015/blankett-specialistlakare-tredjeland-8a-sosfs20158.pdf";
+const TEMPLATE_2015_TREDJELAND_8B = "/pdf/2015/blankett-specialistlakare-tredjeland-8b-sosfs20158.pdf";
 
 /* =========================================
    2021 – Koordinater (egna per bilaga)
@@ -779,11 +1132,15 @@ export async function exportBilaga6Certificate(
   const outputMode = options?.output ?? "blob";
 
   if (outputMode === "blob") {
-    return new Blob([outBytes], { type: "application/pdf" });
+    const safe = new Uint8Array(outBytes as any);
+    const buf = safe.buffer.slice(safe.byteOffset, safe.byteOffset + safe.byteLength);
+    return new Blob([buf], { type: "application/pdf" });
   }
 
   // För download
-  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const safeDl = new Uint8Array(outBytes as any);
+  const bufDl = safeDl.buffer.slice(safeDl.byteOffset, safeDl.byteOffset + safeDl.byteLength);
+  const blob = new Blob([bufDl], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -913,11 +1270,11 @@ export async function exportBilaga7Certificate(
   const outputMode = options?.output ?? "download";
 
   if (outputMode === "blob") {
-    return new Blob([outBytes], { type: "application/pdf" });
+    return toPdfBlob(outBytes);
   }
 
   // För download, använd fetchPublicPdf downloadPdf-funktion
-  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const blob = toPdfBlob(outBytes);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1232,11 +1589,11 @@ export async function exportBilaga5Certificate(
   const outputMode = options?.output ?? "download";
 
   if (outputMode === "blob") {
-    return new Blob([outBytes], { type: "application/pdf" });
+    return toPdfBlob(outBytes);
   }
 
   // För download, skapa blob och ladda ner
-  const blob = new Blob([outBytes], { type: "application/pdf" });
+  const blob = toPdfBlob(outBytes);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1358,7 +1715,9 @@ export async function exportSta3Certificate(
   const filename = options?.filename ?? "intyg-sta3-2021.pdf";
 
   if (mode === "blob") {
-    return new Blob([outBytes], { type: "application/pdf" });
+    const safe = new Uint8Array(outBytes as any);
+    const buf = safe.buffer.slice(safe.byteOffset, safe.byteOffset + safe.byteLength);
+    return new Blob([buf], { type: "application/pdf" });
   }
 
   downloadBytes(outBytes, filename);
@@ -1489,11 +1848,748 @@ export async function exportThirdCountryCertificate(
   const outName = options?.filename;
 
   if (outputMode === "blob") {
-    return new Blob([outBytes], { type: "application/pdf" });
+    return toPdfBlob(outBytes);
   }
 
   downloadBytes(outBytes, outName ?? "intyg-bilaga13-2021.pdf");
   return;
+}
+
+/* =========================================
+   2015 – Specialistläkare från tredje land (Bilaga 8a/8b)
+========================================= */
+
+export async function exportThirdCountryCertificate2015(
+  input: {
+    profile: Profile;
+    delmalCodes: string;
+    activitiesText: string;
+    verificationText: string;
+    workplaces: Array<{ site: string; startDate: string; endDate: string }>;
+    cert?: any;
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2015_TREDJELAND_8A);
+  const pdfDoc = await PDFDocument.load(bytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const page = pdfDoc.getPages()[0];
+  const size = 11;
+
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast = prof.lastName ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  const workplaces = (input.workplaces || []).filter((w) => w && (w.site || w.startDate || w.endDate));
+  const siteLines = workplaces.map((w) => String(w.site || "—")).join("\n");
+  const periodLines = workplaces
+    .map((w) => `${w.startDate || ""}${w.endDate ? ` – ${w.endDate}` : ""}`.trim())
+    .join("\n");
+
+  const delmalCodes2015 = formatDelmalCodes2015(input.delmalCodes ?? "");
+
+  const wpLines = siteLines;
+
+  const cert: any = input.cert ?? {};
+  const isAppointed = cert?.managerMode === "appointed";
+  const vcName =
+    cert?.managerSelf?.name ??
+    cert?.managerAppointed?.managerName ??
+    "";
+  const vcWork = isAppointed
+    ? String(
+        (cert?.managerAppointed?.managerWorkplace ??
+          (cert?.managerAppointed as any)?.managerWorkPlace ??
+          (cert?.managerAppointed as any)?.managerSite ??
+          (cert?.managerAppointed as any)?.managerTjanstestalle ??
+          (cert?.managerAppointed as any)?.managerTjänsteställe ??
+          "")
+      ).trim()
+    : String(
+        (cert?.managerSelf?.workplace ??
+          (cert?.managerSelf as any)?.workPlace ??
+          (cert?.managerSelf as any)?.site ??
+          (cert?.managerSelf as any)?.tjanstestalle ??
+          (cert?.managerSelf as any)?.tjänsteställe ??
+          "")
+      ).trim();
+  const vcSpec = isAppointed
+    ? String(
+        (cert?.managerAppointed?.managerSpecialty ??
+          (cert?.managerAppointed as any)?.managerSpec ??
+          (cert?.managerAppointed as any)?.managerSpeciality ??
+          "")
+      ).trim()
+    : String(
+        (cert?.managerSelf?.specialty ??
+          (cert?.managerSelf as any)?.speciality ??
+          (cert?.managerSelf as any)?.spec ??
+          "")
+      ).trim();
+
+  const appointedSpecialist =
+    cert?.managerAppointed?.specialistName ||
+    cert?.managerAppointed?.specialistSpecialty ||
+    cert?.managerAppointed?.specialistWorkplace
+      ? `${cert?.managerAppointed?.specialistName ?? ""}${cert?.managerAppointed?.specialistSpecialty ? `, ${cert.managerAppointed.specialistSpecialty}` : ""}${cert?.managerAppointed?.specialistWorkplace ? ` (${cert.managerAppointed.specialistWorkplace})` : ""}`.trim()
+      : "";
+  const appointedText =
+    isAppointed
+      ? `Verksamhetschefen har enligt 4 kap. 4 § utsett en läkare med specialistkompetens att bedöma ST-läkarens specialistkompetens.${appointedSpecialist ? ` Utsedd specialist: ${appointedSpecialist}.` : ""}`
+      : "";
+
+  const appointedDocName = String(cert?.managerAppointed?.specialistName ?? "").trim();
+  const appointedDocWork = String(
+    (cert?.managerAppointed?.specialistWorkplace ??
+      (cert?.managerAppointed as any)?.specialistWorkPlace ??
+      (cert?.managerAppointed as any)?.specialistSite ??
+      (cert?.managerAppointed as any)?.specialistTjanstestalle ??
+      (cert?.managerAppointed as any)?.specialistTjänsteställe ??
+      cert?.managerAppointed?.managerWorkplace ??
+      "")
+  ).trim();
+  const appointedDocSpec = String(cert?.managerAppointed?.specialistSpecialty ?? "").trim();
+  const appointedDocPn = String(cert?.managerAppointed?.specialistPersonalNumber ?? "").trim();
+
+  const vcPn =
+    String(cert?.managerSelf?.personalNumber ?? "").trim() ||
+    String((prof as any)?.personalNumber ?? "").trim();
+
+  const intygDocName = isAppointed ? appointedDocName : vcName;
+  const intygDocWork = isAppointed ? appointedDocWork : vcWork;
+  const intygDocSpec = isAppointed ? appointedDocSpec : String(vcSpec ?? "").trim();
+  const intygDocPn = "";
+
+  const hhName =
+    String(cert?.mainSupervisor?.name ?? "").trim() ||
+    String((prof as any)?.supervisor ?? (prof as any)?.huvudhandledare ?? (prof as any)?.supervisorName ?? "").trim();
+  const hhWork =
+    String(cert?.mainSupervisor?.workplace ?? "").trim() ||
+    String((prof as any)?.supervisorWorkplace ?? (prof as any)?.homeClinic ?? "").trim();
+  const hhSpec =
+    String(cert?.mainSupervisor?.specialty ?? cert?.mainSupervisor?.speciality ?? "").trim() ||
+    String((prof as any)?.supervisorSpecialty ?? (prof as any)?.supervisorSpeciality ?? profSpecialty ?? "").trim();
+  const hhTrainYear = String(cert?.mainSupervisor?.trainingYear ?? "").trim();
+  const hhPn = String(cert?.mainSupervisor?.personalNumber ?? "").trim();
+
+  let detailedOverflow = "";
+  let usedDetailedFields = false;
+  try {
+    const form = pdfDoc.getForm();
+    const res = fillSequentialTextFieldsByLines({
+      form,
+      predicate: (k) => k.includes("detaljerad") || k.includes("beskrivning"),
+      text: input.verificationText ?? "",
+      maxLinesPerField: 15,
+    });
+    usedDetailedFields = res.used;
+    detailedOverflow = res.overflow;
+  } catch {}
+
+  try {
+    // Kryssa Ja/Nej för 4 kap. 4 §
+    const anyChecks = fillPdfCheckFields(
+      pdfDoc,
+      [
+        {
+          test: (k) => k === "ja",
+          checked: isAppointed,
+        },
+        {
+          test: (k) => k === "nej",
+          checked: !isAppointed,
+        },
+      ],
+      { flatten: false }
+    );
+
+    // Fyll sektionen direkt med exakta fältnamn i 2015-mallen
+    try {
+      const form = pdfDoc.getForm();
+      // När Ja: VC ska stå under namnförtydligande/tjänsteställe
+      if (isAppointed) {
+        try { form.getTextField("Namnförtydligande").setText(String(vcName ?? "").replace(/\n/g, "\r\n")); } catch {}
+        try { form.getTextField("Tjänsteställe").setText(String(vcWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      }
+
+      // Sektionen "Verksamhetschefen/den läkare ..." (intygande läkare)
+      try { form.getTextField("Namnförtydligande_2").setText(String(intygDocName ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Tjänsteställe_2").setText(String(intygDocWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      // I 2015-mallen ligger specialitet-rutan i denna sektion i fältet "Specialitet" (utan suffix)
+      try { form.getTextField("Specialitet").setText(String(intygDocSpec ?? "").replace(/\n/g, "\r\n")); } catch {}
+      // Personnummer ska alltid vara tomt (fylls i för hand efter utskrift)
+      try { form.getTextField("Personnummer_2").setText(""); } catch {}
+
+      // Huvudansvarig handledare (fältnamn i 2015-mallen)
+      try { form.getTextField("Namnförtydligande_3").setText(String(hhName ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Tjänsteställe_3").setText(String(hhWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Specialitet_2").setText(String(hhSpec ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Handledarutbildning årtal").setText(String(hhTrainYear ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Personnummer_3").setText(String(hhPn ?? "").replace(/\n/g, "\r\n")); } catch {}
+    } catch {}
+
+    // 1) Försök fylla tabell/radfält för tjänstgöringsställen + period (om mallen har sådana fält)
+    let workplacesFilledByTable = false;
+    try {
+      const form = pdfDoc.getForm();
+      const anyTable = fillThirdCountryWorkplacesTable2015(form, workplaces);
+      if (anyTable) {
+        workplacesFilledByTable = true;
+      }
+    } catch {}
+
+    // 2) Fyll övriga fält via heuristik. Workplaces fylls bara här om vi INTE lyckades med tabellfyllning.
+    const anyOtherFilled = fillPdfTextFields(
+      pdfDoc,
+      [
+      {
+        test: (k) => k.includes("studierektor") && (k.includes("efternamn") || k.includes("surname") || k === "lastname"),
+        value: ((prof as any).studyDirector ?? ""),
+      },
+      {
+        test: (k) => k.includes("studierektor") && (k.includes("fornamn") || k.includes("givenname") || k === "firstname"),
+        value: ((prof as any).studyDirector ?? ""),
+      },
+      {
+        test: (k) =>
+          k.includes("studierektor") &&
+          (k.includes("tjanstestalle") || k.includes("tjänsteställe") || k.includes("workplace") || k.includes("site") || k.includes("clinic")),
+        value: String(
+          ((prof as any)?.studyDirectorWorkplace && String((prof as any)?.studyDirectorWorkplace).trim())
+            ? (prof as any)?.studyDirectorWorkplace
+            : String((prof as any).studyDirectorWorkplace ?? (prof as any).homeClinic ?? "")
+        ),
+      },
+
+      { test: (k, raw) => (k.includes("efternamn") || k.includes("surname") || k === "lastname") && !k.includes("studierektor") && String(raw).trim() !== "Efternamn", value: fallbackLast },
+      { test: (k, raw) => (k.includes("fornamn") || k.includes("givenname") || k === "firstname") && !k.includes("studierektor") && String(raw).trim() !== "Förnamn", value: fallbackFirst },
+      { test: (k, raw) => (k.includes("personnummer") || k === "pn" || k.includes("personnr")) && !String(raw).includes("_2") && !String(raw).includes("_3"), value: String((prof as any).personalNumber ?? "") },
+      {
+        test: (k, raw) =>
+          (k.includes("specialitet") || k.includes("speciality") || k.includes("specialty")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          String(raw).trim() !== "Specialitet" &&
+          String(raw).trim() !== "Specialitet_2",
+        value: profSpecialty,
+      },
+      { test: (k) => k.includes("delmal"), value: delmalCodes2015 },
+      { test: (k) => k.includes("aktivitet") || k.includes("activities") || k.includes("utbildningsaktiv"), value: input.activitiesText ?? "" },
+      // Om "Ja" (utsedd läkare) så ska VC anges under namnförtydligande + tjänsteställe.
+      {
+        test: (k, raw) =>
+          isAppointed &&
+          (k.includes("namnfortyd") || k.includes("namnfor")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          !/\d$/.test(k),
+        value: vcName,
+      },
+      {
+        test: (k, raw) =>
+          isAppointed &&
+          (k.includes("tjanstestalle") || k.includes("tjanstest") || k.includes("tjanstalle")) &&
+          (k.includes("namnfortyd") || k.includes("fortyd") || k.includes("chef")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          !/\d$/.test(k),
+        value: vcWork,
+      },
+      // Sektionen "Verksamhetschefen/den läkare som har utsetts enligt 4 kap. 4 §" ska fyllas med intygande läkare:
+      // - vid Ja: utsedd specialist
+      // - vid Nej: verksamhetschef
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("namn") || k.includes("namnfortyd") || k.includes("namnfor")),
+        value: intygDocName,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("tjanstestalle") || k.includes("tjanstest") || k.includes("tjanstalle") || k.includes("work")),
+        value: intygDocWork,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("specialitet") || k.includes("speciality") || k.includes("specialty")),
+        value: intygDocSpec,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("personnummer") || k === "pn" || k.includes("personnr")),
+        value: intygDocPn,
+      },
+      // Om mallen saknar "detaljerad/beskrivning"-fält använder vi verifieringsfältet.
+      // Om detailed-fält finns men texten overflowar och inga fler detailed-fält fanns, lägg overflow i verifier-fält (sida 2) om det finns.
+      {
+        test: (k, raw) =>
+          !usedDetailedFields && (k.includes("verifier") || k.includes("kontroller") || k.includes("howverified")),
+        value: input.verificationText ?? "",
+      },
+      {
+        test: (k, raw) =>
+          usedDetailedFields && !!detailedOverflow && (k.includes("verifier") || k.includes("kontroller") || k.includes("howverified")) && isLikelySecondPageField(k, raw),
+        value: detailedOverflow,
+      },
+      // Workplaces fallback: om tabellfyllning inte lyckades, fyll även “sammanfattningsfält” (och ev. indexerade fält)
+      { test: (k) => !workplacesFilledByTable && (k.includes("tjanstgor") || k.includes("workplace") || k.includes("arbetsplats")) && !k.includes("period"), value: siteLines },
+      { test: (k) => !workplacesFilledByTable && k.includes("period") && !k.includes("ortdatum"), value: periodLines },
+      { test: (k) => k.includes("verksamhetschef") || k.includes("chef") || k.includes("manager"), value: vcName },
+      { test: (k) => (k.includes("chef") || k.includes("manager")) && (k.includes("tjanst") || k.includes("work")), value: vcWork },
+      // Fallback: om mallen saknar checkboxar, försök fylla en text-ruta med 4 kap. 4 §-texten
+      { test: (k) => !anyChecks && (k.includes("4kap") || k.includes("utsett") || k.includes("bedom")), value: appointedText },
+      ],
+      { flatten: false }
+    );
+
+    let filled = anyOtherFilled;
+
+    if (workplacesFilledByTable) {
+      filled = true;
+    }
+
+    // 3) Flatten EN gång sist (annars risk att vissa fält inte går att fylla efter tabellfyllning)
+    if (filled) {
+      try {
+        const form = pdfDoc.getForm();
+        form.flatten();
+      } catch {}
+    }
+
+    // Om vi inte lyckades fylla några icke-tabellfält (t.ex. delmål/namn/beskrivning),
+    // stämpla en läsbar sammanfattning för att undvika att användaren får ett tomt intyg.
+    if (!anyOtherFilled) {
+      const summary = [
+        "Specialistläkare från tredje land (2015) – Bilaga 8a",
+        "",
+        `Namn: ${[fallbackFirst, fallbackLast].filter(Boolean).join(" ")}`,
+        `Personnummer: ${String((prof as any).personalNumber ?? "")}`,
+        `Specialitet: ${profSpecialty}`,
+        "",
+        `Delmål: ${delmalCodes2015}`,
+        "",
+        "Utbildningsaktiviteter:",
+        String(input.activitiesText ?? ""),
+        "",
+        "Verifiering:",
+        String(input.verificationText ?? ""),
+        "",
+        "Tjänstgöringsställen:",
+        siteLines,
+        "",
+        "Period:",
+        periodLines,
+        "",
+        `Verksamhetschef: ${vcName}${vcWork ? ` (${vcWork})` : ""}`,
+        appointedText ? "" : undefined,
+        appointedText || undefined,
+      ]
+        .filter((l) => l !== undefined)
+        .join("\n");
+
+      drawWrappedPreserveNewlines(page, font, summary, 40, 760, 520, 10, 12);
+    }
+  } catch {
+    // Fallback: inget att göra om mallen saknar AcroForm.
+    // (Vi undviker att hårdkoda koordinater utan att verifiera dem.)
+    drawText({ page, text: "", x: 0, y: 0, size, font });
+  }
+
+  const outBytes = await pdfDoc.save();
+  const mode = options?.output ?? "download";
+  const filename = options?.filename ?? "intyg-bilaga8a-2015.pdf";
+
+  if (mode === "blob") {
+    return toPdfBlob(outBytes);
+  }
+  downloadBytes(outBytes, filename);
+}
+
+export async function exportThirdCountryCertificate2015_8b(
+  input: {
+    profile: Profile;
+    cert?: any;
+    delmalCodes?: string;
+    activitiesText?: string;
+    verificationText?: string;
+    workplaces?: Array<{ site: string; startDate: string; endDate: string }>;
+  },
+  options?: { output?: "download" | "blob"; filename?: string }
+): Promise<void | Blob> {
+  const bytes = await fetchPublicPdf(TEMPLATE_2015_TREDJELAND_8B);
+  const pdfDoc = await PDFDocument.load(bytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const page = pdfDoc.getPages()[0];
+  const size = 11;
+
+  const prof = input.profile;
+  const nameParts = (prof.name ?? "").trim().split(/\s+/);
+  const fallbackFirst = prof.firstName ?? (nameParts[0] ?? "");
+  const fallbackLast = prof.lastName ?? (nameParts.slice(1).join(" ") || "");
+  const profSpecialty = prof.speciality ?? prof.specialty ?? "";
+
+  const workplaces = (input.workplaces || []).filter((w) => w && (w.site || w.startDate || w.endDate));
+  const siteLines = workplaces.map((w) => String(w.site || "—")).join("\n");
+  const periodLines = workplaces
+    .map((w) => `${w.startDate || ""}${w.endDate ? ` – ${w.endDate}` : ""}`.trim())
+    .join("\n");
+
+  const delmalCodes2015 = formatDelmalCodes2015(input.delmalCodes ?? "");
+
+  const firstNonEmptyLocal = (...vals: any[]) => {
+    for (const v of vals) {
+      const s = String(v ?? "").trim();
+      if (s) return s;
+    }
+    return "";
+  };
+  // Hemklinik (det fält som visas som "Hemklinik" i profil-UI)
+  const hemklinik = firstNonEmptyLocal(
+    (prof as any)?.homeClinic,
+    (prof as any)?.form?.homeClinic,
+    (prof as any)?.hemklinik,
+    (prof as any)?.form?.hemklinik
+  );
+
+  const cert: any = input.cert ?? {};
+  const isAppointed = cert?.managerMode === "appointed";
+  const vcName =
+    cert?.managerSelf?.name ??
+    cert?.managerAppointed?.managerName ??
+    "";
+  const vcWork = isAppointed
+    ? (cert?.managerAppointed?.managerWorkplace ?? "")
+    : (cert?.managerSelf?.workplace ?? "");
+  const vcSpec = isAppointed
+    ? (cert?.managerAppointed?.managerSpecialty ?? "")
+    : (cert?.managerSelf?.specialty ?? cert?.managerSelf?.speciality ?? "");
+
+  const appointedSpecialist =
+    cert?.managerAppointed?.specialistName ||
+    cert?.managerAppointed?.specialistSpecialty ||
+    cert?.managerAppointed?.specialistWorkplace
+      ? `${cert?.managerAppointed?.specialistName ?? ""}${cert?.managerAppointed?.specialistSpecialty ? `, ${cert.managerAppointed.specialistSpecialty}` : ""}${cert?.managerAppointed?.specialistWorkplace ? ` (${cert.managerAppointed.specialistWorkplace})` : ""}`.trim()
+      : "";
+  const appointedText =
+    cert?.managerMode === "appointed"
+      ? `Verksamhetschefen har enligt 4 kap. 4 § utsett en läkare med specialistkompetens att bedöma ST-läkarens specialistkompetens.${appointedSpecialist ? ` Utsedd specialist: ${appointedSpecialist}.` : ""}`
+      : "";
+
+  const appointedDocName = String(cert?.managerAppointed?.specialistName ?? "").trim();
+  const appointedDocWork = String(
+    (cert?.managerAppointed?.specialistWorkplace ??
+      (cert?.managerAppointed as any)?.specialistWorkPlace ??
+      (cert?.managerAppointed as any)?.specialistSite ??
+      (cert?.managerAppointed as any)?.specialistTjanstestalle ??
+      (cert?.managerAppointed as any)?.specialistTjänsteställe ??
+      cert?.managerAppointed?.managerWorkplace ??
+      "")
+  ).trim();
+  const appointedDocSpec = String(cert?.managerAppointed?.specialistSpecialty ?? "").trim();
+  const appointedDocPn = String(cert?.managerAppointed?.specialistPersonalNumber ?? "").trim();
+
+  const vcPn =
+    String(cert?.managerSelf?.personalNumber ?? "").trim() ||
+    String((prof as any)?.personalNumber ?? "").trim();
+
+  const intygDocName = isAppointed ? appointedDocName : vcName;
+  const intygDocWork = isAppointed ? appointedDocWork : vcWork;
+  const intygDocSpec = isAppointed ? appointedDocSpec : String(vcSpec ?? "").trim();
+  const intygDocPn = "";
+
+  const hhName =
+    String(cert?.mainSupervisor?.name ?? "").trim() ||
+    String((prof as any)?.supervisor ?? (prof as any)?.huvudhandledare ?? (prof as any)?.supervisorName ?? "").trim();
+  const hhWork =
+    String(cert?.mainSupervisor?.workplace ?? "").trim() ||
+    String((prof as any)?.supervisorWorkplace ?? (prof as any)?.homeClinic ?? "").trim();
+  const hhSpec =
+    String(cert?.mainSupervisor?.specialty ?? cert?.mainSupervisor?.speciality ?? "").trim() ||
+    String((prof as any)?.supervisorSpecialty ?? (prof as any)?.supervisorSpeciality ?? profSpecialty ?? "").trim();
+  const hhTrainYear = String(cert?.mainSupervisor?.trainingYear ?? "").trim();
+  const hhPn = String(cert?.mainSupervisor?.personalNumber ?? "").trim();
+
+  let detailedOverflow = "";
+  let usedDetailedFields = false;
+  try {
+    const form = pdfDoc.getForm();
+    const res = fillSequentialTextFieldsByLines({
+      form,
+      predicate: (k) => k.includes("detaljerad") || k.includes("beskrivning"),
+      text: input.verificationText ?? "",
+      maxLinesPerField: 15,
+    });
+    usedDetailedFields = res.used;
+    detailedOverflow = res.overflow;
+  } catch {}
+
+  try {
+    let anyChecks = false;
+    try {
+      anyChecks = fillPdfCheckFields(
+        pdfDoc,
+        [
+          {
+            test: (k) => k === "ja",
+            checked: isAppointed,
+          },
+          {
+            test: (k) => k === "nej",
+            checked: !isAppointed,
+          },
+        ],
+        { flatten: false }
+      );
+    } catch {}
+
+    // Fyll sektionen direkt med exakta fältnamn i 2015-mallen
+    try {
+      const form = pdfDoc.getForm();
+      if (isAppointed) {
+        try { form.getTextField("Namnförtydligande").setText(String(vcName ?? "").replace(/\n/g, "\r\n")); } catch {}
+        try { form.getTextField("Tjänsteställe").setText(String(vcWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      }
+      try { form.getTextField("Namnförtydligande_2").setText(String(intygDocName ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Tjänsteställe_2").setText(String(intygDocWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Specialitet").setText(String(intygDocSpec ?? "").replace(/\n/g, "\r\n")); } catch {}
+      // Personnummer ska alltid vara tomt (fylls i för hand efter utskrift)
+      try { form.getTextField("Personnummer_2").setText(""); } catch {}
+
+      // Studierektor (2015 8b: fältnamn är Efternamn/Förnamn samt Tjänsteställe stu)
+      try {
+        const srFull = String((prof as any)?.studyDirector ?? "").trim();
+        const parts = srFull.split(/\s+/).filter(Boolean);
+        const srFirst = parts[0] ?? "";
+        const srLast = parts.slice(1).join(" ") ?? "";
+        form.getTextField("Förnamn").setText(srFirst);
+        form.getTextField("Efternamn").setText(srLast || srFull);
+      } catch {}
+      try {
+        const srWork = String(
+          ((prof as any)?.studyDirectorWorkplace && String((prof as any)?.studyDirectorWorkplace).trim())
+            ? (prof as any)?.studyDirectorWorkplace
+            : hemklinik
+        ).trim();
+        const norm = (s: string) =>
+          s
+            .toLowerCase()
+            .replace(/å/g, "a")
+            .replace(/ä/g, "a")
+            .replace(/ö/g, "o")
+            .replace(/[^a-z0-9]+/g, "")
+            .trim();
+        const want = (n: string) => {
+          const x = norm(n);
+          return x.includes("tjanstestalle") && x.includes("stu");
+        };
+        const f = form
+          .getFields()
+          .find((ff: any) => {
+            try {
+              return want(String(ff?.getName?.() ?? ""));
+            } catch {
+              return false;
+            }
+          }) as any;
+        if (f?.setText) {
+          try { f.setText(srWork); } catch {}
+        } else {
+          try { form.getTextField("Tjänsteställe stu").setText(srWork); } catch {}
+        }
+
+        // Safari/Preview kan visa tomt utan appearance stream – tvinga uppdatering på just detta fält.
+        try {
+          const tf = form.getTextField("Tjänsteställe stu") as any;
+          if (tf?.updateAppearances) tf.updateAppearances(font);
+        } catch {}
+
+      } catch {}
+
+      // Huvudansvarig handledare
+      try { form.getTextField("Namnförtydligande_3").setText(String(hhName ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Tjänsteställe_3").setText(String(hhWork ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Specialitet_2").setText(String(hhSpec ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Handledarutbildning årtal").setText(String(hhTrainYear ?? "").replace(/\n/g, "\r\n")); } catch {}
+      try { form.getTextField("Personnummer_3").setText(String(hhPn ?? "").replace(/\n/g, "\r\n")); } catch {}
+    } catch {}
+
+    const anyOtherFilled = fillPdfTextFields(
+      pdfDoc,
+      [
+      {
+        test: (_k, raw) => String(raw).trim() === "Tjänsteställe stu",
+        value: String(
+          ((prof as any)?.studyDirectorWorkplace && String((prof as any)?.studyDirectorWorkplace).trim())
+            ? (prof as any)?.studyDirectorWorkplace
+            : hemklinik
+        ),
+      },
+      // Studierektor (från profil). Om inget annat tjänsteställe finns angivet i profil,
+      // ska vi använda sökandens ordinarie tjänstgöringsställe (homeClinic).
+      {
+        test: (k) => k.includes("studierektor") && (k.includes("efternamn") || k.includes("surname") || k === "lastname"),
+        value: ((prof as any).studyDirector ?? ""),
+      },
+      {
+        test: (k) => k.includes("studierektor") && (k.includes("fornamn") || k.includes("givenname") || k === "firstname"),
+        value: ((prof as any).studyDirector ?? ""),
+      },
+      {
+        test: (k) =>
+          k.includes("studierektor") &&
+          (k.includes("tjanstestalle") || k.includes("tjänsteställe") || k.includes("workplace") || k.includes("site") || k.includes("clinic")),
+        value: String(
+          ((prof as any)?.studyDirectorWorkplace && String((prof as any)?.studyDirectorWorkplace).trim())
+            ? (prof as any)?.studyDirectorWorkplace
+            : hemklinik
+        ),
+      },
+
+      { test: (k, raw) => (k.includes("efternamn") || k.includes("surname") || k === "lastname") && !k.includes("studierektor") && String(raw).trim() !== "Efternamn", value: fallbackLast },
+      { test: (k, raw) => (k.includes("fornamn") || k.includes("givenname") || k === "firstname") && !k.includes("studierektor") && String(raw).trim() !== "Förnamn", value: fallbackFirst },
+      { test: (k, raw) => (k.includes("personnummer") || k === "pn" || k.includes("personnr")) && !String(raw).includes("_2") && !String(raw).includes("_3"), value: String((prof as any).personalNumber ?? "") },
+      {
+        test: (k, raw) =>
+          (k.includes("specialitet") || k.includes("speciality") || k.includes("specialty")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          String(raw).trim() !== "Specialitet" &&
+          String(raw).trim() !== "Specialitet_2",
+        value: profSpecialty,
+      },
+      { test: (k) => k.includes("delmal"), value: delmalCodes2015 },
+      { test: (k) => k.includes("aktivitet") || k.includes("activities") || k.includes("utbildningsaktiv"), value: input.activitiesText ?? "" },
+      // VC ska alltid synas i namnförtydligande/tjänsteställe när "Ja" (utsedd läkare)
+      {
+        test: (k, raw) =>
+          isAppointed &&
+          (k.includes("namnfortyd") || k.includes("namnfor") || k.includes("namnfort")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          !/\d$/.test(k),
+        value: vcName,
+      },
+      {
+        test: (k, raw) =>
+          isAppointed &&
+          (k.includes("tjanstestalle") || k.includes("tjanstest") || k.includes("tjanstalle")) &&
+          (k.includes("namnfortyd") || k.includes("fortyd") || k.includes("namnfor") || k.includes("chef")) &&
+          !String(raw).includes("_2") &&
+          !String(raw).includes("_3") &&
+          !/\d$/.test(k),
+        value: vcWork,
+      },
+      // Sektionen "Verksamhetschefen/den läkare som har utsetts enligt 4 kap. 4 §" ska fyllas med intygande läkare
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("namn") || k.includes("namnfortyd") || k.includes("namnfor")),
+        value: intygDocName,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("tjanstestalle") || k.includes("tjanstest") || k.includes("tjanstalle") || k.includes("work")),
+        value: intygDocWork,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("specialitet") || k.includes("speciality") || k.includes("specialty")),
+        value: intygDocSpec,
+      },
+      {
+        test: (k) =>
+          (k.includes("4kap") || k.includes("utsett") || k.includes("bedom") || k.includes("lakare")) &&
+          (k.includes("personnummer") || k === "pn" || k.includes("personnr")),
+        value: intygDocPn,
+      },
+      {
+        test: (k) => !usedDetailedFields && (k.includes("verifier") || k.includes("kontroller") || k.includes("howverified")),
+        value: input.verificationText ?? "",
+      },
+      {
+        test: (k, raw) =>
+          usedDetailedFields && !!detailedOverflow && (k.includes("verifier") || k.includes("kontroller") || k.includes("howverified")) && isLikelySecondPageField(k, raw),
+        value: detailedOverflow,
+      },
+      { test: (k, raw) => (k.includes("tjanstgor") || k.includes("workplace") || k.includes("arbetsplats")) && !k.includes("period") && String(raw).trim() !== "Tjänsteställe stu", value: siteLines },
+      { test: (k) => k.includes("period") && !k.includes("ortdatum"), value: periodLines },
+      { test: (k) => k.includes("verksamhetschef") || k.includes("chef") || k.includes("manager"), value: vcName },
+      { test: (k) => (k.includes("chef") || k.includes("manager")) && (k.includes("tjanst") || k.includes("work")), value: vcWork },
+      // Fallback: om mallen saknar checkboxar, försök fylla en text-ruta med 4 kap. 4 §-texten
+      { test: (k) => !anyChecks && (k.includes("4kap") || k.includes("utsett") || k.includes("bedom")), value: appointedText },
+      ],
+      { flatten: false }
+    );
+
+    // Viktigt: uppdatera appearance streams EFTER att vi fyllt fält via heuristik,
+    // annars kan Safari/Preview visa tomma fält trots att värden finns.
+    try {
+      const form = pdfDoc.getForm();
+      form.updateFieldAppearances(font);
+
+      // Extra: tvinga även appearance på studierektor-tjänsteställe (har varit extra känsligt i Safari)
+      try {
+        const tf = form.getTextField("Tjänsteställe stu") as any;
+        if (tf?.updateAppearances) tf.updateAppearances(font);
+      } catch {}
+    } catch {}
+
+    // Flatta alltid efter appearance-update för att Safari/Preview ska rendera ifyllda fält korrekt
+    try {
+      const form = pdfDoc.getForm();
+      form.flatten();
+    } catch {}
+
+    if (!anyOtherFilled) {
+      const summary = [
+        "Specialistläkare från tredje land (2015) – Bilaga 8b",
+        "",
+        `Namn: ${[fallbackFirst, fallbackLast].filter(Boolean).join(" ")}`,
+        `Personnummer: ${String((prof as any).personalNumber ?? "")}`,
+        `Specialitet: ${profSpecialty}`,
+        "",
+        `Delmål: ${delmalCodes2015}`,
+        "",
+        "Utbildningsaktiviteter:",
+        String(input.activitiesText ?? ""),
+        "",
+        "Verifiering:",
+        String(input.verificationText ?? ""),
+        "",
+        "Tjänstgöringsställen:",
+        siteLines,
+        "",
+        "Period:",
+        periodLines,
+        "",
+        `Verksamhetschef: ${vcName}${vcWork ? ` (${vcWork})` : ""}`,
+        appointedText ? "" : undefined,
+        appointedText || undefined,
+      ]
+        .filter((l) => l !== undefined)
+        .join("\n");
+
+      drawWrappedPreserveNewlines(page, font, summary, 40, 760, 520, 10, 12);
+    }
+  } catch {
+    drawText({ page, text: "", x: 0, y: 0, size, font });
+  }
+
+  const outBytes = await pdfDoc.save();
+  const mode = options?.output ?? "download";
+  const filename = options?.filename ?? "intyg-bilaga8b-2015.pdf";
+
+  if (mode === "blob") {
+    return toPdfBlob(outBytes);
+  }
+  downloadBytes(outBytes, filename);
 }
 
 /* =========================================
@@ -1953,7 +3049,7 @@ async function fillBt2021Bilaga2(
       if (row) lines.push(row);
     }
 
-    let y = coords1.aktiviteter.y;
+    let y: number = coords1.aktiviteter.y;
     const maxWidth = coords1.aktiviteter.width;
     const lineHeight = coords1.aktiviteter.lineHeight;
 
@@ -1969,7 +3065,7 @@ async function fillBt2021Bilaga2(
     if (raw) {
       const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
-      let y = coords1.aktiviteter.y;
+      let y: number = coords1.aktiviteter.y;
       const maxWidth = coords1.aktiviteter.width;
       const lineHeight = coords1.aktiviteter.lineHeight;
 
@@ -1989,7 +3085,7 @@ async function fillBt2021Bilaga2(
     const row = [singleActivityTitle, span].filter(Boolean).join(" ").trim();
 
     if (row) {
-      let y = coords1.aktiviteter.y;
+      let y: number = coords1.aktiviteter.y;
       const maxWidth = coords1.aktiviteter.width;
       const lineHeight = coords1.aktiviteter.lineHeight;
 
@@ -2163,7 +3259,7 @@ async function fillBt2021Bilaga2(
     // Hantera flerradig text (splitta på radbrytningar och rita varje rad)
     const lines = ctrl.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (lines.length > 0) {
-      let y = coords2.hurKontrollerats.y;
+      let y: number = coords2.hurKontrollerats.y;
       const maxWidth = coords2.hurKontrollerats.width;
       const lineHeight = coords2.hurKontrollerats.lineHeight;
       
@@ -2278,7 +3374,7 @@ async function fillBt2021Bilaga3(pdfDoc: PDFDocument, profile: any, activity: an
   }
 
   // ===== Sida 1: SUMMA månader (FTE) som EN datapunkt =====
-  const sumMonths = rows.reduce((acc, r) => {
+  const sumMonths = rows.reduce((acc: number, r: any) => {
     const v = +r?.monthsFte;
     return Number.isFinite(v) ? acc + v : acc;
   }, 0);
@@ -2286,16 +3382,16 @@ async function fillBt2021Bilaga3(pdfDoc: PDFDocument, profile: any, activity: an
   page1.drawText(sumMonthsStr, { x: coords1.totalMonths.x, y: coords1.totalMonths.y, size: 11, font });
 
   // ===== Sida 2: kolumner med TITLAR (primärvård / akutsjukvård) =====
-  const primaryTitles = rows.filter(r => r?.primaryCare).map(r => toStr(r?.clinic || r?.title)).filter(Boolean);
-  const acuteTitles   = rows.filter(r => r?.acuteCare).map(r => toStr(r?.clinic || r?.title)).filter(Boolean);
+  const primaryTitles = rows.filter((r: any) => r?.primaryCare).map((r: any) => toStr(r?.clinic || r?.title)).filter(Boolean);
+  const acuteTitles   = rows.filter((r: any) => r?.acuteCare).map((r: any) => toStr(r?.clinic || r?.title)).filter(Boolean);
 
 
-  let yP = coords2.primaryCol.y;
+  let yP: number = coords2.primaryCol.y;
   for (const t of primaryTitles) {
     yP = drawWrapped(page2, font, t, coords2.primaryCol.x, yP, coords2.primaryCol.width, 11, coords2.primaryCol.lineHeight);
   }
 
-  let yA = coords2.acuteCol.y;
+  let yA: number = coords2.acuteCol.y;
   for (const t of acuteTitles) {
     yA = drawWrapped(page2, font, t, coords2.acuteCol.x, yA, coords2.acuteCol.width, 11, coords2.acuteCol.lineHeight);
   }
@@ -2711,10 +3807,6 @@ const site =
     page.drawText(text, { x, y, size, font });
   }
 
-  if (Array.isArray(delmalCodes) && delmalCodes.length > 0) {
-    const sortedCodes = normalizeAndSortDelmal(delmalCodes);
-    page.drawText(sortedCodes.join(", "), { x: delmalPos.x, y: delmalPos.y, size, font });
-  }
 }
 
 
@@ -2785,7 +3877,7 @@ export async function exportCertificate(
       // 4) Spara/returnera
       const outBytes = await pdfDoc.save();
       if (outputMode === "blob") {
-        return new Blob([outBytes], { type: "application/pdf" });
+        return toPdfBlob(outBytes);
       }
       downloadBytes(outBytes, outName ?? `intyg-${String(activityType).toLowerCase()}-2021.pdf`);
       return;
@@ -2899,7 +3991,7 @@ export async function exportCertificate(
 
     const outBytes = await pdfDoc.save();
     if (outputMode === "blob") {
-      return new Blob([outBytes], { type: "application/pdf" });
+      return toPdfBlob(outBytes);
     }
     downloadBytes(outBytes, outName ?? `intyg-${activityType.toLowerCase()}-2021.pdf`);
     return;
@@ -3111,7 +4203,7 @@ if (activityType === "KURS") {
 
     const outBytes = await pdfDoc.save();
     if (outputMode === "blob") {
-      return new Blob([outBytes], { type: "application/pdf" });
+      return toPdfBlob(outBytes);
     }
     downloadBytes(outBytes, outName ?? `intyg-${activityType.toLowerCase()}-2015.pdf`);
     return;
@@ -3252,6 +4344,7 @@ async function exportBt2021(
   const page = doc.addPage([595.28, 841.89]); // A4 (pt)
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const xL = 40;
 
   let y = 800;
   const lh = 16;
@@ -3279,7 +4372,7 @@ async function exportBt2021(
         const row = `• ${txt}${s || e ? ` (${s || "?"} – ${e || "?"})` : ""}`;
         page.drawText(row, { x: 48, y, size: 11, font });
         y -= lh;
-        if (y < 60) { y = 760; page.addPage(); }
+        if (y < 60) break;
       }
       y -= lh * 0.5;
     }
@@ -3410,7 +4503,7 @@ async function exportBt2021(
         const row = `• ${clinic} — ${s || "?"} – ${e || "?"}, syss.grad ${pct}, ${mfte}${tags ? `, ${tags}` : ""}`;
         page.drawText(row, { x: 48, y, size: 11, font });
         y -= lh;
-        if (y < 60) { y = 760; page.addPage(); }
+        if (y < 60) break;
       }
       y -= lh * 0.5;
     }
@@ -3466,7 +4559,7 @@ async function exportBt2021(
         const ctry = String(row?.country ?? "");
         const dt = String(row?.date ?? "");
         page.drawText(`${i + 1}) ${ctry} – ${dt}`, { x: 48, y, size: 11, font }); y -= lh;
-        if (y < 60) { y = 760; page.addPage(); }
+        if (y < 60) break;
       }
       y -= lh * 0.2;
     }
@@ -3476,7 +4569,7 @@ async function exportBt2021(
     const drawLine = (label: string, value: string) => {
       page.drawText(`${label} ${value || ""}`, { x: 48, y, size: 11, font });
       y -= lh;
-      if (y < 60) { y = 760; page.addPage(); }
+      if (y < 60) return;
     };
 
     y -= lh * 0.5;
@@ -3500,7 +4593,7 @@ async function exportBt2021(
   }
 
   const bytes = await doc.save();
-  return new Blob([bytes], { type: "application/pdf" });
+  return toPdfBlob(bytes);
 }
 
 function drawHeaderBlock(

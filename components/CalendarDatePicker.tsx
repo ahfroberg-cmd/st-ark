@@ -1,7 +1,7 @@
 // components/CalendarDatePicker.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 
 type Props = {
   value: string;                 // ISO: "YYYY-MM-DD"
@@ -38,8 +38,143 @@ export default function CalendarDatePicker({
   const [viewMonth, setViewMonth] = useState(init.getMonth()); // 0..11
   const rootRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
-  const [direction, setDirection] = useState<"down" | "up">("down");
+  const [direction, setDirection] = useState<"down" | "up">(forceDirection || "down");
   const [horizontalAlign, setHorizontalAlign] = useState<"left" | "right" | "center">(align);
+  const [calculatedPosition, setCalculatedPosition] = useState<React.CSSProperties | null>(null);
+  
+  // Använd forceDirection direkt om det är satt, annars använd direction state
+  // Detta säkerställer att forceDirection alltid prioriteras omedelbart
+  const effectiveDirection = forceDirection !== undefined ? forceDirection : direction;
+  
+  // Uppdatera direction om forceDirection ändras
+  useEffect(() => {
+    if (forceDirection) {
+      setDirection(forceDirection);
+    }
+  }, [forceDirection]);
+
+  // Dynamiskt grid: 4–6 veckor beroende på månad/offset
+  const weeks = useMemo(
+    () => buildMonthGrid(viewYear, viewMonth, weekStartsOn),
+    [viewYear, viewMonth, weekStartsOn]
+  );
+  
+  // Beräkna kalenderns position relativt viewport och se till att den alltid är inom ramen
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current || !calendarRef.current) {
+      setCalculatedPosition(null);
+      return;
+    }
+    
+    const rootRect = rootRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    
+    // Beräkna antal veckor i aktuell månad
+    const numWeeks = weeks.length;
+    const calendarWidth = 320;
+    // Grov uppskattning: ~40px per veckorad + 140px för header/knappar
+    const estimatedHeight = numWeeks * 40 + 140;
+    
+    const styles: React.CSSProperties = {};
+    
+    // Bestäm vertikal position
+    if (effectiveDirection === "up") {
+      // När forceDirection är satt ska kalendern ALDRIG auto-flippa riktning
+      // (t.ex. vid månader med 6 veckorader). Den ska alltid öppnas uppåt.
+      const spaceAbove = rootRect.top;
+
+      styles.bottom = `calc(100% + 4px)`;
+      styles.top = "auto";
+
+      // Se till att den inte går utanför övre kanten
+      const maxHeightFromTop = spaceAbove - 8;
+      if (maxHeightFromTop < estimatedHeight) {
+        styles.maxHeight = `${Math.max(200, maxHeightFromTop)}px`;
+        styles.overflowY = "auto";
+      }
+    } else {
+      // Öppnas nedåt
+      const spaceBelow = viewportHeight - rootRect.bottom;
+      const spaceAbove = rootRect.top;
+      
+      // Om det inte finns plats nedåt, öppna uppåt
+      if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+        const triggerHeight = rootRect.height || 38;
+        styles.bottom = `calc(100% + 4px)`;
+        styles.top = "auto";
+        const maxHeightFromTop = spaceAbove - 8;
+        if (maxHeightFromTop < estimatedHeight) {
+          styles.maxHeight = `${Math.max(200, maxHeightFromTop)}px`;
+          styles.overflowY = "auto";
+        }
+      } else {
+        styles.top = "calc(100% + 4px)";
+        styles.bottom = "auto";
+        const maxHeightFromBottom = spaceBelow - 8;
+        if (maxHeightFromBottom < estimatedHeight) {
+          styles.maxHeight = `${Math.max(200, maxHeightFromBottom)}px`;
+          styles.overflowY = "auto";
+        }
+      }
+    }
+    
+    // Bestäm horisontell position - se till att kalendern alltid är inom viewport
+    const spaceLeft = rootRect.left;
+    const spaceRight = viewportWidth - rootRect.right;
+    
+    if (align === "right") {
+      // Försök placera till höger om trigger
+      if (spaceRight >= calendarWidth) {
+        styles.right = "0";
+        styles.left = "auto";
+      } else if (spaceLeft >= calendarWidth) {
+        // Finns plats till vänster, flytta dit
+        styles.right = "auto";
+        styles.left = "0";
+      } else {
+        // Centrera om det inte finns plats på någon sida
+        const centerOffset = (calendarWidth - rootRect.width) / 2;
+        const leftPos = rootRect.left - centerOffset;
+        if (leftPos < 8) {
+          styles.left = "8px";
+          styles.right = "auto";
+        } else if (leftPos + calendarWidth > viewportWidth - 8) {
+          styles.right = "8px";
+          styles.left = "auto";
+        } else {
+          styles.left = `${-centerOffset}px`;
+          styles.right = "auto";
+        }
+      }
+    } else {
+      // Försök placera till vänster om trigger (default)
+      if (spaceLeft >= calendarWidth) {
+        styles.left = "0";
+        styles.right = "auto";
+      } else if (spaceRight >= calendarWidth) {
+        // Finns plats till höger, flytta dit
+        styles.left = "auto";
+        styles.right = "0";
+      } else {
+        // Centrera om det inte finns plats på någon sida
+        const centerOffset = (calendarWidth - rootRect.width) / 2;
+        const leftPos = rootRect.left - centerOffset;
+        if (leftPos < 8) {
+          styles.left = "8px";
+          styles.right = "auto";
+        } else if (leftPos + calendarWidth > viewportWidth - 8) {
+          styles.right = "8px";
+          styles.left = "auto";
+        } else {
+          styles.left = `${-centerOffset}px`;
+          styles.right = "auto";
+        }
+      }
+    }
+    
+    setCalculatedPosition(styles);
+  }, [open, effectiveDirection, align, weeks.length, viewYear, viewMonth]);
 
 
   const thisYear = new Date().getFullYear();
@@ -52,6 +187,32 @@ export default function CalendarDatePicker({
     };
     if (open) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  // Stäng kalender när man klickar utanför (global hanterare)
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDownOutside = (e: PointerEvent) => {
+      const path = (e.composedPath?.() ?? []) as EventTarget[];
+      const hitCalendar = calendarRef.current ? path.includes(calendarRef.current) : false;
+      const hitRoot = rootRef.current ? path.includes(rootRef.current) : false;
+
+      // Fallback om composedPath saknas
+      const target = e.target as HTMLElement | null;
+      const containsCalendar = target ? !!calendarRef.current?.contains(target) : false;
+      const containsRoot = target ? !!rootRef.current?.contains(target) : false;
+
+      if (hitCalendar || hitRoot || containsCalendar || containsRoot) return;
+      setOpen(false);
+    };
+
+    // pointerdown fungerar för mus + touch + pen och fångar även innan click
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDownOutside, true);
+    };
   }, [open]);
 
   // Lokala labels
@@ -68,12 +229,6 @@ export default function CalendarDatePicker({
     }
     return weekStartsOn === 1 ? base : rotate(base, 1 * -1);
   }, [weekStartsOn]);
-
-  // Dynamiskt grid: 4–6 veckor beroende på månad/offset
-  const weeks = useMemo(
-    () => buildMonthGrid(viewYear, viewMonth, weekStartsOn),
-    [viewYear, viewMonth, weekStartsOn]
-  );
 
   // Vald dag (för markering)
   const isoValue = normalized;
@@ -111,7 +266,7 @@ export default function CalendarDatePicker({
   // Trigger-stil
   const triggerClasses =
     "w-full inline-flex h-[38px] items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm " +
-    "transition hover:bg-slate-50 hover:border-slate-400";
+    "transition hover:bg-slate-50 hover:border-slate-400 select-none";
 
   return (
     <div ref={rootRef} className="relative inline-block w-full align-top">
@@ -122,69 +277,7 @@ export default function CalendarDatePicker({
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((prev) => {
-            const next = !prev;
-            if (!prev && next && rootRef.current) {
-              if (forceDirection) {
-                setDirection(forceDirection);
-              } else {
-              const rect = rootRef.current.getBoundingClientRect();
-              const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-                const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-
-              // Grov uppskattning av kalenderns höjd (inkl. skugga/marginal)
-              const calendarHeight = 340;
-                const calendarWidth = 320; // Kalenderns bredd
-
-              const spaceBelow = viewportHeight - rect.bottom;
-              const spaceAbove = rect.top;
-
-              if (spaceBelow < calendarHeight && spaceAbove > spaceBelow) {
-                setDirection("up");
-              } else {
-                setDirection("down");
-                }
-
-                // Beräkna horisontell positionering
-                if (align === "right") {
-                  const spaceRight = viewportWidth - rect.right;
-                  if (spaceRight < calendarWidth) {
-                    // Kalendern skulle hamna utanför till höger, flytta inåt
-                    const spaceLeft = rect.left;
-                    if (spaceLeft >= calendarWidth) {
-                      // Finns plats till vänster, använd center för att flytta inåt
-                      setHorizontalAlign("center");
-                    } else {
-                      // Inte tillräckligt med plats till vänster heller, använd center men begränsa
-                      setHorizontalAlign("center");
-                    }
-                  } else {
-                    setHorizontalAlign("right");
-                  }
-                } else {
-                  // align === "left" eller default
-                  const spaceLeft = rect.left;
-                  if (spaceLeft < calendarWidth) {
-                    // Kalendern skulle hamna utanför till vänster, flytta inåt
-                    const spaceRight = viewportWidth - rect.right;
-                    if (spaceRight >= calendarWidth) {
-                      // Finns plats till höger, använd center för att flytta inåt
-                      setHorizontalAlign("center");
-                    } else {
-                      // Inte tillräckligt med plats till höger heller, använd center men begränsa
-                      setHorizontalAlign("center");
-                    }
-                  } else {
-                    setHorizontalAlign("left");
-                  }
-                }
-              }
-            } else if (!next) {
-              // Stäng kalendern, återställ till original align
-              setHorizontalAlign(align);
-            }
-            return next;
-          });
+          setOpen((prev) => !prev);
         }}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -198,51 +291,10 @@ export default function CalendarDatePicker({
 
       {open && (
         <>
-          {/* Backdrop som fångar första klicket utanför och stänger utan att trigga föräldrar */}
+          {/* Backdrop för visuell feedback (hanteringen sker nu via global event listener) */}
           <div
             className="fixed inset-0 z-[998]"
-            onMouseDown={(e) => {
-              // Stäng bara om klicket är på backdropen själv, inte på kalendern eller trigger-knappen
-              const target = e.target as HTMLElement;
-              if (
-                target === e.currentTarget &&
-                calendarRef.current &&
-                !calendarRef.current.contains(target) &&
-                rootRef.current &&
-                !rootRef.current.contains(target)
-              ) {
-                e.stopPropagation();
-                setOpen(false);
-              }
-            }}
-            onClick={(e) => {
-              // Stäng när man klickar på backdropen (men inte på kalendern eller trigger)
-              const target = e.target as HTMLElement;
-              if (
-                target === e.currentTarget &&
-                calendarRef.current &&
-                !calendarRef.current.contains(target) &&
-                rootRef.current &&
-                !rootRef.current.contains(target)
-              ) {
-                e.stopPropagation();
-                setOpen(false);
-              }
-            }}
-            onTouchStart={(e) => {
-              // Förhindra touch events från att gå igenom
-              const target = e.target as HTMLElement;
-              if (
-                target === e.currentTarget &&
-                calendarRef.current &&
-                !calendarRef.current.contains(target) &&
-                rootRef.current &&
-                !rootRef.current.contains(target)
-              ) {
-              e.stopPropagation();
-              setOpen(false);
-              }
-            }}
+            style={{ pointerEvents: "none" }}
           />
 
           {/* Själva kalendern (ligger ovanför backdropen) */}
@@ -267,75 +319,24 @@ export default function CalendarDatePicker({
             onTouchEnd={(e) => {
               e.stopPropagation();
             }}
-            style={
-              (() => {
-                const styles: React.CSSProperties = {};
-                
-                if (direction === "up" && rootRef.current) {
-                    const rect = rootRef.current.getBoundingClientRect();
-                    const triggerHeight = rootRef.current.offsetHeight || 38;
-                    const spaceAbove = rect.top;
-                  styles.top = `-${triggerHeight + 4}px`;
-                  styles.maxHeight = `${Math.max(300, spaceAbove - 4)}px`;
-                  styles.overflowY = "auto";
-                }
-
-                // Horisontell positionering baserat på horizontalAlign
-                if (horizontalAlign === "center" && rootRef.current) {
-                  const rect = rootRef.current.getBoundingClientRect();
-                  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-                  const calendarWidth = 320;
-                  const triggerWidth = rect.width;
-                  
-                  // Centrera kalendern relativt trigger-knappen, men begränsa till viewport
-                  const leftOffset = (triggerWidth - calendarWidth) / 2;
-                  const leftPosition = rect.left + leftOffset;
-                  const rightPosition = leftPosition + calendarWidth;
-                  
-                  if (leftPosition < 8) {
-                    // För nära vänster kant, justera
-                    styles.left = "8px";
-                    styles.right = "auto";
-                  } else if (rightPosition > viewportWidth - 8) {
-                    // För nära höger kant, justera
-                    styles.right = "8px";
-                    styles.left = "auto";
-                  } else {
-                    // Centrera relativt trigger
-                    styles.left = `${leftOffset}px`;
-                    styles.right = "auto";
-                  }
-                } else if (horizontalAlign === "right") {
-                  styles.right = "0";
-                  styles.left = "auto";
-                } else {
-                  // left eller default
-                  styles.left = "0";
-                  styles.right = "auto";
-                }
-
-                return Object.keys(styles).length > 0 ? styles : undefined;
-              })()
-            }
-            className={`absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl ${
-              direction === "up" ? "" : "top-full mt-1"
-            }`}
+            style={calculatedPosition || undefined}
+            className="absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl"
           >
 
             {/* Header: månad + år, med navigering */}
             <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
-              <button type="button" onClick={() => navYear(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Föregående år">«</button>
-              <button type="button" onClick={() => navMonth(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Föregående månad">‹</button>
+              <button type="button" onClick={() => navYear(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white select-none" title="Föregående år">«</button>
+              <button type="button" onClick={() => navMonth(-1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white select-none" title="Föregående månad">‹</button>
 
               <div className="mx-1 flex items-center gap-2">
                 <div className="min-w-[8ch] text-sm font-semibold capitalize">{capitalize(monthLabel)}</div>
-                <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" value={viewYear} onChange={(e) => setViewYear(Number(e.target.value))}>
+                <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm select-none" value={viewYear} onChange={(e) => setViewYear(Number(e.target.value))}>
                   {range(minYear, upperYear).map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
 
-              <button type="button" onClick={() => navMonth(1)} className="ml-auto h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Nästa månad">›</button>
-              <button type="button" onClick={() => navYear(1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white" title="Nästa år">»</button>
+              <button type="button" onClick={() => navMonth(1)} className="ml-auto h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white select-none" title="Nästa månad">›</button>
+              <button type="button" onClick={() => navYear(1)} className="h-7 w-7 rounded-md border border-transparent text-slate-900 hover:border-slate-300 hover:bg-white select-none" title="Nästa år">»</button>
             </div>
 
             {/* Veckodagar */}
@@ -418,14 +419,14 @@ export default function CalendarDatePicker({
                   onChange(t);
                   setOpen(false);
                 }}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400 select-none"
               >
                 Idag
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400"
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400 select-none"
               >
                 Stäng
               </button>

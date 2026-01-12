@@ -96,7 +96,7 @@ export default function HomePage() {
         Om
       </button>
 
-      <h1 className="mb-2 text-center text-7xl font-extrabold tracking-tight">
+      <h1 className="mb-2 select-none caret-transparent text-center text-7xl font-extrabold tracking-tight">
   <span className="text-sky-700">ST</span>
   <span className="text-emerald-700">ARK</span>
 </h1>

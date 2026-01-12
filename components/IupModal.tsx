@@ -12,7 +12,7 @@ import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
-import MilestoneOverviewPanel from "@/components/MilestoneOverviewModal";
+import { MilestoneOverviewPanel } from "@/components/MilestoneOverviewModal";
 import { ReportPanel } from "@/components/ReportPrintModal";
 import type { Profile } from "@/lib/types";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
@@ -202,6 +202,10 @@ function determineAssessmentPhase(dateISO: string | null | undefined, prof: Prof
     return "ST";
   }
 
+  // ST-start används som nedre gräns för när vi vill defaulta till BT i bedömningen.
+  // Fallback till BT-start om ST-start saknas.
+  const stStartISO = (prof as any)?.stStartDate || btStartISO;
+
   // Beräkna BT-slutdatum
   const btEndManual = (prof as any)?.btEndDate;
   let btEndISO: string;
@@ -221,8 +225,8 @@ function determineAssessmentPhase(dateISO: string | null | undefined, prof: Prof
   }
 
   // Jämför datum
-  if (dateISO >= btStartISO && dateISO <= btEndISO) {
-    // Inom BT-period: förinställ BT
+  if (dateISO >= stStartISO && dateISO <= btEndISO) {
+    // Mellan ST-start och BT-slut: förinställ BT
     return "BT";
   } else {
     // Efter BT-slut eller före BT-start: sätt ST automatiskt
@@ -405,7 +409,7 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
         </header>
 
         {/* Body */}
-        <section className="max-h-[75vh] overflow-auto p-4 space-y-4" data-info="Fyll i information om handledarsamtalet: datum, rubrik/fokus, sammanfattning av diskussionen, överenskomna åtgärder och eventuellt nästa planerade samtal.">
+        <section className="max-h-[75vh] p-4 space-y-4" data-info="Fyll i information om handledarsamtalet: datum, rubrik/fokus, sammanfattning av diskussionen, överenskomna åtgärder och eventuellt nästa planerade samtal.">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
@@ -566,6 +570,9 @@ function AssessmentModal({
       return { phase, showDropdown: false };
     }
 
+    // ST-start som nedre gräns (fallback BT-start)
+    const stStartISO = (prof as any)?.stStartDate || btStartISO;
+
     // Beräkna BT-slutdatum
     const btEndManual = (prof as any)?.btEndDate;
     let btEndISO: string;
@@ -585,13 +592,11 @@ function AssessmentModal({
     }
 
     // Jämför datum
-    if (dateISO >= btStartISO && dateISO <= btEndISO) {
-      // Inom BT-period: förinställ BT, visa dropdown
+    // Mellan ST-start och BT-slut: BT (dropdown synlig). Efter BT-slut: ST och dropdown göms.
+    if (dateISO >= stStartISO && dateISO <= btEndISO) {
       return { phase: "BT", showDropdown: true };
-    } else {
-      // Efter BT-slut eller före BT-start: sätt ST automatiskt, dölj dropdown
-      return { phase: "ST", showDropdown: false };
     }
+    return { phase: "ST", showDropdown: false };
   }, []);
 
   useEffect(() => {
@@ -800,7 +805,7 @@ function AssessmentModal({
         </header>
 
                 {/* Body */}
-        <section className="max-h-[75vh] overflow-auto p-4 space-y-4">
+        <section className="max-h-[75vh] p-4 space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
@@ -2626,7 +2631,9 @@ export default function IupModal({
                   open={open}
                   onClose={handleRequestClose}
                   initialTab="st"
-                  onDirtyChange={(dirty) => {
+                  hideHeader
+                  embedded
+                  onDirtyChange={(dirty: boolean) => {
                     if (dirty) {
                       setDirty(true);
                     }

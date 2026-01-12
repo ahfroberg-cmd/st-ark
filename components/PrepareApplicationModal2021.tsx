@@ -25,7 +25,7 @@ import type { Profile, Placement, Course } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import { PDFDocument, StandardFonts, PDFName } from "pdf-lib";
 import { addMonths, toISO } from "@/lib/dateutils";
-import MilestonePicker from "@/components/MilestonePicker";
+import DesktopMilestonePicker from "@/components/DesktopMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 
 
@@ -780,7 +780,7 @@ function ThirdCountryTabContent({
       </div>
 
       {goals && (
-        <MilestonePicker
+        <DesktopMilestonePicker
           open={thirdCountryMilestonePickerOpen}
           title="Välj delmål för specialistläkare från tredjeland"
           goals={goals}

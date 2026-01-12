@@ -28,12 +28,13 @@ type Props = {
   initialTab: "st" | "bt"; 
   title?: string;
   hideHeader?: boolean; // Hide the colored header (for laptop version)
+  embedded?: boolean;
   onDirtyChange?: (dirty: boolean) => void; // Callback när planeringen ändras
 };
 type TabKey = "st" | "bt";
 
 /** Panel för delmål – kan ligga i egen modal eller inuti IUP-fliken */
-export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideHeader, onDirtyChange }: Props) {
+export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideHeader, embedded, onDirtyChange }: Props) {
   console.log("[MilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -1067,7 +1068,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         onDiscard={handleConfirmCloseDetail}
         onSaveAndClose={handleSaveAndCloseDetail}
       />
-      <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className={embedded ? "w-full max-w-[980px] rounded-2xl bg-white shadow-2xl flex flex-col" : "w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden"}>
 
           {/* Header - only show if not hidden (for laptop version) */}
           {!hideHeader && (
@@ -1162,7 +1163,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         </div>
 
         {/* Body */}
-        <section className="flex-1 overflow-y-auto p-5">
+        <section className={embedded ? "flex-1 p-5" : "flex-1 overflow-y-auto p-5"}>
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
