@@ -160,6 +160,38 @@ export default function ScanIntygModal({
     setStep("upload");
   }
 
+  async function renderPdfFirstPageToPngBlob(pdfFile: File): Promise<Blob> {
+    const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const workerSrc = "/pdf.worker.min.mjs";
+    if (pdfjs?.GlobalWorkerOptions) {
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+    }
+
+    const data = await pdfFile.arrayBuffer();
+    const doc = await pdfjs.getDocument({ data }).promise;
+    const page = await doc.getPage(1);
+
+    const scale = 2;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Kunde inte skapa canvas-context för PDF.");
+
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error("Kunde inte konvertera PDF-sida till bild."));
+      }, "image/png");
+    });
+
+    return blob;
+  }
+
   async function handleScan() {
     if (!file) return;
     
@@ -176,23 +208,16 @@ export default function ScanIntygModal({
     try {
       const isPdf = /pdf$/i.test(file.name) || file.type === "application/pdf";
 
-      // === Rollback-beteende: PDF-OCR av är stabilitetsskäl. ===
-      if (isPdf) {
-        setWarning(
-          "PDF-OCR är avstängt i denna version. Ladda upp en bild/foto av intyget i stället."
-        );
-        setBusy(false);
-        return;
-      }
-
       // OCR (bild) — OCR.space ParsedText (utan zon-/Tesseract-fallback)
       const ocrTimeoutMs = 25000; // 25s max
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("ocr-timeout")), ocrTimeoutMs)
       );
 
+      const ocrInput: Blob = isPdf ? await renderPdfFirstPageToPngBlob(file) : file;
+
       const ocrResult = await Promise.race([
-        ocrImage(file, "swe+eng"),
+        ocrImage(ocrInput, "swe+eng"),
         timeout,
       ]);
 
@@ -1253,7 +1278,7 @@ export default function ScanIntygModal({
                 <input
                   ref={cameraInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   capture="environment"
                   className="hidden"
                   onChange={(e) =>
@@ -1263,7 +1288,7 @@ export default function ScanIntygModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   className="hidden"
                   onChange={(e) =>
                     onSelectFile(e.target.files?.[0] ?? null)

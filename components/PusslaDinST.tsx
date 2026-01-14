@@ -172,6 +172,17 @@ const isLeave = (t: ActivityType) =>
 const isZeroAttendanceType = (t: ActivityType) =>
   t === "Forskning" || isLeave(t);
 
+const isPlacementZeroAttendance = (p: any): boolean => {
+  const t = String(p?.type || "");
+  return (
+    t === "Forskning" ||
+    t === "Tjänstledighet" ||
+    t === "Föräldraledighet" ||
+    t === "Annan ledighet" ||
+    t === "Sjukskriven"
+  );
+};
+
 
 
 function isValidISO(dateISO: string) {
@@ -949,6 +960,8 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     
     return dbPlacements.reduce((acc, p: any) => {
       if (!isBT(p)) return acc;
+
+      if (isPlacementZeroAttendance(p)) return acc;
       
       const start = p.startDate || p.startISO || p.start || "";
       if (!start) return acc;
@@ -971,6 +984,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     
     if (gv !== "2021") {
       return dbPlacements.reduce((acc, p: any) => {
+        if (isPlacementZeroAttendance(p)) return acc;
         const start = p.startDate || p.startISO || p.start || "";
         const end = p.endDate || p.endISO || p.end || today;
         const months = monthDiffExact(start, end);
@@ -982,6 +996,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     const isBT = isPlacementBTPhase;
     
     return dbPlacements.reduce((acc, p: any) => {
+      if (isPlacementZeroAttendance(p)) return acc;
       const start = p.startDate || p.startISO || p.start || "";
       if (!start) return acc;
       
@@ -1042,6 +1057,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       if (!stStart) return 0;
       
       return dbPlacements.reduce((acc, p: any) => {
+        if (isPlacementZeroAttendance(p)) return acc;
         const start = p.startDate || p.startISO || p.start || "";
         const end = p.endDate || p.endISO || p.end || today;
         const endDate = end > today ? today : end;
@@ -1056,6 +1072,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     if (!btStart) return 0;
     
     return dbPlacements.reduce((acc, p: any) => {
+      if (isPlacementZeroAttendance(p)) return acc;
       const start = p.startDate || p.startISO || p.start || "";
       if (!start) return acc;
       
@@ -8201,7 +8218,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 })();
 
 
-                  const attendance = a.attendance ?? (isZeroAttendanceType(a.type) ? 0 : 100);
+                  const attendance = isZeroAttendanceType(a.type)
+                    ? 0
+                    : (a.attendance ?? 100);
                   const fteMonths = (a.lengthSlots * 0.5) * (attendance / 100); // motsv. heltid i månader
 
 
@@ -8744,7 +8763,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 <div className="md:col-span-3 mt-2 rounded-xl border bg-white p-3 flex flex-col gap-2">
   {(() => {
     const workedFteMonths = activities
-      .filter((a) => !isLeave(a.type))
+      .filter((a) => !isZeroAttendanceType(a.type))
       .reduce(
         (acc, a) => acc + a.lengthSlots * 0.5 * ((a.attendance ?? 100) / 100),
         0
