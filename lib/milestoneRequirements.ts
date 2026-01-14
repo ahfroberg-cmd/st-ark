@@ -13,21 +13,34 @@ export function milestoneRequires(m: any): MilestoneRequirements {
   const codeNorm = codeRaw.trim().toUpperCase().replace(/\s+/g, "");
   const is2021 = codeNorm.startsWith("ST");
 
-  const sections: any[] = Array.isArray(m?.sections) ? m.sections : [];
+  // Hantera två format för sections:
+  // 1. Array (A/B-delmål): [{ title: "Utbildningsaktiviteter", items: [...] }]
+  // 2. Object (C-delmål): { utbildningsaktiviteter: [...] }
+  let hay = "";
 
-  const ua = sections.find((s) =>
-    String(s?.title ?? "")
-      .trim()
-      .toLowerCase()
-      .includes("utbildningsaktiviteter")
-  );
-
-  const rawItems: string[] = Array.isArray(ua?.items)
-    ? ua.items.map((x: any) => String(x ?? ""))
-    : [];
-  const rawText = typeof ua?.text === "string" ? ua.text : "";
-
-  const hay = (rawItems.join("\n") + "\n" + rawText).toLowerCase();
+  const sections = m?.sections;
+  if (Array.isArray(sections)) {
+    // Format 1: Array med title/items
+    const ua = sections.find((s) =>
+      String(s?.title ?? "")
+        .trim()
+        .toLowerCase()
+        .includes("utbildningsaktiviteter")
+    );
+    const rawItems: string[] = Array.isArray(ua?.items)
+      ? ua.items.map((x: any) => String(x ?? ""))
+      : [];
+    const rawText = typeof ua?.text === "string" ? ua.text : "";
+    hay = (rawItems.join("\n") + "\n" + rawText).toLowerCase();
+  } else if (sections && typeof sections === "object") {
+    // Format 2: Object med utbildningsaktiviteter som nyckel
+    const ua = sections.utbildningsaktiviteter;
+    if (Array.isArray(ua)) {
+      hay = ua.map((x: any) => String(x ?? "")).join("\n").toLowerCase();
+    } else if (typeof ua === "string") {
+      hay = ua.toLowerCase();
+    }
+  }
 
   const kurs = /\bkurs(er)?\b/.test(hay) || (is2021 && codeNorm === "STA3");
   const klin = /(klinisk\s+tjänstgöring|klinisk\s+tjanstgoring|auskultation)/.test(hay);
