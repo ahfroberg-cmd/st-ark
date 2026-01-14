@@ -17,6 +17,7 @@ import { ReportPanel } from "@/components/ReportPrintModal";
 import type { Profile } from "@/lib/types";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import { addMonths, toISO, parseISO } from "@/lib/dateutils";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 
 
 
@@ -3258,8 +3259,10 @@ export default function IupModal({
                             <tbody>
                               {goalReportRows.map((row) => {
                                 const code = shortMilestoneCode(row.milestoneCode);
-                                const displayCode = isGoals2021 
-                                  ? (code ? `ST${code}` : "—")
+                                const displayCode = isGoals2021
+                                  ? (code
+                                      ? displayMilestoneCode(code, (profile as any)?.goalsVersion)
+                                      : "—")
                                   : (code ? code.toLowerCase() : "—");
                                 return (
                                 <tr key={row.milestoneCode} className="align-top">
@@ -3809,8 +3812,10 @@ export default function IupModal({
                           <tbody>
                             {goalReportRows.map((row) => {
                               const code = shortMilestoneCode(row.milestoneCode);
-                              const displayCode = isGoals2021 
-                                ? (code ? `ST${code}` : "—")
+                              const displayCode = isGoals2021
+                                ? (code
+                                    ? displayMilestoneCode(code, (profile as any)?.goalsVersion)
+                                    : "—")
                                 : (code ? code.toLowerCase() : "—");
                               return (
                               <tr key={row.milestoneCode} className="align-top">
