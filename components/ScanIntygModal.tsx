@@ -84,6 +84,38 @@ export default function ScanIntygModal({
     return false;
   }, [file, previewUrl, step, parsed, baselineParsed]);
 
+  function extractDelmalCodesFromOcrText(raw: string): string[] {
+    const s0 = String(raw || "");
+
+    // Vanligt OCR-fel: 1 ↔ l/I. Vi normaliserar bara i kontexten "a?1"/"b?1"/"c?1".
+    const s = s0
+      .replace(/\b(ST)?([abc])\s*[lI]\b/gi, (_m, p1, p2) => `${p1 ?? ""}${p2}1`)
+      .replace(/\b([abc])\s*[lI]\b/gi, (_m, p1) => `${p1}1`);
+
+    const out: string[] = [];
+
+    // Fångar t.ex. "a1", "A 1", "STa1", "ST a 1", "sta 1".
+    const re = /\b(?:ST\s*)?([abc])\s*(\d{1,2})\b/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(s)) !== null) {
+      const grp = String(m[1] || "").toUpperCase();
+      const num = String(m[2] || "").trim();
+      if (!grp || !num) continue;
+      out.push(`${grp}${num}`);
+    }
+
+    // Dedupe + sort: A före B före C, sen numeriskt.
+    const uniq = Array.from(new Set(out));
+    uniq.sort((a, b) => {
+      const ma = a.match(/^([ABC])(\d{1,2})$/);
+      const mb = b.match(/^([ABC])(\d{1,2})$/);
+      if (!ma || !mb) return a.localeCompare(b);
+      if (ma[1] !== mb[1]) return ma[1].localeCompare(mb[1]);
+      return Number(ma[2]) - Number(mb[2]);
+    });
+    return uniq;
+  }
+
   function resetAll() {
     setStep("upload");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -428,6 +460,23 @@ export default function ScanIntygModal({
 
       // Beskrivnings-bullets
       if (p?.description) p.description = enforceBulletBreaks(p.description);
+
+      // Extra robust delmål: om parsern missat delmål, försök läsa ut från OCR-texten.
+      const existingDelmal = Array.isArray((p as any)?.delmalCodes)
+        ? ((p as any).delmalCodes as any[]).map((x) => String(x || "").trim()).filter(Boolean)
+        : typeof (p as any)?.delmalCodes === "string"
+        ? String((p as any).delmalCodes)
+            .split(/[\s,;]+/)
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : [];
+
+      if (existingDelmal.length === 0) {
+        const found = extractDelmalCodesFromOcrText(content);
+        if (found.length > 0) {
+          (p as any).delmalCodes = found;
+        }
+      }
 
       // Clinic: ta sista raden, kapa rubrikdelen och flytta ut datum till period
       {
@@ -1391,6 +1440,10 @@ export default function ScanIntygModal({
                     : titleLabel
                     ? `Förhandsgranskning – ${titleLabel}`
                     : "Förhandsgranskning"}
+                </div>
+
+                <div className="text-xs text-slate-700">
+                  Titta igenom resultatet noggrant, det finns risk för fel.
                 </div>
 
                 <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
