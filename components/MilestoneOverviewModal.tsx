@@ -1738,8 +1738,8 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
-                  {req.klin ? (
+                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
+                  {(req.klin || req.arb) ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1752,27 +1752,6 @@ function StGrid({
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
-                  )}
-
-                  {req.arb ? (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        p > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={p > 0 ? "Visa kopplade utbildningsmoment/arbetsmoment" : "Inga kopplade utbildningsmoment/arbetsmoment"}
-                    >
-                      <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
@@ -1842,8 +1821,8 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
-                  {req.klin ? (
+                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
+                  {(req.klin || req.arb) ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1856,27 +1835,6 @@ function StGrid({
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
-                  )}
-
-                  {req.arb ? (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        p > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={p > 0 ? "Visa kopplade utbildningsmoment/arbetsmoment" : "Inga kopplade utbildningsmoment/arbetsmoment"}
-                    >
-                      <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
@@ -1949,7 +1907,7 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
+                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
                   {req.klin ? (
                     <button
                       type="button"
@@ -1963,27 +1921,6 @@ function StGrid({
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
-                  )}
-
-                  {req.arb ? (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        p > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={p > 0 ? "Visa kopplade utbildningsmoment/arbetsmoment" : "Inga kopplade utbildningsmoment/arbetsmoment"}
-                    >
-                      <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
