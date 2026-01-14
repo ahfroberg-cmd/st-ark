@@ -8374,8 +8374,8 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
                       <td className="px-3 py-1.5 text-center" data-info={startISO}>{startISO}</td>
                       <td className="px-3 py-1.5 text-center" data-info={endISO}>{endISO}</td>
-                      <td className="px-3 py-1.5 text-center" data-info={isLeave(a.type) ? "—" : String(a.attendance ?? 100)}>{isLeave(a.type) ? "—" : (a.attendance ?? 100)}</td>
-                      <td className="px-3 py-1.5 text-center" data-info={isLeave(a.type) ? "—" : fteMonths.toFixed(1)}>{isLeave(a.type) ? "—" : fteMonths.toFixed(1)}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={isZeroAttendanceType(a.type) ? "—" : String(a.attendance ?? 100)}>{isZeroAttendanceType(a.type) ? "—" : (a.attendance ?? 100)}</td>
+                      <td className="px-3 py-1.5 text-center" data-info={isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}>{isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}</td>
                       
 
 
