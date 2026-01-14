@@ -1,24 +1,13 @@
-//
-// Copyright 2024 ST-ARK
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright (c) 2024 ST-ARK
+// All rights reserved.
+// Proprietary. See LICENSE for terms.
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { aboutContent } from "@/lib/aboutContent";
 
-type TabId = "instruction" | "about" | "contact" | "download" | "privacy" | "license";
+type TabId = "instruction" | "about" | "contact" | "privacy" | "license";
 
 interface Props {
   open: boolean;
@@ -120,9 +109,8 @@ export default function AboutModal({ open, onClose }: Props) {
           {[
             { id: "instruction", label: "Instruktion", info: "Här hittar du instruktioner för hur du använder ST-ARK, inklusive grundläggande funktioner, kortkommandon och tips för att få ut mesta möjliga av verktyget." },
             { id: "about", label: "Upphov och syfte", info: "Här kan du läsa om projektets syfte, bakgrund och vem som har utvecklat ST-ARK. Du får också information om projektets mål och vision." },
-            { id: "download", label: "Ladda ned projektet", info: "Här kan du ladda ned projektets källkod från GitHub för att använda lokalt eller bidra till utvecklingen. Projektet är öppet källkod och fritt att använda." },
             { id: "privacy", label: "Integritet och dataskydd", info: "Här kan du läsa om hur ST-ARK hanterar dina personuppgifter och data. All data sparas lokalt i din webbläsare och ingen information skickas till servrar." },
-            { id: "license", label: "Licensvillkor", info: "Här kan du läsa projektets licensvillkor. ST-ARK är licensierad under Apache License 2.0, vilket innebär att du fritt kan använda, modifiera och distribuera projektet." },
+            { id: "license", label: "Licensvillkor", info: "Här kan du läsa projektets licensvillkor. ST-ARK tillhandahålls under en proprietär licens under betaperioden." },
             { id: "contact", label: "Kontakt", info: "Här hittar du kontaktuppgifter för att komma i kontakt med projektets utvecklare om du har frågor, förslag eller behöver hjälp." },
           ].map((t) => (
             <button
@@ -257,35 +245,6 @@ export default function AboutModal({ open, onClose }: Props) {
             </div>
           )}
 
-          {tab === "download" && (
-            <div className="space-y-4 text-slate-700">
-              <p>{aboutContent.download.intro}</p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h3 className="mb-2 text-sm font-extrabold text-slate-900">
-                  {aboutContent.download.steps.title}
-                </h3>
-                <ol className="list-decimal space-y-2 pl-5">
-                  {aboutContent.download.steps.items.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ol>
-                <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm">
-                  {aboutContent.download.steps.exampleText}
-                </div>
-              </div>
-              <div className="mt-4">
-                <a
-                  href={aboutContent.download.githubZipUrl}
-                  download
-                  className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
-                  data-info="Laddar ned projektets källkod som en ZIP-fil från GitHub. Du kan sedan bygga och köra applikationen lokalt."
-                >
-                  Ladda ned projektet (ZIP)
-                </a>
-              </div>
-            </div>
-          )}
-
           {tab === "privacy" && (
             <div className="space-y-4 text-slate-700">
               {aboutContent.privacy.paragraphs.map((paragraph, index) => (
@@ -303,17 +262,7 @@ export default function AboutModal({ open, onClose }: Props) {
                 ))}
               </ul>
               <p>
-                Den fullständiga licenstexten finns i filen{" "}
-                <a
-                  href={aboutContent.license.licenseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sky-600 hover:text-sky-700 underline"
-                  data-info="Öppnar den fullständiga licenstexten i en ny flik. Licensen är Apache License 2.0."
-                >
-                  LICENSE
-                </a>{" "}
-                i projektets rotkatalog.
+                Licensvillkor och eventuella undantag lämnas på begäran.
               </p>
             </div>
           )}

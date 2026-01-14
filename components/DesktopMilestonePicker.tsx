@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GoalsCatalog, GoalsMilestone } from "@/lib/goals";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 
 /**
  * Trim av rubriker utan flimmer – samma som i MilestoneOverviewModal.
@@ -385,7 +386,9 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
       {detailId && (() => {
         const m = detailMilestone;
         const mid = detailId;
-        const titleCode = m ? String((m as any)?.code ?? mid).toLowerCase() : String(mid).toLowerCase();
+        const titleCode = m
+          ? displayMilestoneCode((m as any)?.code ?? mid, goals?.version)
+          : displayMilestoneCode(mid, goals?.version);
 
         return (
           <div
@@ -496,6 +499,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
   function renderRow(m: GoalsMilestone) {
     const mid = (m as any).id ?? (m as any).code ?? "";
     const codeRaw = String((m as any).code ?? mid ?? "");
+    const codeDisplay = displayMilestoneCode(codeRaw, goals?.version);
     const norm = normalizeCode(codeRaw);
     const isChecked = mid ? (checked.has(mid) || normalizedChecked.has(norm)) : false;
 
@@ -509,7 +513,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
             ? "border-emerald-200 bg-emerald-50" + (hoveredCheckbox === mid ? "" : " hover:bg-emerald-100")
             : "border-slate-200 bg-slate-50" + (hoveredCheckbox === mid ? "" : " hover:bg-slate-100"))
         }
-        data-info={`Klicka för att öppna detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()}. ${isChecked ? "Delmålet är markerat." : "Delmålet är inte markerat."}`}
+        data-info={`Klicka för att öppna detaljvyn för ST-delmål ${String(codeDisplay ?? "").toLowerCase()}. ${isChecked ? "Delmålet är markerat." : "Delmålet är inte markerat."}`}
       >
         {/* Vänster: chip + titel (öppnar info) */}
         <button
@@ -517,10 +521,10 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
           onClick={() => setDetailId(mid)}
           className="dm-row flex min-w-0 items-center gap-2 text-left text-slate-800"
           title="Visa information om delmålet"
-          data-info={`Öppnar detaljvyn för ST-delmål ${String((m as any).code ?? "").toLowerCase()} där du kan se fullständig beskrivning och markera/avmarkera delmålet.`}
+          data-info={`Öppnar detaljvyn för ST-delmål ${String(codeDisplay ?? "").toLowerCase()} där du kan se fullständig beskrivning och markera/avmarkera delmålet.`}
         >
           <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-800">
-            {String((m as any).code ?? "").toLowerCase()}
+            {String(codeDisplay ?? "")}
           </span>
           <TitleTrimmer text={String((m as any).title ?? "")} className="truncate text-[12px]" />
         </button>
@@ -539,7 +543,7 @@ export default function DesktopMilestonePicker({ open, title, goals, checked, on
             checked={isChecked}
             onChange={() => onToggle(mid)}
             className="sr-only"
-            aria-label={`Välj ${String((m as any).code ?? "")}`}
+            aria-label={`Välj ${String(codeDisplay ?? "")}`}
           />
           <span
             className={

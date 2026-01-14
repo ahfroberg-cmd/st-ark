@@ -1,21 +1,6 @@
-// lib/goals.ts
-// Robust loader som returnerar GoalsCatalog med kompletta delmål
-// (id, code, group, title, sections, sourceUrl). Klarar olika JSON-upplägg.
-//
-// Copyright 2024 ST-ARK
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright (c) 2024 ST-ARK
+// All rights reserved.
+// Proprietary. See LICENSE for terms.
 
 export type GoalsSections = {
   kompetenskrav?: string | string[];
@@ -64,7 +49,18 @@ async function tryLoadRawJsonAsync(
   version?: "2015" | "2021",
   specialtyRaw?: string
 ): Promise<AnyJson | null> {
-  const specSlug = (specialtyRaw ?? "Psykiatri").trim().toLowerCase().replace(/\s+/g, "");
+  const toSpecSlug = (s: string) =>
+    String(s ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, "och")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9\u00c0-\u024f-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  const specSlug = toSpecSlug(specialtyRaw ?? "Psykiatri");
+  const specSlugCompact = specSlug.replace(/-/g, "");
   const canFetch = typeof window !== "undefined" && typeof fetch !== "undefined";
   const abs = (p: string) =>
     typeof window !== "undefined" ? new URL(p, window.location.origin).toString() : p;
@@ -72,9 +68,13 @@ async function tryLoadRawJsonAsync(
   if (canFetch) {
     const candidates = [
       `/goals/${version ?? "2015"}/${specSlug}.json`,
+      `/goals/${version ?? "2015"}/${specSlugCompact}.json`,
       `/goals/${specSlug}.json`,
+      `/goals/${specSlugCompact}.json`,
       `/goals/2015/${specSlug}.json`,
+      `/goals/2015/${specSlugCompact}.json`,
       `/goals/2021/${specSlug}.json`,
+      `/goals/2021/${specSlugCompact}.json`,
     ];
     for (const path of candidates) {
       try {

@@ -389,7 +389,7 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
                         title={m?.title ?? "BT-delmål"}
                       >
                         <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                          {row.code.toLowerCase()}
+                          {row.code}
                         </span>
                         <span className="min-w-0 flex-1 text-[12px] text-slate-900 line-clamp-2 break-words">
                           {m?.title ?? "BT-delmål"}

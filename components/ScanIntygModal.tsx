@@ -1,18 +1,7 @@
-//
-// Copyright 2024 ST-ARK
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright (c) 2024 ST-ARK
+// All rights reserved.
+// Proprietary. See LICENSE for terms.
+
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
@@ -554,35 +543,23 @@ export default function ScanIntygModal({
       return start1 <= end2 && start2 <= end1;
     };
 
-    // Kontrollera kurser
-    if (anyDb?.courses?.toArray) {
-      const allCourses = await anyDb.courses.toArray();
-      for (const course of allCourses) {
-        if (!course.showOnTimeline) continue;
-        
-        const courseStart = course.startDate || course.endDate || course.certificateDate || "";
-        const courseEnd = course.endDate || course.startDate || course.certificateDate || "";
-        
-        if (courseStart && courseEnd && datesOverlap(startISO, endISO, courseStart, courseEnd)) {
-          const title = course.title || "Kurs";
-          overlappingItems.push(`${title} (${courseStart} - ${courseEnd})`);
-        }
-      }
-    }
-
     // Kontrollera placeringar
     if (anyDb?.placements?.toArray) {
       const allPlacements = await anyDb.placements.toArray();
       for (const placement of allPlacements) {
         if (!placement.showOnTimeline) continue;
+
+        // Överlappningsvarning ska bara gälla kliniska tjänstgöringar,
+        // och bara varna om det finns andra kliniska tjänstgöringar.
+        const placementType = String(placement.type || "").toLowerCase();
+        if (!placementType.includes("klinisk")) continue;
         
         const placementStart = placement.startDate || placement.endDate || placement.certificateDate || "";
         const placementEnd = placement.endDate || placement.startDate || placement.certificateDate || "";
         
         if (placementStart && placementEnd && datesOverlap(startISO, endISO, placementStart, placementEnd)) {
-          const type = placement.type || "Placering";
           const clinic = placement.clinic || placement.title || "";
-          const label = clinic ? `${type}: ${clinic}` : type;
+          const label = clinic ? `Klinisk tjänstgöring: ${clinic}` : "Klinisk tjänstgöring";
           overlappingItems.push(`${label} (${placementStart} - ${placementEnd})`);
         }
       }
@@ -613,15 +590,18 @@ export default function ScanIntygModal({
         }
       }
 
-      // Kontrollera överlappande datum innan sparandet
-      const overlapCheck = await checkOverlappingDates();
-      if (overlapCheck.hasOverlap) {
-        const itemsList = overlapCheck.overlappingItems.join("\n");
-        setWarning(
-          `Det finns redan aktiviteter på tidslinjen med överlappande datum:\n\n${itemsList}\n\nVänligen kontrollera datumen innan du sparar.`
-        );
-        setBusy(false);
-        return; // Stoppa sparandet och stäng inte fönstret
+      // Kontrollera överlappande datum innan sparandet (endast klinisk tjänstgöring)
+      const shouldCheckOverlap = kind === "2015-B4-KLIN" || kind === "2021-B9-KLIN";
+      if (shouldCheckOverlap) {
+        const overlapCheck = await checkOverlappingDates();
+        if (overlapCheck.hasOverlap) {
+          const itemsList = overlapCheck.overlappingItems.join("\n");
+          setWarning(
+            `Det finns redan aktiviteter på tidslinjen med överlappande datum:\n\n${itemsList}\n\nVänligen kontrollera datumen innan du sparar.`
+          );
+          setBusy(false);
+          return; // Stoppa sparandet och stäng inte fönstret
+        }
       }
 
       let createdKind: "placement" | "course" | null = null;

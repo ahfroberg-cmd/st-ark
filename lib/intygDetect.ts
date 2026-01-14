@@ -33,9 +33,18 @@ function asciiSoft(s: string) {
 function score(has: boolean, pts = 1) { return has ? pts : 0; }
 
 function best(cands: Array<{ kind: IntygKind; sc: number; why: string }>): Detected {
-  cands.sort((a, b) => b.sc - a.sc);
-  const top = cands[0];
-  return { kind: (top?.sc || 0) > 0 ? top.kind : null, reason: top ? top.why : "no candidates" };
+  // Stabil sortering med deterministisk tie-breaker (behåll kandidatordning vid lika score)
+  const withIdx = cands.map((c, idx) => ({ ...c, idx }));
+  withIdx.sort((a, b) => {
+    const d = b.sc - a.sc;
+    if (d !== 0) return d;
+    return a.idx - b.idx;
+  });
+  const top = withIdx[0];
+  return {
+    kind: (top?.sc || 0) > 0 ? top.kind : null,
+    reason: top ? top.why : "no candidates",
+  };
 }
 
 export function detectIntygKind(raw: string): Detected {
@@ -56,16 +65,18 @@ export function detectIntygKind(raw: string): Detected {
   const kB8 = has(/\bbilaga\s+8\b/i);
   const kKLIN = has(/\bklinisk[a]?\s+tjanstgor/);
   const kKURS = has(/\bkurs(?!plan)\b/);
+  const kKURSTID = has(/\bkurstid\b|\bkursens\b|\bdeltagande\s+i\s+kurs\b|\bkursintyg\b/);
+  const kTJSTALLE = has(/\btjanstgoringsstalle\b/);
   const kUTV  = has(/\bkvalitets[- ]?|\butvecklingsarbet|\bdeltagande\s+i\s+utvecklingsarbete/);
   const kSKR  = has(/\bskriftligt\s+arbete\b|\bvetenskapligt\s+arbete\b/);
   const kSTa3 = has(/\bsta?\s*3\b|\bst a\s*3\b/);
   const kTL   = has(/\btredje\s*land\b|\btredjeland\b|\beu\/ees.*utanf/);
 
   if (is2015) {
-    const cands = [
+    const cands: Array<{ kind: IntygKind; sc: number; why: string }> = [
       { kind: "2015-B7-SKRIFTLIGT", sc: score(kSKR, 3) + score(has(/\btitel\b/)) + score(has(/\bhandledare\b/)), why: "2015 + (skriftligt arbete)" },
+      { kind: "2015-B5-KURS",       sc: score(kKURS, 3) + score(kKURSTID, 3) + score(has(/\bintygas?\b/)), why: "2015 + (kurs)" },
       { kind: "2015-B4-KLIN",       sc: score(kKLIN, 2) + score(has(/\bbeskrivning\s+av\s+(den\s+)?(kliniska\s+)?tjanstgor/)), why: "2015 + (klinisk tjänstgöring)" },
-      { kind: "2015-B5-KURS",       sc: score(kKURS, 2) + score(has(/\bintygas?\b|\bkurstid\b/)), why: "2015 + (kurs)" },
       { kind: "2015-B6-UTV",        sc: score(kUTV, 2) + score(has(/\bsyfte\b|\bmetod\b|\bresultat\b/)), why: "2015 + (kvalitets-/utvecklingsarbete)" },
       { kind: "2015-B3-AUSK",       sc: score(kAUSK, 2), why: "2015 + (auskultation)" },
     ];
@@ -91,10 +102,10 @@ export function detectIntygKind(raw: string): Detected {
     }
 
     // Nyckelordsfallback
-    const cands = [
+    const cands: Array<{ kind: IntygKind; sc: number; why: string }> = [
       { kind: "2021-B8-AUSK",        sc: score(kAUSK, 3) + score(kB8, 2), why: "2021 + (auskultation + bilaga 8)" },
-      { kind: "2021-B9-KLIN",        sc: score(kKLIN, 3) + score(has(/\bbeskrivning\s+av\s+(den\s+)?(kliniska\s+)?tjanstgor/)), why: "2021 + (klinisk tjänstgöring)" },
-      { kind: "2021-B10-KURS",       sc: score(kKURS, 3) + score(has(/\bintygas?\b|\bkurstid\b/)), why: "2021 + (kurs)" },
+      { kind: "2021-B10-KURS",       sc: score(kKURS, 3) + score(kKURSTID, 3) + score(has(/\bintygas?\b/)), why: "2021 + (kurs)" },
+      { kind: "2021-B9-KLIN",        sc: score(kKLIN, 3) + score(kTJSTALLE, 2) + score(has(/\bbeskrivning\s+av\s+(den\s+)?(kliniska\s+)?tjanstgor/)), why: "2021 + (klinisk tjänstgöring)" },
       { kind: "2021-B11-UTV",        sc: score(kUTV, 3) + score(has(/\bdeltagande\s+i\s+utvecklingsarbete/)), why: "2021 + (deltagande i utvecklingsarbete)" },
       { kind: "2021-B12-STa3",       sc: score(kSTa3, 3), why: "2021 + (ST a3)" },
       { kind: "2021-B13-TREDJELAND", sc: score(kTL, 3),  why: "2021 + (tredjeland)" },
@@ -109,8 +120,8 @@ export function detectIntygKind(raw: string): Detected {
   // Om år saknas i OCR, gissa enbart på nyckelord
   const generic = best([
     { kind: "2015-B7-SKRIFTLIGT", sc: score(kSKR, 2), why: "generic (skriftligt arbete)" },
+    { kind: "2015-B5-KURS",       sc: score(kKURS, 2) + score(kKURSTID, 2), why: "generic (kurs)" },
     { kind: "2015-B4-KLIN",       sc: score(kKLIN, 2), why: "generic (klinisk tjänstgöring)" },
-    { kind: "2015-B5-KURS",       sc: score(kKURS, 2), why: "generic (kurs)" },
     { kind: "2015-B6-UTV",        sc: score(kUTV, 2),  why: "generic (kvalitets-/utvecklingsarbete)" },
     { kind: "2015-B3-AUSK",       sc: score(kAUSK, 2), why: "generic (auskultation)" },
     { kind: "2021-B12-STa3",      sc: score(kSTa3, 2), why: "generic (ST a3)" },

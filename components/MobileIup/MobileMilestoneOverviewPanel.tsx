@@ -7,6 +7,7 @@ import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 
 
 /** Trim av rubriker utan flimmer */
@@ -1017,14 +1018,26 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                 Inga delmål matchar sökningen.
               </div>
             ) : (
-              <MobileStGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
+              <MobileStGrid
+                goalsVersion={goals?.version}
+                groups={groups}
+                countsFor={countsFor}
+                openDetail={openDetail}
+                openList={openList}
+              />
             )
           ) : !hasAnySt ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
               Inga delmål matchar sökningen.
             </div>
           ) : (
-            <MobileStGrid groups={groups} countsFor={countsFor} openDetail={openDetail} openList={openList} />
+            <MobileStGrid
+              goalsVersion={goals?.version}
+              groups={groups}
+              countsFor={countsFor}
+              openDetail={openDetail}
+              openList={openList}
+            />
           )}
         </section>
 
@@ -1140,7 +1153,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
                 <header className="flex items-center justify-between border-b border-slate-200 bg-emerald-50 px-5 py-4 gap-4">
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-                      {String((m as any)?.code ?? detailId).toLowerCase()}
+                      {displayMilestoneCode((m as any)?.code ?? detailId, goals?.version)}
                       </span>
                     <h3 className="text-base sm:text-lg font-extrabold text-emerald-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
@@ -1412,11 +1425,13 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
 /* ==================== Delkomponenter ==================== */
 
 function MobileStGrid({
+  goalsVersion,
   groups,
   countsFor,
   openDetail,
   openList,
 }: {
+  goalsVersion?: string;
   groups: Record<"A" | "B" | "C", GoalsMilestone[]>;
   countsFor: (milestoneId: string) => { p: number; c: number };
   openDetail: (id: string) => void;
@@ -1439,11 +1454,12 @@ function MobileStGrid({
                   title="Visa information om delmålet"
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
+                    {displayMilestoneCode(
                       (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? ""),
+                      goalsVersion
+                    )}
                   </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1499,11 +1515,12 @@ function MobileStGrid({
                   title="Visa information om delmålet"
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
+                    {displayMilestoneCode(
                       (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? ""),
+                      goalsVersion
+                    )}
                   </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1562,11 +1579,12 @@ function MobileStGrid({
                   title="Visa information om delmålet"
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
+                    {displayMilestoneCode(
                       (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? ""),
+                      goalsVersion
+                    )}
                   </span>
                   <span className="truncate text-[12px] text-slate-900">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1637,7 +1655,7 @@ function MobileBtList({
               title="Visa information om delmålet"
             >
               <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                {row.code.toLowerCase()}
+                {row.code}
               </span>
               <span className="truncate text-[12px] text-slate-900">
                 {(m?.title ?? "BT-delmål").length > 50 ? (m?.title ?? "BT-delmål").slice(0, 50) + "..." : (m?.title ?? "BT-delmål")}
