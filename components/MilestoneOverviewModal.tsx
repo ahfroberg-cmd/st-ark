@@ -7,6 +7,7 @@ import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { milestoneRequires } from "@/lib/milestoneRequirements";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
@@ -1708,6 +1709,7 @@ function StGrid({
           {groups.A.map((m) => {
             const { p, c } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
+            const req = milestoneRequires(m);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
@@ -1735,36 +1737,40 @@ function StGrid({
 
                 <div className="flex items-center gap-1.5">
                   {/* Klin-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("klin", m)}
-                    className={
-                      p > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Klin</span>
-                    <span className="min-w-[1.2ch] text-right">{p}</span>
-                  </button>
+                  {req.klin && (
+                    <button
+                      type="button"
+                      onClick={() => openList("klin", m)}
+                      className={
+                        p > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Klin</span>
+                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                    </button>
+                  )}
 
                   {/* Kurs-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("kurs", m)}
-                    className={
-                      c > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Kurs</span>
-                    <span className="min-w-[1.2ch] text-right">{c}</span>
-                  </button>
+                  {req.kurs && (
+                    <button
+                      type="button"
+                      onClick={() => openList("kurs", m)}
+                      className={
+                        c > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                    </button>
+                  )}
                 </div>
               </article>
             );
@@ -1776,6 +1782,7 @@ function StGrid({
           {groups.B.map((m) => {
             const { p, c } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
+            const req = milestoneRequires(m);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
@@ -1803,36 +1810,40 @@ function StGrid({
 
                 <div className="flex items-center gap-1.5">
                   {/* Klin-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("klin", m)}
-                    className={
-                      p > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Klin</span>
-                    <span className="min-w-[1.2ch] text-right">{p}</span>
-                  </button>
+                  {req.klin && (
+                    <button
+                      type="button"
+                      onClick={() => openList("klin", m)}
+                      className={
+                        p > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Klin</span>
+                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                    </button>
+                  )}
 
                   {/* Kurs-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("kurs", m)}
-                    className={
-                      c > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Kurs</span>
-                    <span className="min-w-[1.2ch] text-right">{c}</span>
-                  </button>
+                  {req.kurs && (
+                    <button
+                      type="button"
+                      onClick={() => openList("kurs", m)}
+                      className={
+                        c > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                    </button>
+                  )}
                 </div>
               </article>
             );
@@ -1847,6 +1858,7 @@ function StGrid({
           {groups.C.map((m) => {
             const { p, c } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
+            const req = milestoneRequires(m);
             return (
               <article key={m.id} className="flex items-center gap-2">
                 <button
@@ -1874,36 +1886,40 @@ function StGrid({
 
                 <div className="flex items-center gap-1.5">
                   {/* Klin-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("klin", m)}
-                    className={
-                      p > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                    data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Klin</span>
-                    <span className="min-w-[1.2ch] text-right">{p}</span>
-                  </button>
+                  {req.klin && (
+                    <button
+                      type="button"
+                      onClick={() => openList("klin", m)}
+                      className={
+                        p > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
+                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Klin</span>
+                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                    </button>
+                  )}
 
                   {/* Kurs-piller */}
-                  <button
-                    type="button"
-                    onClick={() => openList("kurs", m)}
-                    className={
-                      c > 0
-                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                    }
-                    title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                    data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                  >
-                    <span>Kurs</span>
-                    <span className="min-w-[1.2ch] text-right">{c}</span>
-                  </button>
+                  {req.kurs && (
+                    <button
+                      type="button"
+                      onClick={() => openList("kurs", m)}
+                      className={
+                        c > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                    >
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                    </button>
+                  )}
                 </div>
               </article>
             );
