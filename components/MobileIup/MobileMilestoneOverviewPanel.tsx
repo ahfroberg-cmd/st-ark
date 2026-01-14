@@ -1468,9 +1468,8 @@ function MobileStGrid({
                   </span>
                 </button>
 
-                <div className="flex items-center gap-1.5">
-                  {/* Klin-piller */}
-                  {req.klin && (
+                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
+                  {req.klin ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1484,9 +1483,14 @@ function MobileStGrid({
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {req.arb && (
+                  {req.arb ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1500,10 +1504,14 @@ function MobileStGrid({
                       <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {/* Kurs-piller */}
-                  {req.kurs && (
+                  {req.kurs ? (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
@@ -1517,6 +1525,11 @@ function MobileStGrid({
                       <span>Kurs</span>
                       <span className="min-w-[1.2ch] text-right">{c}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
                 </div>
               </article>
@@ -1550,9 +1563,8 @@ function MobileStGrid({
                   </span>
                 </button>
 
-                <div className="flex items-center gap-1.5">
-                  {/* Klin-piller */}
-                  {req.klin && (
+                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
+                  {req.klin ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1566,9 +1578,14 @@ function MobileStGrid({
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {req.arb && (
+                  {req.arb ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1582,10 +1599,14 @@ function MobileStGrid({
                       <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {/* Kurs-piller */}
-                  {req.kurs && (
+                  {req.kurs ? (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
@@ -1599,6 +1620,11 @@ function MobileStGrid({
                       <span>Kurs</span>
                       <span className="min-w-[1.2ch] text-right">{c}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
                 </div>
               </article>
@@ -1635,9 +1661,8 @@ function MobileStGrid({
                   </span>
                 </button>
 
-                <div className="flex items-center gap-1.5">
-                  {/* Klin-piller */}
-                  {req.klin && (
+                <div className="grid grid-cols-3 gap-1.5 min-w-[168px] justify-items-end">
+                  {req.klin ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1651,9 +1676,14 @@ function MobileStGrid({
                       <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {req.arb && (
+                  {req.arb ? (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
@@ -1667,10 +1697,14 @@ function MobileStGrid({
                       <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
 
-                  {/* Kurs-piller */}
-                  {req.kurs && (
+                  {req.kurs ? (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
@@ -1684,6 +1718,11 @@ function MobileStGrid({
                       <span>Kurs</span>
                       <span className="min-w-[1.2ch] text-right">{c}</span>
                     </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
+                      <span>Kurs</span>
+                      <span className="min-w-[1.2ch] text-right">0</span>
+                    </span>
                   )}
                 </div>
               </article>

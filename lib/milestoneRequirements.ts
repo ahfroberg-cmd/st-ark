@@ -29,7 +29,7 @@ export function milestoneRequires(m: any): MilestoneRequirements {
 
   const hay = (rawItems.join("\n") + "\n" + rawText).toLowerCase();
 
-  const kurs = /\bkurs(er)?\b/.test(hay);
+  const kurs = /\bkurs(er)?\b/.test(hay) || (is2021 && codeNorm === "STA3");
   const klin = /(klinisk\s+tjänstgöring|klinisk\s+tjanstgoring|auskultation)/.test(hay);
 
   // Särskild önskan: 2021 STa2 och STa3 ska ha "Arb".
