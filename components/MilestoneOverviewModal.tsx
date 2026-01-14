@@ -8,6 +8,7 @@ import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { milestoneRequires } from "@/lib/milestoneRequirements";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 
@@ -1315,7 +1316,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-                      {String((m as any)?.code ?? detailId).toLowerCase()}
+                      {displayMilestoneCode(String((m as any)?.code ?? detailId), (profile as any)?.goalsVersion)}
                       </span>
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
                       {String((m as any)?.title ?? "Delmål")}
@@ -1720,11 +1721,13 @@ function StGrid({
                   data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
-                      (m.code ?? "").includes("-")
+                    {(() => {
+                      const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? "");
+                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
+                      return displayMilestoneCode(code, v);
+                    })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1749,7 +1752,24 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
-                      <span>Klin</span>
+                      <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
+                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                    </button>
+                  )}
+
+                  {/* Arb-piller (för delmål som ska kopplas till utbildningsmoment/arbete) */}
+                  {req.arb && (
+                    <button
+                      type="button"
+                      onClick={() => openList("klin", m)}
+                      className={
+                        p > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={p > 0 ? "Visa kopplade utbildningsmoment/arbetsmoment" : "Inga kopplade utbildningsmoment/arbetsmoment"}
+                    >
+                      <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   )}
@@ -1793,11 +1813,13 @@ function StGrid({
                   data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
-                      (m.code ?? "").includes("-")
+                    {(() => {
+                      const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? "");
+                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
+                      return displayMilestoneCode(code, v);
+                    })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1822,7 +1844,7 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
-                      <span>Klin</span>
+                      <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   )}
@@ -1869,11 +1891,13 @@ function StGrid({
                   data-info="Öppnar en detaljvy för detta delmål där du kan planera hur delmålet ska uppfyllas enligt din IUP. Du kan ange vilka aktiviteter, kurser och metoder som ska användas för att uppfylla delmålet, samt ange planerade datum. Planeringen sparas och kan användas i rapporter."
                 >
                   <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-900 shrink-0">
-                    {(
-                      (m.code ?? "").includes("-")
+                    {(() => {
+                      const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
-                        : (m.code ?? "")
-                    ).toLowerCase()}
+                        : (m.code ?? "");
+                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
+                      return displayMilestoneCode(code, v);
+                    })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">
                     {m.title.length > 50 ? m.title.slice(0, 50) + "..." : m.title}
@@ -1898,7 +1922,24 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
                       data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
-                      <span>Klin</span>
+                      <span>{String(m.code ?? m.id).toUpperCase().startsWith("ST") ? "Klin" : "Arb"}</span>
+                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                    </button>
+                  )}
+
+                  {/* Arb-piller (för delmål som ska kopplas till utbildningsmoment/arbete) */}
+                  {req.arb && (
+                    <button
+                      type="button"
+                      onClick={() => openList("klin", m)}
+                      className={
+                        p > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={p > 0 ? "Visa kopplade utbildningsmoment/arbetsmoment" : "Inga kopplade utbildningsmoment/arbetsmoment"}
+                    >
+                      <span>Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   )}
