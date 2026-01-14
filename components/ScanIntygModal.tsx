@@ -591,7 +591,14 @@ export default function ScanIntygModal({
       }
 
       // Kontrollera överlappande datum innan sparandet (endast klinisk tjänstgöring)
-      const shouldCheckOverlap = kind === "2015-B4-KLIN" || kind === "2021-B9-KLIN";
+      const looksLikeCourse =
+        kind === "2015-B5-KURS" ||
+        kind === "2021-B10-KURS" ||
+        Boolean((parsed as any)?.courseTitle || (parsed as any)?.subject);
+
+      const shouldCheckOverlap =
+        (kind === "2015-B4-KLIN" || kind === "2021-B9-KLIN") && !looksLikeCourse;
+
       if (shouldCheckOverlap) {
         const overlapCheck = await checkOverlappingDates();
         if (overlapCheck.hasOverlap) {
@@ -1332,7 +1339,7 @@ export default function ScanIntygModal({
                   {kind === "2021-B11-UTV"
                     ? "Förhandsgranskning - Utvecklingsarbete"
                     : kind === "2021-B10-KURS" && parsed?.courseTitle
-                    ? `Förhandsgranskning – ${parsed.courseTitle}`
+                    ? `Förhandsgranskning – Kurs: ${parsed.courseTitle}`
                     : kind === "2015-B5-KURS" && parsed?.subject
                     ? `Förhandsgranskning – Kurs: ${parsed.subject}`
                     : titleLabel
