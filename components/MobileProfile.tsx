@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 type Props = {
   open: boolean;
@@ -130,6 +131,7 @@ export default function MobileProfile({ open, onClose }: Props) {
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const lockedCore = !!orig.locked;
 
   const specialtiesSorted = useMemo(
@@ -210,14 +212,6 @@ export default function MobileProfile({ open, onClose }: Props) {
   }
 
   async function handleReset() {
-    if (
-      !confirm(
-        "Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Har du sparat en JSON-export?"
-      )
-    ) {
-      return;
-    }
-
     // 1) Radera hela IndexedDB-databasen
     try {
       await db.delete();
@@ -243,6 +237,18 @@ export default function MobileProfile({ open, onClose }: Props) {
   if (!open) return null;
 
   return (
+    <>
+    <DeleteConfirmDialog
+      open={showResetConfirm}
+      title="Återställ allt"
+      message="Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Har du sparat en JSON-export?"
+      confirmLabel="Återställ allt"
+      onCancel={() => setShowResetConfirm(false)}
+      onConfirm={() => {
+        setShowResetConfirm(false);
+        handleReset();
+      }}
+    />
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
@@ -685,7 +691,7 @@ export default function MobileProfile({ open, onClose }: Props) {
               </p>
               <button
                 type="button"
-                onClick={handleReset}
+                onClick={() => setShowResetConfirm(true)}
                 className="rounded-lg border border-red-600 bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 active:translate-y-px"
               >
                 Återställ allt
@@ -708,6 +714,7 @@ export default function MobileProfile({ open, onClose }: Props) {
         </footer>
       </div>
     </div>
+    </>
   );
 }
 

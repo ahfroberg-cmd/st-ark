@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 
 type Props = { open: boolean; onClose: () => void };
@@ -128,6 +129,7 @@ export default function ProfileModal({ open, onClose }: Props) {
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Ladda profil när modalen öppnas
   useEffect(() => {
@@ -281,14 +283,6 @@ export default function ProfileModal({ open, onClose }: Props) {
 
 
   async function handleReset() {
-    if (
-      !confirm(
-        "Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Har du sparat en JSON-export?"
-      )
-    ) {
-      return;
-    }
-
     // 1) Radera hela IndexedDB-databasen
     try {
       await db.delete();
@@ -811,7 +805,18 @@ export default function ProfileModal({ open, onClose }: Props) {
 
   return (
     <>
-      <UnsavedChangesDialog
+    <DeleteConfirmDialog
+      open={showResetConfirm}
+      title="Återställ allt"
+      message="Detta raderar all lokal data (profil, placeringar, kurser, tidslinje m.m.). Har du sparat en JSON-export?"
+      confirmLabel="Återställ allt"
+      onCancel={() => setShowResetConfirm(false)}
+      onConfirm={() => {
+        setShowResetConfirm(false);
+        handleReset();
+      }}
+    />
+    <UnsavedChangesDialog
         open={showCloseConfirm}
         onCancel={handleCancelClose}
         onDiscard={handleConfirmClose}
@@ -873,7 +878,7 @@ export default function ProfileModal({ open, onClose }: Props) {
         {/* Footer med Återställ */}
         <div className="flex justify-end border-t border-slate-200 px-5 py-3">
           <button
-            onClick={handleReset}
+            onClick={() => setShowResetConfirm(true)}
             className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-900 hover:bg-rose-100"
           >
             Återställ allt
