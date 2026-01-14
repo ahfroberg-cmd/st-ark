@@ -5,24 +5,20 @@
     {
       "id": "c1",
       "code": "c1",
-      "title": "Psykiatrisk diagnostik",
+      "title": "Handläggning av vanliga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna arbeta med diagnostik och bedömningar både individuellt och i tvärprofessionella utredningsteam",
-          "kunna förklara den diagnostiska processen och innebörden av diagnos på ett begripligt sätt",
-          "kunna formulera diagnostiska utlåtanden korrekt och tydligt",
-          "kunna tillämpa etiska överväganden i diagnostiken",
-          "kunna använda genuskunskap och psykologiska utvecklingsperspektiv",
-          "kunna genomföra strukturerad psykiatrisk diagnostik med metoder som Best Estimate diagnosis eller LEAD"
+          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med betoning på de stora folksj ukdomarna, såsom affektiva sjukdomar, ångestsyndrom, psykossjukdomar och personlighetsstörningar",
+          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar och om deras behandling"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid en eller flera enheter som utreder och behandlar sådana tillstånd",
-          "Deltagande i en eller flera kurser som behandlar psykiatrisk diagnostik"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i seminarier",
-          "Medsittning och gemensam patientgenomgång",
-          "Egen fördjupning genom riktad litteratur och riktlinjer"
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -33,22 +29,19 @@
     {
       "id": "c2",
       "code": "c2",
-      "title": "Handläggning av övriga psykiska sjukdomar",
+      "title": "Övriga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna utreda, diagnostisera och handlägga olika psykiska sjukdomar, såsom utvecklingsrelaterade funktionsnedsättningar (t.ex. ADHD, autism, Tourette), ätstörningar, sömnstörningar, postpartumpsykos, somatoforma tillstånd, anpassningsstörningar inklusive kriser och andra stresstillstånd, impulskontrollstörningar, psykiatriska symtom av somatisk orsak, dissociativa tillstånd",
-          "ha kunskap om intellektuell funktionsnedsättning, könsdysfori, självskadebeteende, transkulturella aspekter i psykiatrisk vård",
-          "ha kunskap om vetenskapliga förklaringsmodeller för uppkomst och behandling av dessa diagnosgrupper",
-          "kunna bedöma behov av utredning, behandling och uppföljning vid dessa tillstånd"
+          "kunna handlägga övriga psykiska sjukdomar"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid enheter med bred diagnostisk profil",
-          "Deltagande i en eller flera kurser som belyser övriga psykiska sjukdomar"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i seminarier",
+          "Deltagande i seminarium",
           "Medsittning",
-          "Teoretiska studier och självständig litteraturgenomgång"
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -59,24 +52,19 @@
     {
       "id": "c3",
       "code": "c3",
-      "title": "Akut psykiatri",
+      "title": "Akutpsykiatri och katastrofpsykiatri",
       "sections": {
         "kompetenskrav": [
-          "kunna avgöra vad som är akut behandlingskrävande och vad som kan vänta till planerad specialistvård",
-          "kunna identifiera akuta behov och hänvisa till relevanta insatser inom socialtjänst, primärvård, somatisk specialitet, polis etc.",
-          "kunna hantera lokala riktlinjer vid katastrofer och PKL-arbete",
-          "ha en solid grund i behandling av akuta tillstånd, lagstiftning och riskbedömning",
-          "kunna bedöma och handlägga akuta psykiatriska tillstånd, inklusive suicidrisk, svår agitation och akuta psykoser",
-          "kunna initialt handlägga situationer inom katastrofpsykiatri och större olyckor med psykiatriska konsekvenser"
+          "kunna handlägga akutpsykiatriska tillstånd samt kunna initialt handlägga katastrofpsykiatriska situationer"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid akutmottagning eller annan enhet med akutpsykiatrisk verksamhet",
-          "Deltagande i kurs eller utbildningsmoment inom akutpsykiatri och katastrofpsykiatri"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i strukturerade fallseminarier",
-          "Medsittning vid akuta bedömningar",
-          "Simuleringsövningar och teoretiska studier"
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -90,18 +78,15 @@
       "title": "Psykofarmakologisk och elektrokonvulsiv behandling",
       "sections": {
         "kompetenskrav": [
-          "kunna planera, initiera och följa upp läkemedelsbehandling vid psykisk sjukdom",
-          "ha kunskap om indikationer, kontraindikationer, praktiskt genomförande och uppföljning av elektrokonvulsiv behandling",
-          "kunna värdera nytta och risker med olika psykofarmakologiska strategier"
+          "behärska psykofarmakologisk och elektrokonvulsiv behandling"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning där läkemedelsbehandling och ECT ges",
-          "Deltagande i en eller flera kurser inom psykofarmakologi och ECT"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Journalgenomgång med fokus på läkemedelsbehandling",
-          "Deltagande vid ECT-konferenser eller behandlingsgenomgångar",
-          "Egen fördjupning i riktlinjer och behandlingsrekommendationer"
+          "Deltagande i seminarium",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -115,43 +100,38 @@
       "title": "Somatiska tillstånd och differentialdiagnostik",
       "sections": {
         "kompetenskrav": [
-          "kunna identifiera somatiska tillstånd som kan ge upphov till eller påverka psykiska symtom",
-          "kunna genomföra och värdera basal somatisk undersökning och relevanta laboratorie- och bilddiagnostiska utredningar",
-          "kunna bedöma differentialdiagnostiskt mellan somatisk sjukdom och primär psykisk sjukdom"
+          "ha kunskap om differentialdiagnostik mellan internmedicinska och neurologiska sjukdomar respektive psykiska sjukdomar",
+          "kunna upptäcka och initialt handlägga somatiska tillstånd hos patienter med psykisk sjukdom"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning i miljö där både somatiska och psykiatriska tillstånd handläggs",
-          "Deltagande i kurser eller seminarium om somatisk samsjuklighet"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
         ],
         "allmannaRad": [
-          "Gemensamma ronddiskussioner med somatiska specialiteter",
-          "Medsittning med somatisk specialist",
-          "Egen fördjupning i riktlinjer kring somatisk samsjuklighet"
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
         ],
         "intyg": [
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
         ]
       }
     },
     {
       "id": "c6",
       "code": "c6",
-      "title": "Substansberoende och samsjuklighet",
+      "title": "Substansberoende",
       "sections": {
         "kompetenskrav": [
-          "kunna diagnostisera och behandla substansbrukssyndrom och beroendetillstånd",
-          "kunna bedöma och behandla patienter med samtidig psykisk sjukdom och substansbruk",
-          "ha kunskap om beroendeframkallande läkemedel och principer för nedtrappning"
+          "kunna handlägga vanliga substansberoendetillstånd samt ha kunskap om deras samsjuklighet med internmedicinska tillstånd och övriga psykiska sjukdomar"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid beroendeenhet eller annan verksamhet med inriktning mot substansbruk",
-          "Deltagande i kurs om beroende, samsjuklighet och beroendeframkallande läkemedel"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i behandlingskonferenser",
-          "Medsittning vid strukturerade beroendeutredningar",
-          "Teoretiska studier kring beroende och samsjuklighet"
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -162,21 +142,20 @@
     {
       "id": "c7",
       "code": "c7",
-      "title": "Neurodegenerativa sjukdomar och kognitiv svikt",
+      "title": "Neurodegenerativa sjukdomar och demens",
       "sections": {
         "kompetenskrav": [
-          "kunna utreda och bedöma kognitiv svikt och misstänkt demenssjukdom",
-          "ha kunskap om behandling, uppföljning och stödinsatser vid neurodegenerativa sjukdomar",
-          "kunna samverka med andra vårdgivare och kommunala aktörer kring dessa patienter"
+          "ha kunskap om neurodegenerativa sjukdomar med tonvikt på viktiga demenstillstånd",
+          "kunna diagnostisera och handlägga patienter med psykisk sjukdom och samtidig kognitiv störning"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid minnesmottagning eller annan enhet med fokus på kognitiv svikt",
-          "Deltagande i kurs om demenssjukdomar och kognitiva störningar"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i multidisciplinära konferenser",
-          "Medsittning vid neuropsykologiska bedömningar",
-          "Teoretiska studier av riktlinjer för demenssjukdomar"
+          "Deltagande i seminarium",
+          "Medsittning",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -187,21 +166,20 @@
     {
       "id": "c8",
       "code": "c8",
-      "title": "Utvecklingsrelaterade psykiska tillstånd och barnpsykiatri",
+      "title": "Barn- och ungdomspsykiatriska kunskaper",
       "sections": {
         "kompetenskrav": [
-          "kunna identifiera och bedöma utvecklingsrelaterade psykiska tillstånd, inklusive neuropsykiatriska funktionsnedsättningar",
-          "ha grundläggande kunskap om barn- och ungdomspsykiatrisk diagnostik och behandling",
-          "kunna samverka med vårdnadshavare, skola och andra aktörer kring barn och unga"
+          "ha kunskap om utvecklingsrelaterade psykiska sjukdomar",
+          "ha kännedom om ett barnpsykiatriskt arbetssätt och om avvikande kontra normal psykologisk och neurologisk utveckling i barn- och ungdomsåren",
+          "kunna vidta adekvata åtgärder vid misstanke om att barn far illa"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid barn- och ungdomspsykiatrisk enhet eller motsvarande",
-          "Deltagande i kurs om utvecklingsrelaterade psykiska tillstånd och barnpsykiatri"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Teamkonferenser med barnpsykiatriskt fokus",
-          "Observation och medsittning vid bedömningar av barn och ungdomar",
-          "Teoretiska studier av riktlinjer och kunskapsstöd"
+          "Deltagande i seminarium",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -215,18 +193,16 @@
       "title": "Psykologiska behandlingsmetoder",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om evidensbaserade psykologiska behandlingsmetoder inom psykiatrin",
-          "kunna bedöma indikation för psykologisk behandling och samverka med psykolog eller annan behandlare",
-          "kunna tillämpa grundläggande psykoedukativa och stödjande insatser"
+          "ha kunskap om de teoretiska grunderna för de olika psykologiska behandlingsmetoderna",
+          "kunna bedöma eventuell lämplig psykologisk metod för behandling av olika psykiska sjukdomar",
+          "kunna handlägga patienter med psykologiska behandlingsmetoder"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning där psykologisk behandling erbjuds",
-          "Deltagande i kurs eller metodutbildning i psykologiska behandlingsmetoder"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Observation av psykologiska behandlingar",
-          "Diskussion av behandlingsupplägg på konferenser",
-          "Teoretiska studier av behandlingsmetoder och riktlinjer"
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -237,21 +213,20 @@
     {
       "id": "c10",
       "code": "c10",
-      "title": "Rättspsykiatri och lagstiftning",
+      "title": "Lagar och rättspsykiatri",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om lagstiftning med särskild betydelse för psykiatrin, inklusive tvångsvårdslagstiftning",
-          "kunna bedöma vårdbehov och risk i situationer där tvångsåtgärder kan bli aktuella",
-          "ha grundläggande kunskap om rättspsykiatrisk vård och rättsintyg"
+          "behärska tillämpningen av de lagar och andra föreskrifter som gäller för myndighetsutövningen inom kompetensområdet",
+          "ha kunskap om övriga lagar och andra föreskrifter som är relevanta för psykiatrin",
+          "ha kännedom om rättspsykiatrins organisation och arbetsuppgifter"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning där tvångsvård förekommer eller vid rättspsykiatrisk enhet",
-          "Deltagande i kurs eller utbildning om lagstiftning och rättspsykiatri"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Deltagande i tvångsvårdskonferenser",
-          "Medsittning vid rättspsykiatriska bedömningar eller förhandlingar",
-          "Egen fördjupning i lagtext och förarbeten"
+          "Deltagande i seminarium",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -265,18 +240,15 @@
       "title": "Kognitiva funktionshinder",
       "sections": {
         "kompetenskrav": [
-          "kunna bedöma kognitiva funktionshinder och deras konsekvenser för vardagsfungerande och behandling",
-          "ha kunskap om rehabiliterande och kompenserande insatser vid kognitiva funktionsnedsättningar",
-          "kunna samverka med andra yrkesgrupper kring utredning och uppföljning"
+          "ha kunskap om kognitiva funktionshinder och deras betydelse för patientens vård och behandling samt ha kunskap om testmetoder för dessa"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid enheter där patienter med kognitiva funktionshinder utreds och behandlas",
-          "Deltagande i kurs om kognitiva funktionsnedsättningar och rehabilitering"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
+          "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
-          "Medsittning vid neuropsykologiska bedömningar",
-          "Teamkonferenser om kognitiv funktionsnivå och åtgärder",
-          "Teoretiska studier av kognitiva funktionshinder"
+          "Deltagande i seminarium",
+          "Teoretiska studier"
         ],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
@@ -287,73 +259,21 @@
     {
       "id": "c12",
       "code": "c12",
-      "title": "Samordning, uppföljning och brukarorganisationer",
+      "title": "Samordning och uppföljning",
       "sections": {
         "kompetenskrav": [
-          "kunna planera, samordna och följa upp psykiatrisk behandling i samverkan med andra aktörer",
-          "ha kunskap om patient- och närståendeperspektiv, inklusive brukar- och intresseorganisationers roll",
-          "kunna arbeta med individuella vårdplaner och samordnade insatser över organisationsgränser"
+          "ha kunskap om samordning och uppföljning av patienter över lång tid, vilket bland annat innefattar en kombination av psykofarmakologiska och psykosociala insatser i samarbete med andra yrkesgrupper",
+          "ha kännedom om brukarorganisationers roll som resurs"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning med fokus på samordning och uppföljning",
-          "Deltagande i kurs eller utbildningsmoment om samverkan och brukarinflytande"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
         ],
         "allmannaRad": [
-          "Deltagande i samordningsmöten och SIP-konferenser",
-          "Kontakt med brukarorganisationer i utbildningssyfte",
-          "Teoretiska studier av samverkansmodeller"
+          "Deltagande i seminarium",
+          "Teoretiska studier"
         ],
         "intyg": [
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
-        ]
-      }
-    },
-    {
-      "id": "c13",
-      "code": "c13",
-      "title": "Socialtjänst och andra myndigheter",
-      "sections": {
-        "kompetenskrav": [
-          "ha kunskap om socialtjänstens uppdrag och insatser samt andra berörda myndigheters ansvar",
-          "kunna samverka med socialtjänst, Försäkringskassan, Arbetsförmedlingen och andra myndigheter kring patienter",
-          "kunna bidra till intyg och underlag som används av andra myndigheter"
-        ],
-        "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning med återkommande myndighetskontakter",
-          "Deltagande i kurs eller utbildning om sociallagstiftning och myndighetssamverkan"
-        ],
-        "allmannaRad": [
-          "Gemensamma möten med socialtjänst och andra myndigheter",
-          "Genomgång av ärenden där myndighetssamverkan är central",
-          "Teoretiska studier av lagstiftning och riktlinjer"
-        ],
-        "intyg": [
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare",
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av kursledare eller handledare"
-        ]
-      }
-    },
-    {
-      "id": "c14",
-      "code": "c14",
-      "title": "Läkemedelsbehandling inom specialiteten",
-      "sections": {
-        "kompetenskrav": [
-          "kunna göra en samlad bedömning av patientens totala läkemedelsbehandling",
-          "kunna anpassa läkemedelsbehandling inom psykiatrin efter ålder, njur- och leverfunktion, annan medicinering, samsjuklighet, graviditet och amning",
-          "kunna identifiera och bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
-        ],
-        "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning med fokus på läkemedelsbehandling"
-        ],
-        "allmannaRad": [
-          "Deltagande i en eller flera kurser om läkemedelsbehandling",
-          "Journalgenomgång med fokus på polyfarmaci och interaktioner",
-          "Teoretiska studier av farmakologi och behandlingsrekommendationer"
-        ],
-        "intyg": [
-          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav, utfärdat av handledare"
+          "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav utfärdat av handledare"
         ]
       }
     }
