@@ -943,7 +943,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
 
-    const titleCode = String(((mFull as any)?.code ?? idOrCode) || "").toUpperCase();
+    const rawCode = String(((mFull as any)?.code ?? idOrCode) || "");
+    const titleCode = displayMilestoneCode(rawCode, (profile as any)?.goalsVersion);
 
     const seenPlac = new Set<string>();
     const seenCourse = new Set<string>();

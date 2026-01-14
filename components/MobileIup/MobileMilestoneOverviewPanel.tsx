@@ -811,7 +811,8 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
 
 
 
-    const titleCode = String(((mFull as any)?.code ?? idOrCode) || "").toUpperCase();
+    const rawCode = String(((mFull as any)?.code ?? idOrCode) || "");
+    const titleCode = displayMilestoneCode(rawCode, profile?.goalsVersion);
 
     const seenPlac = new Set<string>();
     const seenCourse = new Set<string>();
