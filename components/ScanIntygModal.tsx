@@ -122,6 +122,12 @@ export default function ScanIntygModal({
     handleRequestClose();
   }
 
+  function handleForceClose() {
+    setShowCloseConfirm(false);
+    onClose();
+    resetAll();
+  }
+
   // Registrera modalen för global ESC-hantering
   useEffect(() => {
     if (!open || !overlayRef.current) return;
@@ -1055,7 +1061,7 @@ export default function ScanIntygModal({
       onSaved?.();
       // Återställ baseline när intyget sparas
       setBaselineParsed(null);
-      handleClose();
+      handleForceClose();
     } finally {
       setBusy(false);
     }
@@ -1172,6 +1178,21 @@ export default function ScanIntygModal({
 
   const previewTitle =
     isCourseKind ? "Kurs" : titleLabel || "";
+
+  const activityTypeLabel = isCourseKind
+    ? "kurs"
+    : kind === "2015-B4-KLIN" || kind === "2021-B9-KLIN"
+    ? "klinisk tjänstgöring"
+    : kind === "2015-B3-AUSK" || kind === "2021-B8-AUSK"
+    ? "auskultation"
+    : kind === "2021-B11-UTV" || kind === "2015-B6-UTV"
+    ? "utvecklingsarbete"
+    : kind === "2015-B7-SKRIFTLIGT" || kind === "2021-B12-STa3"
+    ? "skriftligt arbete"
+    : "aktivitet";
+
+  const activityTypeLabelCap =
+    activityTypeLabel.charAt(0).toUpperCase() + activityTypeLabel.slice(1);
 
   if (!open) return null;
 
@@ -1814,9 +1835,9 @@ export default function ScanIntygModal({
               onClick={handleSave}
               disabled={busy || !parsed}
               className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
-              data-info="Spara"
+              data-info={`Sparar och stänger fönstret. ${activityTypeLabelCap} placeras in i tidslinjen.`}
             >
-              {busy ? "Sparar…" : "Spara"}
+              {busy ? "Sparar…" : "Spara och stäng"}
             </button>
           </footer>
         )}

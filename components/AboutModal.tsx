@@ -21,6 +21,19 @@ export default function AboutModal({ open, onClose }: Props) {
   const [contactSuccess, setContactSuccess] = useState(false);
   const [contactError, setContactError] = useState("");
 
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /mac|iphone|ipad|ipod/i.test(navigator.platform);
+
+  const formatShortcut = (s: string) => {
+    const key = isMac ? "Cmd" : "Ctrl";
+    return String(s)
+      .replace(/Cmd\s*\/\s*Ctrl/g, key)
+      .replace(/Ctrl\s*\/\s*Cmd/g, key)
+      .replace(/Cmd\/Ctrl/g, key)
+      .replace(/Ctrl\/Cmd/g, key);
+  };
+
   const handleRequestClose = () => {
     setContactForm({ name: "", email: "", message: "" });
     setContactSuccess(false);
@@ -164,7 +177,7 @@ export default function AboutModal({ open, onClose }: Props) {
                       <h4 className="font-semibold text-slate-900">{section.name}</h4>
                       <ul className="list-disc space-y-1 pl-5 text-slate-700">
                         {section.items.map((item, itemIndex) => (
-                          <li key={itemIndex} className="text-sm">{item}</li>
+                          <li key={itemIndex} className="text-sm">{formatShortcut(item)}</li>
                         ))}
                       </ul>
                     </div>
