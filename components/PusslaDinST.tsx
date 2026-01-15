@@ -3470,9 +3470,8 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
         setCourses(prev => prev.map(c => {
           if (c.id !== d.id) return c;
 
-          const isPsy = /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c.kind || ""}`);
           const showAsInterval = (c as any)?.showAsInterval;
-          const isInterval = !!showAsInterval || isPsy;
+          const isInterval = !!showAsInterval;
 
           // Ingen automatisk phasning av kurs vid drag – behåll c.phase
 
@@ -3661,16 +3660,14 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 
 
     const coursesThisYear = courses.filter((c) => {
-  const titleKind = `${c.title || ""} ${c.kind || ""}`.toLowerCase();
-  const isPsy = /(^|\s)psykoterapi/.test(titleKind);
-  const showAsInterval = (c as any).showAsInterval || isPsy;
+  const showAsInterval = (c as any).showAsInterval;
 
   // Årets datumspann
   const yearStartISO = `${year}-01-01`;
   const yearEndISO   = `${year}-12-31`;
 
   if (showAsInterval) {
-    // Intervall-kurser (psykoterapi + andra med "Visa som tidsintervall") visas
+    // Intervall-kurser (med "Visa som tidsintervall") visas
     // i alla år som intervallet överlappar.
     const sISO = c.startDate || c.certificateDate;
     const eISO = c.endDate   || c.certificateDate;
@@ -4556,10 +4553,10 @@ dragPlacementRef.current = {
                   return (dayOfYear(d) / total) * 100;
                 };
 
-                // Special: intervall-kurser (psykoterapi + "Visa som tidsintervall")
+                // Special: intervall-kurser (med "Visa som tidsintervall")
 // visas som intervall med start/slut + blått band.
 // Nu stöd för att sträcka bandet över flera år (år-till-år-segment).
-if ((c as any).showAsInterval || /(^|\s)psykoterapi/i.test(`${c.title || ""} ${c.kind || ""}`)) {
+if ((c as any).showAsInterval) {
 
   const sISO = c.startDate || c.certificateDate;
   const eISO = c.endDate   || c.certificateDate;
