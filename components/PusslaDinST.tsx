@@ -781,6 +781,16 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [dbAchievements, setDbAchievements] = useState<any[]>([]);
   const [goalsCatalog, setGoalsCatalog] = useState<GoalsCatalog | null>(null);
   const [progressDetailOpen, setProgressDetailOpen] = useState<"time" | "milestones" | null>(null);
+  const [hoveredTimeAct, setHoveredTimeAct] = useState<{
+    id: string;
+    label: string;
+    startDate: string;
+    endDate: string;
+    days: number;
+    hue: number;
+    phase: "bt" | "st";
+    leftPx: number;
+  } | null>(null);
 
   // Live-uppdatera data från DB för progress-beräkningar
   useEffect(() => {
@@ -9101,62 +9111,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               
               <div className="p-6">
               {progressDetailOpen === "time" ? (
-                (() => {
-                  // Lokal state för hover-tooltip (renderas inline)
-                  const [hoveredAct, setHoveredAct] = React.useState<{
-                    id: string;
-                    label: string;
-                    startDate: string;
-                    endDate: string;
-                    days: number;
-                    hue: number;
-                    phase: "bt" | "st";
-                    leftPx: number;
-                  } | null>(null);
-                  
-                  const handleMouseEnter = (
-                    e: React.MouseEvent<HTMLDivElement>,
-                    act: typeof timeByActivity.bt[0],
-                    phase: "bt" | "st"
-                  ) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                    const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
-                    setHoveredAct({ ...act, phase, leftPx });
-                  };
-                  
-                  const handleMouseLeave = () => setHoveredAct(null);
-                  
-                  const renderTooltip = (phase: "bt" | "st") => {
-                    if (!hoveredAct || hoveredAct.phase !== phase) return null;
-                    return (
-                      <div className="relative mt-2" style={{ height: 60 }}>
-                        {/* Streck från stapeln */}
-                        <div
-                          className="absolute top-0 w-0.5 h-3"
-                          style={{
-                            left: hoveredAct.leftPx,
-                            backgroundColor: `hsl(${hoveredAct.hue} 45% 55%)`,
-                          }}
-                        />
-                        {/* Tooltip-ruta */}
-                        <div
-                          className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap"
-                          style={{
-                            left: Math.max(0, hoveredAct.leftPx - 80),
-                            backgroundColor: `hsl(${hoveredAct.hue} 30% 95%)`,
-                            borderColor: `hsl(${hoveredAct.hue} 40% 70%)`,
-                          }}
-                        >
-                          <div className="font-semibold text-slate-800">{hoveredAct.label}</div>
-                          <div className="text-slate-600">{hoveredAct.startDate} – {hoveredAct.endDate}</div>
-                          <div className="text-slate-600">{Math.round(hoveredAct.days)} dagar</div>
-                        </div>
-                      </div>
-                    );
-                  };
-                  
-                  return (
                 <div className="space-y-4">
                   {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
                     <>
@@ -9183,13 +9137,27 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                                   width: `${Math.min(100, barWidth)}%`,
                                   backgroundColor: `hsl(${act.hue} 45% 65%)`,
                                 }}
-                                onMouseEnter={(e) => handleMouseEnter(e, act, "bt")}
-                                onMouseLeave={handleMouseLeave}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
+                                  setHoveredTimeAct({ ...act, phase: "bt", leftPx });
+                                }}
+                                onMouseLeave={() => setHoveredTimeAct(null)}
                               />
                             );
                           })}
                         </div>
-                        {renderTooltip("bt")}
+                        {hoveredTimeAct?.phase === "bt" && (
+                          <div className="relative mt-2" style={{ height: 60 }}>
+                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
                         <div className="text-xs text-slate-600 mt-1">
                           Genomförda dagar: {Math.round(timeDetails.bt.worked)} dagar
                         </div>
@@ -9221,53 +9189,27 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                                   width: `${Math.min(100, barWidth)}%`,
                                   backgroundColor: `hsl(${act.hue} 45% 65%)`,
                                 }}
-                                onMouseEnter={(e) => handleMouseEnter(e, act, "st")}
-                                onMouseLeave={handleMouseLeave}
-                              />
-                            );
-                          })}
-                        </div>
-                        {renderTooltip("st")}
-                        <div className="text-xs text-slate-600 mt-1">
-                          Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
-                        </div>
-                        <div className="text-xs text-slate-600">
-                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* 2015: Endast ST */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
-                          <span className="text-sm text-slate-600">
-                            {timeDetails.st.total > 0 
-                              ? `${((timeDetails.st.worked / timeDetails.st.total) * 100).toFixed(0)}%`
-                              : "0%"}
-                          </span>
-                        </div>
-                        <div className="h-6 w-full rounded-full bg-slate-200 overflow-hidden flex">
-                          {timeByActivity.st.map((act) => {
-                            const barWidth = timeDetails.st.total > 0 
-                              ? (act.days / timeDetails.st.total) * 100 
-                              : 0;
-                            return (
-                              <div
-                                key={act.id}
-                                className="h-6 transition-[width] duration-300 cursor-pointer"
-                                style={{ 
-                                  width: `${Math.min(100, barWidth)}%`,
-                                  backgroundColor: `hsl(${act.hue} 45% 65%)`,
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
+                                  setHoveredTimeAct({ ...act, phase: "st", leftPx });
                                 }}
-                                onMouseEnter={(e) => handleMouseEnter(e, act, "st")}
-                                onMouseLeave={handleMouseLeave}
+                                onMouseLeave={() => setHoveredTimeAct(null)}
                               />
                             );
                           })}
                         </div>
-                        {renderTooltip("st")}
+                        {hoveredTimeAct?.phase === "st" && (
+                          <div className="relative mt-2" style={{ height: 60 }}>
+                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
                         <div className="text-xs text-slate-600 mt-1">
                           Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
                         </div>
@@ -9278,8 +9220,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     </>
                   )}
                 </div>
-                  );
-                })()
               ) : (
                 <div className="space-y-4">
                   {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
