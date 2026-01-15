@@ -9149,7 +9149,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
                               <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
                               <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.bt.total > 0 ? ((hoveredTimeAct.days / timeDetails.bt.total) * 100).toFixed(1) : 0}%)</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.bt.total > 0 ? ((hoveredTimeAct.days / timeDetails.bt.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
                             </div>
                           </div>
                         )}
@@ -9201,7 +9201,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
                               <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
                               <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1) : 0}%)</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
                             </div>
                           </div>
                         )}
@@ -9255,7 +9255,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
                               <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
                               <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1) : 0}%)</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
                             </div>
                           </div>
                         )}
