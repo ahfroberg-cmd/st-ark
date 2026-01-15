@@ -1513,25 +1513,32 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     const stFulfilled = new Set<string>();
     const stMilestoneIdsFromPlacements = new Set<string>();
     const stMilestoneIdsFromCourses = new Set<string>();
-    const stMilestoneIdsFromAchievements = new Set<string>();
     
-    for (const a of dbAchievements) {
-      const id = normalizeStId(a.milestoneId);
-      if (id && !normalizeBtCode(id)) {
-        stMilestoneIdsFromAchievements.add(id);
-      }
-    }
-    
-    // Hjälpfunktion för att lägga till alla alias (STc1 ↔ STC1, STa1 ↔ A1, etc.)
+    // Hjälpfunktion för att lägga till alla alias (STc1 ↔ C1, STa1 ↔ A1, etc.)
     const addWithAliases = (set: Set<string>, id: string) => {
       set.add(id);
-      // STa1 → A1, STb2 → B2, etc.
+      // STa1 → A1, STb2 → B2, STc3 → C3
       const m1 = id.match(/^ST([ABC])(\d+)$/i);
       if (m1) set.add(`${m1[1].toUpperCase()}${m1[2]}`);
-      // A1 → STA1, B2 → STB2, etc.
+      // A1 → STA1, B2 → STB2, C3 → STC3
       const m2 = id.match(/^([ABC])(\d+)$/i);
       if (m2) set.add(`ST${m2[1].toUpperCase()}${m2[2]}`);
     };
+
+    // Achievements kan uppfylla klin eller kurs – men bara den sida som är kopplad
+    // (matchar countsFor-logiken i MilestoneOverviewModal)
+    for (const a of dbAchievements as any[]) {
+      const cand = [a.milestoneId, a.goalId, a.id, a.code, a.milestone].filter(Boolean);
+      for (const c of cand) {
+        const id = normalizeStId(c);
+        if (!id || normalizeBtCode(id)) continue;
+        const looksLikeStMilestone = /^ST[ABC]\d+$/i.test(id) || /^[ABC]\d+$/i.test(id);
+        if (!looksLikeStMilestone) continue;
+
+        if (a.placementId) addWithAliases(stMilestoneIdsFromPlacements, id);
+        if (a.courseId) addWithAliases(stMilestoneIdsFromCourses, id);
+      }
+    }
     
     for (const p of dbPlacements as any[]) {
       const end = p.endDate || p.endISO || p.end || "";
@@ -1568,7 +1575,6 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     }
     
     const allStMilestoneIds = new Set<string>();
-    for (const id of stMilestoneIdsFromAchievements) allStMilestoneIds.add(id);
     for (const id of stMilestoneIdsFromPlacements) allStMilestoneIds.add(id);
     for (const id of stMilestoneIdsFromCourses) allStMilestoneIds.add(id);
     
@@ -1604,8 +1610,8 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         
         for (const m of stMilestones) {
           const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
-          const hasPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
-          const hasCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+          const hasPlacement = stMilestoneIdsFromPlacements.has(code);
+          const hasCourse = stMilestoneIdsFromCourses.has(code);
           
           if (hasPlacement) stFulfilled.add(`${code}-klin`);
           if (hasCourse) stFulfilled.add(`${code}-kurs`);
@@ -1630,8 +1636,10 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     if (goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
       const allMilestones = (goalsCatalog as any).milestones as any[];
       const stMilestonesForCount = allMilestones.filter((m: any) => {
-        const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
-        return /^ST[ABC]?\d+$/i.test(code); // Matcha STc1, ST1, STa1, etc.
+        const code = normalizeStId((m as any).code ?? (m as any).id ?? "");
+        if (!code) return false;
+        // 2021: STa1/STb2/STc3. 2015: A1/B2/C3.
+        return /^ST[ABC]\d+$/i.test(code) || /^[ABC]\d+$/i.test(code);
       });
       
       // Hjälpfunktion för att kolla om någon alias matchar
@@ -1647,15 +1655,16 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       };
       
       for (const m of stMilestonesForCount) {
-        const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
+        const code = normalizeStId((m as any).code ?? (m as any).id ?? "");
+        if (!code) continue;
         const utb = (m as any).sections?.utbildningsaktiviteter || [];
         
         const hasKlinReq = utb.some((u: string) => /klinisk/i.test(u) || /tjänstgöring/i.test(u));
         const hasKursReq = utb.some((u: string) => /kurs/i.test(u));
         
         // Kolla om detta delmål har uppfyllts via placering eller kurs (med alias-stöd)
-        const isFulfilledByPlacement = hasAnyAlias(stMilestoneIdsFromPlacements, code) || hasAnyAlias(stMilestoneIdsFromAchievements, code);
-        const isFulfilledByCourse = hasAnyAlias(stMilestoneIdsFromCourses, code) || hasAnyAlias(stMilestoneIdsFromAchievements, code);
+        const isFulfilledByPlacement = hasAnyAlias(stMilestoneIdsFromPlacements, code);
+        const isFulfilledByCourse = hasAnyAlias(stMilestoneIdsFromCourses, code);
         
         if (hasKlinReq) {
           totalStKlin++;
@@ -9379,7 +9388,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           />
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          Utbildningsaktiviteter som uppfyller unika delmål: {(milestoneDetails.st.fulfilledMilestones ?? 0).toFixed(1).replace(".", ",")} av {milestoneDetails.st.totalMilestones}
+                          Utbildningsaktiviteter som uppfyller unika delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
                         </div>
                       </div>
                       

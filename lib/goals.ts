@@ -192,12 +192,13 @@ export async function loadGoals(
   versionRaw?: string,
   specialtyRaw?: string
 ): Promise<GoalsCatalog> {
+  const versionStr = String(versionRaw ?? "");
   const version: "2015" | "2021" =
-    versionRaw?.includes("2021")
+    versionStr.includes("2021")
       ? "2021"
-      : versionRaw?.includes("2015")
+      : versionStr.includes("2015")
       ? "2015"
-      : (versionRaw === "2021" || versionRaw === "2015" ? (versionRaw as any) : "2015");
+      : (versionStr === "2021" || versionStr === "2015" ? (versionStr as any) : "2015");
 
   const specialty = (specialtyRaw ?? "Psykiatri").trim();
   const cacheKey = `${version}|${specialty}`;
