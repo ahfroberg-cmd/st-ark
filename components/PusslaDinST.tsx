@@ -3128,7 +3128,7 @@ function computeEducationalGaps(acts: Activity[]) {
     startDate: dateISO,
     endDate: dateISO, // punkt på tidslinjen = slutdatum
     note: "",
-    showAsInterval: false,
+    // showAsInterval lämnas undefined så att Psykoterapi-default kan fungera
     ...(phase ? { phase } : {}),
   };
   setCourses(prev => [...prev, c]);
