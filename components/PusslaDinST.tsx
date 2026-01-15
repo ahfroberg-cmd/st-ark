@@ -1293,12 +1293,9 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     return fulfilled.size;
   }, [profile, dbAchievements, dbPlacements, dbCourses, goalsCatalog]);
 
-  const milestoneProgressPct = useMemo(() => {
-    if (!totalMilestones || totalMilestones <= 0) return 0;
-    const raw = (fulfilledMilestones / totalMilestones) * 100;
-    if (!Number.isFinite(raw)) return 0;
-    return Math.max(0, Math.min(100, raw));
-  }, [fulfilledMilestones, totalMilestones]);
+  // Behåll (legacy) beräkningar men undvik "unused"-varningar.
+  void totalMilestones;
+  void fulfilledMilestones;
 
   // Beräkningar för detaljvy: BT/ST separat för genomförd tid (i dagar)
   // Genomförd tid = dagar från startdatum till idag
@@ -1729,6 +1726,16 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       },
     };
   }, [profile, dbAchievements, dbPlacements, dbCourses, goalsCatalog]);
+
+  // Procentsatsen på huvudvyn ska matcha popupen: ST-rutor (klin/arb + kurs)
+  const milestoneProgressPct = useMemo(() => {
+    const total = Number((milestoneDetails as any)?.st?.total ?? 0);
+    const fulfilled = Number((milestoneDetails as any)?.st?.fulfilled ?? 0);
+    if (!total || total <= 0) return 0;
+    const raw = (fulfilled / total) * 100;
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, raw));
+  }, [milestoneDetails]);
 
   // Aktivitetsformulär (Placering/Vetenskap-/Förbättring/Ausk/ledigheter)
   type FormPlacement = {
