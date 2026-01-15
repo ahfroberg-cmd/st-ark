@@ -9301,7 +9301,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           />
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          Uppfyllda delmål: {milestoneDetails.bt.fulfilled} av {milestoneDetails.bt.total}
+                          Utbildningsaktiviteter som uppfyller unika delmål: {milestoneDetails.bt.fulfilled} av {milestoneDetails.bt.total}
                         </div>
                       </div>
                       
@@ -9322,13 +9322,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           />
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          Uppfyllda delmål: {(milestoneDetails.st.fulfilledMilestones ?? 0).toFixed(1).replace(".", ",")} av {milestoneDetails.st.totalMilestones}
+                          Utbildningsaktiviteter som uppfyller unika delmål: {(milestoneDetails.st.fulfilledMilestones ?? 0).toFixed(1).replace(".", ",")} av {milestoneDetails.st.totalMilestones}
                         </div>
                       </div>
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring, vetenskapligt arbete, förbättringsarbete (Klin/Arb) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin/Arb, andra kräver både Klin/Arb och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
                         </p>
                         <button
                           type="button"
@@ -9362,13 +9362,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           />
                         </div>
                         <div className="text-xs text-slate-600 mt-1">
-                          Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
+                          Utbildningsaktiviteter som uppfyller unika delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
                         </div>
                       </div>
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring, vetenskapligt arbete, förbättringsarbete (Klin/Arb) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin/Arb, andra kräver både Klin/Arb och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
                         </p>
                         <button
                           type="button"
