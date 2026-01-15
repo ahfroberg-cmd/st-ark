@@ -1031,7 +1031,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
     if (kind === "klin") {
       setListKind("klin");
-      setListTitle(`${titleCode} – Kliniska tjänstgöringar/Arbeten`);
+      setListTitle(`${titleCode} – Kliniska tjänstgöringar / Arbeten`);
       setListItems(placRefs.length > 0 ? buildItemsPlac(placRefs) : []);
       setListOpen(true);
       return;
@@ -1556,7 +1556,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
                     {listKind === "intyg" && "Det finns ännu inget registrerat för detta delmål."}
-                    {listKind === "klin" && "Det finns ännu inga registrerade kliniska placeringar för detta delmål."}
+                    {listKind === "klin" && "Det finns ännu inga registrerade kliniska tjänstgöringar eller arbeten för detta delmål."}
                     {listKind === "kurs" && "Det finns ännu inga registrerade kurser för detta delmål."}
                   </div>
                 )}
@@ -1749,15 +1749,15 @@ function StGrid({
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
+                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
@@ -1832,15 +1832,15 @@ function StGrid({
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
+                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
@@ -1918,15 +1918,15 @@ function StGrid({
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska placeringar" : "Inga kopplade kliniska placeringar"}
-                      data-info="Visar antalet kliniska tjänstgöringar (placeringar) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kliniska tjänstgöringar med deras perioder och detaljer. Dessa är aktiviteter från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
+                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
+                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
+                      <span>Klin/Arb</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
