@@ -1457,10 +1457,12 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       return m ? "BT" + m[1] : null;
     };
     
+    // Normalisera ST-delmål-ID (matcha countsFor-logiken i MilestoneOverviewModal)
     const normalizeStId = (x: unknown): string | null => {
       const s = String(x ?? "").trim();
       if (!s) return null;
-      return s.toUpperCase().replace(/\s+/g, "");
+      // Ta bort suffix efter bindestreck: "A3-medicinsk-vetenskap" → "A3"
+      return s.split("-")[0].toUpperCase().replace(/\s|_/g, "");
     };
     
     // BT-delmål (endast för 2021)
