@@ -1600,17 +1600,17 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       }
     }
     
-    // Beräkna totalt antal utbildningsaktiviteter (klin/kurs) dynamiskt
+    // Beräkna totalt antal utbildningsaktiviteter (klin/kurs) dynamiskt från katalogen
     let totalStKlin = 0;
     let totalStKurs = 0;
     let fulfilledStKlin = 0;
     let fulfilledStKurs = 0;
     
-    if (is2021 && goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
+    if (goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
       const allMilestones = (goalsCatalog as any).milestones as any[];
       const stMilestonesForCount = allMilestones.filter((m: any) => {
         const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
-        return /^ST[ABC]\d+$/i.test(code);
+        return /^ST[ABC]?\d+$/i.test(code); // Matcha STc1, ST1, STa1, etc.
       });
       
       for (const m of stMilestonesForCount) {
@@ -1620,21 +1620,27 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         const hasKlinReq = utb.some((u: string) => /klinisk/i.test(u) || /tjänstgöring/i.test(u));
         const hasKursReq = utb.some((u: string) => /kurs/i.test(u));
         
+        // Kolla om detta delmål har uppfyllts via placering eller kurs
+        const isFulfilledByPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
+        const isFulfilledByCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+        
         if (hasKlinReq) {
           totalStKlin++;
-          if (stFulfilled.has(`${code}-klin`)) fulfilledStKlin++;
+          if (isFulfilledByPlacement) fulfilledStKlin++;
         }
         if (hasKursReq) {
           totalStKurs++;
-          if (stFulfilled.has(`${code}-kurs`)) fulfilledStKurs++;
+          if (isFulfilledByCourse) fulfilledStKurs++;
         }
       }
     }
     
-    const totalStParts = is2021 ? (totalStKlin + totalStKurs) : 50;
-    const fulfilledStParts = is2021 ? (fulfilledStKlin + fulfilledStKurs) : stFulfilled.size;
-    const totalStMilestones = is2021 ? Math.max(totalStKlin, totalStKurs) : 50;
-    const stFulfilledMilestones = is2021 ? (fulfilledStKlin + fulfilledStKurs) / 2 : stFulfilled.size;
+    // Använd beräknade värden om vi har katalogdata, annars fallback
+    const hasCalculatedTotals = totalStKlin > 0 || totalStKurs > 0;
+    const totalStParts = hasCalculatedTotals ? (totalStKlin + totalStKurs) : (is2021 ? 46 : 50);
+    const fulfilledStParts = hasCalculatedTotals ? (fulfilledStKlin + fulfilledStKurs) : stFulfilled.size;
+    const totalStMilestones = hasCalculatedTotals ? Math.max(totalStKlin, totalStKurs) : (is2021 ? 23 : 50);
+    const stFulfilledMilestones = hasCalculatedTotals ? (fulfilledStKlin + fulfilledStKurs) / 2 : stFulfilled.size;
     
     return {
       bt: { fulfilled: btFulfilled.size, total: is2021 ? 18 : 0 },
