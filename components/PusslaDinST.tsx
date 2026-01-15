@@ -1520,14 +1520,29 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       }
     }
     
+    // Hjälpfunktion för att lägga till alla alias (STc1 ↔ STC1, STa1 ↔ A1, etc.)
+    const addWithAliases = (set: Set<string>, id: string) => {
+      set.add(id);
+      // STa1 → A1, STb2 → B2, etc.
+      const m1 = id.match(/^ST([ABC])(\d+)$/i);
+      if (m1) set.add(`${m1[1].toUpperCase()}${m1[2]}`);
+      // A1 → STA1, B2 → STB2, etc.
+      const m2 = id.match(/^([ABC])(\d+)$/i);
+      if (m2) set.add(`ST${m2[1].toUpperCase()}${m2[2]}`);
+    };
+    
     for (const p of dbPlacements as any[]) {
       const end = p.endDate || p.endISO || p.end || "";
       if (!end || end >= today) continue;
-      const arr = p?.milestones || p?.goals || p?.goalIds || p?.milestoneIds || [];
-      for (const v of arr as any[]) {
-        const id = normalizeStId(v);
-        if (id && !normalizeBtCode(id)) {
-          stMilestoneIdsFromPlacements.add(id);
+      // Kolla ALLA arrays, inte bara första
+      const arrs = [p?.milestones, p?.goals, p?.goalIds, p?.milestoneIds];
+      for (const arr of arrs) {
+        if (!arr) continue;
+        for (const v of arr as any[]) {
+          const id = normalizeStId(v);
+          if (id && !normalizeBtCode(id)) {
+            addWithAliases(stMilestoneIdsFromPlacements, id);
+          }
         }
       }
     }
@@ -1537,11 +1552,15 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       const end = c.endDate || "";
       const date = cert || end;
       if (!date || date >= today) continue;
-      const arr = c?.milestones || c?.goals || c?.goalIds || c?.milestoneIds || [];
-      for (const v of arr as any[]) {
-        const id = normalizeStId(v);
-        if (id && !normalizeBtCode(id)) {
-          stMilestoneIdsFromCourses.add(id);
+      // Kolla ALLA arrays, inte bara första
+      const arrs = [c?.milestones, c?.goals, c?.goalIds, c?.milestoneIds];
+      for (const arr of arrs) {
+        if (!arr) continue;
+        for (const v of arr as any[]) {
+          const id = normalizeStId(v);
+          if (id && !normalizeBtCode(id)) {
+            addWithAliases(stMilestoneIdsFromCourses, id);
+          }
         }
       }
     }
@@ -1613,6 +1632,18 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         return /^ST[ABC]?\d+$/i.test(code); // Matcha STc1, ST1, STa1, etc.
       });
       
+      // Hjälpfunktion för att kolla om någon alias matchar
+      const hasAnyAlias = (set: Set<string>, code: string): boolean => {
+        if (set.has(code)) return true;
+        // Kolla alias: STc1 → C1, STa1 → A1, etc.
+        const m1 = code.match(/^ST([ABC])(\d+)$/i);
+        if (m1 && set.has(`${m1[1].toUpperCase()}${m1[2]}`)) return true;
+        // Kolla alias: C1 → STC1, A1 → STA1, etc.
+        const m2 = code.match(/^([ABC])(\d+)$/i);
+        if (m2 && set.has(`ST${m2[1].toUpperCase()}${m2[2]}`)) return true;
+        return false;
+      };
+      
       for (const m of stMilestonesForCount) {
         const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
         const utb = (m as any).sections?.utbildningsaktiviteter || [];
@@ -1620,9 +1651,9 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         const hasKlinReq = utb.some((u: string) => /klinisk/i.test(u) || /tjänstgöring/i.test(u));
         const hasKursReq = utb.some((u: string) => /kurs/i.test(u));
         
-        // Kolla om detta delmål har uppfyllts via placering eller kurs
-        const isFulfilledByPlacement = stMilestoneIdsFromPlacements.has(code) || stMilestoneIdsFromAchievements.has(code);
-        const isFulfilledByCourse = stMilestoneIdsFromCourses.has(code) || stMilestoneIdsFromAchievements.has(code);
+        // Kolla om detta delmål har uppfyllts via placering eller kurs (med alias-stöd)
+        const isFulfilledByPlacement = hasAnyAlias(stMilestoneIdsFromPlacements, code) || hasAnyAlias(stMilestoneIdsFromAchievements, code);
+        const isFulfilledByCourse = hasAnyAlias(stMilestoneIdsFromCourses, code) || hasAnyAlias(stMilestoneIdsFromAchievements, code);
         
         if (hasKlinReq) {
           totalStKlin++;
