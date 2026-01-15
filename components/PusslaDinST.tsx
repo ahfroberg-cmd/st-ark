@@ -1370,33 +1370,24 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     }
   }, [profile, dbPlacements, btEndISO, stStartISO, stEndISO]);
 
-  // Tidsfördelning per aktivitetstyp (för färgade segment i progress-stapeln)
-  const timeByActivityType = useMemo(() => {
+  // Tidsfördelning per individuell aktivitet (för färgade segment i progress-stapeln)
+  // Varje aktivitet har sin egen färg baserat på hue från tidslinjen
+  const timeByActivity = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     const today = todayISO();
     const btStart = (profile as any)?.btStartDate;
     const stStart = stStartISO;
     
-    // Färger för varje aktivitetstyp (matchar tidslinjen)
-    const typeColors: Record<string, string> = {
-      "Klinisk tjänstgöring": "#10b981", // emerald-500
-      "Vetenskapligt arbete": "#8b5cf6", // violet-500
-      "Förbättringsarbete": "#f59e0b",   // amber-500
-      "Auskultation": "#06b6d4",         // cyan-500
-      "Forskning": "#6366f1",            // indigo-500
-      "Tjänstledighet": "#94a3b8",       // slate-400
-      "Föräldraledighet": "#f472b6",     // pink-400
-      "Annan ledighet": "#a1a1aa",       // zinc-400
-      "Sjukskriven": "#fb7185",          // rose-400
-    };
-    
     const result: {
-      bt: Array<{ type: string; days: number; color: string; percent: number }>;
-      st: Array<{ type: string; days: number; color: string; percent: number }>;
+      bt: Array<{ id: string; label: string; days: number; hue: number; startDate: string; endDate: string }>;
+      st: Array<{ id: string; label: string; days: number; hue: number; startDate: string; endDate: string }>;
     } = { bt: [], st: [] };
     
-    const btByType: Record<string, number> = {};
-    const stByType: Record<string, number> = {};
+    // Hitta matchande aktivitet i activities för att få hue
+    const getHueForPlacement = (placementId: string): number => {
+      const act = activities.find(a => a.linkedPlacementId === placementId || a.id === placementId);
+      return act?.hue ?? (Math.random() * 360);
+    };
     
     for (const p of dbPlacements as any[]) {
       const start = p.startDate || p.startISO || p.start || "";
@@ -1406,7 +1397,19 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       const endDate = end > today ? today : end;
       const percent = pickPercent(p);
       const days = fteDays(start, endDate, percent);
-      const type = p.type || "Klinisk tjänstgöring";
+      if (days <= 0) continue;
+      
+      const label = p.clinic || p.title || p.type || "Aktivitet";
+      const hue = getHueForPlacement(p.id);
+      
+      const item = {
+        id: p.id,
+        label,
+        days,
+        hue,
+        startDate: start,
+        endDate: endDate,
+      };
       
       if (gv === "2021" && btStart) {
         const startMs = new Date(start + "T00:00:00").getTime();
@@ -1415,44 +1418,22 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         const stStartMs = stStart ? new Date(stStart + "T00:00:00").getTime() : 0;
         
         if (startMs >= btStartMs && startMs < btEndMs) {
-          btByType[type] = (btByType[type] || 0) + days;
+          result.bt.push(item);
         } else if (startMs >= stStartMs) {
-          stByType[type] = (stByType[type] || 0) + days;
+          result.st.push(item);
         }
       } else {
         // 2015: allt är ST
-        stByType[type] = (stByType[type] || 0) + days;
+        result.st.push(item);
       }
     }
     
-    // Konvertera till arrays med procent
-    const btTotal = Object.values(btByType).reduce((a, b) => a + b, 0);
-    const stTotal = Object.values(stByType).reduce((a, b) => a + b, 0);
-    
-    for (const [type, days] of Object.entries(btByType)) {
-      result.bt.push({
-        type,
-        days,
-        color: typeColors[type] || "#64748b",
-        percent: btTotal > 0 ? (days / btTotal) * 100 : 0,
-      });
-    }
-    
-    for (const [type, days] of Object.entries(stByType)) {
-      result.st.push({
-        type,
-        days,
-        color: typeColors[type] || "#64748b",
-        percent: stTotal > 0 ? (days / stTotal) * 100 : 0,
-      });
-    }
-    
-    // Sortera efter dagar (störst först)
-    result.bt.sort((a, b) => b.days - a.days);
-    result.st.sort((a, b) => b.days - a.days);
+    // Sortera efter startdatum
+    result.bt.sort((a, b) => a.startDate.localeCompare(b.startDate));
+    result.st.sort((a, b) => a.startDate.localeCompare(b.startDate));
     
     return result;
-  }, [profile, dbPlacements, btEndISO, stStartISO]);
+  }, [profile, dbPlacements, btEndISO, stStartISO, activities]);
 
   // Beräkningar för detaljvy: BT/ST delmål separat
   const milestoneDetails = useMemo(() => {
@@ -9134,19 +9115,19 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           </span>
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200 overflow-hidden flex">
-                          {timeByActivityType.bt.map((seg, i) => {
+                          {timeByActivity.bt.map((act) => {
                             const barWidth = timeDetails.bt.total > 0 
-                              ? (seg.days / timeDetails.bt.total) * 100 
+                              ? (act.days / timeDetails.bt.total) * 100 
                               : 0;
                             return (
                               <div
-                                key={i}
-                                className="h-6 transition-[width] duration-300"
+                                key={act.id}
+                                className="h-6 transition-[width] duration-300 cursor-default"
                                 style={{ 
                                   width: `${Math.min(100, barWidth)}%`,
-                                  backgroundColor: seg.color,
+                                  backgroundColor: `hsl(${act.hue} 45% 65%)`,
                                 }}
-                                title={`${seg.type}: ${Math.round(seg.days)} dagar`}
+                                title={`${act.label}\n${act.startDate} – ${act.endDate}\n${Math.round(act.days)} dagar`}
                               />
                             );
                           })}
@@ -9157,16 +9138,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         <div className="text-xs text-slate-600">
                           Totalt planerade dagar: {Math.round(timeDetails.bt.total)} dagar
                         </div>
-                        {timeByActivityType.bt.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {timeByActivityType.bt.map((seg, i) => (
-                              <div key={i} className="flex items-center gap-1 text-xs text-slate-600">
-                                <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: seg.color }} />
-                                <span>{seg.type}: {Math.round(seg.days)}d ({seg.percent.toFixed(0)}%)</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       
                       {/* ST */}
@@ -9180,19 +9151,19 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           </span>
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200 overflow-hidden flex">
-                          {timeByActivityType.st.map((seg, i) => {
+                          {timeByActivity.st.map((act) => {
                             const barWidth = timeDetails.st.total > 0 
-                              ? (seg.days / timeDetails.st.total) * 100 
+                              ? (act.days / timeDetails.st.total) * 100 
                               : 0;
                             return (
                               <div
-                                key={i}
-                                className="h-6 transition-[width] duration-300"
+                                key={act.id}
+                                className="h-6 transition-[width] duration-300 cursor-default"
                                 style={{ 
                                   width: `${Math.min(100, barWidth)}%`,
-                                  backgroundColor: seg.color,
+                                  backgroundColor: `hsl(${act.hue} 45% 65%)`,
                                 }}
-                                title={`${seg.type}: ${Math.round(seg.days)} dagar`}
+                                title={`${act.label}\n${act.startDate} – ${act.endDate}\n${Math.round(act.days)} dagar`}
                               />
                             );
                           })}
@@ -9203,16 +9174,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         <div className="text-xs text-slate-600">
                           Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
                         </div>
-                        {timeByActivityType.st.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {timeByActivityType.st.map((seg, i) => (
-                              <div key={i} className="flex items-center gap-1 text-xs text-slate-600">
-                                <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: seg.color }} />
-                                <span>{seg.type}: {Math.round(seg.days)}d ({seg.percent.toFixed(0)}%)</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </>
                   ) : (
@@ -9228,19 +9189,19 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           </span>
                         </div>
                         <div className="h-6 w-full rounded-full bg-slate-200 overflow-hidden flex">
-                          {timeByActivityType.st.map((seg, i) => {
+                          {timeByActivity.st.map((act) => {
                             const barWidth = timeDetails.st.total > 0 
-                              ? (seg.days / timeDetails.st.total) * 100 
+                              ? (act.days / timeDetails.st.total) * 100 
                               : 0;
                             return (
                               <div
-                                key={i}
-                                className="h-6 transition-[width] duration-300"
+                                key={act.id}
+                                className="h-6 transition-[width] duration-300 cursor-default"
                                 style={{ 
                                   width: `${Math.min(100, barWidth)}%`,
-                                  backgroundColor: seg.color,
+                                  backgroundColor: `hsl(${act.hue} 45% 65%)`,
                                 }}
-                                title={`${seg.type}: ${Math.round(seg.days)} dagar`}
+                                title={`${act.label}\n${act.startDate} – ${act.endDate}\n${Math.round(act.days)} dagar`}
                               />
                             );
                           })}
@@ -9251,16 +9212,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         <div className="text-xs text-slate-600">
                           Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
                         </div>
-                        {timeByActivityType.st.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {timeByActivityType.st.map((seg, i) => (
-                              <div key={i} className="flex items-center gap-1 text-xs text-slate-600">
-                                <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: seg.color }} />
-                                <span>{seg.type}: {Math.round(seg.days)}d ({seg.percent.toFixed(0)}%)</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </>
                   )}
