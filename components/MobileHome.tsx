@@ -794,13 +794,13 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
               <div className="flex items-baseline justify-between text-xs">
                 <span 
                   className="text-slate-900"
-                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                  data-info="Delmålsuppfyllelse visar andelen genomförda utbildningsaktiviteter. Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs."
                 >
                   Delmålsuppfyllelse
                 </span>
                 <span 
                   className="font-semibold text-slate-900"
-                  data-info="Delmålsuppfyllelse visar hur många procent av alla delmål som har uppfyllts. För 2021-versionen finns det totalt 64 delmål (18 BT-delmål + 46 ST-delmål), och för 2015-versionen finns det 50 ST-delmål. Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna). För 2021-versionen kan ST-delmål uppfyllas av både kurser och kliniska tjänstgöringar, medan BT-delmål kan uppfyllas av både aktiviteter och bedömningar."
+                  data-info="Delmålsuppfyllelse visar andelen genomförda utbildningsaktiviteter. Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs."
                 >
                   {milestoneProgressPct.toFixed(0)} %
                 </span>
