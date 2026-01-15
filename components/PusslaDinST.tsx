@@ -9218,6 +9218,60 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                         </div>
                       </div>
                     </>
+                  ) : (
+                    <>
+                      {/* 2015: Endast ST */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
+                          <span className="text-sm text-slate-600">
+                            {timeDetails.st.total > 0 
+                              ? `${((timeDetails.st.worked / timeDetails.st.total) * 100).toFixed(0)}%`
+                              : "0%"}
+                          </span>
+                        </div>
+                        <div className="h-6 w-full rounded-full bg-slate-200 overflow-hidden flex">
+                          {timeByActivity.st.map((act) => {
+                            const barWidth = timeDetails.st.total > 0 
+                              ? (act.days / timeDetails.st.total) * 100 
+                              : 0;
+                            return (
+                              <div
+                                key={act.id}
+                                className="h-6 transition-[width] duration-300 cursor-pointer"
+                                style={{ 
+                                  width: `${Math.min(100, barWidth)}%`,
+                                  backgroundColor: `hsl(${act.hue} 45% 65%)`,
+                                }}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
+                                  setHoveredTimeAct({ ...act, phase: "st", leftPx });
+                                }}
+                                onMouseLeave={() => setHoveredTimeAct(null)}
+                              />
+                            );
+                          })}
+                        </div>
+                        {hoveredTimeAct?.phase === "st" && (
+                          <div className="relative mt-2" style={{ height: 60 }}>
+                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-xs text-slate-600 mt-1">
+                          Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               ) : (
