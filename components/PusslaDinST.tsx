@@ -9115,7 +9115,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
                     <>
                       {/* BT */}
-                      <div>
+                      <div className="relative">
+                        {hoveredTimeAct?.phase === "bt" && (
+                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
+                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">BT (Bastjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9148,16 +9158,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             );
                           })}
                         </div>
-                        {hoveredTimeAct?.phase === "bt" && (
-                          <div className="relative mt-2" style={{ height: 60 }}>
-                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="text-xs text-slate-600 mt-1">
                           Genomförda dagar: {Math.round(timeDetails.bt.worked)} dagar
                         </div>
@@ -9167,7 +9167,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       </div>
                       
                       {/* ST */}
-                      <div>
+                      <div className="relative">
+                        {hoveredTimeAct?.phase === "st" && (
+                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
+                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9200,16 +9210,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             );
                           })}
                         </div>
-                        {hoveredTimeAct?.phase === "st" && (
-                          <div className="relative mt-2" style={{ height: 60 }}>
-                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="text-xs text-slate-600 mt-1">
                           Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
                         </div>
@@ -9221,7 +9221,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   ) : (
                     <>
                       {/* 2015: Endast ST */}
-                      <div>
+                      <div className="relative">
+                        {hoveredTimeAct?.phase === "st" && (
+                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
+                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
+                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
+                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9254,16 +9264,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                             );
                           })}
                         </div>
-                        {hoveredTimeAct?.phase === "st" && (
-                          <div className="relative mt-2" style={{ height: 60 }}>
-                            <div className="absolute top-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute top-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap" style={{ left: Math.max(0, hoveredTimeAct.leftPx - 80), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="text-xs text-slate-600 mt-1">
                           Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
                         </div>
