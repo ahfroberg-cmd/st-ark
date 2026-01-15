@@ -23,6 +23,7 @@ import type { GoalsCatalog } from "@/lib/goals";
 import { loadGoals } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { milestoneRequires } from "@/lib/milestoneRequirements";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 import { daysBetweenInclusive, fteDays } from "@/lib/dateutils";
 
@@ -1535,8 +1536,22 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         const looksLikeStMilestone = /^ST[ABC]\d+$/i.test(id) || /^[ABC]\d+$/i.test(id);
         if (!looksLikeStMilestone) continue;
 
-        if (a.placementId) addWithAliases(stMilestoneIdsFromPlacements, id);
-        if (a.courseId) addWithAliases(stMilestoneIdsFromCourses, id);
+        if (a.placementId) {
+          const pl = (dbPlacements as any[])?.find((p) => p.id === a.placementId);
+          const end = pl?.endDate || pl?.endISO || pl?.end || "";
+          if (end && end < today) {
+            addWithAliases(stMilestoneIdsFromPlacements, id);
+          }
+        }
+        if (a.courseId) {
+          const cr = (dbCourses as any[])?.find((x) => x.id === a.courseId);
+          const cert = cr?.certificateDate || "";
+          const end = cr?.endDate || "";
+          const date = cert || end;
+          if (date && date < today) {
+            addWithAliases(stMilestoneIdsFromCourses, id);
+          }
+        }
       }
     }
     
@@ -1635,12 +1650,32 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     
     if (goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
       const allMilestones = (goalsCatalog as any).milestones as any[];
-      const stMilestonesForCount = allMilestones.filter((m: any) => {
+
+      // Bas: alla ST-milestones i katalogen (C + ev. A/B om de finns)
+      const stMilestonesForCount: any[] = allMilestones.filter((m: any) => {
         const code = normalizeStId((m as any).code ?? (m as any).id ?? "");
         if (!code) return false;
-        // 2021: STa1/STb2/STc3. 2015: A1/B2/C3.
         return /^ST[ABC]\d+$/i.test(code) || /^[ABC]\d+$/i.test(code);
       });
+
+      // Lägg till gemensamma A/B-delmål så totalen blir "antal rutor" för hela ST
+      const existingKeys = new Set(
+        stMilestonesForCount
+          .map((m: any) => normalizeStId((m as any).code ?? (m as any).id ?? ""))
+          .filter(Boolean) as string[]
+      );
+      const commonCandidates = Object.values(COMMON_AB_MILESTONES) as any[];
+      for (const cm of commonCandidates) {
+        const code = normalizeStId((cm as any).code ?? (cm as any).id ?? "");
+        if (!code) continue;
+        // För 2021: STa/STb. För 2015: A/B.
+        const ok = is2021 ? /^ST[AB]\d+$/i.test(code) : /^[AB]\d+$/i.test(code);
+        if (!ok) continue;
+        if (!existingKeys.has(code)) {
+          existingKeys.add(code);
+          stMilestonesForCount.push(cm);
+        }
+      }
       
       // Hjälpfunktion för att kolla om någon alias matchar
       const hasAnyAlias = (set: Set<string>, code: string): boolean => {
@@ -1657,10 +1692,10 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       for (const m of stMilestonesForCount) {
         const code = normalizeStId((m as any).code ?? (m as any).id ?? "");
         if (!code) continue;
-        const utb = (m as any).sections?.utbildningsaktiviteter || [];
-        
-        const hasKlinReq = utb.some((u: string) => /klinisk/i.test(u) || /tjänstgöring/i.test(u));
-        const hasKursReq = utb.some((u: string) => /kurs/i.test(u));
+
+        const req = milestoneRequires(m);
+        const hasKlinReq = !!(req.klin || req.arb);
+        const hasKursReq = !!req.kurs;
         
         // Kolla om detta delmål har uppfyllts via placering eller kurs (med alias-stöd)
         const isFulfilledByPlacement = hasAnyAlias(stMilestoneIdsFromPlacements, code);
