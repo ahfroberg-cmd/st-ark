@@ -1600,19 +1600,46 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       }
     }
     
-    // ST i 2021-spåret:
-    // - stFulfilled.size räknar "delar" (klin + kurs) => 0..46
-    // - "hela" delmål räknas som halvor (0,5 + 0,5) => 0..23
-    const totalStParts = is2021 ? 46 : 50;
-    const totalStMilestones = is2021 ? 23 : 50;
-
-    // Hur många ”hela” ST-delmål som är uppfyllda (halvor räknas som 0,5)
-    const stFulfilledMilestones = is2021 ? stFulfilled.size / 2 : stFulfilled.size;
+    // Beräkna totalt antal utbildningsaktiviteter (klin/kurs) dynamiskt
+    let totalStKlin = 0;
+    let totalStKurs = 0;
+    let fulfilledStKlin = 0;
+    let fulfilledStKurs = 0;
+    
+    if (is2021 && goalsCatalog && Array.isArray((goalsCatalog as any).milestones)) {
+      const allMilestones = (goalsCatalog as any).milestones as any[];
+      const stMilestonesForCount = allMilestones.filter((m: any) => {
+        const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase();
+        return /^ST[ABC]\d+$/i.test(code);
+      });
+      
+      for (const m of stMilestonesForCount) {
+        const code = String((m as any).code ?? (m as any).id ?? "").toUpperCase().replace(/\s+/g, "");
+        const utb = (m as any).sections?.utbildningsaktiviteter || [];
+        
+        const hasKlinReq = utb.some((u: string) => /klinisk/i.test(u) || /tjänstgöring/i.test(u));
+        const hasKursReq = utb.some((u: string) => /kurs/i.test(u));
+        
+        if (hasKlinReq) {
+          totalStKlin++;
+          if (stFulfilled.has(`${code}-klin`)) fulfilledStKlin++;
+        }
+        if (hasKursReq) {
+          totalStKurs++;
+          if (stFulfilled.has(`${code}-kurs`)) fulfilledStKurs++;
+        }
+      }
+    }
+    
+    const totalStParts = is2021 ? (totalStKlin + totalStKurs) : 50;
+    const fulfilledStParts = is2021 ? (fulfilledStKlin + fulfilledStKurs) : stFulfilled.size;
+    const totalStMilestones = is2021 ? Math.max(totalStKlin, totalStKurs) : 50;
+    const stFulfilledMilestones = is2021 ? (fulfilledStKlin + fulfilledStKurs) / 2 : stFulfilled.size;
     
     return {
       bt: { fulfilled: btFulfilled.size, total: is2021 ? 18 : 0 },
       st: {
-        fulfilled: stFulfilled.size,
+        fulfilled: fulfilledStParts,
         total: totalStParts,
         fulfilledMilestones: stFulfilledMilestones,
         totalMilestones: totalStMilestones,
@@ -9322,7 +9349,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring, vetenskapligt arbete, förbättringsarbete (Klin/Arb) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin/Arb, andra kräver både Klin/Arb och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
                         </p>
                         <button
                           type="button"
@@ -9362,7 +9389,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring, vetenskapligt arbete, förbättringsarbete (Klin/Arb) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin/Arb, andra kräver både Klin/Arb och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
                         </p>
                         <button
                           type="button"

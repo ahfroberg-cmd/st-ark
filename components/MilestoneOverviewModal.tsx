@@ -1752,12 +1752,12 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
                       data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
@@ -1835,12 +1835,12 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
                       data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
@@ -1921,12 +1921,12 @@ function StGrid({
                       title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
                       data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">{p}</span>
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin/Arb</span>
+                      <span>Klin</span>
                       <span className="min-w-[1.2ch] text-right">0</span>
                     </span>
                   )}
