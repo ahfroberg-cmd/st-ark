@@ -5,15 +5,11 @@
     {
       "id": "STc1",
       "code": "STc1",
-      "title": "Psykiatrisk diagnostik",
+      "title": "Handläggning av vanliga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna arbeta med diagnostik och bedömningar både individuellt och i tvärprofessionella utredningsteam",
-          "kunna förklara den diagnostiska processen och innebörden av diagnos på ett begripligt sätt",
-          "kunna formulera diagnostiska utlåtanden korrekt och tydligt",
-          "kunna tillämpa etiska överväganden i diagnostiken",
-          "kunna använda genuskunskap och psykologiska utvecklingsperspektiv",
-          "kunna genomföra strukturerad psykiatrisk diagnostik med metoder som Best Estimate diagnosis eller LEAD"
+          "behärska handläggning av vanliga och viktiga psykiska sjukdomar med betoning på de stora folksjukdomarna, såsom affektiva sjukdomar, ångestsyndrom, psykossjukdomar och personlighetsstörningar",
+          "ha kunskap om bakomliggande mekanismer för uppkomsten av dessa sjukdomar och om deras behandling"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
@@ -33,12 +29,10 @@
     {
       "id": "STc2",
       "code": "STc2",
-      "title": "Handläggning av övriga psykiska sjukdomar",
+      "title": "Övriga psykiska sjukdomar",
       "sections": {
         "kompetenskrav": [
-          "kunna utreda, diagnostisera och handlägga olika psykiska sjukdomar, såsom utvecklingsrelaterade funktionsnedsättningar (t.ex. ADHD, autism, Tourette), ätstörningar, sömnstörningar, postpartumpsykos, somatoforma tillstånd, anpassningsstörningar inklusive kriser och andra stresstillstånd, impulskontrollstörningar, psykiatriska symtom av somatisk orsak, dissociativa tillstånd",
-          "ha kunskap om intellektuell funktionsnedsättning, könsdysfori, självskadebeteende, transkulturella aspekter i psykiatrisk vård",
-          "ha kunskap om vetenskapliga förklaringsmodeller för uppkomst och behandling av dessa diagnosgrupper"
+          "kunna handlägga övriga psykiska sjukdomar"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
@@ -58,13 +52,10 @@
     {
       "id": "STc3",
       "code": "STc3",
-      "title": "Akut psykiatri",
+      "title": "Akutpsykiatri och katastrofpsykiatri",
       "sections": {
         "kompetenskrav": [
-          "kunna avgöra vad som är akut behandlingskrävande och vad som kan vänta till planerad specialistvård",
-          "kunna identifiera akuta behov och hänvisa till relevanta insatser inom socialtjänst, primärvård, somatisk specialitet, polis etc.",
-          "kunna hantera lokala riktlinjer vid katastrofer och PKL-arbete",
-          "ha en solid grund i behandling av akuta tillstånd, lagstiftning och riskbedömning"
+          "kunna handlägga akutpsykiatriska tillstånd samt kunna initialt handlägga katastrofpsykiatriska situationer"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
@@ -151,7 +142,7 @@
     {
       "id": "STc7",
       "code": "STc7",
-      "title": "Neurodegenerativa sjukdomar och kognitiv svikt",
+      "title": "Neurodegenerativa sjukdomar och demens",
       "sections": {
         "kompetenskrav": [
           "ha kunskap om neurodegenerativa sjukdomar med tonvikt på viktiga demenstillstånd",
@@ -175,14 +166,14 @@
     {
       "id": "STc8",
       "code": "STc8",
-      "title": "Utvecklingsrelaterade psykiska tillstånd och barnpsykiatri",
+      "title": "Barn- och ungdomspsykiatriska kunskaper",
       "sections": {
         "kompetenskrav": [
           "ha kunskap om utvecklingsrelaterade psykiska sjukdomar",
-          "ha kännedom om barnpsykiatriskt arbetssätt och om avvikande kontra normal psykologisk och neurologisk utveckling i barn- och ungdomsåren"
+          "ha kännedom om ett barnpsykiatriskt arbetssätt och om avvikande kontra normal psykologisk och neurologisk utveckling i barn- och ungdomsåren"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
           "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
@@ -201,12 +192,12 @@
       "title": "Psykologiska behandlingsmetoder",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om de teoretiska grunderna för olika psykologiska behandlingsmetoder",
-          "kunna bedöma vilken psykologisk metod som är lämplig för behandling av olika psykiska tillstånd",
+          "ha kunskap om de teoretiska grunderna för de olika psykologiska behandlingsmetoderna",
+          "kunna bedöma eventuell lämplig psykologisk metod för behandling av olika psykiska sjukdomar",
           "kunna handlägga patienter med psykologiska behandlingsmetoder"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid enheter som bedriver eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
           "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
@@ -221,16 +212,16 @@
     {
       "id": "STc10",
       "code": "STc10",
-      "title": "Rättspsykiatri och lagstiftning",
+      "title": "Lagar och rättspsykiatri",
       "sections": {
         "kompetenskrav": [
-          "tillämpa lagar och andra författningar som reglerar psykiatrisk tvångsvård",
-          "uppvisa kunskap om rättspsykiatrisk vård och dess juridiska ramar",
-          "ha kunskap om andra lagar och föreskrifter som är relevanta för psykiatrin",
-          "ha kännedom om rättspsykiatrins organisation och ansvarsfördelning"
+          "kunna tillämpa lagar och andra författningar om psykiatrisk tvångsvård",
+          "uppvisa kunskap om lagar och andra författningar om rättspsykiatrisk vård",
+          "ha kunskap om övriga lagar och andra författningar som är relevanta för psykiatrin",
+          "ha kännedom om rättspsykiatrins organisation och arbetsuppgifter"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid verksamheter som bedriver eller handlägger sådana ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
           "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
@@ -250,11 +241,10 @@
       "title": "Kognitiva funktionshinder",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om kognitiva funktionshinder och hur de påverkar patientens vård, behandling och funktion i vardagen",
-          "ha kunskap om testmetoder som används för att utreda sådana funktionshinder"
+          "ha kunskap om kognitiva funktionshinder och deras betydelse för patientens vård och behandling samt ha kunskap om testmetoder för dessa"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid enheter som handlägger relevanta ärenden",
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden",
           "Deltagande i en eller flera kurser"
         ],
         "allmannaRad": [
@@ -270,15 +260,14 @@
     {
       "id": "STc12",
       "code": "STc12",
-      "title": "Samordning, uppföljning och brukarorganisationer",
+      "title": "Samordning och uppföljning",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om hur patienter med långvariga psykiska tillstånd behöver samordnad och kontinuerlig uppföljning",
-          "förstå hur psykosociala och psykofarmakologiska insatser kombineras i nära samarbete med andra yrkesgrupper",
-          "ha kännedom om brukarorganisationers roll som resurs i vård och rehabilitering"
+          "ha kunskap om samordning och uppföljning av patienter över lång tid, vilket bland annat innefattar en kombination av psykofarmakologiska och psykosociala insatser i samarbete med andra yrkesgrupper",
+          "ha kännedom om brukarorganisationers roll som resurs"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning vid verksamheter som handlägger sådana ärenden"
+          "Klinisk tjänstgöring under handledning vid en eller flera enheter som bedriver sådan verksamhet eller handlägger sådana ärenden"
         ],
         "allmannaRad": [
           "Deltagande i seminarium",
@@ -295,8 +284,7 @@
       "title": "Socialtjänst och andra myndigheter",
       "sections": {
         "kompetenskrav": [
-          "ha kunskap om socialtjänstens organisation och regelverk",
-          "ha kunskap om andra för området relevanta myndigheters organisation, uppdrag och förutsättningar"
+          "ha kunskap om socialtjänstens och andra för området relevanta myndigheters organisation, regelverk och förutsättningar"
         ],
         "utbildningsaktiviteter": [
           "Klinisk tjänstgöring under handledning",
@@ -315,16 +303,15 @@
       "title": "Läkemedelsbehandling inom specialiteten",
       "sections": {
         "kompetenskrav": [
-          "kunna tillämpa en helhetssyn på patientens totala läkemedelsbehandling",
-          "kunna anpassa läkemedelsbehandling inom specialiteten efter individuella faktorer: ålder, kön, vikt, njur- och leverfunktion, annan medicinering, samsjuklighet, graviditet och amning",
+          "kunna tillämpa en helhetssyn på patientens samlade läkemedelsbehandling",
+          "kunna anpassa läkemedelsbehandling inom specialiteten utifrån enskilda patienters ålder, kön, vikt, njur- och leverfunktion samt andra eventuella faktorer, till exempel övrig medicinering, samsjuklighet, graviditet och amning",
           "kunna bedöma risker för biverkningar och interaktioner vid läkemedelsbehandling inom specialiteten"
         ],
         "utbildningsaktiviteter": [
-          "Klinisk tjänstgöring under handledning"
-        ],
-        "allmannaRad": [
+          "Klinisk tjänstgöring under handledning",
           "Deltagande i en eller flera kurser"
         ],
+        "allmannaRad": [],
         "intyg": [
           "Intyg om genomförda utbildningsaktiviteter och uppfyllda kompetenskrav, utfärdat av handledare"
         ]
