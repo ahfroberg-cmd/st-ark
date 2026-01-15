@@ -9162,7 +9162,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           Genomförda dagar: {Math.round(timeDetails.bt.worked)} dagar
                         </div>
                         <div className="text-xs text-slate-600">
-                          Totalt planerade dagar: {Math.round(timeDetails.bt.total)} dagar
+                          Totalt antal dagar från startdatum till slutdatum: {Math.round(timeDetails.bt.total)} dagar
                         </div>
                       </div>
                       
@@ -9214,7 +9214,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
                         </div>
                         <div className="text-xs text-slate-600">
-                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
+                          Totalt antal dagar från startdatum till slutdatum: {Math.round(timeDetails.st.total)} dagar
                         </div>
                       </div>
                     </>
@@ -9268,7 +9268,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                           Genomförda dagar: {Math.round(timeDetails.st.worked)} dagar
                         </div>
                         <div className="text-xs text-slate-600">
-                          Totalt planerade dagar: {Math.round(timeDetails.st.total)} dagar
+                          Totalt antal dagar från startdatum till slutdatum: {Math.round(timeDetails.st.total)} dagar
                         </div>
                       </div>
                     </>
