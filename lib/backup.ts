@@ -13,9 +13,12 @@ export type ExportBundle = {
   placements: Placement[];
   courses: Course[];
   achievements: Achievement[];
+  timeline?: any[];
+  iupMilestonePlans?: any[];
+  specialistApplication?: any[];
 };
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 function iso10(v: any): string {
   if (!v) return "";
@@ -51,12 +54,17 @@ function normalizePlacementDates(p: any): any {
 }
 
 export async function exportAll(): Promise<ExportBundle> {
-  const [profile, placements, courses, achievements] = await Promise.all([
-    db.profile.get("default"),
-    db.placements.toArray(),
-    db.courses.toArray(),
-    db.achievements.toArray(),
-  ]);
+  const anyDb: any = db as any;
+  const [profile, placements, courses, achievements, timeline, iupPlans, specApp] =
+    await Promise.all([
+      db.profile.get("default"),
+      db.placements.toArray(),
+      db.courses.toArray(),
+      db.achievements.toArray(),
+      anyDb.timeline?.toArray?.() ?? [],
+      anyDb.iupMilestonePlans?.toArray?.() ?? [],
+      anyDb.specialistApplication?.toArray?.() ?? [],
+    ]);
 
   const placementsOut = (placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
 
@@ -68,6 +76,9 @@ export async function exportAll(): Promise<ExportBundle> {
     placements: placementsOut,
     courses,
     achievements,
+    timeline,
+    iupMilestonePlans: iupPlans,
+    specialistApplication: specApp,
   };
 
 }
@@ -132,12 +143,21 @@ export async function importAll(bundle: ExportBundle, mode: "replace" | "merge" 
 
 /** Rensa DB och skriv in allt från bundle */
 async function replaceAll(bundle: ExportBundle) {
-  await db.transaction("readwrite", db.profile, db.placements, db.courses, db.achievements, async () => {
+  const anyDb: any = db as any;
+  const tables: any[] = [db.profile, db.placements, db.courses, db.achievements];
+  if (anyDb.timeline) tables.push(anyDb.timeline);
+  if (anyDb.iupMilestonePlans) tables.push(anyDb.iupMilestonePlans);
+  if (anyDb.specialistApplication) tables.push(anyDb.specialistApplication);
+
+  await (db as any).transaction("readwrite", ...tables, async () => {
     await Promise.all([
       db.profile.clear(),
       db.placements.clear(),
       db.courses.clear(),
       db.achievements.clear(),
+      anyDb.timeline?.clear?.() ?? Promise.resolve(),
+      anyDb.iupMilestonePlans?.clear?.() ?? Promise.resolve(),
+      anyDb.specialistApplication?.clear?.() ?? Promise.resolve(),
     ]);
 
     if (bundle.profile) {
@@ -147,6 +167,11 @@ async function replaceAll(bundle: ExportBundle) {
     if (bundle.placements?.length) await db.placements.bulkPut(bundle.placements);
     if (bundle.courses?.length) await db.courses.bulkPut(bundle.courses);
     if (bundle.achievements?.length) await db.achievements.bulkPut(bundle.achievements);
+    if (bundle.timeline?.length) await anyDb.timeline?.bulkPut?.(bundle.timeline);
+    if (bundle.iupMilestonePlans?.length)
+      await anyDb.iupMilestonePlans?.bulkPut?.(bundle.iupMilestonePlans);
+    if (bundle.specialistApplication?.length)
+      await anyDb.specialistApplication?.bulkPut?.(bundle.specialistApplication);
   });
 }
 
@@ -155,7 +180,13 @@ async function replaceAll(bundle: ExportBundle) {
  *  - placements/courses/achievements: put per id (skapar om den inte finns)
  */
 async function mergeAll(bundle: ExportBundle) {
-  await db.transaction("readwrite", db.profile, db.placements, db.courses, db.achievements, async () => {
+  const anyDb: any = db as any;
+  const tables: any[] = [db.profile, db.placements, db.courses, db.achievements];
+  if (anyDb.timeline) tables.push(anyDb.timeline);
+  if (anyDb.iupMilestonePlans) tables.push(anyDb.iupMilestonePlans);
+  if (anyDb.specialistApplication) tables.push(anyDb.specialistApplication);
+
+  await (db as any).transaction("readwrite", ...tables, async () => {
     if (bundle.profile) {
       const prof = { ...(bundle.profile as any), id: "default" } as any;
       await db.profile.put(prof);
@@ -163,6 +194,9 @@ async function mergeAll(bundle: ExportBundle) {
     for (const p of bundle.placements ?? []) await db.placements.put(p);
     for (const c of bundle.courses ?? []) await db.courses.put(c);
     for (const a of bundle.achievements ?? []) await db.achievements.put(a);
+    for (const t of bundle.timeline ?? []) await anyDb.timeline?.put?.(t);
+    for (const p of bundle.iupMilestonePlans ?? []) await anyDb.iupMilestonePlans?.put?.(p);
+    for (const s of bundle.specialistApplication ?? []) await anyDb.specialistApplication?.put?.(s);
   });
 }
 
@@ -172,6 +206,17 @@ function migrateIfNeeded(src: ExportBundle): ExportBundle {
   const out: ExportBundle = typeof structuredClone === "function" ? structuredClone(src) : JSON.parse(JSON.stringify(src));
 
   if (out.schemaVersion === undefined) out.schemaVersion = 0;
+
+  if (out.schemaVersion < 2) {
+    const hasTimeline = Array.isArray((out as any).timeline) && (out as any).timeline.length > 0;
+    if (!hasTimeline && Array.isArray(out.placements)) {
+      out.placements = (out.placements as any[]).map((p) => {
+        const np: any = normalizePlacementDates(p);
+        if (np.showOnTimeline === undefined) np.showOnTimeline = true;
+        return np;
+      }) as Placement[];
+    }
+  }
 
   // Exempel: framtida migreringar
   // if (out.schemaVersion < 1) {
