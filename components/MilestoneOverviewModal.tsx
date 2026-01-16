@@ -80,7 +80,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
   const [listTitle, setListTitle] = useState("");
   const [listItems, setListItems] = useState<{ id: string; line1: string; line2?: string }[]>([]);
-  const [listKind, setListKind] = useState<"klin" | "kurs" | "intyg">("intyg");
+  const [listKind, setListKind] = useState<"klin" | "kurs" | "arb" | "intyg">("intyg");
 
   // Popup "Inget kopplat"
   const [notMetOpen, setNotMetOpen] = useState(false);
@@ -553,8 +553,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
   // ====== UI actions ======
   const countsFor = (mid: string) => {
-    let p = 0;
-    let c = 0;
+    let klin = 0;
+    let kurs = 0;
+    let arb = 0;
 
     // Normalisera så att "a3", "A3-medicinsk-vetenskap" osv blir samma nyckel
     const norm = (v: any) =>
@@ -565,7 +566,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         .replace(/\s|_/g, "");
 
     const midNorm = norm(mid);
-    if (!midNorm) return { p, c };
+    if (!midNorm) return { klin, kurs, arb };
+
+    const isArbPlacement = (pl: any): boolean => {
+      const t = String(pl?.type ?? "").trim().toLowerCase();
+      return t === "vetenskapligt arbete" || t === "förbättringsarbete";
+    };
 
     // Alias STa1 <-> A1, STb3 <-> B3, osv
     const aliases = new Set<string>([midNorm]);
@@ -606,7 +612,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         const st = classifyActivity(pl?.startDate, pl?.endDate);
         if (pl && statusAllowed(st) && !countedPlac.has(pl.id)) {
           countedPlac.add(pl.id);
-          p += 1;
+          if (isArbPlacement(pl)) arb += 1;
+          else klin += 1;
         }
       }
 
@@ -615,7 +622,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         const st = courseStatus(cr);
         if (cr && statusAllowed(st) && !countedCourse.has(cr.id)) {
           countedCourse.add(cr.id);
-          c += 1;
+          kurs += 1;
         }
       }
     }
@@ -629,7 +636,8 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
       const arrs = [pl.milestones, pl.goals, pl.goalIds, pl.milestoneIds];
       if (arrs.some((arr) => arr && arr.some(matchKey))) {
         countedPlac.add(pl.id);
-        p += 1;
+        if (isArbPlacement(pl)) arb += 1;
+        else klin += 1;
       }
     }
 
@@ -642,11 +650,11 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
       const arrs = [cr.milestones, cr.goals, cr.goalIds, cr.milestoneIds];
       if (arrs.some((arr) => arr && arr.some(matchKey))) {
         countedCourse.add(cr.id);
-        c += 1;
+        kurs += 1;
       }
     }
 
-    return { p, c };
+    return { klin, kurs, arb };
   };
 
 
@@ -761,7 +769,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
 
-  function openList(kind: "intyg" | "klin" | "kurs", m: { id?: string; code?: string }) {
+  function openList(kind: "intyg" | "klin" | "kurs" | "arb", m: { id?: string; code?: string }) {
     const idOrCode = (m as any)?.id ?? (m as any)?.code ?? "";
     const isBt = /^BT\d+$/i.test(String(idOrCode));
 
@@ -951,6 +959,12 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     const placRefs: any[] = [];
     const courseRefs: any[] = [];
 
+    const isArbPlacementId = (placementId: string): boolean => {
+      const pl = placements.find((p) => p.id === placementId) as any;
+      const t = String(pl?.type ?? "").trim().toLowerCase();
+      return t === "vetenskapligt arbete" || t === "förbättringsarbete";
+    };
+
     // 1) Via achievements
     for (const a of achAll as any[]) {
       const cand = [a.milestoneId, a.goalId, a.id, a.code, a.milestone];
@@ -1029,10 +1043,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
 
+    const klinPlacRefs = placRefs.filter((x: any) => x?.placementId && !isArbPlacementId(String(x.placementId)));
+    const arbPlacRefs = placRefs.filter((x: any) => x?.placementId && isArbPlacementId(String(x.placementId)));
+
     if (kind === "klin") {
       setListKind("klin");
-      setListTitle(`${titleCode} – Kliniska tjänstgöringar / Arbeten`);
-      setListItems(placRefs.length > 0 ? buildItemsPlac(placRefs) : []);
+      setListTitle(`${titleCode} – Kliniska tjänstgöringar`);
+      setListItems(klinPlacRefs.length > 0 ? buildItemsPlac(klinPlacRefs) : []);
       setListOpen(true);
       return;
     }
@@ -1041,6 +1058,14 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
       setListKind("kurs");
       setListTitle(`${titleCode} – Kurser`);
       setListItems(courseRefs.length > 0 ? buildItemsCourse(courseRefs) : []);
+      setListOpen(true);
+      return;
+    }
+
+    if (kind === "arb") {
+      setListKind("arb");
+      setListTitle(`${titleCode} – Arbeten`);
+      setListItems(arbPlacRefs.length > 0 ? buildItemsPlac(arbPlacRefs) : []);
       setListOpen(true);
       return;
     }
@@ -1562,8 +1587,9 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 ) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-700">
                     {listKind === "intyg" && "Det finns ännu inget registrerat för detta delmål."}
-                    {listKind === "klin" && "Det finns ännu inga registrerade kliniska tjänstgöringar eller arbeten för detta delmål."}
+                    {listKind === "klin" && "Det finns ännu inga registrerade kliniska tjänstgöringar för detta delmål."}
                     {listKind === "kurs" && "Det finns ännu inga registrerade kurser för detta delmål."}
+                    {listKind === "arb" && "Det finns ännu inga registrerade arbeten för detta delmål."}
                   </div>
                 )}
               </div>
@@ -1676,9 +1702,9 @@ function StGrid({
   planDatesByMilestone,
 }: {
   groups: Record<"A" | "B" | "C", GoalsMilestone[]>;
-  countsFor: (milestoneId: string) => { p: number; c: number };
+  countsFor: (milestoneId: string) => { klin: number; kurs: number; arb: number };
   openDetail: (id: string) => void;
-  openList: (kind: "klin" | "kurs", m: GoalsMilestone) => void;
+  openList: (kind: "klin" | "kurs" | "arb", m: GoalsMilestone) => void;
   planByMilestone: Record<string, string>;
   planDatesByMilestone: Record<string, string>;
 }) {
@@ -1715,7 +1741,7 @@ function StGrid({
         <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål A</h3>
         <div className="mb-4 space-y-1.5">
           {groups.A.map((m) => {
-            const { p, c } = countsFor(m.id);
+            const { klin, kurs, arb } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
             const req = milestoneRequires(m);
             return (
@@ -1745,49 +1771,60 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
-                  {(req.klin || req.arb) ? (
+                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
+                  {req.klin && (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
                       className={
-                        p > 0
+                        klin > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
-                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
+                      title={
+                        klin > 0
+                          ? "Visa kopplade kliniska tjänstgöringar"
+                          : "Inga kopplade kliniska tjänstgöringar"
+                      }
+                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
                       <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                      <span className="min-w-[1.2ch] text-right">{klin}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
                   )}
 
-                  {req.kurs ? (
+                  {req.kurs && (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
                       className={
-                        c > 0
+                        kurs > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
                       data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
+                  )}
+
+                  {req.arb && (
+                    <button
+                      type="button"
+                      onClick={() => openList("arb", m)}
+                      className={
+                        arb > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
+                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
+                    >
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">{arb}</span>
+                    </button>
                   )}
                 </div>
               </article>
@@ -1798,7 +1835,7 @@ function StGrid({
         <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål B</h3>
         <div className="space-y-1.5">
           {groups.B.map((m) => {
-            const { p, c } = countsFor(m.id);
+            const { klin, kurs, arb } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
             const req = milestoneRequires(m);
             return (
@@ -1828,49 +1865,60 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
-                  {(req.klin || req.arb) ? (
+                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
+                  {req.klin && (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
                       className={
-                        p > 0
+                        klin > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
-                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
+                      title={
+                        klin > 0
+                          ? "Visa kopplade kliniska tjänstgöringar"
+                          : "Inga kopplade kliniska tjänstgöringar"
+                      }
+                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
                       <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                      <span className="min-w-[1.2ch] text-right">{klin}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
                   )}
 
-                  {req.kurs ? (
+                  {req.kurs && (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
                       className={
-                        c > 0
+                        kurs > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
                       data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
+                  )}
+
+                  {req.arb && (
+                    <button
+                      type="button"
+                      onClick={() => openList("arb", m)}
+                      className={
+                        arb > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
+                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
+                    >
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">{arb}</span>
+                    </button>
                   )}
                 </div>
               </article>
@@ -1884,7 +1932,7 @@ function StGrid({
         <h3 className="mb-2 text-[12px] font-semibold text-slate-900">Delmål C</h3>
         <div className="space-y-1.5">
           {groups.C.map((m) => {
-            const { p, c } = countsFor(m.id);
+            const { klin, kurs, arb } = countsFor(m.id);
             const status = getPlanningStatus(m.id);
             const req = milestoneRequires(m);
             return (
@@ -1914,49 +1962,60 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end">
-                  {req.klin ? (
+                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
+                  {req.klin && (
                     <button
                       type="button"
                       onClick={() => openList("klin", m)}
                       className={
-                        p > 0
+                        klin > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={p > 0 ? "Visa kopplade kliniska tjänstgöringar/arbeten" : "Inga kopplade kliniska tjänstgöringar/arbeten"}
-                      data-info="Visar antalet kliniska tjänstgöringar, förbättringsarbeten eller vetenskapliga arbeten som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
+                      title={
+                        klin > 0
+                          ? "Visa kopplade kliniska tjänstgöringar"
+                          : "Inga kopplade kliniska tjänstgöringar"
+                      }
+                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
                     >
                       <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{p}</span>
+                      <span className="min-w-[1.2ch] text-right">{klin}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
                   )}
 
-                  {req.kurs ? (
+                  {req.kurs && (
                     <button
                       type="button"
                       onClick={() => openList("kurs", m)}
                       className={
-                        c > 0
+                        kurs > 0
                           ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
                           : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
                       }
-                      title={c > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
+                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
                       data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
                     >
                       <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{c}</span>
+                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 invisible">
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">0</span>
-                    </span>
+                  )}
+
+                  {req.arb && (
+                    <button
+                      type="button"
+                      onClick={() => openList("arb", m)}
+                      className={
+                        arb > 0
+                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+                      }
+                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
+                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
+                    >
+                      <span>Arb</span>
+                      <span className="min-w-[1.2ch] text-right">{arb}</span>
+                    </button>
                   )}
                 </div>
               </article>

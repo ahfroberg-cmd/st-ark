@@ -43,13 +43,15 @@ export function milestoneRequires(m: any): MilestoneRequirements {
   }
 
   const kurs = /\bkurs(er)?\b/.test(hay) || (is2021 && codeNorm === "STA3");
-  const klin = /(klinisk\s+tjänstgöring|klinisk\s+tjanstgoring|auskultation)/.test(hay);
+  const klin =
+    /(klinisk\s+tjänstgöring|klinisk\s+tjanstgoring|auskultation)/.test(hay) ||
+    (is2021 && codeNorm === "STA3");
 
   // Särskild önskan: 2021 STa2 och STa3 ska ha "Arb".
   const arb = is2021 && (codeNorm === "STA2" || codeNorm === "STA3");
 
   // Om vi inte kan tolka kraven säkert: visa båda (fail-open), för att inte råka dölja något.
-  if (!kurs && !klin && !arb) return { klin: true, kurs: true, arb: true };
+  if (!kurs && !klin && !arb) return { klin: true, kurs: true, arb };
 
   return { klin, kurs, arb };
 }
