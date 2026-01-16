@@ -643,7 +643,7 @@ function AssessmentModal({
         );
         if (!cancelled && match) {
           // Använd clinic eller title som fallback
-          const placementName = match.clinic || match.title || "";
+          const placementName = match.clinic || (match as any).title || "";
           if (placementName) {
             setDraft((prev) =>
               prev
@@ -2248,7 +2248,7 @@ export default function IupModal({
 
 
           {/* Body */}
-          <section className="max-h-[75vh] overflow-auto p-4">
+          <section className="max-h-[75vh] overflow-auto overscroll-contain touch-pan-y p-4">
             {tab === "handledning" && (
               <div className="grid gap-4 md:grid-cols-2" data-info="Här kan du registrera handledarsamtal och progressionsbedömningar. Klicka på ett befintligt tillfälle för att redigera det, eller skapa ett nytt. Du kan också välja om handledarsamtal och bedömningar ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen och gula stjärnor för att öppna progressionsbedömningar.">
                 {/* Vänster: lista med handledarsamtal */}

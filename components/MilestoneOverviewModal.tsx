@@ -1166,7 +1166,13 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         </div>
 
         {/* Body */}
-        <section className={embedded ? "flex-1 p-5" : "flex-1 overflow-y-auto p-5"}>
+        <section
+          className={
+            embedded
+              ? "flex-1 p-5 overscroll-contain touch-pan-y"
+              : "flex-1 overflow-y-auto p-5 overscroll-contain touch-pan-y"
+          }
+        >
           {!goals ? (
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
               {profile ? 'Inga mål inlästa – välj målversion och specialitet under "Profil".' : "Laddar mål…"}
@@ -1325,7 +1331,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-5 py-5">
+                <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 py-5">
 
                   {m ? (
                     <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)] md:items-start">
@@ -1394,7 +1400,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                             Förslag
                           </div>
                           <div 
-                            className="overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2"
+                            className="overflow-y-auto overscroll-contain touch-pan-y rounded-lg border border-slate-200 bg-slate-50 p-2"
                             style={{
                               maxHeight: suggestionsMaxHeight
                             }}
@@ -1491,7 +1497,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-5 py-5">
+                <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 py-5">
                   {m ? (
                     <div className="prose prose-slate max-w-none text-[14px] leading-relaxed text-slate-900">
                       <ul className="list-disc space-y-2 pl-5 text-slate-900">
@@ -1540,7 +1546,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                   Stäng
                 </button>
               </header>
-              <div className="max-h-[60vh] overflow-auto px-4 py-3">
+              <div className="max-h-[60vh] overflow-auto overscroll-contain touch-pan-y px-4 py-3">
                 {listItems.length > 0 ? (
                   <ul className="space-y-1.5">
                     {listItems.map((it) => (
