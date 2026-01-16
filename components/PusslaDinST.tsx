@@ -2896,6 +2896,41 @@ const lastEndRef = useRef<string | null>(null);
         const allActivities = [...mergedActs, ...draftOnlyActs];
         const allCourses = [...mergedCourses, ...draftOnlyCourses];
 
+        let minYear = Number.POSITIVE_INFINITY;
+        let maxYear = Number.NEGATIVE_INFINITY;
+        for (const a of allActivities as any[]) {
+          if (typeof a?.startSlot === "number" && typeof a?.lengthSlots === "number") {
+            const sY = slotToYearMonthHalf(startYear, a.startSlot).year;
+            const eSlot = a.startSlot + Math.max(1, a.lengthSlots) - 1;
+            const eY = slotToYearMonthHalf(startYear, eSlot).year;
+            if (Number.isFinite(sY)) minYear = Math.min(minYear, sY);
+            if (Number.isFinite(eY)) maxYear = Math.max(maxYear, eY);
+          }
+        }
+        for (const c of allCourses as any[]) {
+          const sISO = (c?.startDate || c?.certificateDate || "") as string;
+          const eISO = (c?.endDate || c?.certificateDate || "") as string;
+          const y1 = isValidISO(sISO) ? isoToDateSafe(sISO).getFullYear() : null;
+          const y2 = isValidISO(eISO) ? isoToDateSafe(eISO).getFullYear() : null;
+          if (y1 != null) {
+            minYear = Math.min(minYear, y1);
+            maxYear = Math.max(maxYear, y1);
+          }
+          if (y2 != null) {
+            minYear = Math.min(minYear, y2);
+            maxYear = Math.max(maxYear, y2);
+          }
+        }
+
+        const neededAbove =
+          Number.isFinite(minYear) ? Math.max(0, startYear - minYear) : 0;
+        const neededBelow =
+          Number.isFinite(maxYear)
+            ? Math.max(0, maxYear - (startYear + totalYearsNeeded - 1))
+            : 0;
+        const nextAbove = Math.max(lsAbove, neededAbove);
+        const nextBelow = Math.max(lsBelow, neededBelow);
+
         // Auto-selektion efter skanna-intyg (om vi har en väntande selektion)
         const pending = pendingScanSelectionRef.current;
         if (pending && pending.dbId != null) {
@@ -2924,8 +2959,8 @@ const lastEndRef = useRef<string | null>(null);
 
         setActivities(allActivities);
         setCourses(allCourses);
-        setYearsAbove(lsAbove);
-        setYearsBelow(lsBelow);
+        setYearsAbove(nextAbove);
+        setYearsBelow(nextBelow);
         setDismissedGaps(lsDismissed);
 
         hydratedRef.current = true;
