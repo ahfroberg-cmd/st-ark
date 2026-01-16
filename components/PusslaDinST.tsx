@@ -2532,7 +2532,7 @@ const lastEndRef = useRef<string | null>(null);
 
                 // 1) Låsta placeringar som ska synas
         const dbPlac = await db.placements.toArray();
-        const lockedPlac = dbPlac.filter((p: any) => !!p.showOnTimeline);
+        const lockedPlac = dbPlac.filter((p: any) => (p as any).showOnTimeline !== false);
         const lockedActs: Activity[] = lockedPlac.map((p: any, i: number) => {
           // Normalisera datum till rena ISO-datumsträngar (YYYY-MM-DD)
           const startISO: string =
@@ -2645,7 +2645,7 @@ const lastEndRef = useRef<string | null>(null);
         // 2) Låsta kurser som ska synas
         const dbCourses = (await (db as any).courses?.toArray?.()) ?? [];
         const lockedCrs: TLcourse[] = dbCourses
-          .filter((c: any) => !!c.showOnTimeline)
+          .filter((c: any) => (c as any).showOnTimeline !== false)
           .map((c: any) => {
             const startISO: string =
               c.startDate || c.certificateDate || c.endDate || "";
