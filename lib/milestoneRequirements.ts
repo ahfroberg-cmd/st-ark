@@ -47,8 +47,12 @@ export function milestoneRequires(m: any): MilestoneRequirements {
     /(klinisk\s+tjänstgöring|klinisk\s+tjanstgoring|auskultation)/.test(hay) ||
     (is2021 && codeNorm === "STA3");
 
-  // Särskild önskan: 2021 STa2 och STa3 ska ha "Arb".
-  const arb = is2021 && (codeNorm === "STA2" || codeNorm === "STA3");
+  // Särskild önskan:
+  // - 2021: STa2 och STa3 ska ha "Arb".
+  // - 2015: A4 (Systematiskt kvalitets- och patientsäkerhetsarbete) och A5 (Medicinsk vetenskap) ska ha "Arb".
+  const arb = is2021
+    ? codeNorm === "STA2" || codeNorm === "STA3"
+    : codeNorm === "A4" || codeNorm === "A5";
 
   // Om vi inte kan tolka kraven säkert: visa båda (fail-open), för att inte råka dölja något.
   if (!kurs && !klin && !arb) return { klin: true, kurs: true, arb };
