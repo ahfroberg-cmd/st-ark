@@ -2773,46 +2773,71 @@ const lastEndRef = useRef<string | null>(null);
           );
           if (!match) return a;
           const m: any = match;
-          return {
+
+          const nextExactStartISO =
+            typeof m.exactStartISO === "string" ? m.exactStartISO : (a as any).exactStartISO;
+          const nextExactEndISO =
+            typeof m.exactEndISO === "string" ? m.exactEndISO : (a as any).exactEndISO;
+
+          let nextStartSlot =
+            typeof m.startSlot === "number" ? m.startSlot : (a as any).startSlot;
+          let nextLengthSlots =
+            typeof m.lengthSlots === "number" ? m.lengthSlots : (a as any).lengthSlots;
+
+          // Om vi har exakta datum (t.ex. efter JSON-import): räkna om slots från datum,
+          // annars kan en gammal timeline-draft skriva över och ge fel datum i lista/tidslinje.
+          if (isValidISO(nextExactStartISO) && isValidISO(nextExactEndISO)) {
+            const snappedStart =
+              roundToAnchors(nextExactStartISO, "start") || nextExactStartISO;
+            const snappedEnd =
+              roundToAnchors(nextExactEndISO, "end") || nextExactEndISO;
+
+            const s = dateToSlot(startYear, snappedStart, "start");
+            const e = dateToSlot(startYear, snappedEnd, "end");
+            if (Number.isFinite(s) && Number.isFinite(e)) {
+              nextStartSlot = s;
+              nextLengthSlots = Math.max(1, e - s);
+            }
+          }
+
+          return ({
             ...a,
             type: m.type ?? a.type,
             label: m.label ?? a.label,
-            startSlot:
-              typeof m.startSlot === "number" ? m.startSlot : a.startSlot,
-            lengthSlots:
-              typeof m.lengthSlots === "number"
-                ? m.lengthSlots
-                : a.lengthSlots,
+            startSlot: nextStartSlot,
+            lengthSlots: nextLengthSlots,
             attendance:
               typeof m.attendance === "number"
                 ? m.attendance
-                : a.attendance,
-            hue: typeof m.hue === "number" ? m.hue : a.hue,
-            phase: (m.phase as any) || a.phase,
-            supervisor: m.supervisor ?? a.supervisor,
+                : (a as any).attendance,
+            hue: typeof m.hue === "number" ? m.hue : (a as any).hue,
+            phase: (m.phase as any) || (a as any).phase,
+            exactStartISO: nextExactStartISO || (a as any).exactStartISO,
+            exactEndISO: nextExactEndISO || (a as any).exactEndISO,
+            supervisor: m.supervisor ?? (a as any).supervisor,
             supervisorSpeciality:
-              m.supervisorSpeciality ?? a.supervisorSpeciality,
-            supervisorSite: m.supervisorSite ?? a.supervisorSite,
-            note: m.note ?? a.note,
-            leaveSubtype: m.leaveSubtype ?? a.leaveSubtype,
-            btAssessment: m.btAssessment ?? a.btAssessment,
+              m.supervisorSpeciality ?? (a as any).supervisorSpeciality,
+            supervisorSite: m.supervisorSite ?? (a as any).supervisorSite,
+            note: m.note ?? (a as any).note,
+            leaveSubtype: m.leaveSubtype ?? (a as any).leaveSubtype,
+            btAssessment: m.btAssessment ?? (a as any).btAssessment,
             btMilestones: Array.isArray(m.btMilestones)
               ? m.btMilestones
-              : a.btMilestones,
+              : (a as any).btMilestones,
             stMilestones: Array.isArray(m.stMilestones)
               ? m.stMilestones
-              : a.stMilestones,
+              : (a as any).stMilestones,
             stGoalIds: Array.isArray(m.stGoalIds)
               ? m.stGoalIds
-              : a.stGoalIds,
+              : (a as any).stGoalIds,
             milestones: Array.isArray(m.milestones)
               ? m.milestones
-              : a.milestones,
+              : (a as any).milestones,
             fulfillsStGoals:
               typeof m.fulfillsStGoals === "boolean"
                 ? m.fulfillsStGoals
-                : a.fulfillsStGoals,
-          };
+                : (a as any).fulfillsStGoals,
+          } as any) as Activity;
         });
 
         const mergedCourses = lockedCrs.map((c) => {
@@ -3572,18 +3597,6 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
               let newStart = c.startDate || iso;
               let newEnd = iso;
 
-              if (c.startDate && c.endDate && d.mode === "move") {
-                const spanDays = Math.max(
-                  0,
-                  Math.round(
-                    (new Date((c.endDate as string) + "T00:00:00").getTime() -
-                      new Date((c.startDate as string) + "T00:00:00").getTime()) / 86400000
-                  )
-                );
-                const shiftedStart = new Date(new Date(iso).getTime() - spanDays * 86400000);
-                newStart = dateToISO(shiftedStart);
-              }
-
               if (newEnd < newStart) newEnd = newStart;
 
               // Behåll befintlig fas
@@ -3645,8 +3658,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
        window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-    // eslint-disable-next-line 
-react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activities, courses, selectedPlacementId, selectedCourseId]);
 
 
@@ -3670,12 +3682,31 @@ react-hooks/exhaustive-deps
     if (!c) return;
     setCourseTypeDraft(c.kind);
     setCourseTitleDraft(c.title);
-    setCourseDateDraft(c.certificateDate); // följer live
+    setCourseDateDraft(c.certificateDate || ""); // följer live
   }, [selectedCourseId, courses]);
+
+  function computePhaseByEndSlot(startSlot: number, lengthSlots: number): "BT" | "ST" {
+    try {
+      const dummyActivity: any = {
+        id: "_phase",
+        type: "Kurs",
+        label: "",
+        startSlot,
+        lengthSlots: Math.max(1, lengthSlots),
+      };
+      const { startISO, endISO } = computeMondayDates(dummyActivity);
+      return inferPhaseByBTRuntime(startISO, endISO, profile, stStartISO);
+    } catch {
+      return "ST";
+    }
+  }
 
   // minus-knappar (yttersta år)
   function yearHasCourse(y: number) {
-    return courses.some(c => isValidISO(c.certificateDate) && new Date(c.certificateDate + "T00:00:00").getFullYear() === y);
+    return courses.some((c) => {
+      const cert = c.certificateDate || "";
+      return isValidISO(cert) && new Date(cert + "T00:00:00").getFullYear() === y;
+    });
   }
   function yearHasActivity(y: number) {
     const yStart = (y - startYear) * slotsPerYear();
@@ -3738,7 +3769,7 @@ const endBoundaryCol = endBoundarySlot - rowStartSlot;
 const goals = String((profile as any)?.goalsVersion || "").trim();
 const is2021Profile = goals === "2021";
 const btStartISO = (profile as any)?.btStartDate as (string | undefined);
-const rawBtStartSlot = (is2021Profile && btStartISO) ? dateToSlot(startYear, btStartISO, "start") : null;
+const rawBtStartSlot = (is2021Profile && btStartISO && isValidISO(btStartISO)) ? dateToSlot(startYear, btStartISO, "start") : null;
 const snappedBtStartSlot = (rawBtStartSlot != null) ? rawBtStartSlot : null; // behåll exakt halvmånad
 
 
@@ -3759,8 +3790,8 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   if (showAsInterval) {
     // Intervall-kurser (med "Visa som tidsintervall") visas
     // i alla år som intervallet överlappar.
-    const sISO = c.startDate || c.certificateDate;
-    const eISO = c.endDate   || c.certificateDate;
+    const sISO = c.startDate || c.certificateDate || "";
+    const eISO = c.endDate   || c.certificateDate || "";
     if (!isValidISO(sISO) || !isValidISO(eISO)) return false;
     const s = isoToDateSafe(sISO);
     const e = isoToDateSafe(eISO);
@@ -3771,7 +3802,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 
   // STANDARDKURS:
   // Vanligtvis: rendera bara i det år där slutdatumet ligger…
-  const endISO = c.endDate || c.certificateDate;
+  const endISO = c.endDate || c.certificateDate || "";
   if (!isValidISO(endISO)) return false;
   const endYear = isoToDateSafe(endISO).getFullYear();
   if (endYear === year) return true;
@@ -4648,8 +4679,8 @@ dragPlacementRef.current = {
 // Nu stöd för att sträcka bandet över flera år (år-till-år-segment).
 if ((c as any).showAsInterval) {
 
-  const sISO = c.startDate || c.certificateDate;
-  const eISO = c.endDate   || c.certificateDate;
+  const sISO = c.startDate || c.certificateDate || "";
+  const eISO = c.endDate   || c.certificateDate || "";
   if (!isValidISO(sISO) || !isValidISO(eISO)) return null;
 
   // Normalisera start/slut
@@ -5032,7 +5063,7 @@ if ((c as any).showAsInterval) {
 
                 // STANDARDKURS med kant-stopp + pigg
 {
-  const endISO = c.endDate || c.certificateDate;
+  const endISO = c.endDate || c.certificateDate || "";
   if (!isValidISO(endISO)) return null;
   const endDateObj = isoToDateSafe(endISO);
 
@@ -5274,6 +5305,16 @@ const overlaps = useMemo(() => {
     return { startISO: dateToISO(startD), endISO: dateToISO(endD) };
   }
 
+  function displayDatesForActivity(a: Activity) {
+    const s = (a as any)?.exactStartISO;
+    const e = (a as any)?.exactEndISO;
+    const fallback = computeMondayDates(a);
+    return {
+      startISO: isValidISO(s) ? s : fallback.startISO,
+      endISO: isValidISO(e) ? e : fallback.endISO,
+    };
+  }
+
 // Beräkna FTE och projicerat ST-slut — SLOT-BASERAT och helt lokalt
 useEffect(() => {
   // Välj rätt startdatum för beräkning: 2021 → BT-start, annars ST-start
@@ -5381,7 +5422,7 @@ function roundToAnchors(iso: string, which: "start" | "end") {
 
           const phase = (c as any)?.phase || computePhaseByEndSlot(startSlot, lengthSlots);
 
-          const dummyActivity: Activity = {
+          const dummyActivity: any = {
             id: c.id,
             type: "Kurs",
             label: c.title || "Kurs",
@@ -5447,7 +5488,7 @@ function roundToAnchors(iso: string, which: "start" | "end") {
     const a = activities.find(x => x.id === id);
     if (!a) return;
 
-    const { startISO, endISO } = computeMondayDates(a);
+    const { startISO, endISO } = displayDatesForActivity(a);
     const q = new URLSearchParams({
       fromTimeline: "1",
       timeline: "1",
@@ -5473,7 +5514,7 @@ function roundToAnchors(iso: string, which: "start" | "end") {
       fromTimeline: "1",
       timeline: "1",
       title: getCourseDisplayTitle(c),
-      certificateDate: c.certificateDate,
+      certificateDate: c.certificateDate || "",
     });
     router.push(`/kurser?${q.toString()}`);
   }
@@ -7995,7 +8036,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           value={
             (selCourse as any)?.showAsInterval
               ? (selCourse.startDate || "")
-              : (selCourse.startDate || selCourse.endDate)
+              : (selCourse.startDate || selCourse.endDate || "")
           }
           onChange={(iso) => {
             const nextISO = iso || undefined;
@@ -8039,7 +8080,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           value={
             (selCourse as any)?.showAsInterval
               ? (selCourse.endDate || "")
-              : (selCourse.endDate || selCourse.startDate)
+              : (selCourse.endDate || selCourse.startDate || "")
           }
           onChange={(iso) => {
             const nextISO = iso || undefined;
@@ -8379,15 +8420,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   )
   .map((a) => {
 
-                  const s = slotToYearMonthHalf(startYear, a.startSlot);
-                  const startISO = dateToISO(mondayOnOrAfter(s.year, s.month0, s.half===0?1:15));
-                  const eSlot = a.startSlot + a.lengthSlots - 1;
-                  const e = slotToYearMonthHalf(startYear, eSlot);
-                  const endISO = dateToISO(sundayOnOrBefore(
-                    e.year + (e.half===1 && e.month0===11 ? 1 : (e.month0 + (e.half===1?1:0) > 11 ? 1 : 0)),
-                    (e.month0 + (e.half===1?1:0) + 12)%12,
-                    e.half===0?15:1
-                  ));
+                  const { startISO, endISO } = displayDatesForActivity(a);
                   const isSelected = selectedPlacementId === a.id;
                   const title = (() => {
   if (a.type === "Klinisk tjänstgöring" || a.type === "Auskultation") {
@@ -8443,7 +8476,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
       open: true,
       x: Math.round(e.clientX),
       y: Math.round(rect.top + rect.height / 2),
+      kind: "placement",
       placement: a,
+      course: null,
     });
     return;
   }
@@ -8468,7 +8503,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           (x as any).milestones.some(isSta3),
       )
       .map((x: any) => {
-        const { startISO, endISO } = computeMondayDates(x);
+        const { startISO, endISO } = displayDatesForActivity(x);
         return {
           id: x.linkedPlacementId || x.id,
           title: x.label || "Klinisk tjänstgöring",
@@ -8653,7 +8688,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 (x as any).milestones.some(isSta3),
             )
             .map((x: any) => {
-              const { startISO, endISO } = computeMondayDates(x);
+              const { startISO, endISO } = displayDatesForActivity(x);
               const title = x.label || x.type;
               return {
                 id: (x as any).linkedPlacementId || x.id,

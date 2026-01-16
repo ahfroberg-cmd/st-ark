@@ -11,6 +11,7 @@ type Props = {
   maxYear?: number;              // default currentYear+10
   minDate?: string;              // ISO: "YYYY-MM-DD" - minimum datum som kan väljas
   weekStartsOn?: 0 | 1;          // 0=söndag, 1=måndag (default 1)
+  isClearable?: boolean;
   align?: "left" | "right";      // popover-placering, default "left"
   className?: string;            // extra klasser för trigger-knappen
   forceDirection?: "up" | "down"; // Tvinga riktning (default: auto)
@@ -25,6 +26,7 @@ export default function CalendarDatePicker({
   maxYear,
   minDate,
   weekStartsOn = 1,
+  isClearable,
   align = "left",
   className,
   forceDirection,
