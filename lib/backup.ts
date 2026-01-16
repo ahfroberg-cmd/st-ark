@@ -17,6 +17,39 @@ export type ExportBundle = {
 
 const CURRENT_SCHEMA_VERSION = 1;
 
+function iso10(v: any): string {
+  if (!v) return "";
+  if (typeof v === "string") return v.slice(0, 10);
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "number") {
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  }
+  return String(v).slice(0, 10);
+}
+
+function normalizePlacementDates(p: any): any {
+  const start =
+    iso10(p?.startDate) ||
+    iso10(p?.startISO) ||
+    iso10(p?.start) ||
+    iso10(p?.period?.startISO) ||
+    iso10(p?.period?.startDate) ||
+    "";
+  const end =
+    iso10(p?.endDate) ||
+    iso10(p?.endISO) ||
+    iso10(p?.end) ||
+    iso10(p?.period?.endISO) ||
+    iso10(p?.period?.endDate) ||
+    "";
+
+  const out: any = { ...p };
+  if (start) out.startDate = start;
+  if (end) out.endDate = end;
+  return out;
+}
+
 export async function exportAll(): Promise<ExportBundle> {
   const [profile, placements, courses, achievements] = await Promise.all([
     db.profile.get("default"),
@@ -25,12 +58,14 @@ export async function exportAll(): Promise<ExportBundle> {
     db.achievements.toArray(),
   ]);
 
+  const placementsOut = (placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
+
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     app: { name: "ST-ARK", version: "1.0.0" },
     exportedAt: new Date().toISOString(),
     profile: profile ?? null,
-    placements,
+    placements: placementsOut,
     courses,
     achievements,
   };
@@ -106,7 +141,7 @@ async function replaceAll(bundle: ExportBundle) {
     ]);
 
     if (bundle.profile) {
-      const prof: Profile = { ...bundle.profile, id: "default" };
+      const prof = { ...(bundle.profile as any), id: "default" } as any;
       await db.profile.put(prof);
     }
     if (bundle.placements?.length) await db.placements.bulkPut(bundle.placements);
@@ -122,7 +157,7 @@ async function replaceAll(bundle: ExportBundle) {
 async function mergeAll(bundle: ExportBundle) {
   await db.transaction("readwrite", db.profile, db.placements, db.courses, db.achievements, async () => {
     if (bundle.profile) {
-      const prof: Profile = { ...bundle.profile, id: "default" };
+      const prof = { ...(bundle.profile as any), id: "default" } as any;
       await db.profile.put(prof);
     }
     for (const p of bundle.placements ?? []) await db.placements.put(p);
@@ -146,7 +181,11 @@ function migrateIfNeeded(src: ExportBundle): ExportBundle {
 
   // Se till att profile-id alltid är "default"
   if (out.profile && (out.profile as any).id !== "default") {
-    out.profile = { ...out.profile, id: "default" };
+    out.profile = { ...(out.profile as any), id: "default" } as any;
+  }
+
+  if (Array.isArray(out.placements)) {
+    out.placements = (out.placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
   }
 
   out.schemaVersion = CURRENT_SCHEMA_VERSION;
