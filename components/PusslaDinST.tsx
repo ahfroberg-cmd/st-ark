@@ -2688,12 +2688,19 @@ const lastEndRef = useRef<string | null>(null);
         let draftActs: Activity[] = [];
         let draftCrs: TLcourse[] = [];
 
+        const clampInt = (n: any, min: number, max: number) => {
+          const v = Number(n);
+          if (!Number.isFinite(v)) return min;
+          return Math.min(max, Math.max(min, Math.floor(v)));
+        };
+        const MAX_EXTRA_YEARS = 50;
+
         try {
           const anyDb2: any = db as any;
           const timeline = await anyDb2.timeline?.get?.("main");
           if (timeline) {
-            lsAbove = Number(timeline.yearsAbove) || 0;
-            lsBelow = Number(timeline.yearsBelow) || 0;
+            lsAbove = clampInt(timeline.yearsAbove, 0, MAX_EXTRA_YEARS);
+            lsBelow = clampInt(timeline.yearsBelow, 0, MAX_EXTRA_YEARS);
             lsDismissed = Array.isArray(timeline.dismissedGaps)
               ? timeline.dismissedGaps
               : [];
@@ -2707,8 +2714,8 @@ const lastEndRef = useRef<string | null>(null);
             const raw = localStorage.getItem(LS_KEY);
             if (raw) {
               const parsed = JSON.parse(raw);
-              lsAbove = Number(parsed.yearsAbove) || 0;
-              lsBelow = Number(parsed.yearsBelow) || 0;
+              lsAbove = clampInt(parsed.yearsAbove, 0, MAX_EXTRA_YEARS);
+              lsBelow = clampInt(parsed.yearsBelow, 0, MAX_EXTRA_YEARS);
               lsDismissed = Array.isArray(parsed.dismissedGaps)
                 ? parsed.dismissedGaps
                 : [];
@@ -2898,13 +2905,29 @@ const lastEndRef = useRef<string | null>(null);
 
         let minYear = Number.POSITIVE_INFINITY;
         let maxYear = Number.NEGATIVE_INFINITY;
+
+        const YEAR_MIN = 1900;
+        const YEAR_MAX = 2200;
+        const pushYear = (y: any) => {
+          const yy = Number(y);
+          if (!Number.isFinite(yy)) return;
+          if (yy < YEAR_MIN || yy > YEAR_MAX) return;
+          minYear = Math.min(minYear, yy);
+          maxYear = Math.max(maxYear, yy);
+        };
+
         for (const a of allActivities as any[]) {
+          const exS = (a as any)?.exactStartISO as any;
+          const exE = (a as any)?.exactEndISO as any;
+          if (typeof exS === "string" && isValidISO(exS)) pushYear(isoToDateSafe(exS).getFullYear());
+          if (typeof exE === "string" && isValidISO(exE)) pushYear(isoToDateSafe(exE).getFullYear());
+
           if (typeof a?.startSlot === "number" && typeof a?.lengthSlots === "number") {
             const sY = slotToYearMonthHalf(startYear, a.startSlot).year;
             const eSlot = a.startSlot + Math.max(1, a.lengthSlots) - 1;
             const eY = slotToYearMonthHalf(startYear, eSlot).year;
-            if (Number.isFinite(sY)) minYear = Math.min(minYear, sY);
-            if (Number.isFinite(eY)) maxYear = Math.max(maxYear, eY);
+            pushYear(sY);
+            pushYear(eY);
           }
         }
         for (const c of allCourses as any[]) {
@@ -2912,14 +2935,8 @@ const lastEndRef = useRef<string | null>(null);
           const eISO = (c?.endDate || c?.certificateDate || "") as string;
           const y1 = isValidISO(sISO) ? isoToDateSafe(sISO).getFullYear() : null;
           const y2 = isValidISO(eISO) ? isoToDateSafe(eISO).getFullYear() : null;
-          if (y1 != null) {
-            minYear = Math.min(minYear, y1);
-            maxYear = Math.max(maxYear, y1);
-          }
-          if (y2 != null) {
-            minYear = Math.min(minYear, y2);
-            maxYear = Math.max(maxYear, y2);
-          }
+          if (y1 != null) pushYear(y1);
+          if (y2 != null) pushYear(y2);
         }
 
         const neededAbove =
@@ -2928,8 +2945,10 @@ const lastEndRef = useRef<string | null>(null);
           Number.isFinite(maxYear)
             ? Math.max(0, maxYear - (startYear + totalYearsNeeded - 1))
             : 0;
-        const nextAbove = Math.max(lsAbove, neededAbove);
-        const nextBelow = Math.max(lsBelow, neededBelow);
+        const clampedAbove = Math.min(MAX_EXTRA_YEARS, neededAbove);
+        const clampedBelow = Math.min(MAX_EXTRA_YEARS, neededBelow);
+        const nextAbove = Math.min(MAX_EXTRA_YEARS, Math.max(lsAbove, clampedAbove));
+        const nextBelow = Math.min(MAX_EXTRA_YEARS, Math.max(lsBelow, clampedBelow));
 
         // Auto-selektion efter skanna-intyg (om vi har en väntande selektion)
         const pending = pendingScanSelectionRef.current;
