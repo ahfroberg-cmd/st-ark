@@ -5638,6 +5638,34 @@ function SaveInfoModal({
       onClose();
     } catch (e) {
       console.error(e);
+      const err: any = e as any;
+      const name = String(err?.name || "");
+      const msg = String(err?.message || err || "");
+      const isChunkLoad =
+        name === "ChunkLoadError" ||
+        /ChunkLoadError/i.test(msg) ||
+        /Loading chunk/i.test(msg);
+      if (isChunkLoad) {
+        try {
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          }
+        } catch {
+          // ignore
+        }
+        try {
+          if ("caches" in window) {
+            const keys = await (window as any).caches.keys();
+            await Promise.all(keys.map((k: string) => (window as any).caches.delete(k)));
+          }
+        } catch {
+          // ignore
+        }
+        alert("Webbläsaren hade en gammal cachead fil. Sidan laddas om och du kan försöka spara igen.");
+        window.location.reload();
+        return;
+      }
       alert("Kunde inte spara filen.");
     }
   }
