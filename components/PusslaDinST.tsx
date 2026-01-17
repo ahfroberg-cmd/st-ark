@@ -2269,16 +2269,24 @@ const [btMilestoneDetail, setBtMilestoneDetail] = useState<string | null>(null);
 
 
 // Globala slots för grön/röd gräns (för radexpansion + korrekt randning)
-const startBoundarySlotGlobal = stStartISO ? dateToSlot(startYear, stStartISO, "start") : 0;
-const endBoundarySlotGlobal = stEndISO
-  ? dateToSlot(startYear, stEndISO, "end")
-  : (stStartISO ? startBoundarySlotGlobal + baseSlots : totalSlots);
+const hasValidStStartISO = typeof stStartISO === "string" && isValidISO(stStartISO);
+const hasValidStEndISO = typeof stEndISO === "string" && isValidISO(stEndISO);
+
+const startBoundarySlotGlobal = hasValidStStartISO
+  ? dateToSlot(startYear, stStartISO as string, "start")
+  : 0;
+const endBoundarySlotGlobal = hasValidStEndISO
+  ? dateToSlot(startYear, stEndISO as string, "end")
+  : (hasValidStStartISO ? startBoundarySlotGlobal + baseSlots : totalSlots);
 
 // Antal år som behövs ska minst täcka röd gräns, inte bara totalSlots
-const totalYearsNeeded = Math.max(
+const totalYearsNeededRaw = Math.max(
   Math.ceil(totalSlots / slotsPerYear()),
-  Math.ceil(endBoundarySlotGlobal / slotsPerYear())
+  Number.isFinite(endBoundarySlotGlobal)
+    ? Math.ceil(endBoundarySlotGlobal / slotsPerYear())
+    : Math.ceil(totalSlots / slotsPerYear())
 );
+const totalYearsNeeded = Math.min(200, Math.max(1, totalYearsNeededRaw));
 const visibleYearCount = yearsAbove + totalYearsNeeded + yearsBelow;
 
 
