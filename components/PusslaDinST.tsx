@@ -2737,6 +2737,37 @@ const lastEndRef = useRef<string | null>(null);
           }
         } catch {}
 
+        // Sanera draft-data så korrupt state inte kan låsa UI:t
+        try {
+          const YEAR_MIN = 1900;
+          const YEAR_MAX = 2200;
+          const maxSlotAbs = slotsPerYear() * 200; // matchar caps för rendering
+          draftActs = (draftActs || []).filter((a: any) => {
+            const s = a?.startSlot;
+            const l = a?.lengthSlots;
+            if (!Number.isFinite(s) || !Number.isFinite(l)) return false;
+            if (Math.abs(s) > maxSlotAbs) return false;
+            if (Math.abs(l) > maxSlotAbs) return false;
+            const endSlot = (s as number) + Math.max(1, l as number) - 1;
+            const y0 = slotToYearMonthHalf(startYear, s as number).year;
+            const y1 = slotToYearMonthHalf(startYear, endSlot).year;
+            if (!Number.isFinite(y0) || !Number.isFinite(y1)) return false;
+            if (y0 < YEAR_MIN || y0 > YEAR_MAX) return false;
+            if (y1 < YEAR_MIN || y1 > YEAR_MAX) return false;
+            return true;
+          });
+          draftCrs = (draftCrs || []).filter((c: any) => {
+            if (!c) return false;
+            const sISO = (c?.startDate || c?.certificateDate || "") as string;
+            const eISO = (c?.endDate || c?.certificateDate || "") as string;
+            if (sISO && !isValidISO(sISO)) return false;
+            if (eISO && !isValidISO(eISO)) return false;
+            return true;
+          });
+        } catch {
+          // ignore
+        }
+
         // === 2021: Auto-phase baserat på BT-intervallet (BT start/slut i profil) ===
         const is2021Profile =
           normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021";
@@ -3802,6 +3833,9 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
   const activitiesByYear = useMemo(() => {
     const map = new Map<number, Activity[]>();
+    const YEAR_MIN = 1900;
+    const YEAR_MAX = 2200;
+    const MAX_SPAN_YEARS = 20;
     for (const a of activities) {
       const a0 = a?.startSlot;
       const len = a?.lengthSlots;
@@ -3810,8 +3844,11 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
       const y0 = slotToYearMonthHalf(startYear, a0 as number).year;
       const y1 = slotToYearMonthHalf(startYear, endSlot).year;
       if (!Number.isFinite(y0) || !Number.isFinite(y1)) continue;
+      if (y0 < YEAR_MIN || y0 > YEAR_MAX) continue;
+      if (y1 < YEAR_MIN || y1 > YEAR_MAX) continue;
       const from = Math.min(y0, y1);
       const to = Math.max(y0, y1);
+      if (to - from > MAX_SPAN_YEARS) continue;
       for (let y = from; y <= to; y++) {
         const arr = map.get(y);
         if (arr) arr.push(a);
