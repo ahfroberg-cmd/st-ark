@@ -20,6 +20,9 @@ export class AppDB extends Dexie {
   // Centralt sparad data för Specialistansökan (PrepareApplicationModal)
   specialistApplication!: Table<any, string>;
 
+  // Studierektor/huvudhandledare: sparar flera ST-läkares data
+  supervisorStudents!: Table<any, string>;
+
   constructor() {
     // OBS: Namnbytet från "st-intyg" till "st-ark" innebär ny IndexedDB-databas
     // och därmed tom lokal data första gången i varje webbläsare.
@@ -77,6 +80,18 @@ export class AppDB extends Dexie {
       specialistApplication: "id",
     });
 
+    // Version 7: lägger till tabell för Studierektor/huvudhandledare
+    this.version(7).stores({
+      profile: "id",
+      placements: "id,startDate,endDate",
+      courses: "id,certificateDate",
+      achievements: "id,milestoneId,courseId,placementId",
+      timeline: "id",
+      iupMilestonePlans: "id,milestoneId,profileId",
+      specialistApplication: "id",
+      supervisorStudents: "id,name,specialty,importedAt",
+    });
+
     this.profile = this.table("profile");
     this.placements = this.table("placements");
     this.courses = this.table("courses");
@@ -84,6 +99,7 @@ export class AppDB extends Dexie {
     this.timeline = this.table("timeline");
     this.iupMilestonePlans = this.table("iupMilestonePlans");
     this.specialistApplication = this.table("specialistApplication");
+    this.supervisorStudents = this.table("supervisorStudents");
   }
 }
 

@@ -128,6 +128,17 @@ export default function HomePage() {
         </button>
       </div>
 
+      {/* Studierektor/huvudhandledare */}
+      <div className="mt-6 w-full max-w-[720px]">
+        <button
+          onClick={() => router.push("/studierektor")}
+          className="w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
+        >
+          <div className="text-lg font-extrabold">Studierektor / Huvudhandledare</div>
+          <p className="mt-1 text-slate-600">Ladda upp JSON-filer för att ha koll på flera ST-läkare samtidigt.</p>
+        </button>
+      </div>
+
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} />
 
       {/* About modal */}
