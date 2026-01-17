@@ -3800,6 +3800,27 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
     setYearsBelow(n => Math.max(0, n - 1));
   }
 
+  const activitiesByYear = useMemo(() => {
+    const map = new Map<number, Activity[]>();
+    for (const a of activities) {
+      const a0 = a?.startSlot;
+      const len = a?.lengthSlots;
+      if (!Number.isFinite(a0) || !Number.isFinite(len)) continue;
+      const endSlot = (a0 as number) + Math.max(1, len as number) - 1;
+      const y0 = slotToYearMonthHalf(startYear, a0 as number).year;
+      const y1 = slotToYearMonthHalf(startYear, endSlot).year;
+      if (!Number.isFinite(y0) || !Number.isFinite(y1)) continue;
+      const from = Math.min(y0, y1);
+      const to = Math.max(y0, y1);
+      for (let y = from; y <= to; y++) {
+        const arr = map.get(y);
+        if (arr) arr.push(a);
+        else map.set(y, [a]);
+      }
+    }
+    return map;
+  }, [activities, startYear]);
+
   // rubrik
   function MonthHeader() {
     return (
@@ -4301,7 +4322,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 
             {/* Aktiviteter */}
             <div className="contents z-40">
-              {activities.map((a, idx) => {
+              {(activitiesByYear.get(year) ?? []).map((a, idx) => {
                 const a0 = a.startSlot, a1 = a.startSlot + a.lengthSlots;
                 const s0 = Math.max(a0, rowStartSlot);
                 const s1 = Math.min(a1, rowEndSlot);
