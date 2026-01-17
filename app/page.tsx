@@ -54,6 +54,18 @@ export default function HomePage() {
       const courses = data.courses ?? data?.Courses ?? [];
       const achievements = data.achievements ?? data?.Achievements ?? [];
 
+      // Rensa timeline-tabellen och localStorage INNAN import för att undvika konflikter med gammal data
+      try {
+        await (db as any).timeline?.clear?.();
+      } catch {
+        // Ignorera om tabellen inte finns
+      }
+      try {
+        localStorage.removeItem("pdst_v1");
+      } catch {
+        // Ignorera localStorage-fel
+      }
+
       if (p) await (db as any).profile?.put?.({ id: "default", ...(p.id ? p : { ...p, id: "default" }) });
       if (Array.isArray(placements)) for (const pl of placements) { try { await (db as any).placements?.put?.(pl); } catch {} }
       if (Array.isArray(courses))    for (const c of courses)    { try { await (db as any).courses?.put?.(c); } catch {} }

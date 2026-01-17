@@ -288,9 +288,15 @@ function phaseForCourseDatesCore(
 // måndag PÅ ELLER EFTER given dag i samma månad (alltid framåt)
 // exempel: 2 sep (tis) → 8 sep (mån)
 function mondayOnOrAfter(year: number, month0: number, day: number) {
+  // Guard mot NaN
+  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
+    return new Date();
+  }
   const d = new Date(year, month0, day);
-  while (d.getMonth() === month0 && d.getDay() !== 1) {
+  let iterations = 0;
+  while (d.getMonth() === month0 && d.getDay() !== 1 && iterations < 10) {
     d.setDate(d.getDate() + 1);
+    iterations++;
   }
   if (d.getMonth() !== month0) return new Date(year, month0, 1);
   return d;
@@ -299,19 +305,27 @@ function mondayOnOrAfter(year: number, month0: number, day: number) {
 // söndag NÄRMAST given dag i månad (klampar in i månaden)
 // närmaste SÖNDAG inom samma månad, runt given dag
 function sundayOnOrBefore(year: number, month0: number, day: number) {
+  // Guard mot NaN
+  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
+    return new Date();
+  }
   const target = new Date(year, month0, day);
 
   // kandidat A: söndag på/efter anchor (stanna om månaden byts)
   const after = new Date(target);
-  while (after.getMonth() === month0 && after.getDay() !== 0) {
+  let iterA = 0;
+  while (after.getMonth() === month0 && after.getDay() !== 0 && iterA < 10) {
     after.setDate(after.getDate() + 1);
+    iterA++;
   }
   const candA = (after.getMonth() === month0 && after.getDay() === 0) ? new Date(after) : null;
 
   // kandidat B: söndag på/innan anchor (stanna om månaden byts)
   const before = new Date(target);
-  while (before.getMonth() === month0 && before.getDay() !== 0) {
+  let iterB = 0;
+  while (before.getMonth() === month0 && before.getDay() !== 0 && iterB < 10) {
     before.setDate(before.getDate() - 1);
+    iterB++;
   }
   const candB = (before.getMonth() === month0 && before.getDay() === 0) ? new Date(before) : null;
 
@@ -324,10 +338,19 @@ function sundayOnOrBefore(year: number, month0: number, day: number) {
 
 // halvmånads mittdatum (7:e / 21:a) – används för kurspills default
 const halfMidDateISO = (year: number, month0: number, half: 0 | 1) => {
+  // Guard mot NaN som orsakar oändlig loop (NaN !== NaN är alltid true)
+  if (!Number.isFinite(year) || !Number.isFinite(month0)) {
+    return dateToISO(new Date());
+  }
   const day = half === 0 ? 7 : 21;
   const d = new Date(year, month0, day);
   const targetMonth = month0;
-  while (d.getMonth() !== targetMonth) d.setDate(d.getDate() - 1);
+  // Säkerhetsgräns för att undvika oändlig loop
+  let iterations = 0;
+  while (d.getMonth() !== targetMonth && iterations < 35) {
+    d.setDate(d.getDate() - 1);
+    iterations++;
+  }
   return dateToISO(d);
 };
 const dayOfYear = (d: Date) => {
@@ -2526,6 +2549,9 @@ const dragCourseRef = useRef<CourseDrag | null>(null);
 // --- NYTT: minns senast beräknade slut-ISO så vi inte skriver i onödan
 const lastEndRef = useRef<string | null>(null);
 
+// Guard mot att load() körs flera gånger samtidigt (race condition prevention)
+const loadingRef = useRef(false);
+
 
 
   /// Vi beräknar röd markör lokalt och behöver inte hämta den från DB längre.
@@ -2535,8 +2561,33 @@ const lastEndRef = useRef<string | null>(null);
    // ---- ladda från DB + localStorage + lyssna på kryss-signal ----
   useEffect(() => {
     async function load() {
+      // Förhindra att load() körs flera gånger samtidigt
+      if (loadingRef.current) return;
+      loadingRef.current = true;
+
       try {
         const profLocal = await ensureProfile(profile);
+
+        // Beräkna korrekt effectiveStartYear från profilen FÖRST
+        // Detta säkerställer att slots beräknas korrekt oavsett state-timing
+        let effectiveStartYear = startYear;
+        if (profLocal) {
+          const goals = String(profLocal?.goalsVersion || "").trim();
+          const is2021 = goals === "2021";
+          const btISO = profLocal?.btStartDate as string | undefined;
+          const stISO = profLocal?.stStartDate as string | undefined;
+          const pickISO = (is2021 && btISO) ? btISO : stISO;
+          if (pickISO && isValidISO(pickISO)) {
+            const y = new Date(pickISO + "T00:00:00").getFullYear();
+            if (Number.isFinite(y) && y >= 1990 && y <= 2100) {
+              effectiveStartYear = y;
+              // Uppdatera state om det behövs
+              if (y !== startYear) {
+                setStartYear(y);
+              }
+            }
+          }
+        }
 
                 // 1) Låsta placeringar som ska synas
         const dbPlac = await db.placements.toArray();
@@ -2557,8 +2608,8 @@ const lastEndRef = useRef<string | null>(null);
               : "";
 
           // Grundberäkning av slots utifrån ISO-datum (om de är satta)
-          let start = startISO ? dateToSlot(startYear, startISO, "start") : 0;
-          let endBoundary = endISO ? dateToSlot(startYear, endISO, "end") : start;
+          let start = startISO ? dateToSlot(effectiveStartYear, startISO, "start") : 0;
+          let endBoundary = endISO ? dateToSlot(effectiveStartYear, endISO, "end") : start;
 
           // Fallback om datumet är ogiltigt och ger NaN/∞ → lägg blocket i startåret med längd 1
           if (!Number.isFinite(start)) {
@@ -2587,7 +2638,7 @@ const lastEndRef = useRef<string | null>(null);
               const yearFromDate = d.getFullYear();
 
               // Vilken årsrad borde blocket ligga på utifrån datumet?
-              const expectedRowIndex = yearFromDate - startYear;
+              const expectedRowIndex = yearFromDate - effectiveStartYear;
 
               // Vilken årsrad ligger det faktiskt på givet nuvarande startSlot?
               const currentRowIndex = Math.floor(start / slotsPerYear());
@@ -2799,7 +2850,7 @@ const lastEndRef = useRef<string | null>(null);
 
         const withPhaseActs: Activity[] = lockedActs.map((a: any) => {
           // Räkna ut START-ISO (fas för placeringsobjekt sätts av start)
-          const s = slotToYearMonthHalf(startYear, a.startSlot);
+          const s = slotToYearMonthHalf(effectiveStartYear, a.startSlot);
           const startD = mondayOnOrAfter(
             s.year,
             s.month0,
@@ -2838,8 +2889,8 @@ const lastEndRef = useRef<string | null>(null);
             const snappedEnd =
               roundToAnchors(nextExactEndISO, "end") || nextExactEndISO;
 
-            const s = dateToSlot(startYear, snappedStart, "start");
-            const e = dateToSlot(startYear, snappedEnd, "end");
+            const s = dateToSlot(effectiveStartYear, snappedStart, "start");
+            const e = dateToSlot(effectiveStartYear, snappedEnd, "end");
             if (Number.isFinite(s) && Number.isFinite(e)) {
               nextStartSlot = s;
               nextLengthSlots = Math.max(1, e - s);
@@ -2962,9 +3013,9 @@ const lastEndRef = useRef<string | null>(null);
           if (typeof exE === "string" && isValidISO(exE)) pushYear(isoToDateSafe(exE).getFullYear());
 
           if (typeof a?.startSlot === "number" && typeof a?.lengthSlots === "number") {
-            const sY = slotToYearMonthHalf(startYear, a.startSlot).year;
+            const sY = slotToYearMonthHalf(effectiveStartYear, a.startSlot).year;
             const eSlot = a.startSlot + Math.max(1, a.lengthSlots) - 1;
-            const eY = slotToYearMonthHalf(startYear, eSlot).year;
+            const eY = slotToYearMonthHalf(effectiveStartYear, eSlot).year;
             pushYear(sY);
             pushYear(eY);
           }
@@ -2979,10 +3030,10 @@ const lastEndRef = useRef<string | null>(null);
         }
 
         const neededAbove =
-          Number.isFinite(minYear) ? Math.max(0, startYear - minYear) : 0;
+          Number.isFinite(minYear) ? Math.max(0, effectiveStartYear - minYear) : 0;
         const neededBelow =
           Number.isFinite(maxYear)
-            ? Math.max(0, maxYear - (startYear + totalYearsNeeded - 1))
+            ? Math.max(0, maxYear - (effectiveStartYear + totalYearsNeeded - 1))
             : 0;
         const clampedAbove = Math.min(MAX_EXTRA_YEARS, neededAbove);
         const clampedBelow = Math.min(MAX_EXTRA_YEARS, neededBelow);
@@ -3024,6 +3075,8 @@ const lastEndRef = useRef<string | null>(null);
         hydratedRef.current = true;
       } catch {
         /* ignore */
+      } finally {
+        loadingRef.current = false;
       }
     }
 
@@ -3208,25 +3261,35 @@ function computeEducationalGaps(acts: Activity[]) {
   const endBoundaryMonthNorm = (endBoundaryMonthRaw + 12) % 12;
   const endISO = dateToISO(sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay));
 
-  // BT-fönster = [btStartISO, stStartISO)
+  // BT-fönster = [btStartISO, btEndISO) där btEndISO = stStartDate eller btEndDate eller btStart + 24 mån
   const is2021Profile = String((profile as any)?.goalsVersion || "").trim() === "2021";
   const btStartISO = (profile as any)?.btStartDate || null;
   const stStart = stStartISO || (profile as any)?.stStartDate || null;
+  const btEndManual = (profile as any)?.btEndDate || null;
 
-  // Summera redan planerade BT-placeringar i FTE-månader (historik – används ej längre för faslogik)
-  const btMonthsSoFar = activities
-    .filter(a => a.type === "Klinisk tjänstgöring" && a.phase === "BT")
-    .reduce((sum, a) => sum + (a.lengthSlots * 0.5) * ((a.attendance ?? 100) / 100), 0);
-  void btMonthsSoFar; // behåll variabeln för att undvika TS-varning, men utan effekt på fas
+  // Beräkna effektivt BT-slut: stStartDate > btEndDate > btStart + 24 månader
+  let effectiveBtEnd: string | null = stStart;
+  if (!effectiveBtEnd && btEndManual && isValidISO(btEndManual)) {
+    effectiveBtEnd = btEndManual;
+  }
+  if (!effectiveBtEnd && btStartISO && isValidISO(btStartISO)) {
+    try {
+      const btDate = isoToDateSafe(btStartISO);
+      const btEndDate = addMonths(btDate, 24);
+      effectiveBtEnd = dateToISO(btEndDate);
+    } catch {
+      effectiveBtEnd = null;
+    }
+  }
 
   let phase: "BT" | "ST" = "ST";
-  if (is2021Profile && btStartISO && stStart) {
+  if (is2021Profile && btStartISO && effectiveBtEnd) {
     const sMs = new Date(startISO + "T00:00:00").getTime();
     const bts = new Date(btStartISO + "T00:00:00").getTime();
-    const sts = new Date(stStart + "T00:00:00").getTime();
-    const inBtWindow = Number.isFinite(sMs) && sMs >= bts && sMs < sts;
+    const ets = new Date(effectiveBtEnd + "T00:00:00").getTime();
+    const inBtWindow = Number.isFinite(sMs) && Number.isFinite(bts) && Number.isFinite(ets) && sMs >= bts && sMs < ets;
 
-    // Ny logik: fas beror ENBART på datumfönstret (BT-start → ST-start)
+    // Fas beror på datumfönstret (BT-start → BT-slut/ST-start)
     phase = inBtWindow ? "BT" : "ST";
   }
 
