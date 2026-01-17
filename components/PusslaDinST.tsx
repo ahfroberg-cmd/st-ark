@@ -2257,7 +2257,7 @@ const [btMilestoneDetail, setBtMilestoneDetail] = useState<string | null>(null);
     () =>
       activities
         .filter((a) => isZeroAttendanceType(a.type))
-        .reduce((acc, a) => acc + a.lengthSlots, 0),
+        .reduce((acc, a) => acc + (Number.isFinite(a.lengthSlots) ? a.lengthSlots : 0), 0),
     [activities]
   );
   // Baseras helt på användarens totalPlanMonths (ex. 60 för 2015, 66 för 2021)
@@ -3816,15 +3816,22 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
     // plan-gränser
 // 1) ST-start (gul): som tidigare
-const rawStStartSlot = stStartISO ? dateToSlot(startYear, stStartISO, "start") : 0;
+const hasRowValidStStartISO = typeof stStartISO === "string" && isValidISO(stStartISO);
+const hasRowValidStEndISO = typeof stEndISO === "string" && isValidISO(stEndISO);
+const rawStStartSlot = hasRowValidStStartISO
+  ? dateToSlot(startYear, stStartISO as string, "start")
+  : 0;
 const snappedStartBoundarySlot = rawStStartSlot; // H1 behålls som H1, H2 behålls som H2 (8–22 = halvmånad)
 
 const startBoundaryCol = snappedStartBoundarySlot - rowStartSlot;
 
 // 2) ST-slut (röd): som tidigare
-const endBoundarySlot = stEndISO
-  ? dateToSlot(startYear, stEndISO, "end")
-  : (stStartISO ? dateToSlot(startYear, stStartISO, "start") + baseSlots : totalSlots);
+let endBoundarySlot = hasRowValidStEndISO
+  ? dateToSlot(startYear, stEndISO as string, "end")
+  : (hasRowValidStStartISO
+      ? dateToSlot(startYear, stStartISO as string, "start") + baseSlots
+      : totalSlots);
+if (!Number.isFinite(endBoundarySlot)) endBoundarySlot = totalSlots;
 const endBoundaryCol = endBoundarySlot - rowStartSlot;
 
 // 3) 2021: BT-start (grön) och synlig-start för skuggning
