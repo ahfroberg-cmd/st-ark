@@ -2287,7 +2287,7 @@ const totalYearsNeededRaw = Math.max(
     : Math.ceil(totalSlots / slotsPerYear())
 );
 const totalYearsNeeded = Math.min(200, Math.max(1, totalYearsNeededRaw));
-const visibleYearCount = yearsAbove + totalYearsNeeded + yearsBelow;
+const visibleYearCount = Math.min(300, Math.max(1, yearsAbove + totalYearsNeeded + yearsBelow));
 
 
   // ---- LOKAL DRAFT-STATE ----
@@ -3059,6 +3059,8 @@ const lastEndRef = useRef<string | null>(null);
     if (!hydratedRef.current) return;
 
     const anyDb: any = db as any;
+    const approxItems = (activities?.length ?? 0) + (courses?.length ?? 0);
+    const SHOULD_AVOID_LOCALSTORAGE = approxItems > 500;
     const payload: any = {
       id: "main",
       activities,   // sparar ALLA, både länkade och olänkade
@@ -3075,19 +3077,34 @@ const lastEndRef = useRef<string | null>(null);
           return;
         }
       } catch {
-        // fallthrough till localStorage
+        // om IndexedDB-skrivning misslyckas: undvik localStorage stringify för stora dataset
+        if (SHOULD_AVOID_LOCALSTORAGE) return;
       }
 
       // Fallback om timeline-tabell saknas eller skrivningen misslyckas
+      if (SHOULD_AVOID_LOCALSTORAGE) return;
+
+      const writeLocal = () => {
+        try {
+          const lsPayload = JSON.stringify({
+            activities,
+            courses,
+            yearsAbove,
+            yearsBelow,
+            dismissedGaps,
+          });
+          localStorage.setItem(LS_KEY, lsPayload);
+        } catch {
+          // tyst fel
+        }
+      };
+
       try {
-        const lsPayload = JSON.stringify({
-          activities,
-          courses,
-          yearsAbove,
-          yearsBelow,
-          dismissedGaps,
-        });
-        localStorage.setItem(LS_KEY, lsPayload);
+        if (typeof (window as any).requestIdleCallback === "function") {
+          (window as any).requestIdleCallback(writeLocal, { timeout: 1000 });
+        } else {
+          setTimeout(writeLocal, 0);
+        }
       } catch {
         // tyst fel
       }
