@@ -1229,6 +1229,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
                 openList={openList}
                 planByMilestone={planByMilestone}
                 planDatesByMilestone={planDatesByMilestone}
+                goalsVersion={(profile as any)?.goalsVersion}
               />
             )
           )}
@@ -1700,6 +1701,7 @@ function StGrid({
   openList,
   planByMilestone,
   planDatesByMilestone,
+  goalsVersion,
 }: {
   groups: Record<"A" | "B" | "C", GoalsMilestone[]>;
   countsFor: (milestoneId: string) => { klin: number; kurs: number; arb: number };
@@ -1707,6 +1709,7 @@ function StGrid({
   openList: (kind: "klin" | "kurs" | "arb", m: GoalsMilestone) => void;
   planByMilestone: Record<string, string>;
   planDatesByMilestone: Record<string, string>;
+  goalsVersion?: unknown;
 }) {
   
   const formatDate = (isoString: string) => {
@@ -1758,8 +1761,7 @@ function StGrid({
                       const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
                         : (m.code ?? "");
-                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
-                      return displayMilestoneCode(code, v);
+                      return displayMilestoneCode(code, goalsVersion);
                     })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">
@@ -1852,8 +1854,7 @@ function StGrid({
                       const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
                         : (m.code ?? "");
-                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
-                      return displayMilestoneCode(code, v);
+                      return displayMilestoneCode(code, goalsVersion);
                     })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">
@@ -1949,8 +1950,7 @@ function StGrid({
                       const code = (m.code ?? "").includes("-")
                         ? (m.code ?? "").split("-")[0]
                         : (m.code ?? "");
-                      const v = String(code).toUpperCase().startsWith("ST") ? "2021" : "2015";
-                      return displayMilestoneCode(code, v);
+                      return displayMilestoneCode(code, goalsVersion);
                     })()}
                   </span>
                   <span className="truncate text-[12px] text-slate-900 flex-1">

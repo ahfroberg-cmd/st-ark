@@ -243,6 +243,21 @@ const dateToSlot = (
   }
 };
 
+const dateToSlotLayout = (
+  startYear: number,
+  dISO: string,
+  mode: "start" | "end" = "start"
+) => {
+  if (!isValidISO(dISO)) return Number.POSITIVE_INFINITY;
+  const d = new Date(dISO + "T00:00:00");
+  const y = d.getFullYear();
+  const m0 = d.getMonth();
+  const day = d.getDate();
+
+  const half = day <= 14 ? 0 : 1;
+  return (y - startYear) * slotsPerYear() + m0 * 2 + half;
+};
+
 // Core-funktioner utan beroenden på komponent-state
 function phaseForSlotsCore(
   startYear: number,
@@ -302,6 +317,20 @@ function mondayOnOrAfter(year: number, month0: number, day: number) {
   return d;
 }
 
+function mondayNearestTo(year: number, month0: number, day: number) {
+  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
+    return new Date();
+  }
+  const target = new Date(year, month0, day);
+  const w = target.getDay(); // 0=sön..6=lör
+  const back = -((w - 1 + 7) % 7);
+  const forward = (1 - w + 7) % 7;
+  const use = Math.abs(back) <= Math.abs(forward) ? back : forward;
+  const res = new Date(target);
+  res.setDate(res.getDate() + use);
+  return res;
+}
+
 // söndag NÄRMAST given dag i månad (klampar in i månaden)
 // närmaste SÖNDAG inom samma månad, runt given dag
 function sundayOnOrBefore(year: number, month0: number, day: number) {
@@ -333,6 +362,20 @@ function sundayOnOrBefore(year: number, month0: number, day: number) {
     return Math.abs(+candA - +target) <= Math.abs(+candB - +target) ? candA : candB;
   }
   return candA || candB || new Date(year, month0 + 1, 0);
+}
+
+function sundayNearestTo(year: number, month0: number, day: number) {
+  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
+    return new Date();
+  }
+  const target = new Date(year, month0, day);
+  const w = target.getDay(); // 0=sön
+  const back = -(w % 7);
+  const forward = (7 - w) % 7;
+  const use = Math.abs(back) <= Math.abs(forward) ? back : forward;
+  const res = new Date(target);
+  res.setDate(res.getDate() + use);
+  return res;
 }
 
 
@@ -676,6 +719,7 @@ const [profile, setProfile] = useState<any>(null);
 
         const stEnd =
           prof?.stEndDate ||
+          prof?.stEndISO ||
           (await (db as any).settings?.get?.("st"))?.endDate ||
           null;
         if (typeof stEnd === "string" && stEnd) {
@@ -785,6 +829,33 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [totalPlanMonths, setTotalPlanMonths] = useState<number>(60);
   const [restAttendance, setRestAttendance] = useState<number>(100); // “resten av ST:n” sysselsättningsgrad %
 
+  const persistProfilePatch = useCallback(
+    async (patch: Record<string, any>) => {
+      try {
+        const profId = (profile as any)?.id ?? "default";
+        const anyDb: any = db as any;
+
+        // Håll UI-state i sync direkt, även om DB-skrivning tar tid
+        setProfile((prev: any) => {
+          const base = prev && typeof prev === "object" ? prev : { id: profId };
+          return { ...base, ...patch };
+        });
+
+        if (anyDb?.profile?.update) {
+          const updated = await anyDb.profile.update(profId, patch);
+          if (updated) return;
+        }
+
+        const existing = await anyDb?.profile?.get?.(profId);
+        if (!existing) return;
+        await anyDb?.profile?.put?.({ ...existing, ...patch });
+      } catch {
+        /* ignore */
+      }
+    },
+    [profile]
+  );
+
   // Sätt default-värde utifrån målversion när profil laddas
   useEffect(() => {
   const gv = String((profile as any)?.goalsVersion || "").trim();
@@ -794,6 +865,13 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   } else {
     setTotalPlanMonths(gv === "2021" ? 66 : 60);
   }
+}, [profile]);
+
+useEffect(() => {
+  const raw = Number((profile as any)?.stEndAttendance);
+  if (!Number.isFinite(raw) || raw <= 0) return;
+  const next = Math.max(5, Math.min(100, Math.round(raw / 5) * 5));
+  setRestAttendance(next);
 }, [profile]);
 
   // View mode för 2021: BT eller ST
@@ -811,10 +889,54 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     startDate: string;
     endDate: string;
     days: number;
+    attendance: number;
     hue: number;
     phase: "bt" | "st";
-    leftPx: number;
+    anchorX: number;
+    anchorTop: number;
   } | null>(null);
+
+const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
+const [overlapSuggestion, setOverlapSuggestion] = useState<{
+  startISO: string;
+  endISO: string;
+} | null>(null);
+
+ const applyOverlapSuggestion = () => {
+   const selAct = selectedPlacement;
+   if (!selAct) return;
+   if (!overlapSuggestion) return;
+
+   const proposedStart = overlapSuggestion.startISO;
+   const proposedEnd = overlapSuggestion.endISO;
+   if (!isValidISO(proposedStart) || !isValidISO(proposedEnd)) return;
+
+   setOverlapWarning(null);
+   setOverlapSuggestion(null);
+
+   setActivities((prev) =>
+     prev.map((a) => {
+       if (a.id !== selAct.id) return a;
+       return {
+         ...a,
+         exactStartISO: proposedStart,
+         exactEndISO: proposedEnd,
+       };
+     })
+   );
+
+   let s = dateToSlotLayout(startYear, proposedStart, "start");
+   let e = dateToSlotLayout(startYear, proposedEnd, "end");
+   if (e <= s) e = s + 1;
+
+   setActivities((prev) =>
+     prev.map((a) => {
+       if (a.id !== selAct.id) return a;
+       const newLen = Math.max(1, e - s);
+       return { ...a, startSlot: s, lengthSlots: newLen, phase: phaseForSlots(s, newLen) };
+     })
+   );
+ };
 
   // Live-uppdatera data från DB för progress-beräkningar
   useEffect(() => {
@@ -946,7 +1068,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     
     try {
       const btDate = new Date(btStart + "T00:00:00");
-      btDate.setMonth(btDate.getMonth() + 12);
+      btDate.setDate(btDate.getDate() + 365);
       const mm = String(btDate.getMonth() + 1).padStart(2, "0");
       const dd = String(btDate.getDate()).padStart(2, "0");
       return `${btDate.getFullYear()}-${mm}-${dd}`;
@@ -1154,10 +1276,12 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     if (gv === "2021") {
       // BT + ST = 18 + 46 = 64 delmål
       return 64;
-    } else {
-      return 50;
     }
-  }, [profile]);
+    // 2015: 50 ST-delmål
+    return 50;
+  },
+  [profile]
+  );
 
   // Beräkna uppfyllda delmål (alla delmål för 2021, både BT och ST)
   const fulfilledMilestones = useMemo(() => {
@@ -1328,45 +1452,44 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     const today = todayISO();
     const btStart = (profile as any)?.btStartDate;
     const btEnd = btEndISO;
-    const stStart = stStartISO;
+    // För 2021: ST startar vid BT-slut om inget explicit stStartISO finns
+    const stStart = stStartISO || (gv === "2021" ? btEnd : null);
     
-    if (gv === "2021" && btStart && btEnd && stStart && stEndISO) {
-      // BT: placeringar mellan BT-start och BT-slut
+    if (gv === "2021" && btStart && btEnd && stEndISO) {
+      // BT: endast BT-fasade placeringar
+      // ST: ALLA placeringar (inkl BT-fasade)
       let btDays = 0;
       let stDays = 0;
+      
+      const btStartMs = new Date(btStart + "T00:00:00").getTime();
+      const btEndMs = new Date(btEnd + "T00:00:00").getTime();
       
       for (const p of dbPlacements as any[]) {
         const start = p.startDate || p.startISO || p.start || "";
         if (!start) continue;
         
-        // Bara placeringar som startar efter eller vid BT-start
         const startMs = new Date(start + "T00:00:00").getTime();
-        const btStartMs = new Date(btStart + "T00:00:00").getTime();
+        // Bara placeringar som startar efter eller vid BT-start
         if (startMs < btStartMs) continue;
         
         const end = p.endDate || p.endISO || p.end || today;
         const endDate = end > today ? today : end;
         
-        // Beräkna FTE-dagar (samma som förstasidan men i dagar)
         const percent = pickPercent(p);
         const days = fteDays(start, endDate, percent);
         
-        // Bestäm om placeringen är BT eller ST
-        const btEndMs = new Date(btEnd + "T00:00:00").getTime();
-        const stStartMs = new Date(stStart + "T00:00:00").getTime();
+        // ST: räkna ALLA placeringar från BT-start
+        stDays += days;
         
-        if (startMs >= btStartMs && startMs < btEndMs) {
-          // BT-period
+        // BT: endast BT-fasade (respektera explicit phase om satt)
+        if (isPlacementBTPhase(p)) {
           btDays += days;
-        } else if (startMs >= stStartMs) {
-          // ST-period
-          stDays += days;
         }
       }
       
-      // Beräkna totala planerade dagar från startdatum till beräknat slutdatum
+      // Total tid: BT = BT-period, ST = hela perioden från BT-start till ST-slut
       const totalBtDays = fteDays(btStart, btEnd, 100);
-      const totalStDays = fteDays(stStart, stEndISO, 100);
+      const totalStDays = fteDays(btStart, stEndISO, 100);
       
       return {
         bt: { worked: btDays, total: totalBtDays },
@@ -1399,7 +1522,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         st: { worked: stDays, total: totalStDays },
       };
     }
-  }, [profile, dbPlacements, btEndISO, stStartISO, stEndISO]);
+  }, [profile, dbPlacements, btEndISO, stStartISO, stEndISO, isPlacementBTPhase]);
 
   // Tidsfördelning per individuell aktivitet (för färgade segment i progress-stapeln)
   // Varje aktivitet har sin egen färg baserat på hue från tidslinjen
@@ -1407,11 +1530,12 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
     const today = todayISO();
     const btStart = (profile as any)?.btStartDate;
-    const stStart = stStartISO;
+    // För 2021: ST startar vid BT-slut om inget explicit stStartISO finns
+    const stStart = stStartISO || (gv === "2021" ? btEndISO : null);
     
     const result: {
-      bt: Array<{ id: string; label: string; days: number; hue: number; startDate: string; endDate: string }>;
-      st: Array<{ id: string; label: string; days: number; hue: number; startDate: string; endDate: string }>;
+      bt: Array<{ id: string; label: string; days: number; attendance: number; hue: number; startDate: string; endDate: string }>;
+      st: Array<{ id: string; label: string; days: number; attendance: number; hue: number; startDate: string; endDate: string }>;
     } = { bt: [], st: [] };
     
     // Hitta matchande aktivitet i activities för att få hue
@@ -1437,6 +1561,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
         id: p.id,
         label,
         days,
+        attendance: percent,
         hue,
         startDate: start,
         endDate: endDate,
@@ -1445,13 +1570,17 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
       if (gv === "2021" && btStart) {
         const startMs = new Date(start + "T00:00:00").getTime();
         const btStartMs = new Date(btStart + "T00:00:00").getTime();
-        const btEndMs = btEndISO ? new Date(btEndISO + "T00:00:00").getTime() : 0;
-        const stStartMs = stStart ? new Date(stStart + "T00:00:00").getTime() : 0;
+        void stStart;
         
-        if (startMs >= btStartMs && startMs < btEndMs) {
+        // Endast placeringar från BT-start
+        if (startMs < btStartMs) continue;
+        
+        // ST: ALLA placeringar från BT-start
+        result.st.push(item);
+        
+        // BT: endast BT-fasade (respektera explicit phase om satt)
+        if (isPlacementBTPhase(p)) {
           result.bt.push(item);
-        } else if (startMs >= stStartMs) {
-          result.st.push(item);
         }
       } else {
         // 2015: allt är ST
@@ -1464,7 +1593,7 @@ const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
     result.st.sort((a, b) => a.startDate.localeCompare(b.startDate));
     
     return result;
-  }, [profile, dbPlacements, btEndISO, stStartISO, activities]);
+  }, [profile, dbPlacements, btEndISO, stStartISO, activities, isPlacementBTPhase]);
 
   // Beräkningar för detaljvy: BT/ST delmål separat
   const milestoneDetails = useMemo(() => {
@@ -2302,15 +2431,12 @@ const endBoundarySlotGlobal = hasValidStEndISO
   ? dateToSlot(startYear, stEndISO as string, "end")
   : (hasValidStStartISO ? startBoundarySlotGlobal + baseSlots : totalSlots);
 
-// Antal år som behövs ska minst täcka röd gräns, inte bara totalSlots
-const totalYearsNeededRaw = Math.max(
-  Math.ceil(totalSlots / slotsPerYear()),
-  Number.isFinite(endBoundarySlotGlobal)
-    ? Math.ceil(endBoundarySlotGlobal / slotsPerYear())
-    : Math.ceil(totalSlots / slotsPerYear())
-);
-const totalYearsNeeded = Math.min(200, Math.max(1, totalYearsNeededRaw));
-const visibleYearCount = Math.min(300, Math.max(1, yearsAbove + totalYearsNeeded + yearsBelow));
+// Antal år som behövs: visa exakt från startår till slutår (inget extra)
+const endYearFromEndSlot = Number.isFinite(endBoundarySlotGlobal)
+  ? slotToYearMonthHalf(startYear, endBoundarySlotGlobal as number).year
+  : startYear;
+const totalYearsNeeded = Math.min(200, Math.max(1, endYearFromEndSlot - startYear + 1));
+const visibleYearCount = totalYearsNeeded;
 
 
   // ---- LOKAL DRAFT-STATE ----
@@ -2884,13 +3010,8 @@ const loadingRef = useRef(false);
           // Om vi har exakta datum (t.ex. efter JSON-import): räkna om slots från datum,
           // annars kan en gammal timeline-draft skriva över och ge fel datum i lista/tidslinje.
           if (isValidISO(nextExactStartISO) && isValidISO(nextExactEndISO)) {
-            const snappedStart =
-              roundToAnchors(nextExactStartISO, "start") || nextExactStartISO;
-            const snappedEnd =
-              roundToAnchors(nextExactEndISO, "end") || nextExactEndISO;
-
-            const s = dateToSlot(effectiveStartYear, snappedStart, "start");
-            const e = dateToSlot(effectiveStartYear, snappedEnd, "end");
+            const s = dateToSlotLayout(effectiveStartYear, nextExactStartISO, "start");
+            const e = dateToSlotLayout(effectiveStartYear, nextExactEndISO, "end");
             if (Number.isFinite(s) && Number.isFinite(e)) {
               nextStartSlot = s;
               nextLengthSlots = Math.max(1, e - s);
@@ -3714,8 +3835,8 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
         let dayIndex = Math.max(0, Math.min(d.daysInYear - 1, col));
 
         // Definiera årsspann för vertikal flytt
-        const firstYear = startYear - yearsAbove;
-        const lastYear = startYear + totalYearsNeeded - 1 + yearsBelow;
+        const firstYear = startYear;
+        const lastYear = startYear + totalYearsNeeded - 1;
 
         // Hantera vertikal flytt mellan år (fix: förhindra att den ”rinner” ned till sista året)
         const y = e.clientY - d.rowTop;
@@ -3887,12 +4008,6 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
     return activities.some(a => a.startSlot < yEnd && (a.startSlot + a.lengthSlots) > yStart);
   }
   function yearHasData(y: number) { return yearHasCourse(y) || yearHasActivity(y); }
-  function removeBottomYear(y: number) {
-    const bottomYear = startYear + totalYearsNeeded - 1 + yearsBelow;
-    if (y !== bottomYear) return;
-    if (yearHasData(y) && !confirm("Det finns aktiviteter/kurser detta år. Vill du verkligen ta bort året?")) return;
-    setYearsBelow(n => Math.max(0, n - 1));
-  }
 
   const activitiesByYear = useMemo(() => {
     const map = new Map<number, Activity[]>();
@@ -3948,7 +4063,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
 
   // årsrad
   function renderYearRow(rowIndex: number) {
-    const year = startYear - yearsAbove + rowIndex;
+    const year = startYear + rowIndex;
     const rowStartSlot = (year - startYear) * slotsPerYear();
     const rowEndSlot = rowStartSlot + slotsPerYear();
 
@@ -4026,19 +4141,13 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
 
 
     const totalDays = daysInYear(year);
-    const bottomYear = startYear + totalYearsNeeded - 1 + yearsBelow;
+    const bottomYear = startYear + totalYearsNeeded - 1;
 
     return (
       <div key={year} className="grid grid-cols-[80px_1fr] items-stretch">
         {/* vänster år + ev − */}
         <div className="pr-2 py-1 text-right font-semibold select-none flex items-center justify-end gap-1">
-          {year === bottomYear && yearsBelow > 0 && (
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeBottomYear(year); }}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 text-sm hover:bg-slate-50"
-              title="Ta bort år underst"
-            >−</button>
-          )}
+
           <span>{year}</span>
         </div>
 
@@ -4674,7 +4783,7 @@ dragPlacementRef.current = {
     laneRefs.current[year] = el;
     if (el) {
       const w = el.clientWidth || el.offsetWidth || 0;
-      if (laneWidthByYear[year] !== w) {
+      if (w && laneWidthByYear[year] !== w) {
         setLaneWidthByYear(prev => ({ ...prev, [year]: w }));
       }
     }
@@ -5002,8 +5111,7 @@ if ((c as any).showAsInterval) {
         onDoubleClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          const ok = switchActivity(null, c.id);
-          if (!ok) return;
+          switchActivity(null, c.id);
 
 
           // BT-kurs i tidslinjen
@@ -5501,7 +5609,7 @@ const overlaps = useMemo(() => {
     const eSlot = a.startSlot + a.lengthSlots - 1;
     const e = slotToYearMonthHalf(startYear, eSlot);
 
-    const startD = mondayOnOrAfter(s.year, s.month0, s.half === 0 ? 1 : 15);
+    const startD = mondayNearestTo(s.year, s.month0, s.half === 0 ? 1 : 15);
 
     const endBoundaryDay = e.half === 0 ? 15 : 1;
     const endBoundaryMonthRaw = e.month0 + (e.half === 1 ? 1 : 0);
@@ -5580,6 +5688,15 @@ useEffect(() => {
   const endD = sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
   setStEndISO(dateToISO(endD));
 }, [activities, restAttendance, totalPlanMonths, stStartISO, profile]);
+
+useEffect(() => {
+  const iso = typeof stEndISO === "string" ? stEndISO : "";
+  if (!iso) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+
+  if ((profile as any)?.stEndISO === iso) return;
+  void persistProfilePatch({ stEndISO: iso });
+}, [stEndISO, profile, persistProfilePatch]);
 
 
 
@@ -5928,7 +6045,6 @@ async function openPreviewForPlacement(a: Activity) {
     }
 
     const gv = normalizeGoalsVersion((profile as any).goalsVersion);
-    const { startISO, endISO } = computeMondayDates(a);
 
     const activityType =
       a.type === "Auskultation" ? "AUSKULTATION" :
@@ -5940,8 +6056,8 @@ async function openPreviewForPlacement(a: Activity) {
       title: a.label || a.type || "",
       clinic: a.label || "",
       site: (a as any).site || (a as any).clinic || "",
-      startDate: startISO,
-      endDate: endISO,
+      startDate: a.exactStartISO || "",
+      endDate: a.exactEndISO || "",
       attendance: a.attendance ?? (isZeroAttendanceType(a.type) ? 0 : 100),
 
       supervisor: (a as any).supervisor || "",
@@ -6285,10 +6401,6 @@ const restoreBaseline = useCallback(() => {
 const savePlacementToDb = useCallback(
   async (selAct: any): Promise<boolean> => {
     if (!selAct) return false;
-    if (wouldOverlap(selAct.id, selAct.startSlot, selAct.lengthSlots)) {
-      alert("Datum överlappar annan aktivitet.");
-      return false;
-    }
 
     try {
       // Ta i första hand datumet från selAct.exactStartISO/exactEndISO.
@@ -6298,7 +6410,45 @@ const savePlacementToDb = useCallback(
 
       // Spara EXAKT det som står i detaljrutan – ingen slot-baserad omräkning
       if (!startISO || !endISO || !isValidISO(startISO) || !isValidISO(endISO)) {
-        alert("Kunde inte tolka datum i detaljrutan. Kontrollera start- och slutdatum.");
+        setOverlapWarning("Kunde inte tolka datum i detaljrutan. Kontrollera start- och slutdatum.");
+        return false;
+      }
+
+      const rangesOverlap = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
+        aStart <= bEnd && bStart <= aEnd;
+
+      const activityStartISO = (a: any): string => {
+        const s = String(a?.exactStartISO || "");
+        if (isValidISO(s)) return s;
+        const sh = slotToYearMonthHalf(startYear, a.startSlot);
+        return dateToISO(mondayOnOrAfter(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
+      };
+
+      const activityEndISO = (a: any): string => {
+        const e = String(a?.exactEndISO || "");
+        if (isValidISO(e)) return e;
+        const eSlot = a.startSlot + a.lengthSlots - 1;
+        const eh = slotToYearMonthHalf(startYear, eSlot);
+        const d = sundayOnOrBefore(
+          eh.year + (eh.half === 1 && eh.month0 === 11 ? 1 : (eh.month0 + (eh.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
+          (eh.month0 + (eh.half === 1 ? 1 : 0) + 12) % 12,
+          eh.half === 0 ? 15 : 1
+        );
+        return dateToISO(d);
+      };
+
+      const hasOverlap = activities.some((a) => {
+        if (!a || a.id === selAct.id) return false;
+        const os = activityStartISO(a);
+        const oe = activityEndISO(a);
+        if (!isValidISO(os) || !isValidISO(oe)) return false;
+        return rangesOverlap(startISO, endISO, os, oe);
+      });
+
+      if (hasOverlap) {
+        setOverlapWarning(
+          "Datumen överlappar en annan aktivitet i tidslinjen. Justera start/slut så att aktiviteterna inte överlappar."
+        );
         return false;
       }
 
@@ -6992,31 +7142,31 @@ const persistTimelineToDb = async () => {
 
 
 
-      {/* Månadsrubriker (sticky) */}
-      <div className="mb-1"><MonthHeader /></div>
+      <div className="relative rounded-xl">
+        <div className="pointer-events-none absolute inset-0 z-0 rounded-xl border border-slate-200" />
+        <div className="relative z-10">
+          {/* Månadsrubriker (sticky) */}
+          <div className="mb-1"><MonthHeader /></div>
 
-      {/* Årsrader */}
-      <div className="space-y-0">
-        {Array.from({ length: visibleYearCount }, (_, i) => renderYearRow(i))}
+          {/* Årsrader */}
+          <div className="space-y-0">
+            {Array.from({ length: visibleYearCount }, (_, i) => renderYearRow(i))}
+          </div>
+        </div>
       </div>
 
-      {/* + nederst */}
+      {/* Förklaring (legend) + förlängning av ST */}
       <div className="grid grid-cols-[80px_1fr] items-start mb-4">
-
         <div className="pr-2 text-right select-none">
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setYearsBelow(y => y + 1); }}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-300 text-sm font-semibold hover:bg-slate-50 translate-y-[6px]"
-            title="Lägg till senare år"
-            data-info="Lägger till ett nytt år längre fram i tidslinjen så att du kan planera aktiviteter även för framtida år."
-          >+</button>
+          <span>{startYear + visibleYearCount - 1}</span>
         </div>
-{/* Förklaring (legend) + förlängning av ST */}
-          <div className="mt-2 ml-[10px] flex flex-wrap items-center gap-4 text-xs text-slate-700">
 
-            {(() => {
-              const goals = String((profile as any)?.goalsVersion || "").trim();
-              const is2021 = goals === "2021";
+        <div
+  className="mt-2 ml-[10px] flex flex-wrap items-center gap-4 text-xs text-slate-700"
+>
+  {(() => {
+    const goals = String((profile as any)?.goalsVersion || "").trim();
+    const is2021 = goals === "2021";
 
               if (is2021) {
                 // 2021 – BT start, BT slut, ST slut + Idag
@@ -7166,54 +7316,138 @@ const persistTimelineToDb = async () => {
 const applyPlacementDates = (which: "start" | "end", iso: string) => {
   if (!selAct) return;
 
-  // 1) Uppdatera EXAKTA datumfält (förändras inte av snapping)
-  setActivities(prev =>
-    prev.map(a => {
-      if (a.id !== selAct.id) return a;
-      return which === "start"
-        ? { ...a, exactStartISO: iso || undefined }
-        : { ...a, exactEndISO: iso || undefined };
-    })
-  );
-  // Dirty-state uppdateras automatiskt via checkDirty
+  setOverlapWarning(null);
+  setOverlapSuggestion(null);
 
-  // 2) Beräkna slots baserat på "snappade" datum, endast för visuell layout
-  const snappedStartISO = which === "start" ? roundToAnchors(iso, "start") : (selAct.exactStartISO || actStartISO);
-  const snappedEndISO   = which === "end"   ? roundToAnchors(iso, "end")   : (selAct.exactEndISO   || actEndISO);
-  if (!snappedStartISO || !snappedEndISO) return;
+  const addDaysISO = (base: string, delta: number): string => {
+    const d = new Date(base + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  };
 
-  let s = dateToSlot(startYear, snappedStartISO, "start");
-  let e = dateToSlot(startYear, snappedEndISO,   "end");
-  if (e <= s) e = s + 1; // minst en halvmånad
+  const rangesOverlap = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
+    aStart <= bEnd && bStart <= aEnd;
 
-  const overlapsNow = () => wouldOverlap(selAct.id, s, Math.max(1, e - s));
+  const activityStartISO = (a: any): string => {
+    const s = String(a?.exactStartISO || "");
+    if (isValidISO(s)) return s;
+    const sh = slotToYearMonthHalf(startYear, a.startSlot);
+    return dateToISO(mondayOnOrAfter(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
+  };
 
-  if (overlapsNow()) {
-    if (which === "start") {
-      let maxRight = -Infinity;
-      for (const x of activities) {
-        if (x.id === selAct.id) continue;
-        const right = x.startSlot + x.lengthSlots;
-        if (right <= s) maxRight = Math.max(maxRight, right);
+  const activityEndISO = (a: any): string => {
+    const e = String(a?.exactEndISO || "");
+    if (isValidISO(e)) return e;
+    const eSlot = a.startSlot + a.lengthSlots - 1;
+    const eh = slotToYearMonthHalf(startYear, eSlot);
+    const d = sundayOnOrBefore(
+      eh.year + (eh.half === 1 && eh.month0 === 11 ? 1 : (eh.month0 + (eh.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
+      (eh.month0 + (eh.half === 1 ? 1 : 0) + 12) % 12,
+      eh.half === 0 ? 15 : 1
+    );
+    return dateToISO(d);
+  };
+
+  const proposedStart0 = which === "start" ? iso : activityStartISO(selAct);
+  const proposedEnd0 = which === "end" ? iso : activityEndISO(selAct);
+  if (!isValidISO(proposedStart0) || !isValidISO(proposedEnd0)) return;
+
+  let proposedStart = proposedStart0;
+  let proposedEnd = proposedEnd0;
+  if (proposedEnd < proposedStart) {
+    if (which === "start") proposedEnd = proposedStart;
+    else proposedStart = proposedEnd;
+  }
+
+  const overlapping = () => {
+    const overlaps: any[] = [];
+    for (const a of activities) {
+      if (!a || a.id === selAct.id) continue;
+      const os = activityStartISO(a);
+      const oe = activityEndISO(a);
+      if (!isValidISO(os) || !isValidISO(oe)) continue;
+      if (rangesOverlap(proposedStart, proposedEnd, os, oe)) overlaps.push({ a, os, oe });
+    }
+    return overlaps;
+  };
+
+  let overlaps = overlapping();
+  if (overlaps.length > 0) {
+    const maxIterations = (activities?.length || 0) + 5;
+    let i = 0;
+
+    while (i++ < maxIterations) {
+      overlaps = overlapping();
+      if (overlaps.length === 0) break;
+
+      if (which === "start") {
+        let maxEnd = proposedStart;
+        for (const o of overlaps) {
+          if (o.oe > maxEnd) maxEnd = o.oe;
+        }
+        proposedStart = addDaysISO(maxEnd, 1);
+        if (proposedEnd < proposedStart) proposedEnd = proposedStart;
+      } else {
+        let minStart = proposedEnd;
+        for (const o of overlaps) {
+          if (o.os < minStart) minStart = o.os;
+        }
+        proposedEnd = addDaysISO(minStart, -1);
+        if (proposedEnd < proposedStart) proposedStart = proposedEnd;
       }
-      if (isFinite(maxRight)) s = Math.max(s, maxRight);
-      if (e <= s) e = s + 1;
-    } else {
-      let minLeft = Infinity;
-      for (const x of activities) {
-        if (x.id === selAct.id) continue;
-        const left = x.startSlot;
-        if (left >= e) minLeft = Math.min(minLeft, left);
-      }
-      if (isFinite(minLeft)) e = Math.min(e, minLeft);
-      if (e <= s) e = s + 1;
+    }
+
+    if (overlapping().length === 0) {
+      setOverlapSuggestion({ startISO: proposedStart, endISO: proposedEnd });
+      setOverlapWarning(
+        "Valt datum skulle skapa överlapp med en annan aktivitet. Välj närmaste datum för att justera."
+      );
+      return;
     }
   }
 
-  if (overlapsNow()) {
-    alert("Datum överlappar annan aktivitet.");
+  // Om vi fortfarande överlappar efter justering: blockera och visa varning
+  if (overlapping().length > 0) {
+    setOverlapWarning(
+      "Datumen överlappar fortfarande en annan aktivitet efter justering. Flytta start eller slut så att aktiviteterna inte överlappar."
+    );
     return;
   }
+
+  const slotStartToISO = (slot: number): string => {
+    const s = slotToYearMonthHalf(startYear, slot);
+    return dateToISO(mondayOnOrAfter(s.year, s.month0, s.half === 0 ? 1 : 15));
+  };
+
+  const slotEndToISO = (startSlot: number, lengthSlots: number): string => {
+    const eSlot = startSlot + lengthSlots - 1;
+    const e = slotToYearMonthHalf(startYear, eSlot);
+    const d = sundayOnOrBefore(
+      e.year + (e.half === 1 && e.month0 === 11 ? 1 : (e.month0 + (e.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
+      (e.month0 + (e.half === 1 ? 1 : 0) + 12) % 12,
+      e.half === 0 ? 15 : 1
+    );
+    return dateToISO(d);
+  };
+
+  // Uppdatera EXAKTA datumfält så att datepickern hoppar till justerat datum
+  setActivities(prev =>
+    prev.map(a => {
+      if (a.id !== selAct.id) return a;
+      return {
+        ...a,
+        exactStartISO: proposedStart,
+        exactEndISO: proposedEnd,
+      };
+    })
+  );
+
+  // 1) Beräkna slots baserat på "snappade" datum, endast för visuell layout
+  let s = dateToSlotLayout(startYear, proposedStart, "start");
+  let e = dateToSlotLayout(startYear, proposedEnd, "end");
+  if (e <= s) e = s + 1; // minst en halvmånad
 
   setActivities(prev =>
     prev.map(a => {
@@ -9315,7 +9549,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   const v = Math.floor(
                     Number((e.target as HTMLSelectElement).value) || 0
                   );
-                  setTotalPlanMonths(Math.max(0, v));
+                  const next = Math.max(0, v);
+                  setTotalPlanMonths(next);
+                  void persistProfilePatch({ stTotalMonths: next });
                 }}
                 className="h-8 rounded-lg border px-2 text-sm w-[110px]"
                 title="Planerad total tid i månader"
@@ -9349,7 +9585,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 value={String(Math.max(5, Math.min(100, Math.round(restAttendance / 5) * 5)))}
                 onChange={(e) => {
                   const v = Number((e.target as HTMLSelectElement).value) || 100;
-                  setRestAttendance(Math.max(5, Math.min(100, v)));
+                  const next = Math.max(5, Math.min(100, v));
+                  setRestAttendance(next);
+                  void persistProfilePatch({ stEndAttendance: next });
                 }}
                 className="h-8 rounded-lg border px-2 text-sm w-[90px]"
                 title="Sysselsättningsgrad"
@@ -9496,20 +9734,42 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <div className="p-6">
               {progressDetailOpen === "time" ? (
                 <div className="space-y-4">
+                  {hoveredTimeAct && (
+                    <div
+                      className="fixed px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap pointer-events-none"
+                      style={(() => {
+                        const tooltipW = 260;
+                        const tooltipH = 78;
+                        const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+                        const x = Math.max(8, Math.min(hoveredTimeAct.anchorX - tooltipW / 2, vw - tooltipW - 8));
+                        const y = hoveredTimeAct.anchorTop - tooltipH - 10;
+                        return {
+                          left: x,
+                          top: y,
+                          width: tooltipW,
+                          backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`,
+                          borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)`,
+                          zIndex: 10001,
+                        } as any;
+                      })()}
+                    >
+                      <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
+                      <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
+                      <div className="text-slate-600">Sysselsättning: {Math.round(hoveredTimeAct.attendance)}%</div>
+                      <div className="text-slate-600">Dagar motsv heltid: {Math.round(hoveredTimeAct.days)}</div>
+                      <div className="text-slate-600">
+                        Del av {hoveredTimeAct.phase === "bt" ? "BT" : "ST"}: {(
+                          hoveredTimeAct.phase === "bt"
+                            ? (timeDetails.bt.total > 0 ? ((hoveredTimeAct.days / timeDetails.bt.total) * 100).toFixed(1).replace(".", ",") : "0")
+                            : (timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1).replace(".", ",") : "0")
+                        )}%
+                      </div>
+                    </div>
+                  )}
                   {normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021" ? (
                     <>
                       {/* BT */}
                       <div className="relative">
-                        {hoveredTimeAct?.phase === "bt" && (
-                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
-                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.bt.total > 0 ? ((hoveredTimeAct.days / timeDetails.bt.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">BT (Bastjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9533,9 +9793,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                                 }}
                                 onMouseEnter={(e) => {
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
-                                  setHoveredTimeAct({ ...act, phase: "bt", leftPx });
+                                  const anchorX = rect.left + rect.width / 2;
+                                  const anchorTop = rect.top;
+                                  setHoveredTimeAct({ ...act, phase: "bt", anchorX, anchorTop });
                                 }}
                                 onMouseLeave={() => setHoveredTimeAct(null)}
                               />
@@ -9552,16 +9812,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       
                       {/* ST */}
                       <div className="relative">
-                        {hoveredTimeAct?.phase === "st" && (
-                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
-                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9585,9 +9835,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                                 }}
                                 onMouseEnter={(e) => {
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
-                                  setHoveredTimeAct({ ...act, phase: "st", leftPx });
+                                  const anchorX = rect.left + rect.width / 2;
+                                  const anchorTop = rect.top;
+                                  setHoveredTimeAct({ ...act, phase: "st", anchorX, anchorTop });
                                 }}
                                 onMouseLeave={() => setHoveredTimeAct(null)}
                               />
@@ -9606,16 +9856,6 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     <>
                       {/* 2015: Endast ST */}
                       <div className="relative">
-                        {hoveredTimeAct?.phase === "st" && (
-                          <div className="absolute bottom-full left-0 right-0 mb-1 pointer-events-none" style={{ height: 70 }}>
-                            <div className="absolute bottom-0 w-0.5 h-3" style={{ left: hoveredTimeAct.leftPx, backgroundColor: `hsl(${hoveredTimeAct.hue} 45% 55%)` }} />
-                            <div className="absolute bottom-3 px-2 py-1 rounded shadow-lg border text-xs whitespace-nowrap z-10" style={{ left: Math.max(0, Math.min(hoveredTimeAct.leftPx - 80, 200)), backgroundColor: `hsl(${hoveredTimeAct.hue} 30% 95%)`, borderColor: `hsl(${hoveredTimeAct.hue} 40% 70%)` }}>
-                              <div className="font-semibold text-slate-800">{hoveredTimeAct.label}</div>
-                              <div className="text-slate-600">{hoveredTimeAct.startDate} – {hoveredTimeAct.endDate}</div>
-                              <div className="text-slate-600">{Math.round(hoveredTimeAct.days)} dagar ({timeDetails.st.total > 0 ? ((hoveredTimeAct.days / timeDetails.st.total) * 100).toFixed(1).replace(".", ",") : 0}%)</div>
-                            </div>
-                          </div>
-                        )}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-700">ST (Specialiseringstjänstgöring)</span>
                           <span className="text-sm text-slate-600">
@@ -9639,9 +9879,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                                 }}
                                 onMouseEnter={(e) => {
                                   const rect = e.currentTarget.getBoundingClientRect();
-                                  const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
-                                  const leftPx = parentRect ? rect.left - parentRect.left + rect.width / 2 : 0;
-                                  setHoveredTimeAct({ ...act, phase: "st", leftPx });
+                                  const anchorX = rect.left + rect.width / 2;
+                                  const anchorTop = rect.top;
+                                  setHoveredTimeAct({ ...act, phase: "st", anchorX, anchorTop });
                                 }}
                                 onMouseLeave={() => setHoveredTimeAct(null)}
                               />
@@ -9764,6 +10004,54 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   )}
                 </div>
               )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {overlapWarning && (
+        <div
+          className="fixed inset-0 z-[11000] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => {
+            setOverlapWarning(null);
+            setOverlapSuggestion(null);
+          }}
+        >
+          <div
+            className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900">Varning</h2>
+            </div>
+            <div className="p-5">
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+                <div className="whitespace-pre-line">{overlapWarning}</div>
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOverlapWarning(null);
+                    setOverlapSuggestion(null);
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+                >
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={applyOverlapSuggestion}
+                  disabled={!overlapSuggestion}
+                  className={
+                    overlapSuggestion
+                      ? "inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px"
+                      : "inline-flex items-center justify-center rounded-lg border border-slate-200 bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 cursor-not-allowed"
+                  }
+                >
+                  Välj närmaste datum
+                </button>
               </div>
             </div>
           </div>

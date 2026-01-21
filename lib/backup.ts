@@ -23,10 +23,18 @@ const CURRENT_SCHEMA_VERSION = 2;
 function iso10(v: any): string {
   if (!v) return "";
   if (typeof v === "string") return v.slice(0, 10);
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) return "";
+    const mm = String(v.getMonth() + 1).padStart(2, "0");
+    const dd = String(v.getDate()).padStart(2, "0");
+    return `${v.getFullYear()}-${mm}-${dd}`;
+  }
   if (typeof v === "number") {
     const d = new Date(v);
-    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+    if (Number.isNaN(d.getTime())) return "";
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
   }
   return String(v).slice(0, 10);
 }
@@ -53,6 +61,38 @@ function normalizePlacementDates(p: any): any {
   return out;
 }
 
+function normalizeProfileDates(p: any): any {
+  if (!p || typeof p !== "object") return p;
+  const out: any = { ...p };
+
+  out.stStartDate = iso10(out.stStartDate) || out.stStartDate || "";
+  out.btStartDate = iso10(out.btStartDate) || out.btStartDate || "";
+  out.stEndDate = iso10(out.stEndDate) || out.stEndDate || "";
+  out.stEndISO = iso10(out.stEndISO) || out.stEndISO || "";
+  out.btEndDate = iso10(out.btEndDate) || out.btEndDate || "";
+
+  out.medDegreeDate = iso10(out.medDegreeDate) || out.medDegreeDate || "";
+  out.licenseDate = iso10(out.licenseDate) || out.licenseDate || "";
+
+  if (Array.isArray(out.foreignLicenses)) {
+    out.foreignLicenses = out.foreignLicenses.map((r: any) => {
+      const row = r && typeof r === "object" ? { ...r } : { country: "", date: "" };
+      row.date = iso10(row.date) || row.date || "";
+      return row;
+    });
+  }
+
+  if (Array.isArray(out.priorSpecialties)) {
+    out.priorSpecialties = out.priorSpecialties.map((r: any) => {
+      const row = r && typeof r === "object" ? { ...r } : { speciality: "", country: "", date: "" };
+      row.date = iso10(row.date) || row.date || "";
+      return row;
+    });
+  }
+
+  return out;
+}
+
 export async function exportAll(): Promise<ExportBundle> {
   const anyDb: any = db as any;
   const [profile, placements, courses, achievements, timeline, iupPlans, specApp] =
@@ -66,13 +106,14 @@ export async function exportAll(): Promise<ExportBundle> {
       anyDb.specialistApplication?.toArray?.() ?? [],
     ]);
 
+  const profileOut = profile ? (normalizeProfileDates(profile) as Profile) : null;
   const placementsOut = (placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
 
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     app: { name: "ST-ARK", version: "1.0.0" },
     exportedAt: new Date().toISOString(),
-    profile: profile ?? null,
+    profile: profileOut,
     placements: placementsOut,
     courses,
     achievements,
@@ -161,7 +202,7 @@ async function replaceAll(bundle: ExportBundle) {
     ]);
 
     if (bundle.profile) {
-      const prof = { ...(bundle.profile as any), id: "default" } as any;
+      const prof = normalizeProfileDates({ ...(bundle.profile as any), id: "default" } as any) as any;
       await db.profile.put(prof);
     }
     if (bundle.placements?.length) await db.placements.bulkPut(bundle.placements);
@@ -188,7 +229,7 @@ async function mergeAll(bundle: ExportBundle) {
 
   await (db as any).transaction("readwrite", ...tables, async () => {
     if (bundle.profile) {
-      const prof = { ...(bundle.profile as any), id: "default" } as any;
+      const prof = normalizeProfileDates({ ...(bundle.profile as any), id: "default" } as any) as any;
       await db.profile.put(prof);
     }
     for (const p of bundle.placements ?? []) await db.placements.put(p);
