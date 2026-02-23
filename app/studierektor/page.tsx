@@ -15,6 +15,7 @@ import { btMilestones } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { milestoneRequires } from "@/lib/milestoneRequirements";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 const AboutModal = dynamic(() => import("@/components/AboutModal"), { ssr: false });
 
@@ -3516,6 +3517,7 @@ export default function StudierektorPage() {
   const [overallTimelineView, setOverallTimelineView] = useState<"computedEnd" | "linearMonths">(
     "linearMonths"
   );
+  const [deleteStudentPrompt, setDeleteStudentPrompt] = useState<{ id: string; name: string } | null>(null);
   const [infoToast, setInfoToast] = useState<{ title: string; message: string } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [nameChangePrompt, setNameChangePrompt] = useState<{
@@ -3891,7 +3893,6 @@ export default function StudierektorPage() {
   };
 
   const deleteStudent = async (id: string) => {
-    if (!confirm("Är du säker på att du vill ta bort denna ST-läkare?")) return;
     await db.supervisorStudents.delete(id);
   };
 
@@ -4186,7 +4187,7 @@ export default function StudierektorPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteStudent(student.id);
+                            setDeleteStudentPrompt({ id: student.id, name: student.name });
                           }}
                           className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
                           aria-label="Ta bort"
@@ -4200,6 +4201,24 @@ export default function StudierektorPage() {
                 })}
               </tbody>
             </table>
+
+            <DeleteConfirmDialog
+              open={!!deleteStudentPrompt}
+              title="Ta bort ST-läkare"
+              message={
+                deleteStudentPrompt
+                  ? `Är du säker på att du vill ta bort ${deleteStudentPrompt.name}?`
+                  : ""
+              }
+              confirmLabel="Ta bort"
+              onCancel={() => setDeleteStudentPrompt(null)}
+              onConfirm={async () => {
+                if (!deleteStudentPrompt) return;
+                const { id } = deleteStudentPrompt;
+                setDeleteStudentPrompt(null);
+                await deleteStudent(id);
+              }}
+            />
           </div>
         ) : (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
