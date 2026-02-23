@@ -2402,6 +2402,84 @@ function StudentDetailModal({
                   </div>
                 </div>
               </div>
+
+              {/* Genomförd tid och delmålsuppfyllnad */}
+              <div className="grid gap-4 md:grid-cols-2 mt-4">
+                {/* Genomförd tid */}
+                <div className="rounded-xl border bg-white overflow-hidden">
+                  <div className="flex items-center justify-between border-b px-3 py-2">
+                    <button
+                      type="button"
+                      className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0 text-left"
+                      onClick={() => setProgressDetailOpen("time")}
+                    >
+                      Genomförd tid
+                    </button>
+                    <button
+                      type="button"
+                      className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
+                      onClick={() => setProgressDetailOpen("time")}
+                    >
+                      {progressPct.toFixed(0)} %
+                    </button>
+                  </div>
+                  <div className="p-3">
+                    <div 
+                      className="h-4 w-full rounded-full bg-slate-200 cursor-pointer"
+                      onClick={() => setProgressDetailOpen("time")}
+                    >
+                      <div
+                        className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-600 mt-2">
+                      {goalsVersion === "2021" ? (
+                        <>
+                          BT-fas: {timeDetails.bt.worked > 0 ? `${Math.round((timeDetails.bt.worked / timeDetails.bt.total) * 100)}%` : "0%"} • 
+                          ST-fas: {timeDetails.st.worked > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"}
+                        </>
+                      ) : (
+                        <>ST-tid: {timeDetails.st.worked > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"}</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delmålsuppfyllnad */}
+                <div className="rounded-xl border bg-white overflow-hidden">
+                  <div className="flex items-center justify-between border-b px-3 py-2">
+                    <button
+                      type="button"
+                      className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0 text-left"
+                      onClick={() => setProgressDetailOpen("milestones")}
+                    >
+                      Delmålsuppfyllnad
+                    </button>
+                    <button
+                      type="button"
+                      className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
+                      onClick={() => setProgressDetailOpen("milestones")}
+                    >
+                      {milestoneProgressPct.toFixed(0)} %
+                    </button>
+                  </div>
+                  <div className="p-3">
+                    <div 
+                      className="h-4 w-full rounded-full bg-slate-200 cursor-pointer"
+                      onClick={() => setProgressDetailOpen("milestones")}
+                    >
+                      <div
+                        className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
+                        style={{ width: `${milestoneProgressPct}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-600 mt-2">
+                      Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
+                    </div>
+                  </div>
+                </div>
+              </div>
               </>
               ) : (
               /* Tidslinjevy - exakt planera-st grid (2 lanes, 24 halvmånader) */
@@ -3281,6 +3359,138 @@ function StudentDetailModal({
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Progress Detail Modal */}
+      {progressDetailOpen && (
+        <div className="fixed inset-0 z-[270] flex items-center justify-center bg-black/50" onClick={() => setProgressDetailOpen(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <header className="flex items-center justify-between border-b px-4 py-3">
+                <h2 className="m-0 text-lg font-extrabold text-slate-900">
+                  {progressDetailOpen === "time" ? "Genomförd tid" : "Delmålsuppfyllelse"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setProgressDetailOpen(null)}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+                >
+                  Stäng
+                </button>
+              </header>
+              
+              <div className="p-6">
+              {progressDetailOpen === "time" ? (
+                <div className="space-y-4">
+                  {goalsVersion === "2021" && (
+                    <>
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900 mb-2">BT-fas (första 24 månaderna)</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Genomförd tid</span>
+                            <span>{Math.round(timeDetails.bt.worked)} dagar</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total tid</span>
+                            <span>{Math.round(timeDetails.bt.total)} dagar</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-slate-200">
+                            <div 
+                              className="h-2 rounded-full bg-sky-500 transition-[width] duration-300"
+                              style={{ width: `${timeDetails.bt.total > 0 ? Math.min(100, (timeDetails.bt.worked / timeDetails.bt.total) * 100) : 0}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            {timeDetails.bt.total > 0 ? `${Math.round((timeDetails.bt.worked / timeDetails.bt.total) * 100)}%` : "0%"} slutfört
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900 mb-2">ST-fas (efter BT-fas)</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Genomförd tid</span>
+                            <span>{Math.round(timeDetails.st.worked)} dagar</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total tid</span>
+                            <span>{Math.round(timeDetails.st.total)} dagar</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-slate-200">
+                            <div 
+                              className="h-2 rounded-full bg-emerald-500/80 transition-[width] duration-300"
+                              style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            {timeDetails.st.total > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"} slutfört
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {goalsVersion === "2015" && (
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900 mb-2">ST-utbildning</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Genomförd tid</span>
+                          <span>{Math.round(timeDetails.st.worked)} dagar</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Total tid</span>
+                          <span>{Math.round(timeDetails.st.total)} dagar</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-slate-200">
+                          <div 
+                            className="h-2 rounded-full bg-emerald-500/80 transition-[width] duration-300"
+                            style={{ width: `${timeDetails.st.total > 0 ? Math.min(100, (timeDetails.st.worked / timeDetails.st.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600">
+                          {timeDetails.st.total > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"} slutfört
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-slate-500 pt-2 border-t">
+                    Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900 mb-2">ST-delmål</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Uppfyllda delmål</span>
+                        <span>{milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-slate-200">
+                        <div 
+                          className="h-2 rounded-full bg-emerald-500/80 transition-[width] duration-300"
+                          style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-slate-600">
+                        {milestoneDetails.st.total > 0 ? `${Math.round((milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100)}%` : "0%"} uppfyllda
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500 pt-2 border-t">
+                    Ett delmål räknas som uppfyllt när det är kopplat till minst en genomförd aktivitet (klinisk tjänstgöring eller kurs med slutdatum i det förflutna).
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           </div>
