@@ -4294,7 +4294,7 @@ export default function StudierektorPage() {
                             }px`,
                           }}
                         >
-                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 border-r-2 border-slate-300 px-3 text-sm font-semibold text-slate-700 h-[32px] flex items-center whitespace-nowrap">
+                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 border-r-2 border-slate-300 px-3 text-sm font-semibold text-slate-700 h-[56px] flex items-center whitespace-nowrap">
                             ST-läkare
                           </div>
                           <div className="border-b border-slate-200 bg-white">
@@ -4374,7 +4374,7 @@ export default function StudierektorPage() {
                                   >
                                     {typeof overallTimelineLinear.todayMarkerX === "number" && (
                                       <div
-                                        className="pointer-events-none absolute inset-y-0 z-20"
+                                        className="pointer-events-none absolute inset-y-0 z-0"
                                         style={{ left: overallTimelineLinear.todayMarkerX, width: 0 }}
                                         aria-hidden="true"
                                       >
