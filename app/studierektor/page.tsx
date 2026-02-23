@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -3512,6 +3512,9 @@ export default function StudierektorPage() {
   const [dragOver, setDragOver] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<SupervisorStudent | null>(null);
   const [overallTimelineOpen, setOverallTimelineOpen] = useState(false);
+  const [overallTimelineView, setOverallTimelineView] = useState<"computedEnd" | "linearMonths">(
+    "computedEnd"
+  );
   const [infoToast, setInfoToast] = useState<{ title: string; message: string } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [nameChangePrompt, setNameChangePrompt] = useState<{
@@ -3612,6 +3615,117 @@ export default function StudierektorPage() {
       endBoundarySlot,
       years,
       markers,
+    };
+  }, [students]);
+
+  const overallTimelineLinear = useMemo(() => {
+    const cellW = 32;
+    const rowH = 24;
+
+    const colorById = spreadStudentColors(students || []);
+    const safeMonthStart = (iso: string): string | null => {
+      if (!isValidISODate(iso)) return null;
+      return iso.slice(0, 7) + "-01";
+    };
+
+    const addMonthsISO = (iso: string, delta: number): string | null => {
+      if (!isValidISODate(iso)) return null;
+      const d = new Date(iso + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return null;
+      d.setMonth(d.getMonth() + delta);
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${d.getFullYear()}-${mm}-${dd}`;
+    };
+
+    const monthKey = (iso: string): number => {
+      const d = new Date(iso + "T00:00:00");
+      return d.getFullYear() * 12 + d.getMonth();
+    };
+
+    const toMonthLabel = (k: number): string => {
+      const y = Math.floor(k / 12);
+      const m0 = k % 12;
+      const mm = String(m0 + 1).padStart(2, "0");
+      return `${y}-${mm}`;
+    };
+
+    const rows = (students || []).map((s) => {
+      const startISO = getStudentStartISO(s);
+      const endISO = getStudentPlannedEndISO(s);
+      return {
+        id: s.id,
+        name: s.name,
+        startISO: isValidISODate(startISO) ? startISO : null,
+        endISO: isValidISODate(endISO) ? endISO : null,
+        color: colorById.get(String(s.id || "")) || "hsl(210 70% 45%)",
+        placements: Array.isArray((s as any)?.placements) ? ((s as any).placements as any[]) : [],
+      };
+    });
+
+    const startMonths = rows
+      .map((r) => (r.startISO ? safeMonthStart(r.startISO) : null))
+      .filter(Boolean) as string[];
+    const endMonths = rows
+      .map((r) => (r.endISO ? safeMonthStart(r.endISO) : null))
+      .filter(Boolean) as string[];
+
+    const minMonthISO = startMonths.length ? startMonths.slice().sort()[0] : null;
+    const maxMonthISO = endMonths.length ? endMonths.slice().sort()[endMonths.length - 1] : null;
+
+    if (!minMonthISO || !maxMonthISO) {
+      return {
+        ok: false as const,
+        reason:
+          "Saknar start/slutdatum för att rita månadsgrid. Kontrollera att profilerna innehåller ST-startdatum och planerat slutdatum.",
+      };
+    }
+
+    const minKey = monthKey(minMonthISO);
+    const maxKey = monthKey(maxMonthISO);
+    const monthKeys: number[] = [];
+    for (let k = minKey; k <= maxKey; k++) monthKeys.push(k);
+
+    const placementBarsByStudent = new Map<
+      string,
+      Array<{ left: number; width: number; label: string; bg: string; title: string }>
+    >();
+
+    for (const r of rows) {
+      const bars: Array<{ left: number; width: number; label: string; bg: string; title: string }> = [];
+      for (const p of r.placements) {
+        const start = normalizeToISODate(p?.startDate || p?.startISO || p?.start || "");
+        if (!start) continue;
+        const endRaw = normalizeToISODate(p?.endDate || p?.endISO || p?.end || "");
+        const end = endRaw || start;
+
+        const sKey = monthKey(start.slice(0, 7) + "-01");
+        const eKey = monthKey(end.slice(0, 7) + "-01");
+        const leftIdx = Math.max(0, sKey - minKey);
+        const rightIdx = Math.min(monthKeys.length - 1, eKey - minKey);
+        if (rightIdx < 0 || leftIdx > monthKeys.length - 1) continue;
+        const widthMonths = Math.max(1, rightIdx - leftIdx + 1);
+
+        const label = String(p?.clinic || p?.title || p?.type || "Placering");
+        bars.push({
+          left: leftIdx * cellW,
+          width: widthMonths * cellW,
+          label,
+          bg: r.color,
+          title: `${r.name} – ${label}: ${formatDate(start)} – ${formatDate(end)}`,
+        });
+      }
+      placementBarsByStudent.set(String(r.id), bars);
+    }
+
+    return {
+      ok: true as const,
+      cellW,
+      rowH,
+      monthKeys,
+      monthLabels: monthKeys.map(toMonthLabel),
+      rows,
+      placementBarsByStudent,
     };
   }, [students]);
 
@@ -4057,7 +4171,121 @@ export default function StudierektorPage() {
             </div>
 
             <div className="p-6 space-y-5">
-              {overallTimeline.minStart && overallTimeline.maxEnd ? (
+              <div className="flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setOverallTimelineView("computedEnd")}
+                  className={`rounded-md px-3 py-1 text-sm font-medium transition ${
+                    overallTimelineView === "computedEnd"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Beräknat slutdatum
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOverallTimelineView("linearMonths")}
+                  className={`rounded-md px-3 py-1 text-sm font-medium transition ${
+                    overallTimelineView === "linearMonths"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Tidslinje (månadsrutor)
+                </button>
+              </div>
+
+              {overallTimelineView === "linearMonths" ? (
+                overallTimelineLinear.ok ? (
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <div className="min-w-max">
+                        <div
+                          className="grid"
+                          style={{
+                            gridTemplateColumns: `240px ${
+                              overallTimelineLinear.monthKeys.length * overallTimelineLinear.cellW
+                            }px`,
+                          }}
+                        >
+                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+                            ST-läkare
+                          </div>
+                          <div className="border-b border-slate-200 bg-white">
+                            <div
+                              className="grid text-[11px] text-slate-600"
+                              style={{
+                                gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
+                                  overallTimelineLinear.cellW
+                                }px)`,
+                              }}
+                            >
+                              {overallTimelineLinear.monthLabels.map((lab: string) => (
+                                <div
+                                  key={lab}
+                                  className="h-8 flex items-end justify-center pb-1 border-l border-slate-200"
+                                >
+                                  {lab}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {overallTimelineLinear.rows
+                            .slice()
+                            .sort((a: any, b: any) =>
+                              String(a.name || "").localeCompare(String(b.name || ""))
+                            )
+                            .map((r: any) => {
+                              const bars =
+                                overallTimelineLinear.placementBarsByStudent.get(String(r.id)) || [];
+                              return (
+                                <Fragment key={String(r.id)}>
+                                  <div className="sticky left-0 z-10 bg-white border-b border-slate-200 px-3 py-2 text-sm text-slate-900">
+                                    {r.name}
+                                  </div>
+                                  <div
+                                    className="relative border-b border-slate-200 bg-white"
+                                    style={{ height: overallTimelineLinear.rowH }}
+                                  >
+                                    <div
+                                      className="absolute inset-0 grid"
+                                      style={{
+                                        gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
+                                          overallTimelineLinear.cellW
+                                        }px)`,
+                                      }}
+                                    >
+                                      {overallTimelineLinear.monthKeys.map((k: number) => (
+                                        <div key={`${r.id}-${k}`} className="border-l border-slate-100" />
+                                      ))}
+                                    </div>
+
+                                    {bars.map((b: any, idx: number) => (
+                                      <div
+                                        key={`${r.id}-bar-${idx}`}
+                                        className="absolute top-[3px] h-[18px] rounded-md px-2 text-[11px] font-semibold text-white overflow-hidden whitespace-nowrap"
+                                        style={{ left: b.left, width: b.width, backgroundColor: b.bg }}
+                                        title={b.title}
+                                      >
+                                        {b.label}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </Fragment>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+                    {overallTimelineLinear.reason}
+                  </div>
+                )
+              ) : overallTimeline.minStart && overallTimeline.maxEnd ? (
                 <>
                   {/* Tidslinje – samma grid-design som planera-st */}
                   <div className="space-y-0 rounded-xl border border-slate-200 overflow-hidden">
@@ -4069,7 +4297,11 @@ export default function StudierektorPage() {
                           {MONTH_NAMES.map((m, idx) => (
                             <div
                               key={m}
-                              className={`col-span-2 text-center font-medium pb-1 ${idx === 0 ? "border-l border-slate-300" : ""} ${idx === MONTH_NAMES.length - 1 ? "border-r border-slate-300" : ""}`}
+                              className={`col-span-2 text-center font-medium pb-1 ${
+                                idx === 0 ? "border-l border-slate-300" : ""
+                              } ${
+                                idx === MONTH_NAMES.length - 1 ? "border-r border-slate-300" : ""
+                              }`}
                             >
                               {m}
                             </div>
@@ -4134,7 +4366,6 @@ export default function StudierektorPage() {
                                 style={{ gridTemplateRows: "1.75rem 0.75rem" }}
                               >
                                 {Array.from({ length: 24 }, (_, i) => {
-                                  const globalSlot = rowStartSlot + i;
                                   const monthIndex = Math.floor(i / 2);
                                   const insideCls = monthIndex % 2 ? "bg-slate-50" : INSIDE_BG_CELL;
                                   const isFirstCol = i === 0;
@@ -4156,7 +4387,6 @@ export default function StudierektorPage() {
                                 })}
 
                                 {Array.from({ length: 24 }, (_, i) => {
-                                  const globalSlot = rowStartSlot + i;
                                   const monthIndex = Math.floor(i / 2);
                                   const isFirstCol = i === 0;
                                   const isLastCol = i === 23;
@@ -4212,7 +4442,10 @@ export default function StudierektorPage() {
                                 const startOfNextYear = new Date(yearToday + 1, 0, 1);
                                 const msInDay = 24 * 60 * 60 * 1000;
                                 const dayIndex = Math.floor((today.getTime() - startOfYear.getTime()) / msInDay);
-                                const daysInYear = Math.max(1, Math.floor((startOfNextYear.getTime() - startOfYear.getTime()) / msInDay));
+                                const daysInYear = Math.max(
+                                  1,
+                                  Math.floor((startOfNextYear.getTime() - startOfYear.getTime()) / msInDay)
+                                );
                                 const frac = Math.min(Math.max(dayIndex / daysInYear, 0), 1);
                                 const pct = frac * 100;
                                 if (pct < 0 || pct > 100) return null;
@@ -4246,10 +4479,20 @@ export default function StudierektorPage() {
 
                   <div className="grid gap-2 md:grid-cols-2">
                     {overallTimeline.markers.map((m) => (
-                      <div key={m.id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: m.color }} />
-                        <span className="text-sm font-semibold text-slate-900 flex-1 min-w-0 truncate">{m.name}</span>
-                        <span className="text-sm text-slate-700 shrink-0">Beräknat slutdatum: {formatDate(String(m.endISO || ""))}</span>
+                      <div
+                        key={m.id}
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                      >
+                        <span
+                          className="inline-block h-3 w-3 rounded-sm"
+                          style={{ backgroundColor: m.color }}
+                        />
+                        <span className="text-sm font-semibold text-slate-900 flex-1 min-w-0 truncate">
+                          {m.name}
+                        </span>
+                        <span className="text-sm text-slate-700 shrink-0">
+                          Beräknat slutdatum: {formatDate(String(m.endISO || ""))}
+                        </span>
                       </div>
                     ))}
                   </div>
