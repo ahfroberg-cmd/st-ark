@@ -3643,6 +3643,12 @@ export default function StudierektorPage() {
       return d.getFullYear() * 12 + d.getMonth();
     };
 
+    const daysInMonth = (year: number, month0: number): number => {
+      const d = new Date(year, month0 + 1, 0);
+      const n = d.getDate();
+      return Number.isFinite(n) && n > 0 ? n : 30;
+    };
+
     const toMonthLabel = (k: number): string => {
       const y = Math.floor(k / 12);
       const m0 = k % 12;
@@ -3686,6 +3692,17 @@ export default function StudierektorPage() {
     const monthKeys: number[] = [];
     for (let k = minKey; k <= maxKey; k++) monthKeys.push(k);
 
+    const todayMarkerX = (() => {
+      const today = new Date();
+      if (Number.isNaN(today.getTime())) return null;
+      const tKey = today.getFullYear() * 12 + today.getMonth();
+      if (tKey < minKey || tKey > maxKey) return null;
+      const idx = tKey - minKey;
+      const dim = daysInMonth(today.getFullYear(), today.getMonth());
+      const frac = dim > 0 ? (Math.max(1, Math.min(dim, today.getDate())) - 1) / dim : 0;
+      return (idx + frac) * cellW;
+    })();
+
     const placementBarsByStudent = new Map<
       string,
       Array<{ left: number; width: number; label: string; bg: string; title: string }>
@@ -3726,6 +3743,7 @@ export default function StudierektorPage() {
       monthLabels: monthKeys.map(toMonthLabel),
       rows,
       placementBarsByStudent,
+      todayMarkerX,
     };
   }, [students]);
 
@@ -4214,13 +4232,33 @@ export default function StudierektorPage() {
                           </div>
                           <div className="border-b border-slate-200 bg-white">
                             <div
-                              className="grid text-[11px] text-slate-600"
+                              className="relative grid text-[11px] text-slate-600"
                               style={{
                                 gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
                                   overallTimelineLinear.cellW
                                 }px)`,
                               }}
                             >
+                              {typeof overallTimelineLinear.todayMarkerX === "number" && (
+                                <div
+                                  className="pointer-events-none absolute inset-y-0 z-20"
+                                  style={{ left: overallTimelineLinear.todayMarkerX, width: 0 }}
+                                  aria-hidden="true"
+                                >
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      left: 0,
+                                      top: 0,
+                                      bottom: 0,
+                                      width: 0,
+                                      borderLeft: "3px solid #2563eb",
+                                      transform: "translateX(-1px)",
+                                    }}
+                                    title={`Idag (${new Date().toISOString().slice(0, 10)})`}
+                                  />
+                                </div>
+                              )}
                               {overallTimelineLinear.monthLabels.map((lab: string) => (
                                 <div
                                   key={lab}
@@ -4249,6 +4287,26 @@ export default function StudierektorPage() {
                                     className="relative border-b border-slate-200 bg-white"
                                     style={{ height: overallTimelineLinear.rowH }}
                                   >
+                                    {typeof overallTimelineLinear.todayMarkerX === "number" && (
+                                      <div
+                                        className="pointer-events-none absolute inset-y-0 z-20"
+                                        style={{ left: overallTimelineLinear.todayMarkerX, width: 0 }}
+                                        aria-hidden="true"
+                                      >
+                                        <div
+                                          style={{
+                                            position: "absolute",
+                                            left: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            width: 0,
+                                            borderLeft: "3px solid #2563eb",
+                                            transform: "translateX(-1px)",
+                                          }}
+                                          title={`Idag (${new Date().toISOString().slice(0, 10)})`}
+                                        />
+                                      </div>
+                                    )}
                                     <div
                                       className="absolute inset-0 grid"
                                       style={{
