@@ -114,6 +114,7 @@ type DirectorMeetingModalProps = {
   allMeetings: IupDirectorMeeting[];
   supervisionMeetings: IupMeeting[];
   assessments: IupAssessment[];
+  planning: IupPlanning;
   placements: Placement[];
   courses: Course[];
   achievements: Achievement[];
@@ -127,6 +128,7 @@ function DirectorMeetingModal({
   allMeetings,
   supervisionMeetings,
   assessments,
+  planning,
   placements,
   courses,
   achievements,
@@ -549,6 +551,7 @@ function DirectorMeetingModal({
               {forwardSections.map((sec) => {
                 const isOpen = !!openForwardSections[sec.key];
                 const content = String((draft.planningForward ?? {})[sec.key] ?? "");
+                const iupPlanningText = String((planning as any)?.[sec.key] ?? "");
 
                 return (
                   <div key={sec.key} className="rounded-xl border border-slate-200 bg-white">
@@ -562,11 +565,19 @@ function DirectorMeetingModal({
                         }))
                       }
                     >
-                      <div className="text-sm font-bold text-slate-800">{sec.title}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-slate-800">{sec.title}</div>
+                        {iupPlanningText.trim() ? (
+                          <div className="mt-0.5 text-xs text-slate-600 whitespace-pre-line">
+                            {iupPlanningText}
+                          </div>
+                        ) : null}
+                      </div>
                       <div className="text-slate-500">{isOpen ? "▾" : "▸"}</div>
                     </button>
                     {isOpen ? (
                       <div className="px-3 pb-3">
+                        <div className="mb-1 text-xs font-semibold text-slate-700">Uppföljning/kommentar</div>
                         <textarea
                           value={content}
                           onChange={(e) => updateForward(sec.key, e.target.value)}
@@ -4565,6 +4576,7 @@ export default function IupModal({
         allMeetings={directorMeetings}
         supervisionMeetings={meetings}
         assessments={assessments}
+        planning={planning}
         placements={placements}
         courses={courses}
         achievements={achievements}
