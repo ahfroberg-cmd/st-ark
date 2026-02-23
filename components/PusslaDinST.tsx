@@ -4824,9 +4824,9 @@ dragPlacementRef.current = {
 
       const isHovered = hoveredSpecialistCollegiumId === m.id;
 
-      const baseColor = "#14b8a6";
-      const hoverColor = "#5eead4";
-      const strokeColor = "#0f766e";
+      const baseColor = "#2dd4bf";
+      const hoverColor = "#99f6e4";
+      const strokeColor = "#0d9488";
 
       return (
         <button
@@ -7452,8 +7452,8 @@ const persistTimelineToDb = async () => {
                 >
                   <path
                     d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
-                    fill="#14b8a6"
-                    stroke="#0f766e"
+                    fill="#2dd4bf"
+                    stroke="#0d9488"
                     strokeWidth={1.3}
                     strokeLinejoin="round"
                   />
