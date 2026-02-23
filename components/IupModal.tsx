@@ -552,12 +552,28 @@ function DirectorMeetingModal({
                 const isOpen = !!openForwardSections[sec.key];
                 const content = String((draft.planningForward ?? {})[sec.key] ?? "");
                 const iupPlanningText = String((planning as any)?.[sec.key] ?? "");
+                const hasCurrentComment = !!content.trim();
+
+                const history = [...(Array.isArray(allMeetings) ? allMeetings : [])]
+                  .filter((m) => m && m.id !== meeting.id)
+                  .filter((m) => typeof m.dateISO === "string" && m.dateISO < currentIso)
+                  .map((m) => {
+                    const txt = String((m.planningForward ?? {})[sec.key] ?? "");
+                    return {
+                      dateISO: m.dateISO,
+                      text: txt,
+                    };
+                  })
+                  .filter((x) => x.text.trim())
+                  .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
                 return (
                   <div key={sec.key} className="rounded-xl border border-slate-200 bg-white">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left ${
+                        hasCurrentComment ? "bg-emerald-50" : ""
+                      }`}
                       onClick={() =>
                         setOpenForwardSections((prev) => ({
                           ...prev,
@@ -570,6 +586,17 @@ function DirectorMeetingModal({
                         {isOpen && iupPlanningText.trim() ? (
                           <div className="mt-0.5 text-xs text-slate-600 whitespace-pre-line">
                             {iupPlanningText}
+                          </div>
+                        ) : null}
+
+                        {isOpen && history.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            {history.map((h) => (
+                              <div key={`${sec.key}-${h.dateISO}`} className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+                                <div className="text-[11px] font-semibold text-slate-700">{h.dateISO}</div>
+                                <div className="mt-0.5 text-xs text-slate-700 whitespace-pre-line">{h.text}</div>
+                              </div>
+                            ))}
                           </div>
                         ) : null}
                       </div>
