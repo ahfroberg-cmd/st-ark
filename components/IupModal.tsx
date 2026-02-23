@@ -377,32 +377,55 @@ function DirectorMeetingModal({
                 {placementsSince.length === 0 ? (
                   <div className="mt-1 text-sm text-slate-500">Inga placeringar i perioden.</div>
                 ) : (
-                  <div className="mt-2 space-y-2">
-                    {placementsSince.map((p: any) => {
-                      const id = String(p.id ?? "");
-                      const title = String(p.title ?? p.site ?? "Placering");
-                      const start = String(p.startDate ?? "").slice(0, 10);
-                      const end = String(p.endDate ?? "").slice(0, 10);
-                      const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "";
-                      const codes = id ? milestoneCodesForPlacement(id) : [];
-                      return (
-                        <div key={id || title + period} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-[14px] font-semibold text-slate-900">{title}</div>
-                              {period ? <div className="text-xs text-slate-600">{period}</div> : null}
-                            </div>
-                            <div className="flex flex-wrap justify-end gap-1">
-                              {codes.map((c) => (
-                                <span key={c} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                                  {c}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="mt-2 rounded-xl border bg-white overflow-hidden">
+                    <div className="max-h-[32vh] overflow-auto">
+                      <table className="w-full text-sm select-none">
+                        <thead className="sticky top-0 bg-slate-50 text-left">
+                          <tr>
+                            <th className="px-3 py-2">Placering</th>
+                            <th className="px-3 py-2">Period</th>
+                            <th className="px-3 py-2 text-right">Delmål</th>
+                          </tr>
+                        </thead>
+                        <tbody className="cursor-default">
+                          {placementsSince.map((p: any) => {
+                            const id = String(p.id ?? "");
+                            const title = String(p.title ?? p.site ?? "Placering");
+                            const start = String(p.startDate ?? "").slice(0, 10);
+                            const end = String(p.endDate ?? "").slice(0, 10);
+                            const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "—";
+                            const codes = id ? milestoneCodesForPlacement(id) : [];
+
+                            return (
+                              <tr key={id || title + period} className="border-t hover:bg-slate-50">
+                                <td className="px-3 py-1.5 font-semibold text-slate-900" data-info={title}>
+                                  {title}
+                                </td>
+                                <td className="px-3 py-1.5 text-slate-700" data-info={period}>
+                                  {period}
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  <div className="flex flex-wrap justify-end gap-1">
+                                    {codes.length === 0 ? (
+                                      <span className="text-slate-400">—</span>
+                                    ) : (
+                                      codes.map((c) => (
+                                        <span
+                                          key={c}
+                                          className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                                        >
+                                          {c}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -412,32 +435,55 @@ function DirectorMeetingModal({
                 {coursesSince.length === 0 ? (
                   <div className="mt-1 text-sm text-slate-500">Inga kurser i perioden.</div>
                 ) : (
-                  <div className="mt-2 space-y-2">
-                    {coursesSince.map((c: any) => {
-                      const id = String(c.id ?? "");
-                      const title = String(c.title ?? c.courseName ?? "Kurs");
-                      const start = String(c.startDate ?? c.certificateDate ?? "").slice(0, 10);
-                      const end = String(c.endDate ?? c.certificateDate ?? "").slice(0, 10);
-                      const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "";
-                      const codes = id ? milestoneCodesForCourse(id) : [];
-                      return (
-                        <div key={id || title + period} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-[14px] font-semibold text-slate-900">{title}</div>
-                              {period ? <div className="text-xs text-slate-600">{period}</div> : null}
-                            </div>
-                            <div className="flex flex-wrap justify-end gap-1">
-                              {codes.map((code) => (
-                                <span key={code} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                                  {code}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="mt-2 rounded-xl border bg-white overflow-hidden">
+                    <div className="max-h-[32vh] overflow-auto">
+                      <table className="w-full text-sm select-none">
+                        <thead className="sticky top-0 bg-slate-50 text-left">
+                          <tr>
+                            <th className="px-3 py-2">Kurs</th>
+                            <th className="px-3 py-2">Datum</th>
+                            <th className="px-3 py-2 text-right">Delmål</th>
+                          </tr>
+                        </thead>
+                        <tbody className="cursor-default">
+                          {coursesSince.map((c: any) => {
+                            const id = String(c.id ?? "");
+                            const title = String(c.title ?? c.courseName ?? "Kurs");
+                            const start = String(c.startDate ?? c.certificateDate ?? "").slice(0, 10);
+                            const end = String(c.endDate ?? c.certificateDate ?? "").slice(0, 10);
+                            const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "—";
+                            const codes = id ? milestoneCodesForCourse(id) : [];
+
+                            return (
+                              <tr key={id || title + period} className="border-t hover:bg-slate-50">
+                                <td className="px-3 py-1.5 font-semibold text-slate-900" data-info={title}>
+                                  {title}
+                                </td>
+                                <td className="px-3 py-1.5 text-slate-700" data-info={period}>
+                                  {period}
+                                </td>
+                                <td className="px-3 py-1.5">
+                                  <div className="flex flex-wrap justify-end gap-1">
+                                    {codes.length === 0 ? (
+                                      <span className="text-slate-400">—</span>
+                                    ) : (
+                                      codes.map((code) => (
+                                        <span
+                                          key={code}
+                                          className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                                        >
+                                          {code}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
