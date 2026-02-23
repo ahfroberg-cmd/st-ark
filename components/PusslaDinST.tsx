@@ -331,6 +331,20 @@ function mondayNearestTo(year: number, month0: number, day: number) {
   return res;
 }
 
+function sundayNearestTo(year: number, month0: number, day: number) {
+  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
+    return new Date();
+  }
+  const target = new Date(year, month0, day);
+  const w = target.getDay(); // 0=sön..6=lör
+  const back = -w;
+  const forward = (7 - w) % 7;
+  const use = Math.abs(back) <= Math.abs(forward) ? back : forward;
+  const res = new Date(target);
+  res.setDate(res.getDate() + use);
+  return res;
+}
+
 // söndag NÄRMAST given dag i månad (klampar in i månaden)
 // närmaste SÖNDAG inom samma månad, runt given dag
 function sundayOnOrBefore(year: number, month0: number, day: number) {
@@ -362,20 +376,6 @@ function sundayOnOrBefore(year: number, month0: number, day: number) {
     return Math.abs(+candA - +target) <= Math.abs(+candB - +target) ? candA : candB;
   }
   return candA || candB || new Date(year, month0 + 1, 0);
-}
-
-function sundayNearestTo(year: number, month0: number, day: number) {
-  if (!Number.isFinite(year) || !Number.isFinite(month0) || !Number.isFinite(day)) {
-    return new Date();
-  }
-  const target = new Date(year, month0, day);
-  const w = target.getDay(); // 0=sön
-  const back = -(w % 7);
-  const forward = (7 - w) % 7;
-  const use = Math.abs(back) <= Math.abs(forward) ? back : forward;
-  const res = new Date(target);
-  res.setDate(res.getDate() + use);
-  return res;
 }
 
 
@@ -2619,12 +2619,12 @@ useEffect(() => {
       const eSlot = a.startSlot + Math.max(1, a.lengthSlots) - 1;
       const e = slotToYearMonthHalf(startYear, eSlot);
 
-      const startD = mondayOnOrAfter(s.year, s.month0, s.half === 0 ? 1 : 15);
+      const startD = mondayNearestTo(s.year, s.month0, s.half === 0 ? 1 : 15);
       const endBoundaryDay = e.half === 0 ? 15 : 1;
       const endBoundaryMonthRaw = e.month0 + (e.half === 1 ? 1 : 0);
       const endBoundaryYear = e.year + (endBoundaryMonthRaw > 11 ? 1 : 0);
       const endBoundaryMonthNorm = (endBoundaryMonthRaw + 12) % 12;
-      const endD = sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
+      const endD = sundayNearestTo(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
 
       const a0 = +startD;
       const a1 = +endD + 86400000; // exklusivt slut
@@ -3033,7 +3033,7 @@ const loadingRef = useRef(false);
         const withPhaseActs: Activity[] = lockedActs.map((a: any) => {
           // Räkna ut START-ISO (fas för placeringsobjekt sätts av start)
           const s = slotToYearMonthHalf(effectiveStartYear, a.startSlot);
-          const startD = mondayOnOrAfter(
+          const startD = mondayNearestTo(
             s.year,
             s.month0,
             s.half === 0 ? 1 : 15
@@ -3431,12 +3431,12 @@ function computeEducationalGaps(acts: Activity[]) {
   const s = slotToYearMonthHalf(startYear, start);
   const eSlot = start + len - 1;
   const e = slotToYearMonthHalf(startYear, eSlot);
-  const startISO = dateToISO(mondayOnOrAfter(s.year, s.month0, s.half === 0 ? 1 : 15));
+  const startISO = dateToISO(mondayNearestTo(s.year, s.month0, s.half === 0 ? 1 : 15));
   const endBoundaryDay = e.half === 0 ? 15 : 1;
   const endBoundaryMonthRaw = e.month0 + (e.half === 1 ? 1 : 0);
   const endBoundaryYear = e.year + (endBoundaryMonthRaw > 11 ? 1 : 0);
   const endBoundaryMonthNorm = (endBoundaryMonthRaw + 12) % 12;
-  const endISO = dateToISO(sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay));
+  const endISO = dateToISO(sundayNearestTo(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay));
 
   // BT-fönster = [btStartISO, btEndISO) där btEndISO = stStartDate eller btEndDate eller btStart + 24 mån
   const is2021Profile = String((profile as any)?.goalsVersion || "").trim() === "2021";
@@ -3758,7 +3758,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
               let phase: "BT" | "ST" = (a as any).phase || "ST";
               if (goals2021 && btISO && stISO) {
                 const s = slotToYearMonthHalf(startYear, newStart);
-                const startD = mondayOnOrAfter(
+                const startD = mondayNearestTo(
                   s.year,
                   s.month0,
                   s.half === 0 ? 1 : 15
@@ -5764,7 +5764,7 @@ const overlaps = useMemo(() => {
     const endBoundaryYear = e.year + (endBoundaryMonthRaw > 11 ? 1 : 0);
     const endBoundaryMonthNorm = (endBoundaryMonthRaw + 12) % 12;
 
-    const endD = sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
+    const endD = sundayNearestTo(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
     return { startISO: dateToISO(startD), endISO: dateToISO(endD) };
   }
 
@@ -5833,7 +5833,7 @@ useEffect(() => {
   const endBoundaryMonthRaw = e.month0 + (e.half === 1 ? 1 : 0);
   const endBoundaryYear = e.year + (endBoundaryMonthRaw > 11 ? 1 : 0);
   const endBoundaryMonthNorm = (endBoundaryMonthRaw + 12) % 12;
-  const endD = sundayOnOrBefore(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
+  const endD = sundayNearestTo(endBoundaryYear, endBoundaryMonthNorm, endBoundaryDay);
   setStEndISO(dateToISO(endD));
 }, [activities, restAttendance, totalPlanMonths, stStartISO, profile]);
 
@@ -5874,11 +5874,11 @@ function roundToAnchors(iso: string, which: "start" | "end") {
 
   if (which === "start") {
     // vänsterkant = måndag NÄRMAST ankarpunkten
-    const md = mondayOnOrAfter(y, m0, anchorDay);
+    const md = mondayNearestTo(y, m0, anchorDay);
     return dateToISO(md);
   } else {
     // högerkant = söndag NÄRMAST ankarpunkten
-    const sd = sundayOnOrBefore(y, m0, anchorDay === 15 ? 15 : 1);
+    const sd = sundayNearestTo(y, m0, anchorDay);
     return dateToISO(sd);
   }
 }
@@ -6569,7 +6569,7 @@ const savePlacementToDb = useCallback(
         const s = String(a?.exactStartISO || "");
         if (isValidISO(s)) return s;
         const sh = slotToYearMonthHalf(startYear, a.startSlot);
-        return dateToISO(mondayOnOrAfter(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
+        return dateToISO(mondayNearestTo(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
       };
 
       const activityEndISO = (a: any): string => {
@@ -6577,7 +6577,7 @@ const savePlacementToDb = useCallback(
         if (isValidISO(e)) return e;
         const eSlot = a.startSlot + a.lengthSlots - 1;
         const eh = slotToYearMonthHalf(startYear, eSlot);
-        const d = sundayOnOrBefore(
+        const d = sundayNearestTo(
           eh.year + (eh.half === 1 && eh.month0 === 11 ? 1 : (eh.month0 + (eh.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
           (eh.month0 + (eh.half === 1 ? 1 : 0) + 12) % 12,
           eh.half === 0 ? 15 : 1
@@ -7487,12 +7487,12 @@ const persistTimelineToDb = async () => {
         // Hjälpare: visa EXAKTA datum om de finns; annars härled från slots
         const actStartISO = selAct ? (selAct.exactStartISO || (() => {
           const s = slotToYearMonthHalf(startYear, selAct.startSlot);
-          return dateToISO(mondayOnOrAfter(s.year, s.month0, s.half===0?1:15));
+          return dateToISO(mondayNearestTo(s.year, s.month0, s.half===0?1:15));
         })()) : "";
         const actEndISO = selAct ? (selAct.exactEndISO || (() => {
           const eSlot = selAct.startSlot + selAct.lengthSlots - 1;
           const e = slotToYearMonthHalf(startYear, eSlot);
-          const d = sundayOnOrBefore(
+          const d = sundayNearestTo(
             e.year + (e.half===1 && e.month0===11 ? 1 : (e.month0 + (e.half===1?1:0) > 11 ? 1 : 0)),
             (e.month0 + (e.half===1?1:0) + 12)%12,
             e.half===0?15:1
@@ -7523,7 +7523,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     const s = String(a?.exactStartISO || "");
     if (isValidISO(s)) return s;
     const sh = slotToYearMonthHalf(startYear, a.startSlot);
-    return dateToISO(mondayOnOrAfter(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
+    return dateToISO(mondayNearestTo(sh.year, sh.month0, sh.half === 0 ? 1 : 15));
   };
 
   const activityEndISO = (a: any): string => {
@@ -7531,7 +7531,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     if (isValidISO(e)) return e;
     const eSlot = a.startSlot + a.lengthSlots - 1;
     const eh = slotToYearMonthHalf(startYear, eSlot);
-    const d = sundayOnOrBefore(
+    const d = sundayNearestTo(
       eh.year + (eh.half === 1 && eh.month0 === 11 ? 1 : (eh.month0 + (eh.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
       (eh.month0 + (eh.half === 1 ? 1 : 0) + 12) % 12,
       eh.half === 0 ? 15 : 1
@@ -7607,13 +7607,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
   const slotStartToISO = (slot: number): string => {
     const s = slotToYearMonthHalf(startYear, slot);
-    return dateToISO(mondayOnOrAfter(s.year, s.month0, s.half === 0 ? 1 : 15));
+    return dateToISO(mondayNearestTo(s.year, s.month0, s.half === 0 ? 1 : 15));
   };
 
   const slotEndToISO = (startSlot: number, lengthSlots: number): string => {
     const eSlot = startSlot + lengthSlots - 1;
     const e = slotToYearMonthHalf(startYear, eSlot);
-    const d = sundayOnOrBefore(
+    const d = sundayNearestTo(
       e.year + (e.half === 1 && e.month0 === 11 ? 1 : (e.month0 + (e.half === 1 ? 1 : 0) > 11 ? 1 : 0)),
       (e.month0 + (e.half === 1 ? 1 : 0) + 12) % 12,
       e.half === 0 ? 15 : 1
