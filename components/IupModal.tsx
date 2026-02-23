@@ -204,7 +204,7 @@ function DirectorMeetingModal({
   const handleSave = () => {
     if (!draft) return;
     onSave(draft);
-    onClose();
+    setDirty(false);
   };
 
   if (!open || !meeting || !draft) return null;
@@ -1594,7 +1594,6 @@ function SpecialistCollegiumModal({
     if (!draft) return;
     onSave(draft);
     setDirty(false);
-    onClose();
   };
 
   if (!open || !draft) return null;
