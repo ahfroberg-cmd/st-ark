@@ -1785,6 +1785,62 @@ function StudentDetailModal({
     }, 0);
   }, [placements, goalsVersion, profileStStartISO, profileBtStartISO, todayISO, pickPercent]);
 
+  const workedCombinedFteSlots = useMemo(() => {
+    if (!placements || placements.length === 0) return 0;
+    const today = todayISO;
+
+    const baseStartISO = goalsVersion === "2021" ? profileBtStartISO : profileStStartISO;
+    if (!baseStartISO) return 0;
+
+    const startYearForSlots = new Date(baseStartISO + "T00:00:00").getFullYear();
+    const baseStartSlot = dateToSlotSnapped(startYearForSlots, baseStartISO, "start");
+    const todaySlot = dateToSlotSnapped(startYearForSlots, today, "end");
+    if (!Number.isFinite(baseStartSlot) || !Number.isFinite(todaySlot)) return 0;
+
+    if (goalsVersion === "2021") {
+      const btStart = profileBtStartISO;
+      if (!btStart) return 0;
+      const btStartMs = new Date(btStart + "T00:00:00").getTime();
+      return (placements as any[]).reduce((acc, p) => {
+        if (isZeroAttendancePlacementType(p?.type)) return acc;
+        const start = normalizeToISODate(p?.startDate || p?.startISO || p?.start || "");
+        if (!start) return acc;
+        const startMs = new Date(start + "T00:00:00").getTime();
+        if (!Number.isFinite(startMs) || startMs < btStartMs) return acc;
+
+        const endRaw = normalizeToISODate(p?.endDate || p?.endISO || p?.end || today) || today;
+        const end = endRaw > today ? today : endRaw;
+        const s0 = dateToSlotSnapped(startYearForSlots, start, "start");
+        const e0 = dateToSlotSnapped(startYearForSlots, end, "end");
+        if (!Number.isFinite(s0) || !Number.isFinite(e0)) return acc;
+
+        const s = Math.max(baseStartSlot, s0);
+        const e = Math.min(todaySlot, e0);
+        if (e < s) return acc;
+        const slots = e - s + 1;
+        return acc + slots * (pickPercent(p) / 100);
+      }, 0);
+    }
+
+    const stStart = profileStStartISO;
+    if (!stStart) return 0;
+    return (placements as any[]).reduce((acc, p) => {
+      if (isZeroAttendancePlacementType(p?.type)) return acc;
+      const start = normalizeToISODate(p?.startDate || p?.startISO || p?.start || "");
+      if (!start) return acc;
+      const endRaw = normalizeToISODate(p?.endDate || p?.endISO || p?.end || today) || today;
+      const end = endRaw > today ? today : endRaw;
+      const s0 = dateToSlotSnapped(startYearForSlots, start, "start");
+      const e0 = dateToSlotSnapped(startYearForSlots, end, "end");
+      if (!Number.isFinite(s0) || !Number.isFinite(e0)) return acc;
+      const s = Math.max(baseStartSlot, s0);
+      const e = Math.min(todaySlot, e0);
+      if (e < s) return acc;
+      const slots = e - s + 1;
+      return acc + slots * (pickPercent(p) / 100);
+    }, 0);
+  }, [placements, goalsVersion, profileStStartISO, profileBtStartISO, todayISO, pickPercent]);
+
   const totalCombinedDays = useMemo(() => {
     if (!profileEndISO) return 0;
     if (goalsVersion !== "2021") {
@@ -1797,12 +1853,23 @@ function StudentDetailModal({
     return fteDaysBetween(btStart, profileEndISO, 100);
   }, [goalsVersion, profileBtStartISO, profileStStartISO, profileEndISO]);
 
+  const totalCombinedSlots = useMemo(() => {
+    if (!profileEndISO) return 0;
+    const baseStartISO = goalsVersion === "2021" ? profileBtStartISO : profileStStartISO;
+    if (!baseStartISO) return 0;
+    const startYearForSlots = new Date(baseStartISO + "T00:00:00").getFullYear();
+    const s = dateToSlotSnapped(startYearForSlots, baseStartISO, "start");
+    const e = dateToSlotSnapped(startYearForSlots, profileEndISO, "end");
+    if (!Number.isFinite(s) || !Number.isFinite(e) || e < s) return 0;
+    return e - s + 1;
+  }, [goalsVersion, profileBtStartISO, profileStStartISO, profileEndISO]);
+
   const progressPct = useMemo(() => {
-    if (!totalCombinedDays || totalCombinedDays <= 0) return 0;
-    const raw = (workedCombinedFteDays / totalCombinedDays) * 100;
+    if (!totalCombinedSlots || totalCombinedSlots <= 0) return 0;
+    const raw = (workedCombinedFteSlots / totalCombinedSlots) * 100;
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
-  }, [workedCombinedFteDays, totalCombinedDays]);
+  }, [workedCombinedFteSlots, totalCombinedSlots]);
 
   const timeDetails = useMemo(() => {
     if (!profileEndISO) {
@@ -3366,27 +3433,15 @@ function StudentDetailModal({
 function calculateProgress(student: SupervisorStudent): number {
   const placements = student.placements || [];
   const todayISO = new Date().toISOString().slice(0, 10);
-  let workedFteDays = 0;
-
-  for (const p of placements as any[]) {
-    const s = String(p?.startDate || "").slice(0, 10);
-    const e = String(p?.endDate || "").slice(0, 10);
-    if (!s || !e) continue;
-
-    const attendanceRaw = typeof p?.attendance === "number" ? p.attendance : 100;
-    const attendance = isZeroAttendancePlacementType(p?.type) ? 0 : attendanceRaw;
-
-    // Genomfört t.o.m. idag (klipp framtiden)
-    const workedEnd = e < todayISO ? e : todayISO;
-    if (workedEnd >= s) {
-      workedFteDays += fteDaysBetween(s, workedEnd, attendance);
-    }
-  }
 
   const profile: any = student.profile || {};
   const goalsVersion = student.goalsVersion;
   const profileBtStartISO = normalizeToISODate(profile?.btStartDate);
   const profileStStartISO = normalizeToISODate(profile?.stStartDate);
+
+  const baseStartISO =
+    goalsVersion === "2021" ? (profileBtStartISO || null) : (profileStStartISO || null);
+  if (!baseStartISO) return 0;
 
   const profileEndISO = (() => {
     const raw = (profile?.stEndDate || profile?.stEndISO || "") as string;
@@ -3397,19 +3452,42 @@ function calculateProgress(student: SupervisorStudent): number {
     return base ? addMonthsISO(base, months) : null;
   })();
 
-  const remainingCalendarDays = (() => {
-    if (!profileEndISO || !isValidISODate(profileEndISO)) return 0;
-    const t0 = new Date(todayISO + "T00:00:00").getTime();
-    const t1 = new Date(profileEndISO + "T00:00:00").getTime();
-    if (!Number.isFinite(t0) || !Number.isFinite(t1)) return 0;
-    if (t1 <= t0) return 0;
-    const msPerDay = 24 * 60 * 60 * 1000;
-    return Math.max(0, Math.floor((t1 - t0) / msPerDay));
-  })();
+  if (!profileEndISO || !isValidISODate(profileEndISO)) return 0;
 
-  const denom = workedFteDays + remainingCalendarDays;
-  if (denom <= 0) return 0;
-  const pct = (workedFteDays / denom) * 100;
+  const startYearForSlots = new Date(baseStartISO + "T00:00:00").getFullYear();
+  const baseStartSlot = dateToSlotSnapped(startYearForSlots, baseStartISO, "start");
+  const planEndSlot = dateToSlotSnapped(startYearForSlots, profileEndISO, "end");
+  const todaySlot = dateToSlotSnapped(startYearForSlots, todayISO, "end");
+  if (!Number.isFinite(baseStartSlot) || !Number.isFinite(planEndSlot) || planEndSlot < baseStartSlot) {
+    return 0;
+  }
+
+  const totalSlots = planEndSlot - baseStartSlot + 1;
+  const workedLimitSlot = Math.min(todaySlot, planEndSlot);
+  if (workedLimitSlot < baseStartSlot) return 0;
+
+  const workedFteSlots = (placements as any[]).reduce((acc, p) => {
+    if (isZeroAttendancePlacementType(p?.type)) return acc;
+    const sISO = normalizeToISODate(p?.startDate || p?.startISO || p?.start || "");
+    if (!sISO) return acc;
+    const eISOraw = normalizeToISODate(p?.endDate || p?.endISO || p?.end || todayISO) || todayISO;
+    const eISO = eISOraw > todayISO ? todayISO : eISOraw;
+
+    const s0 = dateToSlotSnapped(startYearForSlots, sISO, "start");
+    const e0 = dateToSlotSnapped(startYearForSlots, eISO, "end");
+    if (!Number.isFinite(s0) || !Number.isFinite(e0)) return acc;
+
+    const s = Math.max(baseStartSlot, s0);
+    const e = Math.min(workedLimitSlot, e0);
+    if (e < s) return acc;
+
+    const slots = e - s + 1;
+    const attendanceRaw = typeof p?.attendance === "number" ? p.attendance : 100;
+    const attendance = Number.isFinite(attendanceRaw) ? Math.max(0, Math.min(100, attendanceRaw)) : 100;
+    return acc + slots * (attendance / 100);
+  }, 0);
+
+  const pct = (workedFteSlots / totalSlots) * 100;
   return Math.min(100, Math.max(0, Math.round(pct)));
 }
 
