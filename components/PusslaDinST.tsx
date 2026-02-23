@@ -4374,7 +4374,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               style={{
                 top: "1.75rem",
                 height: "0.75rem",
-                backgroundImage: `radial-gradient(circle at ${Math.max(0, courseHoverSpot.xPx)}px 50%, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.12) 10px, rgba(15, 23, 42, 0.00) 22px)`,
+                backgroundImage: `radial-gradient(circle at ${Math.max(0, courseHoverSpot.xPx)}px 50%, rgba(15, 23, 42, 0.22), rgba(15, 23, 42, 0.08) 10px, rgba(15, 23, 42, 0.00) 22px)`,
               }}
               aria-hidden="true"
             />
