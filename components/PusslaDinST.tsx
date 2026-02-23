@@ -2118,24 +2118,20 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
   const [iupInitialAssessmentId, setIupInitialAssessmentId] =
     useState<string | null>(null);
   const [iupInitialDirectorMeetingId, setIupInitialDirectorMeetingId] = useState<string | null>(null);
-  const [supervisionSessions, setSupervisionSessions] =
-    useState<SupervisionSession[]>([]);
-  const [hoveredSupervisionId, setHoveredSupervisionId] = useState<
-    string | null
-  >(null);
-  const [assessmentSessions, setAssessmentSessions] =
-    useState<AssessmentSession[]>([]);
-  const [hoveredAssessmentId, setHoveredAssessmentId] = useState<
-    string | null
-  >(null);
+  const [iupInitialSpecialistCollegiumId, setIupInitialSpecialistCollegiumId] = useState<string | null>(null);
+  const [supervisionSessions, setSupervisionSessions] = useState<SupervisionSession[]>([]);
+  const [hoveredSupervisionId, setHoveredSupervisionId] = useState<string | null>(null);
+  const [assessmentSessions, setAssessmentSessions] = useState<AssessmentSession[]>([]);
+  const [hoveredAssessmentId, setHoveredAssessmentId] = useState<string | null>(null);
   const [directorMeetingSessions, setDirectorMeetingSessions] = useState<SupervisionSession[]>([]);
   const [hoveredDirectorMeetingId, setHoveredDirectorMeetingId] = useState<string | null>(null);
+  const [specialistCollegiumSessions, setSpecialistCollegiumSessions] = useState<AssessmentSession[]>([]);
+  const [hoveredSpecialistCollegiumId, setHoveredSpecialistCollegiumId] = useState<string | null>(null);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
-  const [showSupervisionOnTimeline, setShowSupervisionOnTimeline] =
-    useState<boolean>(true);
-  const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] =
-    useState<boolean>(true);
+  const [showSupervisionOnTimeline, setShowSupervisionOnTimeline] = useState<boolean>(true);
+  const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] = useState<boolean>(true);
   const [showDirectorMeetingsOnTimeline, setShowDirectorMeetingsOnTimeline] = useState<boolean>(true);
+  const [showSpecialistCollegiumsOnTimeline, setShowSpecialistCollegiumsOnTimeline] = useState<boolean>(true);
 
   
 
@@ -2221,6 +2217,10 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
                 level?: string;
                 instrument?: string;
               }[];
+              specialistCollegiums?: {
+                id?: string;
+                dateISO?: string;
+              }[];
             }
           | undefined;
 
@@ -2249,10 +2249,29 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
           : [];
 
         setAssessmentSessions(next);
+
+        const nextSpec: AssessmentSession[] = Array.isArray((row as any)?.specialistCollegiums)
+          ? ((row as any).specialistCollegiums as any[])
+              .filter(
+                (m) =>
+                  m &&
+                  typeof (m as any).id === "string" &&
+                  (m as any).id &&
+                  typeof (m as any).dateISO === "string" &&
+                  (m as any).dateISO
+              )
+              .map((m: any) => ({
+                id: String(m.id),
+                dateISO: String(m.dateISO),
+                title: "Specialistkollegium",
+              }))
+          : [];
+        setSpecialistCollegiumSessions(nextSpec);
       } catch (e) {
         console.error("Kunde inte läsa progressionsbedömningar från IUP:", e);
         if (!cancelled) {
           setAssessmentSessions([]);
+          setSpecialistCollegiumSessions([]);
         }
       }
     })();
@@ -2274,6 +2293,7 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
               showMeetingsOnTimeline?: boolean;
               showAssessmentsOnTimeline?: boolean;
               showDirectorMeetingsOnTimeline?: boolean;
+              showSpecialistCollegiumsOnTimeline?: boolean;
             }
           | undefined;
 
@@ -2296,12 +2316,19 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
         } else {
           setShowDirectorMeetingsOnTimeline(true);
         }
+
+        if (typeof (row as any)?.showSpecialistCollegiumsOnTimeline === "boolean") {
+          setShowSpecialistCollegiumsOnTimeline((row as any).showSpecialistCollegiumsOnTimeline);
+        } else {
+          setShowSpecialistCollegiumsOnTimeline(true);
+        }
       } catch (e) {
         console.error("Kunde inte läsa visningsflaggor för IUP:", e);
         if (!cancelled) {
           setShowSupervisionOnTimeline(true);
           setShowAssessmentsOnTimeline(true);
           setShowDirectorMeetingsOnTimeline(true);
+          setShowSpecialistCollegiumsOnTimeline(true);
         }
       }
     })();
@@ -4779,6 +4806,66 @@ dragPlacementRef.current = {
     overflow: "visible", // ← viktigast: låt piggen få sticka ut lite
   }}
 >
+  {/* Specialistkollegium – stjärnor i kursspåret */}
+  {specialistCollegiumSessions
+    .filter((m) => {
+      if (!showSpecialistCollegiumsOnTimeline) return false;
+      if (!m.dateISO || !isValidISO(m.dateISO)) return false;
+      const d = isoToDateSafe(m.dateISO);
+      return d.getFullYear() === year;
+    })
+    .map((m) => {
+      const d = isoToDateSafe(m.dateISO);
+      if (isNaN(d.getTime())) return null;
+
+      const total = Math.max(1, daysInYear(year) - 1);
+      const dayIndex = dayOfYear(d);
+      const pct = clamp((dayIndex / total) * 100, 0, 100);
+
+      const isHovered = hoveredSpecialistCollegiumId === m.id;
+
+      const baseColor = "#f59e0b";
+      const hoverColor = "#facc15";
+      const strokeColor = "#d97706";
+
+      return (
+        <button
+          key={m.id + "@spec@" + year}
+          type="button"
+          className="pointer-events-auto absolute z-[300]"
+          style={{
+            left: `${pct}%`,
+            top: "-0.5rem",
+            transform: isHovered
+              ? "translate(-50%, -1px) scale(1.05)"
+              : "translate(-50%, 0) scale(1)",
+          }}
+          onMouseEnter={() => setHoveredSpecialistCollegiumId(m.id)}
+          onMouseLeave={() =>
+            setHoveredSpecialistCollegiumId((prev) => (prev === m.id ? null : prev))
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            setIupInitialTab("progression");
+            setIupInitialSpecialistCollegiumId(m.id);
+            setIupOpen(true);
+          }}
+          title={`Specialistkollegium (${m.dateISO})`}
+          data-info="Specialistkollegium. Klicka här för att öppna detta specialistkollegium i IUP-modalen där du kan redigera datum, återkoppling och planering."
+        >
+          <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" style={{ display: "block" }}>
+            <path
+              d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
+              fill={isHovered ? hoverColor : baseColor}
+              stroke={strokeColor}
+              strokeWidth={1.3}
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      );
+    })}
+
   {/* Studierektorsmöten – trianglar i kursspåret */}
   {directorMeetingSessions
     .filter((s) => {
@@ -10214,11 +10301,13 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     setIupInitialMeetingId(null);
     setIupInitialAssessmentId(null);
     setIupInitialDirectorMeetingId(null);
+    setIupInitialSpecialistCollegiumId(null);
   }}
   initialTab={iupInitialTab ?? undefined}
   initialMeetingId={iupInitialMeetingId}
   initialAssessmentId={iupInitialAssessmentId}
   initialDirectorMeetingId={iupInitialDirectorMeetingId}
+  initialSpecialistCollegiumId={iupInitialSpecialistCollegiumId}
   onMeetingsChange={(sessions) => {
     const next: SupervisionSession[] = Array.isArray(sessions)
       ? (sessions as any[])
@@ -10291,9 +10380,29 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
     setDirectorMeetingSessions(next);
   }}
+  onSpecialistCollegiumsChange={(sessions) => {
+    const next: AssessmentSession[] = Array.isArray(sessions)
+      ? (sessions as any[])
+          .filter(
+            (m: any) =>
+              m &&
+              typeof m.id === "string" &&
+              m.id &&
+              typeof m.dateISO === "string" &&
+              m.dateISO
+          )
+          .map((m: any) => ({
+            id: String(m.id),
+            dateISO: String(m.dateISO),
+            title: "Specialistkollegium",
+          }))
+      : [];
+    setSpecialistCollegiumSessions(next);
+  }}
   showMeetingsOnTimeline={showSupervisionOnTimeline}
   showAssessmentsOnTimeline={showAssessmentsOnTimeline}
   showDirectorMeetingsOnTimeline={showDirectorMeetingsOnTimeline}
+  showSpecialistCollegiumsOnTimeline={showSpecialistCollegiumsOnTimeline}
   onTimelineVisibilityChange={(value) => {
     if (typeof value.showMeetingsOnTimeline === "boolean") {
       setShowSupervisionOnTimeline(value.showMeetingsOnTimeline);
@@ -10303,6 +10412,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     }
     if (typeof value.showDirectorMeetingsOnTimeline === "boolean") {
       setShowDirectorMeetingsOnTimeline(value.showDirectorMeetingsOnTimeline);
+    }
+    if (typeof (value as any).showSpecialistCollegiumsOnTimeline === "boolean") {
+      setShowSpecialistCollegiumsOnTimeline((value as any).showSpecialistCollegiumsOnTimeline);
     }
   }}
 />

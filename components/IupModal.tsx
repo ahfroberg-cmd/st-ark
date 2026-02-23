@@ -48,6 +48,13 @@ export type IupAssessment = {
   development: string; // Utvecklingsområden
 };
 
+export type IupSpecialistCollegium = {
+  id: string;
+  dateISO: string;
+  feedback: string;
+  planningForward: string;
+};
+
 export type IupDirectorMeeting = {
   id: string;
   dateISO: string;
@@ -89,6 +96,7 @@ type Props = {
   initialMeetingId?: string | null;
   initialAssessmentId?: string | null;
   initialDirectorMeetingId?: string | null;
+  initialSpecialistCollegiumId?: string | null;
   onMeetingsChange?: (
     sessions: { id: string; dateISO: string; title?: string }[]
   ) => void;
@@ -98,13 +106,18 @@ type Props = {
   onDirectorMeetingsChange?: (
     sessions: { id: string; dateISO: string; title?: string }[]
   ) => void;
+  onSpecialistCollegiumsChange?: (
+    sessions: { id: string; dateISO: string; title?: string }[]
+  ) => void;
   showMeetingsOnTimeline?: boolean;
   showAssessmentsOnTimeline?: boolean;
   showDirectorMeetingsOnTimeline?: boolean;
+  showSpecialistCollegiumsOnTimeline?: boolean;
   onTimelineVisibilityChange?: (value: {
     showMeetingsOnTimeline?: boolean;
     showAssessmentsOnTimeline?: boolean;
     showDirectorMeetingsOnTimeline?: boolean;
+    showSpecialistCollegiumsOnTimeline?: boolean;
   }) => void;
 };
 
@@ -657,12 +670,14 @@ type IupSettingsRow = {
   meetings?: IupMeeting[];
   assessments?: IupAssessment[];
   directorMeetings?: IupDirectorMeeting[];
+  specialistCollegiums?: IupSpecialistCollegium[];
   planning?: IupPlanning;
   planningExtra?: ExtraPlanningSection[];
   instruments?: string[];
   showMeetingsOnTimeline?: boolean;
   showAssessmentsOnTimeline?: boolean;
   showDirectorMeetingsOnTimeline?: boolean;
+  showSpecialistCollegiumsOnTimeline?: boolean;
   planningHidden?: string[];
 };
 
@@ -1746,12 +1761,15 @@ export default function IupModal({
   initialMeetingId,
   initialAssessmentId,
   initialDirectorMeetingId,
+  initialSpecialistCollegiumId,
   onMeetingsChange,
   onAssessmentsChange,
   onDirectorMeetingsChange,
+  onSpecialistCollegiumsChange,
   showMeetingsOnTimeline: propShowMeetingsOnTimeline,
   showAssessmentsOnTimeline: propShowAssessmentsOnTimeline,
   showDirectorMeetingsOnTimeline: propShowDirectorMeetingsOnTimeline,
+  showSpecialistCollegiumsOnTimeline: propShowSpecialistCollegiumsOnTimeline,
   onTimelineVisibilityChange,
 }: Props) {
 
@@ -1763,6 +1781,7 @@ export default function IupModal({
   const [meetings, setMeetings] = useState<IupMeeting[]>([]);
   const [assessments, setAssessments] = useState<IupAssessment[]>([]);
   const [directorMeetings, setDirectorMeetings] = useState<IupDirectorMeeting[]>([]);
+  const [specialistCollegiums, setSpecialistCollegiums] = useState<IupSpecialistCollegium[]>([]);
   const [planning, setPlanning] = useState<IupPlanning>(defaultPlanning);
   const [planningExtra, setPlanningExtra] = useState<ExtraPlanningSection[]>([]);
   const [instruments, setInstruments] = useState<string[]>(DEFAULT_INSTRUMENTS);
@@ -1826,6 +1845,7 @@ export default function IupModal({
   const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] =
     useState(true);
   const [showDirectorMeetingsOnTimeline, setShowDirectorMeetingsOnTimeline] = useState(true);
+  const [showSpecialistCollegiumsOnTimeline, setShowSpecialistCollegiumsOnTimeline] = useState(true);
 
   // Kryssrutor för Utbildningsmoment (Genomförda / Pågående / Planerade)
   const [reportStatusFilter, setReportStatusFilter] = useState<{
@@ -1868,6 +1888,8 @@ export default function IupModal({
 
   const [editingDirectorMeetingId, setEditingDirectorMeetingId] = useState<string | null>(null);
 
+  const [editingSpecialistCollegiumId, setEditingSpecialistCollegiumId] = useState<string | null>(null);
+
   // Förhandsvisning – Planering och handledning
   const [planHandPreviewOpen, setPlanHandPreviewOpen] = useState(false);
   const planHandPreviewContentRef = useRef<HTMLDivElement | null>(null);
@@ -1885,6 +1907,7 @@ export default function IupModal({
       nextMeetings: IupMeeting[],
       nextAssessments: IupAssessment[],
       nextDirectorMeetings: IupDirectorMeeting[],
+      nextSpecialistCollegiums: IupSpecialistCollegium[],
       nextPlanning: IupPlanning,
       nextPlanningExtra: ExtraPlanningSection[]
     ): Promise<boolean> => {
@@ -1894,12 +1917,14 @@ export default function IupModal({
           meetings: nextMeetings,
           assessments: nextAssessments,
           directorMeetings: nextDirectorMeetings,
+          specialistCollegiums: nextSpecialistCollegiums,
           planning: nextPlanning,
           planningExtra: nextPlanningExtra,
           instruments,
           showMeetingsOnTimeline,
           showAssessmentsOnTimeline,
           showDirectorMeetingsOnTimeline,
+          showSpecialistCollegiumsOnTimeline,
           planningHidden: hiddenPlanningKeys,
         };
 
@@ -1965,6 +1990,24 @@ export default function IupModal({
           onDirectorMeetingsChange(sessions);
         }
 
+        if (onSpecialistCollegiumsChange) {
+          const sessions = nextSpecialistCollegiums
+            .filter(
+              (m) =>
+                m &&
+                typeof m.id === "string" &&
+                m.id &&
+                typeof m.dateISO === "string" &&
+                m.dateISO
+            )
+            .map((m) => ({
+              id: m.id,
+              dateISO: m.dateISO,
+              title: "Specialistkollegium",
+            }));
+          onSpecialistCollegiumsChange(sessions);
+        }
+
         return true;
       } catch (e) {
         console.error("Kunde inte spara IUP till DB:", e);
@@ -1979,9 +2022,11 @@ export default function IupModal({
       onMeetingsChange,
       onAssessmentsChange,
       onDirectorMeetingsChange,
+      onSpecialistCollegiumsChange,
       showMeetingsOnTimeline,
       showAssessmentsOnTimeline,
       showDirectorMeetingsOnTimeline,
+      showSpecialistCollegiumsOnTimeline,
     ]
   );
 
@@ -2003,6 +2048,7 @@ export default function IupModal({
     setEditingMeetingId(initialMeetingId ?? null);
     setEditingAssessmentId(initialAssessmentId ?? null);
     setEditingDirectorMeetingId(initialDirectorMeetingId ?? null);
+    setEditingSpecialistCollegiumId(initialSpecialistCollegiumId ?? null);
     setShowCloseConfirm(false);
 
 
@@ -2031,6 +2077,17 @@ export default function IupModal({
                   : {},
               personalDevelopment: String((m as any)?.personalDevelopment || ""),
               extraAssignments: String((m as any)?.extraAssignments || ""),
+            }))
+          : [];
+
+        const loadedSpecialistCollegiums: IupSpecialistCollegium[] = Array.isArray(
+          (row as any)?.specialistCollegiums
+        )
+          ? ((row as any).specialistCollegiums as any[]).map((m: any, i: number) => ({
+              id: String(m?.id || `sc_${i}_${Math.random().toString(36).slice(2, 10)}`),
+              dateISO: String(m?.dateISO || ""),
+              feedback: String(m?.feedback || ""),
+              planningForward: String(m?.planningForward || ""),
             }))
           : [];
         const loadedPlanning = row?.planning
@@ -2073,9 +2130,15 @@ export default function IupModal({
             ? (row as any).showDirectorMeetingsOnTimeline
             : propShowDirectorMeetingsOnTimeline ?? true;
 
+        const loadedShowSpecialistCollegiumsOnTimeline =
+          typeof (row as any)?.showSpecialistCollegiumsOnTimeline === "boolean"
+            ? (row as any).showSpecialistCollegiumsOnTimeline
+            : propShowSpecialistCollegiumsOnTimeline ?? true;
+
         setMeetings(loadedMeetings);
         setAssessments(loadedAssessments);
         setDirectorMeetings(loadedDirectorMeetings);
+        setSpecialistCollegiums(loadedSpecialistCollegiums);
         setPlanning(loadedPlanning);
         setPlanningExtra(loadedPlanningExtra);
         setInstruments(loadedInstruments);
@@ -2083,12 +2146,14 @@ export default function IupModal({
         setShowMeetingsOnTimeline(loadedShowMeetingsOnTimeline);
         setShowAssessmentsOnTimeline(loadedShowAssessmentsOnTimeline);
         setShowDirectorMeetingsOnTimeline(loadedShowDirectorMeetingsOnTimeline);
+        setShowSpecialistCollegiumsOnTimeline(loadedShowSpecialistCollegiumsOnTimeline);
 
         if (onTimelineVisibilityChange) {
           onTimelineVisibilityChange({
             showMeetingsOnTimeline: loadedShowMeetingsOnTimeline,
             showAssessmentsOnTimeline: loadedShowAssessmentsOnTimeline,
             showDirectorMeetingsOnTimeline: loadedShowDirectorMeetingsOnTimeline,
+            showSpecialistCollegiumsOnTimeline: loadedShowSpecialistCollegiumsOnTimeline,
           });
         }
 
@@ -2132,11 +2197,30 @@ export default function IupModal({
             }));
           onAssessmentsChange(sessions);
         }
+
+        if (onSpecialistCollegiumsChange) {
+          const sessions = loadedSpecialistCollegiums
+            .filter(
+              (m) =>
+                m &&
+                typeof m.id === "string" &&
+                m.id &&
+                typeof m.dateISO === "string" &&
+                m.dateISO
+            )
+            .map((m) => ({
+              id: m.id,
+              dateISO: m.dateISO,
+              title: "Specialistkollegium",
+            }));
+          onSpecialistCollegiumsChange(sessions);
+        }
       } catch (e) {
         console.error("Kunde inte läsa IUP från DB:", e);
         if (!cancelled) {
           setMeetings([]);
           setAssessments([]);
+          setSpecialistCollegiums([]);
           setPlanning(defaultPlanning());
           setInstruments(DEFAULT_INSTRUMENTS);
         }
@@ -2452,9 +2536,24 @@ export default function IupModal({
 
 
   const handleSave = useCallback(async () => {
-    await saveAllToDb(meetings, assessments, directorMeetings, planning, planningExtra);
+    await saveAllToDb(
+      meetings,
+      assessments,
+      directorMeetings,
+      specialistCollegiums,
+      planning,
+      planningExtra
+    );
     setDirty(false);
-  }, [saveAllToDb, meetings, assessments, directorMeetings, planning, planningExtra]);
+  }, [
+    saveAllToDb,
+    meetings,
+    assessments,
+    directorMeetings,
+    specialistCollegiums,
+    planning,
+    planningExtra,
+  ]);
 
   const handleRequestClose = useCallback(() => {
     if (dirty) {
@@ -2701,6 +2800,46 @@ export default function IupModal({
     setShowDeleteConfirm(true);
   };
 
+  const addSpecialistCollegium = () => {
+    const id = `sc_${Math.random().toString(36).slice(2, 10)}`;
+    const todayIso = isoToday();
+    const m: IupSpecialistCollegium = {
+      id,
+      dateISO: todayIso,
+      feedback: "",
+      planningForward: "",
+    };
+    setSpecialistCollegiums((prev) => [...prev, m]);
+    setDirty(true);
+    setEditingSpecialistCollegiumId(id);
+  };
+
+  const upsertSpecialistCollegium = (value: IupSpecialistCollegium) => {
+    const next = [...specialistCollegiums];
+    const idx = next.findIndex((m) => m.id === value.id);
+    if (idx === -1) next.push(value);
+    else next[idx] = value;
+    setSpecialistCollegiums(next);
+    setDirty(true);
+  };
+
+  const removeSpecialistCollegium = (id: string) => {
+    setDeleteConfirmConfig({
+      message: "Vill du ta bort detta specialistkollegium?",
+      onConfirm: () => {
+        const next = specialistCollegiums.filter((m) => m.id !== id);
+        setSpecialistCollegiums(next);
+        setDirty(true);
+        if (editingSpecialistCollegiumId === id) {
+          setEditingSpecialistCollegiumId(null);
+        }
+        setShowDeleteConfirm(false);
+        setDeleteConfirmConfig(null);
+      },
+    });
+    setShowDeleteConfirm(true);
+  };
+
 
 
   const addAssessment = () => {
@@ -2763,6 +2902,11 @@ export default function IupModal({
   const currentAssessment =
     editingAssessmentId != null
       ? assessments.find((a) => a.id === editingAssessmentId) || null
+      : null;
+
+  const currentSpecialistCollegium =
+    editingSpecialistCollegiumId != null
+      ? specialistCollegiums.find((m) => m.id === editingSpecialistCollegiumId) || null
       : null;
 
   const addDirectorMeeting = () => {
@@ -3134,116 +3278,266 @@ export default function IupModal({
             )}
 
             {tab === "progression" && (
-              <div className="flex flex-col" data-info="Här kan du registrera progressionsbedömningar.">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <h3 className="m-0 text-sm font-semibold text-slate-800">Progressionsbedömningar</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setInstrumentsModalOpen(true)}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                    >
-                      Instrument
-                    </button>
-                    <button
-                      type="button"
-                      onClick={addAssessment}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                    >
-                      + Ny bedömning
-                    </button>
+              <div className="grid gap-4 md:grid-cols-2" data-info="Här kan du registrera progressionsbedömningar och specialistkollegium.">
+                {/* Vänster: progressionsbedömningar */}
+                <div className="flex flex-col">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="m-0 text-sm font-semibold text-slate-800">Progressionsbedömningar</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInstrumentsModalOpen(true)}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                      >
+                        Instrument
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addAssessment}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                      >
+                        + Ny bedömning
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3 rounded border-slate-300"
+                        checked={showAssessmentsOnTimeline}
+                        onChange={(e) => {
+                          const value = e.target.checked;
+                          setShowAssessmentsOnTimeline(value);
+                          setDirty(true);
+                          if (onTimelineVisibilityChange) {
+                            onTimelineVisibilityChange({
+                              showAssessmentsOnTimeline: value,
+                            });
+                          }
+                        }}
+                      />
+                      <span className="inline-flex items-center gap-1">
+                        <span>Visa på tidslinjen</span>
+                        <span className="inline-flex items-center gap-[2px]">
+                          <span>(</span>
+                          <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" style={{ display: "block" }}>
+                            <path
+                              d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
+                              fill="#f59e0b"
+                              stroke="#d97706"
+                              strokeWidth={1.3}
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>)</span>
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white select-none">
+                    {loading ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Läser in progressionsbedömningar…</div>
+                    ) : sortedAssessments.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Inga progressionsbedömningar registrerade ännu.</div>
+                    ) : (
+                      sortedAssessments.map((a) => {
+                        const isEditing = a.id === editingAssessmentId;
+                        const planned = isFutureDate(a.dateISO);
+                        return (
+                          <div
+                            key={a.id}
+                            className={`cursor-default border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 ${
+                              isEditing ? "bg-slate-100" : ""
+                            }`}
+                            onClick={() => setEditingAssessmentId(a.id)}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  {String(profile?.goalsVersion || "").trim() === "2021" && (
+                                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                                      {a.phase === "BT" ? "BT" : "ST"}
+                                    </span>
+                                  )}
+                                  <span className="truncate font-semibold text-slate-900">{a.instrument || "Progressionsbedömning"}</span>
+                                </div>
+
+                                <div className="mt-0.5 flex items-center justify-between text-[11px] text-slate-500">
+                                  <span className="whitespace-nowrap">
+                                    {a.dateISO || "Datum saknas"}
+                                    {planned && <span className="ml-1 italic text-sky-700">Planerat</span>}
+                                  </span>
+                                  <span className="ml-2 truncate text-right">{a.level || "Klinisk tjänstgöring ej angiven"}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeAssessment(a.id);
+                                  }}
+                                  className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                                >
+                                  Ta bort
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
-                    <input
-                      type="checkbox"
-                      className="h-3 w-3 rounded border-slate-300"
-                      checked={showAssessmentsOnTimeline}
-                      onChange={(e) => {
-                        const value = e.target.checked;
-                        setShowAssessmentsOnTimeline(value);
-                        setDirty(true);
-                        if (onTimelineVisibilityChange) {
-                          onTimelineVisibilityChange({
-                            showAssessmentsOnTimeline: value,
-                          });
-                        }
-                      }}
-                    />
-                    <span className="inline-flex items-center gap-1">
+                {/* Höger: specialistkollegium */}
+                <div className="flex flex-col">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="m-0 text-sm font-semibold text-slate-800">Specialistkollegium</h3>
+                    <button
+                      type="button"
+                      onClick={addSpecialistCollegium}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    >
+                      + Ny
+                    </button>
+                  </div>
+
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+                      <input
+                        type="checkbox"
+                        className="h-3 w-3 rounded border-slate-300"
+                        checked={showSpecialistCollegiumsOnTimeline}
+                        onChange={(e) => {
+                          const value = e.target.checked;
+                          setShowSpecialistCollegiumsOnTimeline(value);
+                          setDirty(true);
+                          if (onTimelineVisibilityChange) {
+                            onTimelineVisibilityChange({
+                              showSpecialistCollegiumsOnTimeline: value,
+                            });
+                          }
+                        }}
+                      />
                       <span>Visa på tidslinjen</span>
-                      <span className="inline-flex items-center gap-[2px]">
-                        <span>(</span>
-                        <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" style={{ display: "block" }}>
-                          <path
-                            d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
-                            fill="#f59e0b"
-                            stroke="#d97706"
-                            strokeWidth={1.3}
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <span>)</span>
-                      </span>
-                    </span>
-                  </label>
-                </div>
+                    </label>
+                  </div>
 
-                <div className="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white select-none">
-                  {loading ? (
-                    <div className="px-3 py-4 text-xs text-slate-500">Läser in progressionsbedömningar…</div>
-                  ) : sortedAssessments.length === 0 ? (
-                    <div className="px-3 py-4 text-xs text-slate-500">Inga progressionsbedömningar registrerade ännu.</div>
-                  ) : (
-                    sortedAssessments.map((a) => {
-                      const isEditing = a.id === editingAssessmentId;
-                      const planned = isFutureDate(a.dateISO);
-                      return (
-                        <div
-                          key={a.id}
-                          className={`cursor-default border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 ${
-                            isEditing ? "bg-slate-100" : ""
-                          }`}
-                          onClick={() => setEditingAssessmentId(a.id)}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                {String(profile?.goalsVersion || "").trim() === "2021" && (
-                                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                                    {a.phase === "BT" ? "BT" : "ST"}
-                                  </span>
-                                )}
-                                <span className="truncate font-semibold text-slate-900">{a.instrument || "Progressionsbedömning"}</span>
-                              </div>
-
-                              <div className="mt-0.5 flex items-center justify-between text-[11px] text-slate-500">
-                                <span className="whitespace-nowrap">
-                                  {a.dateISO || "Datum saknas"}
-                                  {planned && <span className="ml-1 italic text-sky-700">Planerat</span>}
-                                </span>
-                                <span className="ml-2 truncate text-right">{a.level || "Klinisk tjänstgöring ej angiven"}</span>
+                  <div className="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white">
+                    {loading ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Läser in specialistkollegium…</div>
+                    ) : specialistCollegiums.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Inga specialistkollegium registrerade ännu.</div>
+                    ) : (
+                      [...specialistCollegiums]
+                        .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+                        .map((m) => {
+                          const isEditing = m.id === editingSpecialistCollegiumId;
+                          const planned = isFutureDate(m.dateISO);
+                          return (
+                            <div
+                              key={m.id}
+                              className={`cursor-default border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 ${
+                                isEditing ? "bg-slate-100" : ""
+                              }`}
+                              onClick={() => setEditingSpecialistCollegiumId(m.id)}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate font-semibold text-slate-900">{m.dateISO || "Datum saknas"}</div>
+                                  {planned ? (
+                                    <div className="mt-0.5 text-[11px] italic text-sky-700">Planerat</div>
+                                  ) : null}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeSpecialistCollegium(m.id);
+                                    }}
+                                    className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                                  >
+                                    Ta bort
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeAssessment(a.id);
-                                }}
-                                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
-                              >
-                                Ta bort
-                              </button>
+                          );
+                        })
+                    )}
+                  </div>
+
+                  {currentSpecialistCollegium ? (() => {
+                    const sorted = [...specialistCollegiums]
+                      .filter((x) => x.id !== currentSpecialistCollegium.id)
+                      .filter((x) => x.dateISO && x.dateISO < currentSpecialistCollegium.dateISO)
+                      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+                    const prev = sorted.slice(-1)[0] ?? null;
+
+                    return (
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 space-y-3">
+                        <CalendarDatePicker
+                          value={currentSpecialistCollegium.dateISO || isoToday()}
+                          onChange={(iso) =>
+                            upsertSpecialistCollegium({
+                              ...currentSpecialistCollegium,
+                              dateISO: iso,
+                            })
+                          }
+                          label="Datum"
+                          weekStartsOn={1}
+                        />
+
+                        {prev ? (
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                            <div className="text-xs font-semibold text-slate-800">Förra specialistkollegium</div>
+                            <div className="mt-0.5 text-[11px] font-semibold text-slate-700">{prev.dateISO}</div>
+                            <div className="mt-2">
+                              <div className="text-[11px] font-semibold text-slate-700">Återkoppling</div>
+                              <div className="mt-0.5 text-xs text-slate-700 whitespace-pre-line">{prev.feedback || "—"}</div>
+                            </div>
+                            <div className="mt-2">
+                              <div className="text-[11px] font-semibold text-slate-700">Planering</div>
+                              <div className="mt-0.5 text-xs text-slate-700 whitespace-pre-line">{prev.planningForward || "—"}</div>
                             </div>
                           </div>
+                        ) : null}
+
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">Återkoppling</label>
+                          <textarea
+                            value={currentSpecialistCollegium.feedback}
+                            onChange={(e) =>
+                              upsertSpecialistCollegium({
+                                ...currentSpecialistCollegium,
+                                feedback: e.target.value,
+                              })
+                            }
+                            className="min-h-[96px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                          />
                         </div>
-                      );
-                    })
-                  )}
+
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">Planering framåt</label>
+                          <textarea
+                            value={currentSpecialistCollegium.planningForward}
+                            onChange={(e) =>
+                              upsertSpecialistCollegium({
+                                ...currentSpecialistCollegium,
+                                planningForward: e.target.value,
+                              })
+                            }
+                            className="min-h-[96px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })() : null}
                 </div>
               </div>
             )}
