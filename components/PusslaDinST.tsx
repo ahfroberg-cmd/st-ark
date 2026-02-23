@@ -4808,7 +4808,7 @@ dragPlacementRef.current = {
         <button
           key={s.id + "@director@" + year}
           type="button"
-          className="pointer-events-auto absolute"
+          className="pointer-events-auto absolute z-[300]"
           style={{
             left: `${pct}%`,
             top: "-0.55rem",
@@ -4897,7 +4897,7 @@ dragPlacementRef.current = {
         <button
           key={s.id + "@" + year}
           type="button"
-          className="pointer-events-auto absolute"
+          className="pointer-events-auto absolute z-[300]"
           style={{
             left: `${pct}%`,
             top: "-0.55rem",
@@ -4991,7 +4991,7 @@ dragPlacementRef.current = {
         <button
           key={a.id + "@assess@" + year}
           type="button"
-          className="pointer-events-auto absolute"
+          className="pointer-events-auto absolute z-[300]"
           style={{
             left: `${pct}%`,
             top: "-0.5rem",
