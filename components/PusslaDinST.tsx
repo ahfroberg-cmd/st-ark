@@ -4334,6 +4334,15 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   }}
   onClick={(e) => {
     e.stopPropagation();
+
+    const rowEl = (e.currentTarget as HTMLDivElement).closest(".st-row") as HTMLDivElement | null;
+    const rect = (rowEl || (e.currentTarget as HTMLDivElement)).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width || 1;
+    const pct = Math.max(0, Math.min(1, x / width));
+    const dayIndex = Math.max(0, Math.min(totalDays - 1, Math.round(pct * (totalDays - 1))));
+    const clickedISO = dateToISO(new Date(year, 0, 1 + dayIndex));
+
     // Om något är valt och dirty, stäng detaljrutan med varning
     // Om något är valt men inte dirty (sparad), skapa ny kurs direkt
     if (selectedPlacementId || selectedCourseId) {
@@ -4344,13 +4353,13 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
         // Kurs är sparad - skapa ny direkt
         setSelectedPlacementId(null);
         setSelectedCourseId(null);
-        createCourseAt(defaultISO);
+        createCourseAt(clickedISO);
         return;
       }
     } else {
       // Annars skapa ny kurs
       setSelectedPlacementId(null);
-      createCourseAt(defaultISO);
+      createCourseAt(clickedISO);
     }
   }}
 />
