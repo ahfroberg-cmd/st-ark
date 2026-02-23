@@ -3955,7 +3955,7 @@ export default function StudierektorPage() {
                     Senast uppdaterad
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">
-                    Åtgärder
+                    Ta bort
                   </th>
                 </tr>
               </thead>
@@ -4009,11 +4009,11 @@ export default function StudierektorPage() {
                             e.stopPropagation();
                             deleteStudent(student.id);
                           }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
+                          className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
                           aria-label="Ta bort"
                           title="Ta bort"
                         >
-                          <span aria-hidden="true" className="text-lg leading-none">×</span>
+                          <span aria-hidden="true">×</span>
                         </button>
                       </td>
                     </tr>
