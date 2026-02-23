@@ -2112,11 +2112,12 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
   const [milestoneOverviewOpen, setMilestoneOverviewOpen] = useState(false);
    const [iupOpen, setIupOpen] = useState(false);
   const [iupInitialTab, setIupInitialTab] = useState<
-    "handledning" | "planering" | "delmal" | "rapport" | null
+    "handledning" | "progression" | "planering" | "delmal" | "rapport" | null
   >(null);
   const [iupInitialMeetingId, setIupInitialMeetingId] = useState<string | null>(null);
   const [iupInitialAssessmentId, setIupInitialAssessmentId] =
     useState<string | null>(null);
+  const [iupInitialDirectorMeetingId, setIupInitialDirectorMeetingId] = useState<string | null>(null);
   const [supervisionSessions, setSupervisionSessions] =
     useState<SupervisionSession[]>([]);
   const [hoveredSupervisionId, setHoveredSupervisionId] = useState<
@@ -2127,11 +2128,14 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
   const [hoveredAssessmentId, setHoveredAssessmentId] = useState<
     string | null
   >(null);
+  const [directorMeetingSessions, setDirectorMeetingSessions] = useState<SupervisionSession[]>([]);
+  const [hoveredDirectorMeetingId, setHoveredDirectorMeetingId] = useState<string | null>(null);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [showSupervisionOnTimeline, setShowSupervisionOnTimeline] =
     useState<boolean>(true);
   const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] =
     useState<boolean>(true);
+  const [showDirectorMeetingsOnTimeline, setShowDirectorMeetingsOnTimeline] = useState<boolean>(true);
 
   
 
@@ -2150,10 +2154,26 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
                 dateISO?: string;
                 focus?: string;
               }[];
+              directorMeetings?: {
+                id?: string;
+                dateISO?: string;
+                focus?: string;
+              }[];
             }
           | undefined;
 
         if (cancelled) return;
+
+        const nextDirector: SupervisionSession[] = Array.isArray(row?.directorMeetings)
+          ? row!.directorMeetings!
+              .filter((m: any) => m && typeof m.dateISO === "string")
+              .map((m: any, i: number) => ({
+                id: String(m.id || `director-${i}`),
+                dateISO: String(m.dateISO || ""),
+                title: String(m.focus || "Möte med studierektor"),
+              }))
+          : [];
+        setDirectorMeetingSessions(nextDirector);
 
         const next: SupervisionSession[] = Array.isArray(row?.meetings)
           ? (row!.meetings as any[])
@@ -2253,6 +2273,7 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
           | {
               showMeetingsOnTimeline?: boolean;
               showAssessmentsOnTimeline?: boolean;
+              showDirectorMeetingsOnTimeline?: boolean;
             }
           | undefined;
 
@@ -2269,11 +2290,18 @@ function mapMetisGoalsToMilestoneIds(courseTitle: string, profile: any): string[
         } else {
           setShowAssessmentsOnTimeline(true);
         }
+
+        if (typeof row?.showDirectorMeetingsOnTimeline === "boolean") {
+          setShowDirectorMeetingsOnTimeline(row.showDirectorMeetingsOnTimeline);
+        } else {
+          setShowDirectorMeetingsOnTimeline(true);
+        }
       } catch (e) {
         console.error("Kunde inte läsa visningsflaggor för IUP:", e);
         if (!cancelled) {
           setShowSupervisionOnTimeline(true);
           setShowAssessmentsOnTimeline(true);
+          setShowDirectorMeetingsOnTimeline(true);
         }
       }
     })();
@@ -4272,6 +4300,81 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               );
             })}
 
+  {/* Studierektorsmöten – trianglar i kursspåret */}
+  {directorMeetingSessions
+    .filter((s) => {
+      if (!showDirectorMeetingsOnTimeline) return false;
+      if (!s.dateISO || !isValidISO(s.dateISO)) return false;
+      const d = isoToDateSafe(s.dateISO);
+      return d.getFullYear() === year;
+    })
+    .map((s) => {
+      const d = isoToDateSafe(s.dateISO);
+      const startOfYear = new Date(year, 0, 1);
+      const startOfNextYear = new Date(year + 1, 0, 1);
+      const msInDay = 24 * 60 * 60 * 1000;
+
+      const dayIndex = Math.floor((d.getTime() - startOfYear.getTime()) / msInDay);
+      const daysInYearLocal = Math.max(1, Math.floor((startOfNextYear.getTime() - startOfYear.getTime()) / msInDay));
+      const frac = Math.min(Math.max(dayIndex / daysInYearLocal, 0), 1);
+      const pct = frac * 100;
+      if (pct < 0 || pct > 100) return null;
+
+      const isHovered = hoveredDirectorMeetingId === s.id;
+
+      return (
+        <button
+          key={s.id + "@director@" + year}
+          type="button"
+          className="pointer-events-auto absolute"
+          style={{
+            left: `${pct}%`,
+            bottom: "3.2rem",
+            transform: isHovered ? "translate(-50%, -1px)" : "translate(-50%, 0)",
+          }}
+          onMouseEnter={() => setHoveredDirectorMeetingId(s.id)}
+          onMouseLeave={() =>
+            setHoveredDirectorMeetingId((prev) => (prev === s.id ? null : prev))
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            setIupInitialTab("handledning");
+            setIupInitialDirectorMeetingId(s.id);
+            setIupOpen(true);
+          }}
+          title={s.title && s.title.trim() ? `${s.title} (${s.dateISO})` : s.dateISO}
+          data-info="Möte med studierektor. Klicka för att öppna mötet i IUP-modalen."
+        >
+          <span aria-hidden="true" style={{ position: "relative", display: "block", width: 0, height: 0 }}>
+            <span
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 0,
+                height: 0,
+                borderLeft: "7px solid transparent",
+                borderRight: "7px solid transparent",
+                borderBottom: "11px solid #0c4a6e",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) translateY(1px)",
+                width: 0,
+                height: 0,
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderBottom: isHovered ? "9px solid #38bdf8" : "9px solid #0284c7",
+              }}
+            />
+          </span>
+        </button>
+      );
+    })}
+
             {/* Rad 2: kurs-lane */}
             {Array.from({ length: COLS }, (_, i) => {
               const globalSlot = rowStartSlot + i;
@@ -4947,7 +5050,7 @@ dragPlacementRef.current = {
           }
           onClick={(e) => {
             e.stopPropagation();
-            setIupInitialTab("handledning");
+            setIupInitialTab("progression");
             setIupInitialAssessmentId(a.id);
             setIupOpen(true);
           }}
@@ -10156,10 +10259,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     setIupInitialTab(null);
     setIupInitialMeetingId(null);
     setIupInitialAssessmentId(null);
+    setIupInitialDirectorMeetingId(null);
   }}
   initialTab={iupInitialTab ?? undefined}
   initialMeetingId={iupInitialMeetingId}
   initialAssessmentId={iupInitialAssessmentId}
+  initialDirectorMeetingId={iupInitialDirectorMeetingId}
   onMeetingsChange={(sessions) => {
     const next: SupervisionSession[] = Array.isArray(sessions)
       ? (sessions as any[])
@@ -10212,14 +10317,38 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
     setAssessmentSessions(next);
   }}
+  onDirectorMeetingsChange={(sessions) => {
+    const next: SupervisionSession[] = Array.isArray(sessions)
+      ? (sessions as any[])
+          .filter(
+            (m: any) =>
+              m &&
+              typeof m.id === "string" &&
+              m.id &&
+              typeof m.dateISO === "string" &&
+              m.dateISO
+          )
+          .map((m: any) => ({
+            id: String(m.id),
+            dateISO: String(m.dateISO),
+            title: typeof m.title === "string" ? m.title : "Möte med studierektor",
+          }))
+      : [];
+
+    setDirectorMeetingSessions(next);
+  }}
   showMeetingsOnTimeline={showSupervisionOnTimeline}
   showAssessmentsOnTimeline={showAssessmentsOnTimeline}
+  showDirectorMeetingsOnTimeline={showDirectorMeetingsOnTimeline}
   onTimelineVisibilityChange={(value) => {
     if (typeof value.showMeetingsOnTimeline === "boolean") {
       setShowSupervisionOnTimeline(value.showMeetingsOnTimeline);
     }
     if (typeof value.showAssessmentsOnTimeline === "boolean") {
       setShowAssessmentsOnTimeline(value.showAssessmentsOnTimeline);
+    }
+    if (typeof value.showDirectorMeetingsOnTimeline === "boolean") {
+      setShowDirectorMeetingsOnTimeline(value.showDirectorMeetingsOnTimeline);
     }
   }}
 />

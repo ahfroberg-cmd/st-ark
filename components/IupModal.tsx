@@ -48,6 +48,12 @@ export type IupAssessment = {
   development: string; // Utvecklingsområden
 };
 
+export type IupDirectorMeeting = {
+  id: string;
+  dateISO: string;
+  focus: string;
+};
+
 
 export type IupPlanning = {
   overallGoals: string; // Övergripande mål med utbildningen
@@ -76,22 +82,133 @@ export type ExtraPlanningSection = {
 type Props = {
   open: boolean;
   onClose: () => void;
-  initialTab?: "handledning" | "planering" | "delmal" | "rapport";
+  initialTab?: "handledning" | "progression" | "planering" | "delmal" | "rapport";
   initialMeetingId?: string | null;
   initialAssessmentId?: string | null;
+  initialDirectorMeetingId?: string | null;
   onMeetingsChange?: (
     sessions: { id: string; dateISO: string; title?: string }[]
   ) => void;
   onAssessmentsChange?: (
     sessions: { id: string; dateISO: string; title?: string }[]
   ) => void;
+  onDirectorMeetingsChange?: (
+    sessions: { id: string; dateISO: string; title?: string }[]
+  ) => void;
   showMeetingsOnTimeline?: boolean;
   showAssessmentsOnTimeline?: boolean;
+  showDirectorMeetingsOnTimeline?: boolean;
   onTimelineVisibilityChange?: (value: {
     showMeetingsOnTimeline?: boolean;
     showAssessmentsOnTimeline?: boolean;
+    showDirectorMeetingsOnTimeline?: boolean;
   }) => void;
 };
+
+type DirectorMeetingModalProps = {
+  open: boolean;
+  meeting: IupDirectorMeeting | null;
+  onSave: (value: IupDirectorMeeting) => void;
+  onClose: () => void;
+};
+
+function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetingModalProps) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [draft, setDraft] = useState<IupDirectorMeeting | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (!open || !meeting) {
+      setDraft(null);
+      setDirty(false);
+      return;
+    }
+    setDraft({ ...meeting });
+    setDirty(false);
+  }, [open, meeting]);
+
+  useEffect(() => {
+    if (!open || !overlayRef.current) return;
+    const el = overlayRef.current;
+    registerModal(el, onClose);
+    return () => unregisterModal(el);
+  }, [open, onClose]);
+
+  const updateDraft = (patch: Partial<IupDirectorMeeting>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      setDirty(true);
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    if (!draft) return;
+    onSave(draft);
+    onClose();
+  };
+
+  if (!open || !meeting || !draft) return null;
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/40 p-3"
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b px-4 py-3">
+          <h2 className="m-0 text-lg font-extrabold">Möte med studierektor</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty}
+              className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 hover:border-sky-800 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+            >
+              Spara
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+            >
+              Stäng
+            </button>
+          </div>
+        </header>
+
+        <section className="max-h-[75vh] p-4 space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
+            <div>
+              <CalendarDatePicker
+                value={draft.dateISO || isoToday()}
+                onChange={(iso) => updateDraft({ dateISO: iso })}
+                label="Datum"
+                weekStartsOn={1}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-800">Rubrik/Fokus</label>
+              <input
+                type="text"
+                value={draft.focus}
+                onChange={(e) => updateDraft({ focus: e.target.value })}
+                className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
 
 
 
@@ -108,11 +225,13 @@ type IupSettingsRow = {
   id: "iup";
   meetings?: IupMeeting[];
   assessments?: IupAssessment[];
+  directorMeetings?: IupDirectorMeeting[];
   planning?: IupPlanning;
   planningExtra?: ExtraPlanningSection[];
   instruments?: string[];
   showMeetingsOnTimeline?: boolean;
   showAssessmentsOnTimeline?: boolean;
+  showDirectorMeetingsOnTimeline?: boolean;
   planningHidden?: string[];
 };
 
@@ -1195,10 +1314,13 @@ export default function IupModal({
   initialTab,
   initialMeetingId,
   initialAssessmentId,
+  initialDirectorMeetingId,
   onMeetingsChange,
   onAssessmentsChange,
+  onDirectorMeetingsChange,
   showMeetingsOnTimeline: propShowMeetingsOnTimeline,
   showAssessmentsOnTimeline: propShowAssessmentsOnTimeline,
+  showDirectorMeetingsOnTimeline: propShowDirectorMeetingsOnTimeline,
   onTimelineVisibilityChange,
 }: Props) {
 
@@ -1209,6 +1331,7 @@ export default function IupModal({
 
   const [meetings, setMeetings] = useState<IupMeeting[]>([]);
   const [assessments, setAssessments] = useState<IupAssessment[]>([]);
+  const [directorMeetings, setDirectorMeetings] = useState<IupDirectorMeeting[]>([]);
   const [planning, setPlanning] = useState<IupPlanning>(defaultPlanning);
   const [planningExtra, setPlanningExtra] = useState<ExtraPlanningSection[]>([]);
   const [instruments, setInstruments] = useState<string[]>(DEFAULT_INSTRUMENTS);
@@ -1223,7 +1346,7 @@ export default function IupModal({
     onConfirm: () => void;
   } | null>(null);
   const [tab, setTab] = useState<
-    "handledning" | "planering" | "delmal" | "rapport"
+    "handledning" | "progression" | "planering" | "delmal" | "rapport"
   >("handledning");
 
   // Profilinfo för rapportförhandsvisningar
@@ -1267,6 +1390,7 @@ export default function IupModal({
   const [showMeetingsOnTimeline, setShowMeetingsOnTimeline] = useState(true);
   const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] =
     useState(true);
+  const [showDirectorMeetingsOnTimeline, setShowDirectorMeetingsOnTimeline] = useState(true);
 
   // Kryssrutor för Utbildningsmoment (Genomförda / Pågående / Planerade)
   const [reportStatusFilter, setReportStatusFilter] = useState<{
@@ -1307,6 +1431,8 @@ export default function IupModal({
     null
   );
 
+  const [editingDirectorMeetingId, setEditingDirectorMeetingId] = useState<string | null>(null);
+
   // Förhandsvisning – Planering och handledning
   const [planHandPreviewOpen, setPlanHandPreviewOpen] = useState(false);
   const planHandPreviewContentRef = useRef<HTMLDivElement | null>(null);
@@ -1323,6 +1449,7 @@ export default function IupModal({
     async (
       nextMeetings: IupMeeting[],
       nextAssessments: IupAssessment[],
+      nextDirectorMeetings: IupDirectorMeeting[],
       nextPlanning: IupPlanning,
       nextPlanningExtra: ExtraPlanningSection[]
     ): Promise<boolean> => {
@@ -1331,11 +1458,13 @@ export default function IupModal({
           id: "iup",
           meetings: nextMeetings,
           assessments: nextAssessments,
+          directorMeetings: nextDirectorMeetings,
           planning: nextPlanning,
           planningExtra: nextPlanningExtra,
           instruments,
           showMeetingsOnTimeline,
           showAssessmentsOnTimeline,
+          showDirectorMeetingsOnTimeline,
           planningHidden: hiddenPlanningKeys,
         };
 
@@ -1383,6 +1512,24 @@ export default function IupModal({
           onAssessmentsChange(sessions);
         }
 
+        if (onDirectorMeetingsChange) {
+          const sessions = nextDirectorMeetings
+            .filter(
+              (m) =>
+                m &&
+                typeof m.id === "string" &&
+                m.id &&
+                typeof m.dateISO === "string" &&
+                m.dateISO
+            )
+            .map((m) => ({
+              id: m.id,
+              dateISO: m.dateISO,
+              title: m.focus,
+            }));
+          onDirectorMeetingsChange(sessions);
+        }
+
         return true;
       } catch (e) {
         console.error("Kunde inte spara IUP till DB:", e);
@@ -1396,8 +1543,10 @@ export default function IupModal({
       instruments,
       onMeetingsChange,
       onAssessmentsChange,
+      onDirectorMeetingsChange,
       showMeetingsOnTimeline,
       showAssessmentsOnTimeline,
+      showDirectorMeetingsOnTimeline,
     ]
   );
 
@@ -1418,6 +1567,7 @@ export default function IupModal({
     setTab(initialTab ?? "handledning");
     setEditingMeetingId(initialMeetingId ?? null);
     setEditingAssessmentId(initialAssessmentId ?? null);
+    setEditingDirectorMeetingId(initialDirectorMeetingId ?? null);
     setShowCloseConfirm(false);
 
 
@@ -1434,6 +1584,13 @@ export default function IupModal({
           : [];
         const loadedAssessments = Array.isArray(row?.assessments)
           ? row!.assessments!.map(cloneAssessment)
+          : [];
+        const loadedDirectorMeetings = Array.isArray((row as any)?.directorMeetings)
+          ? ((row as any).directorMeetings as IupDirectorMeeting[]).map((m) => ({
+              id: String((m as any)?.id || `d_${Math.random().toString(36).slice(2, 10)}`),
+              dateISO: String((m as any)?.dateISO || ""),
+              focus: String((m as any)?.focus || ""),
+            }))
           : [];
         const loadedPlanning = row?.planning
           ? { ...defaultPlanning(), ...row.planning }
@@ -1470,19 +1627,27 @@ export default function IupModal({
             ? (row as any).showAssessmentsOnTimeline
             : propShowAssessmentsOnTimeline ?? true;
 
+        const loadedShowDirectorMeetingsOnTimeline =
+          typeof (row as any)?.showDirectorMeetingsOnTimeline === "boolean"
+            ? (row as any).showDirectorMeetingsOnTimeline
+            : propShowDirectorMeetingsOnTimeline ?? true;
+
         setMeetings(loadedMeetings);
         setAssessments(loadedAssessments);
+        setDirectorMeetings(loadedDirectorMeetings);
         setPlanning(loadedPlanning);
         setPlanningExtra(loadedPlanningExtra);
         setInstruments(loadedInstruments);
         setHiddenPlanningKeys(loadedHiddenPlanningKeys);
         setShowMeetingsOnTimeline(loadedShowMeetingsOnTimeline);
         setShowAssessmentsOnTimeline(loadedShowAssessmentsOnTimeline);
+        setShowDirectorMeetingsOnTimeline(loadedShowDirectorMeetingsOnTimeline);
 
         if (onTimelineVisibilityChange) {
           onTimelineVisibilityChange({
             showMeetingsOnTimeline: loadedShowMeetingsOnTimeline,
             showAssessmentsOnTimeline: loadedShowAssessmentsOnTimeline,
+            showDirectorMeetingsOnTimeline: loadedShowDirectorMeetingsOnTimeline,
           });
         }
 
@@ -1813,9 +1978,9 @@ export default function IupModal({
 
 
   const handleSave = useCallback(async () => {
-    await saveAllToDb(meetings, assessments, planning, planningExtra);
+    await saveAllToDb(meetings, assessments, directorMeetings, planning, planningExtra);
     setDirty(false);
-  }, [saveAllToDb, meetings, assessments, planning, planningExtra]);
+  }, [saveAllToDb, meetings, assessments, directorMeetings, planning, planningExtra]);
 
   const handleRequestClose = useCallback(() => {
     if (dirty) {
@@ -1892,6 +2057,11 @@ export default function IupModal({
     () =>
       [...assessments].sort((a, b) => a.dateISO.localeCompare(b.dateISO)),
     [assessments]
+  );
+
+  const sortedDirectorMeetings = useMemo(
+    () => [...directorMeetings].sort((a, b) => a.dateISO.localeCompare(b.dateISO)),
+    [directorMeetings]
   );
 
   const planningReportEntries = useMemo(
@@ -2121,6 +2291,48 @@ export default function IupModal({
       ? assessments.find((a) => a.id === editingAssessmentId) || null
       : null;
 
+  const addDirectorMeeting = () => {
+    const id = `d_${Math.random().toString(36).slice(2, 10)}`;
+    const todayIso = isoToday();
+    const m: IupDirectorMeeting = {
+      id,
+      dateISO: todayIso,
+      focus: "",
+    };
+    setDirectorMeetings((prev) => [...prev, m]);
+    setDirty(true);
+    setEditingDirectorMeetingId(id);
+  };
+
+  const upsertDirectorMeeting = (value: IupDirectorMeeting) => {
+    const next = [...directorMeetings];
+    const idx = next.findIndex((m) => m.id === value.id);
+    if (idx === -1) next.push(value);
+    else next[idx] = value;
+    setDirectorMeetings(next);
+    setDirty(true);
+  };
+
+  const removeDirectorMeeting = (id: string) => {
+    setDeleteConfirmConfig({
+      message: "Vill du ta bort detta möte med studierektor?",
+      onConfirm: () => {
+        const next = directorMeetings.filter((m) => m.id !== id);
+        setDirectorMeetings(next);
+        setDirty(true);
+        if (editingDirectorMeetingId === id) setEditingDirectorMeetingId(null);
+        setShowDeleteConfirm(false);
+        setDeleteConfirmConfig(null);
+      },
+    });
+    setShowDeleteConfirm(true);
+  };
+
+  const currentDirectorMeeting =
+    editingDirectorMeetingId != null
+      ? directorMeetings.find((m) => m.id === editingDirectorMeetingId) || null
+      : null;
+
   const updatePlanning = (patch: Partial<IupPlanning>) => {
     const next = { ...planning, ...patch };
     setPlanning(next);
@@ -2222,7 +2434,8 @@ export default function IupModal({
           <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
             {[
               { id: "planering", label: "Planering", info: "Här kan du dokumentera din övergripande planering för ST-utbildningen. Du kan skapa anpassade planeringsrubriker och dokumentera mål, kliniska tjänstgöringar, kurser, handledning och andra utbildningsaktiviteter. Planeringen används för att strukturera din utbildning och kan inkluderas i rapporter." },
-              { id: "handledning", label: "Utveckling", info: "Här kan du registrera handledarsamtal och progressionsbedömningar. Handledarsamtal dokumenterar möten med din huvudhandledare med datum, fokus, sammanfattning och överenskomna åtgärder. Progressionsbedömningar är strukturerade bedömningar av din utveckling med olika bedömningsinstrument. Du kan välja om dessa ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen och gula stjärnor för att öppna progressionsbedömningar." },
+              { id: "handledning", label: "Handledning", info: "Här kan du registrera handledarsamtal (huvudhandledare) och möten med studierektor. Du kan välja om dessa ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen." },
+              { id: "progression", label: "Progression", info: "Här kan du registrera progressionsbedömningar. Progressionsbedömningar är strukturerade bedömningar av din utveckling med olika bedömningsinstrument. Du kan välja om dessa ska visas på tidslinjen. I tidslinjen kan du klicka på gula stjärnor för att öppna progressionsbedömningar." },
               { id: "delmal", label: "Delmål", info: "Här kan du se en översikt över alla delmål (ST-delmål och BT-delmål) och planera hur de ska uppfyllas. Du kan se vilka aktiviteter och kurser som är kopplade till varje delmål, planera framtida aktiviteter och spåra din framsteg mot att uppfylla alla delmål." },
               { id: "rapport", label: "Rapport", info: "Här kan du generera och förhandsgranska rapporter baserade på din IUP-data. Rapporterna kan inkludera planering, handledarsamtal, progressionsbedömningar, utbildningsmoment och delmål. Rapporterna kan användas för att dokumentera din utbildning och framsteg." },
             ].map((t) => (
@@ -2231,7 +2444,7 @@ export default function IupModal({
                 type="button"
                 onClick={() =>
                   setTab(
-                    t.id as "handledning" | "planering" | "delmal" | "rapport"
+                    t.id as "handledning" | "progression" | "planering" | "delmal" | "rapport"
                   )
                 }
                 className={`rounded-t-lg px-3 py-2 text-sm font-semibold focus:outline-none focus-visible:outline-none ${
@@ -2250,7 +2463,7 @@ export default function IupModal({
           {/* Body */}
           <section className="max-h-[75vh] overflow-auto overscroll-contain touch-pan-y p-4">
             {tab === "handledning" && (
-              <div className="grid gap-4 md:grid-cols-2" data-info="Här kan du registrera handledarsamtal och progressionsbedömningar. Klicka på ett befintligt tillfälle för att redigera det, eller skapa ett nytt. Du kan också välja om handledarsamtal och bedömningar ska visas på tidslinjen. I tidslinjen kan du klicka på gröna trianglar för att öppna handledningstillfällen och gula stjärnor för att öppna progressionsbedömningar.">
+              <div className="grid gap-4 md:grid-cols-2" data-info="Här kan du registrera handledarsamtal och möten med studierektor. Klicka på ett befintligt tillfälle för att redigera det, eller skapa ett nytt. Du kan också välja om de ska visas på tidslinjen.">
                 {/* Vänster: lista med handledarsamtal */}
                 <div className="flex flex-col">
                   <div className="mb-1 flex items-center justify-between gap-2">
@@ -2365,137 +2578,73 @@ export default function IupModal({
                   </div>
                 </div>
 
-                {/* Höger: lista med progressionsbedömningar */}
-                                  <div className="flex flex-col">
+                {/* Höger: möten med studierektor */}
+                <div className="flex flex-col">
                   <div className="mb-1 flex items-center justify-between gap-2">
-                    <h3 className="m-0 text-sm font-semibold text-slate-800">
-                      Progressionsbedömningar
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setInstrumentsModalOpen(true)}
-                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                        data-info="Öppnar en lista där du kan hantera bedömningsinstrument (t.ex. Mini-CEX, Medsittning/Sit-in) som används vid progressionsbedömningar."
-                      >
-                        Instrument
-                      </button>
-                      <button
-                        type="button"
-                        onClick={addAssessment}
-                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                        data-info="Skapar en ny progressionsbedömning som du kan registrera med datum, fas (BT/ST), klinisk tjänstgöring, instrument, sammanfattning, styrkor och utvecklingsområden."
-                      >
-                        + Ny bedömning
-                      </button>
-                    </div>
+                    <h3 className="m-0 text-sm font-semibold text-slate-800">Möte med studierektor</h3>
+                    <button
+                      type="button"
+                      onClick={addDirectorMeeting}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    >
+                      + Skapa mötestillfälle
+                    </button>
                   </div>
+
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
                       <input
                         type="checkbox"
                         className="h-3 w-3 rounded border-slate-300"
-                        checked={showAssessmentsOnTimeline}
+                        checked={showDirectorMeetingsOnTimeline}
                         onChange={(e) => {
                           const value = e.target.checked;
-                          setShowAssessmentsOnTimeline(value);
+                          setShowDirectorMeetingsOnTimeline(value);
                           setDirty(true);
                           if (onTimelineVisibilityChange) {
                             onTimelineVisibilityChange({
-                              showAssessmentsOnTimeline: value,
+                              showDirectorMeetingsOnTimeline: value,
                             });
                           }
                         }}
                       />
-                      <span className="inline-flex items-center gap-1">
-                        <span>Visa på tidslinjen</span>
-                        <span className="inline-flex items-center gap-[2px]">
-                          <span>(</span>
-                          <svg
-                            aria-hidden="true"
-                            width={14}
-                            height={14}
-                            viewBox="0 0 24 24"
-                            style={{ display: "block" }}
-                          >
-                            <path
-                              d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
-                              fill="#f59e0b" // varm gul/orange
-                              stroke="#d97706" // mörkare kant
-                              strokeWidth={1.3}
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <span>)</span>
-                        </span>
-                      </span>
+                      <span>Visa på tidslinjen</span>
                     </label>
                   </div>
 
-
-
-
-
                   <div className="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white select-none">
                     {loading ? (
-                      <div className="px-3 py-4 text-xs text-slate-500">
-                        Läser in progressionsbedömningar…
-                      </div>
-                    ) : sortedAssessments.length === 0 ? (
-                      <div className="px-3 py-4 text-xs text-slate-500">
-                        Inga progressionsbedömningar registrerade ännu.
-                      </div>
+                      <div className="px-3 py-4 text-xs text-slate-500">Läser in studierektorsmöten…</div>
+                    ) : sortedDirectorMeetings.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Inga studierektorsmöten registrerade ännu.</div>
                     ) : (
-                      sortedAssessments.map((a) => {
-                        const isEditing = a.id === editingAssessmentId;
-                        const planned = isFutureDate(a.dateISO);
+                      sortedDirectorMeetings.map((m) => {
+                        const isEditing = m.id === editingDirectorMeetingId;
+                        const planned = isFutureDate(m.dateISO);
                         return (
                           <div
-                            key={a.id}
+                            key={m.id}
                             className={`cursor-default border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 ${
                               isEditing ? "bg-slate-100" : ""
                             }`}
-                            onClick={() => setEditingAssessmentId(a.id)}
+                            onClick={() => setEditingDirectorMeetingId(m.id)}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  {String(profile?.goalsVersion || "").trim() === "2021" && (
-                                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                                      {a.phase === "BT" ? "BT" : "ST"}
-                                    </span>
-                                  )}
-                                  <span className="truncate font-semibold text-slate-900">
-                                    {a.instrument || "Progressionsbedömning"}
-                                  </span>
-
+                                <div className="truncate font-semibold text-slate-900">{m.focus || "Studierektorsmöte"}</div>
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                                  <span>{m.dateISO || "Datum saknas"}</span>
+                                  {planned && <span className="italic text-sky-700">Planerat</span>}
                                 </div>
-
-                                <div className="mt-0.5 flex items-center justify-between text-[11px] text-slate-500">
-                                  <span className="whitespace-nowrap">
-                                    {a.dateISO || "Datum saknas"}
-                                    {planned && (
-                                      <span className="ml-1 italic text-sky-700">
-                                        Planerat
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className="ml-2 truncate text-right">
-                                    {a.level || "Klinisk tjänstgöring ej angiven"}
-                                  </span>
-                                </div>
-
-
                               </div>
                               <div className="flex flex-col items-end gap-1">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    removeAssessment(a.id);
+                                    removeDirectorMeeting(m.id);
                                   }}
                                   className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
-                                  data-info="Tar bort denna progressionsbedömning permanent från databasen. Du kommer att få en bekräftelse innan borttagningen genomförs."
                                 >
                                   Ta bort
                                 </button>
@@ -2506,6 +2655,121 @@ export default function IupModal({
                       })
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "progression" && (
+              <div className="flex flex-col" data-info="Här kan du registrera progressionsbedömningar.">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="m-0 text-sm font-semibold text-slate-800">Progressionsbedömningar</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInstrumentsModalOpen(true)}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    >
+                      Instrument
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addAssessment}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
+                    >
+                      + Ny bedömning
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3 rounded border-slate-300"
+                      checked={showAssessmentsOnTimeline}
+                      onChange={(e) => {
+                        const value = e.target.checked;
+                        setShowAssessmentsOnTimeline(value);
+                        setDirty(true);
+                        if (onTimelineVisibilityChange) {
+                          onTimelineVisibilityChange({
+                            showAssessmentsOnTimeline: value,
+                          });
+                        }
+                      }}
+                    />
+                    <span className="inline-flex items-center gap-1">
+                      <span>Visa på tidslinjen</span>
+                      <span className="inline-flex items-center gap-[2px]">
+                        <span>(</span>
+                        <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" style={{ display: "block" }}>
+                          <path
+                            d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
+                            fill="#f59e0b"
+                            stroke="#d97706"
+                            strokeWidth={1.3}
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <span>)</span>
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white select-none">
+                  {loading ? (
+                    <div className="px-3 py-4 text-xs text-slate-500">Läser in progressionsbedömningar…</div>
+                  ) : sortedAssessments.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-500">Inga progressionsbedömningar registrerade ännu.</div>
+                  ) : (
+                    sortedAssessments.map((a) => {
+                      const isEditing = a.id === editingAssessmentId;
+                      const planned = isFutureDate(a.dateISO);
+                      return (
+                        <div
+                          key={a.id}
+                          className={`cursor-default border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 ${
+                            isEditing ? "bg-slate-100" : ""
+                          }`}
+                          onClick={() => setEditingAssessmentId(a.id)}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                {String(profile?.goalsVersion || "").trim() === "2021" && (
+                                  <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                                    {a.phase === "BT" ? "BT" : "ST"}
+                                  </span>
+                                )}
+                                <span className="truncate font-semibold text-slate-900">{a.instrument || "Progressionsbedömning"}</span>
+                              </div>
+
+                              <div className="mt-0.5 flex items-center justify-between text-[11px] text-slate-500">
+                                <span className="whitespace-nowrap">
+                                  {a.dateISO || "Datum saknas"}
+                                  {planned && <span className="ml-1 italic text-sky-700">Planerat</span>}
+                                </span>
+                                <span className="ml-2 truncate text-right">{a.level || "Klinisk tjänstgöring ej angiven"}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeAssessment(a.id);
+                                }}
+                                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-red-50 hover:border-red-300 active:translate-y-px"
+                              >
+                                Ta bort
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -3858,6 +4122,14 @@ export default function IupModal({
           upsertMeeting(value);
         }}
         onClose={() => setEditingMeetingId(null)}
+      />
+      <DirectorMeetingModal
+        open={!!editingDirectorMeetingId && !!currentDirectorMeeting}
+        meeting={currentDirectorMeeting}
+        onSave={(value) => {
+          upsertDirectorMeeting(value);
+        }}
+        onClose={() => setEditingDirectorMeetingId(null)}
       />
       <AssessmentModal
         open={!!editingAssessmentId && !!currentAssessment}
