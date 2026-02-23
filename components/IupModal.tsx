@@ -342,7 +342,7 @@ function DirectorMeetingModal({
           </div>
         </header>
 
-        <section className="max-h-[75vh] p-4 space-y-6">
+        <section className="max-h-[75vh] overflow-y-auto p-4 space-y-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
