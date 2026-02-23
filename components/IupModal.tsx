@@ -567,7 +567,7 @@ function DirectorMeetingModal({
                     >
                       <div className="min-w-0">
                         <div className="text-sm font-bold text-slate-800">{sec.title}</div>
-                        {iupPlanningText.trim() ? (
+                        {isOpen && iupPlanningText.trim() ? (
                           <div className="mt-0.5 text-xs text-slate-600 whitespace-pre-line">
                             {iupPlanningText}
                           </div>
