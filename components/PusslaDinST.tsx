@@ -4824,9 +4824,9 @@ dragPlacementRef.current = {
 
       const isHovered = hoveredSpecialistCollegiumId === m.id;
 
-      const baseColor = "#2dd4bf";
-      const hoverColor = "#99f6e4";
-      const strokeColor = "#0d9488";
+      const baseColor = "#38bdf8";
+      const hoverColor = "#bae6fd";
+      const strokeColor = "#0284c7";
 
       return (
         <button
@@ -7442,7 +7442,7 @@ const persistTimelineToDb = async () => {
             )}
 
             {showSpecialistCollegiumsOnTimeline && (
-              <div className="flex items-center gap-1" data-info="Specialistkollegium. Turkos stjärna i tidslinjen visar specialistkollegium. Klicka på en stjärna för att öppna specialistkollegium i IUP-modalen där du kan redigera datum, återkoppling och planering.">
+              <div className="flex items-center gap-1" data-info="Specialistkollegium. Ljusblå stjärna i tidslinjen visar specialistkollegium. Klicka på en stjärna för att öppna specialistkollegium i IUP-modalen där du kan redigera datum, återkoppling och planering.">
                 <svg
                   aria-hidden="true"
                   width={14}
@@ -7452,8 +7452,8 @@ const persistTimelineToDb = async () => {
                 >
                   <path
                     d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
-                    fill="#2dd4bf"
-                    stroke="#0d9488"
+                    fill="#38bdf8"
+                    stroke="#0284c7"
                     strokeWidth={1.3}
                     strokeLinejoin="round"
                   />
