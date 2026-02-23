@@ -380,7 +380,7 @@ function DirectorMeetingModal({
           </div>
 
           <div>
-            <h3 className="text-base font-extrabold text-slate-900">Genomförda/pågående aktiviteter</h3>
+            <h3 className="text-base font-extrabold text-slate-900">Genomförda och pågående aktiviteter</h3>
             <p className="mt-1 text-sm text-slate-600">
               {prevDirectorMeetingIso
                 ? `Sedan senaste studierektorsmötet (${prevDirectorMeetingIso}) – inklusive aktiviteter som överlappar perioden.`
