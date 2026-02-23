@@ -4294,8 +4294,10 @@ export default function StudierektorPage() {
                             }px`,
                           }}
                         >
-                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 border-r-2 border-slate-300 px-3 text-sm font-semibold text-slate-700 h-[56px] flex items-center whitespace-nowrap">
-                            ST-läkare
+                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 px-3 text-sm font-semibold text-slate-700 h-[56px] flex items-center whitespace-nowrap relative">
+                            <span className="relative z-10">ST-läkare</span>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-white" aria-hidden="true" />
+                            <div className="pointer-events-none absolute inset-y-0 right-0 w-0 border-l-2 border-slate-300" aria-hidden="true" />
                           </div>
                           <div className="border-b border-slate-200 bg-white">
                             <div className="relative">
@@ -4369,8 +4371,10 @@ export default function StudierektorPage() {
                                 overallTimelineLinear.placementBarsByStudent.get(String(r.id)) || [];
                               return (
                                 <Fragment key={String(r.id)}>
-                                  <div className="sticky left-0 z-10 bg-white border-b border-slate-200 border-r-2 border-slate-300 px-3 text-sm text-slate-900 h-[32px] flex items-center whitespace-nowrap">
-                                    {r.name}
+                                  <div className="sticky left-0 z-10 bg-white border-b border-slate-200 px-3 text-sm text-slate-900 h-[32px] flex items-center whitespace-nowrap relative">
+                                    <span className="relative z-10">{r.name}</span>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-white" aria-hidden="true" />
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 w-0 border-l-2 border-slate-300" aria-hidden="true" />
                                   </div>
                                   <div
                                     className="relative border-b border-slate-200 bg-white"
