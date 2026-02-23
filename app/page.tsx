@@ -105,8 +105,8 @@ export default function HomePage() {
         Välj att starta en ny arbetsyta eller fortsätta på tidigare arbete genom att ladda upp en JSON-fil.
       </p>
 
-      <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-2">
-        {/* 1) Ny arbetsyta (tidigare “session”) */}
+      <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-3">
+        {/* 1) Ny arbetsyta (tidigare "session") */}
         <button
           onClick={() => router.push("/profile?setup=1")}
           className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
@@ -126,16 +126,14 @@ export default function HomePage() {
           <p className="mt-1 text-slate-600">Ladda upp din JSON-fil och fortsätt i tidslinjen.</p>
           {importing && <div className="mt-3 text-sm text-slate-500">Laddar…</div>}
         </button>
-      </div>
 
-      {/* Studierektor/huvudhandledare */}
-      <div className="mt-6 w-full max-w-[720px]">
+        {/* 3) Studierektor/huvudhandledare */}
         <button
           onClick={() => router.push("/studierektor")}
-          className="w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
+          className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
         >
-          <div className="text-lg font-extrabold">Studierektor / Huvudhandledare</div>
-          <p className="mt-1 text-slate-600">Ladda upp JSON-filer för att ha koll på flera ST-läkare samtidigt.</p>
+          <div className="text-lg font-extrabold">Studierektor/Handledare</div>
+          <p className="mt-1 text-slate-600">Ladda upp JSON-filer för att ha koll på flera ST-läkare.</p>
         </button>
       </div>
 
