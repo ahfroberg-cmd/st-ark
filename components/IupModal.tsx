@@ -3609,7 +3609,26 @@ export default function IupModal({
                           }
                         }}
                       />
-                      <span>Visa på tidslinjen</span>
+                      <span className="inline-flex items-center gap-1">
+                        <span>Visa på tidslinjen</span>
+                        <span className="text-slate-400">(</span>
+                        <svg
+                          aria-hidden="true"
+                          width={12}
+                          height={12}
+                          viewBox="0 0 24 24"
+                          style={{ display: "block" }}
+                        >
+                          <path
+                            d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
+                            fill="#14b8a6"
+                            stroke="#0f766e"
+                            strokeWidth={1.3}
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <span className="text-slate-400">)</span>
+                      </span>
                     </label>
                   </div>
 

@@ -4824,9 +4824,9 @@ dragPlacementRef.current = {
 
       const isHovered = hoveredSpecialistCollegiumId === m.id;
 
-      const baseColor = "#f59e0b";
-      const hoverColor = "#facc15";
-      const strokeColor = "#d97706";
+      const baseColor = "#14b8a6";
+      const hoverColor = "#5eead4";
+      const strokeColor = "#0f766e";
 
       return (
         <button
@@ -7399,7 +7399,7 @@ const persistTimelineToDb = async () => {
                     borderBottom: "8px solid #059669",
                   }}
                 />
-                <span>= Möte med huvudhandledare</span>
+                <span>= Huvudhandledare</span>
               </div>
             )}
 
@@ -7416,7 +7416,7 @@ const persistTimelineToDb = async () => {
                     borderBottom: "8px solid #ea580c",
                   }}
                 />
-                <span>= Möte med studierektor</span>
+                <span>= Studierektor</span>
               </div>
             )}
 
@@ -7438,6 +7438,27 @@ const persistTimelineToDb = async () => {
                   />
                 </svg>
                 <span>= Progressionsbedömning</span>
+              </div>
+            )}
+
+            {showSpecialistCollegiumsOnTimeline && (
+              <div className="flex items-center gap-1" data-info="Specialistkollegium. Turkos stjärna i tidslinjen visar specialistkollegium. Klicka på en stjärna för att öppna specialistkollegium i IUP-modalen där du kan redigera datum, återkoppling och planering.">
+                <svg
+                  aria-hidden="true"
+                  width={14}
+                  height={14}
+                  viewBox="0 0 24 24"
+                  style={{ display: "block" }}
+                >
+                  <path
+                    d="M12 2.5l2.9 5.9 6.5.9-4.7 4.5 1.1 6.5L12 17.8l-5.8 3.0 1.1-6.5-4.7-4.5 6.5-.9z"
+                    fill="#14b8a6"
+                    stroke="#0f766e"
+                    strokeWidth={1.3}
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>= Specialistkollegium</span>
               </div>
             )}
 
