@@ -4306,11 +4306,6 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               const isLastCol = i === COLS - 1;
               const isFirstHalfOfMonth = i % 2 === 0;
 
-              const isSpot =
-                courseHoverSpot?.row === rowIndex &&
-                courseHoverSpot?.col === i &&
-                typeof courseHoverSpot?.xPx === "number";
-
               return (
                 <div
   key={`lane-${i}`}
@@ -4324,19 +4319,13 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   !isFirstCol && isFirstHalfOfMonth ? "border-l border-slate-300" : "",
 ].join(" ")}
 
-  style={
-    isSpot
-      ? {
-          gridRowStart: 2,
-          backgroundImage: `radial-gradient(circle at ${Math.max(0, courseHoverSpot!.xPx)}px 50%, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.12) 10px, rgba(15, 23, 42, 0.00) 22px)`,
-        }
-      : { gridRowStart: 2 }
-  }
+  style={{ gridRowStart: 2 }}
   title={`Klicka för datum ${defaultISO}`}
   data-info="Detta är spåret för kurser. Klicka här för att lägga till en ny kurs vid detta datum. Detta är det smalare spåret under placeringar-spåret i tidslinjen."
   onMouseMove={(e) => {
     if (outside) return;
-    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const rowEl = (e.currentTarget as HTMLDivElement).closest(".st-row") as HTMLDivElement | null;
+    const rect = (rowEl || (e.currentTarget as HTMLDivElement)).getBoundingClientRect();
     const x = e.clientX - rect.left;
     setCourseHoverSpot({ row: rowIndex, col: i, xPx: x });
   }}
@@ -4369,6 +4358,18 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               );
             })}
           </div>
+
+          {courseHoverSpot?.row === rowIndex && typeof courseHoverSpot?.xPx === "number" && (
+            <div
+              className="pointer-events-none absolute left-0 right-0 z-[5]"
+              style={{
+                top: "1.75rem",
+                height: "0.75rem",
+                backgroundImage: `radial-gradient(circle at ${Math.max(0, courseHoverSpot.xPx)}px 50%, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.12) 10px, rgba(15, 23, 42, 0.00) 22px)`,
+              }}
+              aria-hidden="true"
+            />
+          )}
 
           {/* Kolumn-hover overlay i hela års-raden — borttagen */}
           {null}
