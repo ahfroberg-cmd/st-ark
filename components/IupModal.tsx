@@ -3081,9 +3081,17 @@ export default function IupModal({
   const addDirectorMeeting = () => {
     const id = `d_${Math.random().toString(36).slice(2, 10)}`;
     const todayIso = isoToday();
+    const latestIso = [...directorMeetings]
+      .map((m) => (m && typeof m.dateISO === "string" ? m.dateISO : ""))
+      .filter((iso) => typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso))
+      .sort((a, b) => a.localeCompare(b))
+      .at(-1);
+
+    const baseDate = latestIso ? parseISO(latestIso) : null;
+    const defaultIso = baseDate ? toISO(addMonths(baseDate, 6)) : todayIso;
     const m: IupDirectorMeeting = {
       id,
-      dateISO: todayIso,
+      dateISO: defaultIso,
       focus: "",
     };
     setDirectorMeetings((prev) => [...prev, m]);
