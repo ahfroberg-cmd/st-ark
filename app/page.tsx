@@ -96,10 +96,13 @@ export default function HomePage() {
         Om
       </button>
 
-      <h1 className="mb-2 select-none caret-transparent text-center text-7xl font-extrabold tracking-tight">
-  <span className="text-sky-700">ST</span>
-  <span className="text-emerald-700">ARK</span>
-</h1>
+      <button
+        onClick={() => router.push("/")}
+        className="mb-2 select-none caret-transparent text-center text-7xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+      >
+        <span className="text-sky-700">ST</span>
+        <span className="text-emerald-700">ARK</span>
+      </button>
 
       <p className="mb-8 max-w-[640px] text-center text-slate-600">
         Välj att starta en ny arbetsyta eller fortsätta på tidigare arbete genom att ladda upp en JSON-fil.
@@ -109,7 +112,7 @@ export default function HomePage() {
         {/* 1) Ny arbetsyta (tidigare "session") */}
         <button
           onClick={() => router.push("/profile?setup=1")}
-          className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
+          className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg flex flex-col"
         >
           <div className="text-lg font-extrabold">Ny arbetsyta</div>
           <p className="mt-1 text-slate-600">Fyll i profil och börja planera din ST.</p>
@@ -118,7 +121,7 @@ export default function HomePage() {
         {/* 2) Fortsätt tidigare arbete */}
         <button
           onClick={pickFile}
-          className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-60"
+          className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-60 flex flex-col"
           disabled={importing}
           data-info="Låter dig ladda upp en tidigare sparad JSON-fil med din data (profil, aktiviteter, kurser, IUP) för att fortsätta ditt arbete där du slutade."
         >
@@ -130,9 +133,9 @@ export default function HomePage() {
         {/* 3) Studierektor/huvudhandledare */}
         <button
           onClick={() => router.push("/studierektor")}
-          className="h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg"
+          className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg flex flex-col"
         >
-          <div className="text-lg font-extrabold">Studierektor/Handledare</div>
+          <div className="text-lg font-extrabold">Studierektor/<br />Handledare</div>
           <p className="mt-1 text-slate-600">Ladda upp JSON-filer för att ha koll på flera ST-läkare.</p>
         </button>
       </div>

@@ -3814,7 +3814,7 @@ export default function StudierektorPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/")}
-              className="select-none caret-transparent text-4xl font-extrabold tracking-tight"
+              className="select-none caret-transparent text-4xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
             >
               <span className="text-sky-700">ST</span>
               <span className="text-emerald-700">ARK</span>
@@ -3840,12 +3840,6 @@ export default function StudierektorPage() {
                 <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2Zm0 2v3H7V5h10ZM7 10h10v9H7v-9Z"/>
               </svg>
               Spara
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-slate-50"
-            >
-              Tillbaka
             </button>
             <button
               onClick={() => setAboutOpen(true)}
