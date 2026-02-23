@@ -2433,16 +2433,6 @@ function StudentDetailModal({
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
-                    <div className="text-xs text-slate-600 mt-2">
-                      {goalsVersion === "2021" ? (
-                        <>
-                          BT-fas: {timeDetails.bt.worked > 0 ? `${Math.round((timeDetails.bt.worked / timeDetails.bt.total) * 100)}%` : "0%"} • 
-                          ST-fas: {timeDetails.st.worked > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"}
-                        </>
-                      ) : (
-                        <>ST-tid: {timeDetails.st.worked > 0 ? `${Math.round((timeDetails.st.worked / timeDetails.st.total) * 100)}%` : "0%"}</>
-                      )}
-                    </div>
                   </div>
                 </div>
 
@@ -2473,9 +2463,6 @@ function StudentDetailModal({
                         className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
                         style={{ width: `${milestoneProgressPct}%` }}
                       />
-                    </div>
-                    <div className="text-xs text-slate-600 mt-2">
-                      Uppfyllda delmål: {milestoneDetails.st.fulfilled} av {milestoneDetails.st.total}
                     </div>
                   </div>
                 </div>
