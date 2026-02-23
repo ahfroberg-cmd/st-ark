@@ -380,7 +380,7 @@ function DirectorMeetingModal({
           </div>
 
           <div>
-            <h3 className="text-base font-extrabold text-slate-900">Genomförda utbildningsaktiviteter</h3>
+            <h3 className="text-base font-extrabold text-slate-900">Genomförda/pågående aktiviteter</h3>
             <p className="mt-1 text-sm text-slate-600">
               {prevDirectorMeetingIso
                 ? `Sedan senaste studierektorsmötet (${prevDirectorMeetingIso}) – inklusive aktiviteter som överlappar perioden.`
@@ -503,91 +503,91 @@ function DirectorMeetingModal({
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900">Genomförda progressionsbedömningar</h3>
-            {assessmentsSince.length === 0 ? (
-              <div className="mt-1 text-sm text-slate-500">Inga progressionsbedömningar i perioden.</div>
-            ) : (
-              <div className="mt-2 rounded-xl border bg-white overflow-hidden">
-                <div className="max-h-[32vh] overflow-auto">
-                  <table className="w-full text-sm select-none">
-                    <thead className="sticky top-0 bg-slate-50 text-left">
-                      <tr>
-                        <th className="px-3 py-2">Bedömning</th>
-                        <th className="px-3 py-2">Datum</th>
-                        <th className="px-3 py-2 text-right">Placering</th>
-                      </tr>
-                    </thead>
-                    <tbody className="cursor-default">
-                      {assessmentsSince.map((a) => {
-                        const place = placementAtIso(a.dateISO);
-                        const placeLabel = place
-                          ? String((place as any).title ?? (place as any).site ?? "")
-                          : "";
-                        const title =
-                          (a.level && a.level.trim())
-                            ? a.level
-                            : (a.instrument && a.instrument.trim())
-                            ? a.instrument
-                            : "Progressionsbedömning";
-
-                        return (
-                          <tr key={a.id} className="border-t hover:bg-slate-50">
-                            <td className="px-3 py-1.5 font-semibold text-slate-900" data-info={title}>
-                              {title}
-                            </td>
-                            <td className="px-3 py-1.5 text-slate-700" data-info={a.dateISO}>
-                              {a.dateISO}
-                            </td>
-                            <td className="px-3 py-1.5 text-right text-slate-700" data-info={placeLabel}>
-                              {placeLabel || <span className="text-slate-400">—</span>}
-                            </td>
+              <div>
+                <div className="text-sm font-bold text-slate-800">Progressionsbedömningar</div>
+                {assessmentsSince.length === 0 ? (
+                  <div className="mt-1 text-sm text-slate-500">Inga progressionsbedömningar i perioden.</div>
+                ) : (
+                  <div className="mt-2 rounded-xl border bg-white overflow-hidden">
+                    <div className="max-h-[32vh] overflow-auto">
+                      <table className="w-full text-sm select-none">
+                        <thead className="sticky top-0 bg-slate-50 text-left">
+                          <tr>
+                            <th className="px-3 py-2">Bedömning</th>
+                            <th className="px-3 py-2">Datum</th>
+                            <th className="px-3 py-2 text-right">Placering</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
+                        </thead>
+                        <tbody className="cursor-default">
+                          {assessmentsSince.map((a) => {
+                            const place = placementAtIso(a.dateISO);
+                            const placeLabel = place
+                              ? String((place as any).title ?? (place as any).site ?? "")
+                              : "";
+                            const title =
+                              (a.level && a.level.trim())
+                                ? a.level
+                                : (a.instrument && a.instrument.trim())
+                                ? a.instrument
+                                : "Progressionsbedömning";
 
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900">Genomförda handledarsamtal</h3>
-            {supervisionSince.length === 0 ? (
-              <div className="mt-1 text-sm text-slate-500">Inga handledarsamtal i perioden.</div>
-            ) : (
-              <div className="mt-2 rounded-xl border bg-white overflow-hidden">
-                <div className="max-h-[32vh] overflow-auto">
-                  <table className="w-full text-sm select-none">
-                    <thead className="sticky top-0 bg-slate-50 text-left">
-                      <tr>
-                        <th className="px-3 py-2">Handledarsamtal</th>
-                        <th className="px-3 py-2">Datum</th>
-                      </tr>
-                    </thead>
-                    <tbody className="cursor-default">
-                      {supervisionSince.map((m) => (
-                        <tr key={m.id} className="border-t hover:bg-slate-50">
-                          <td
-                            className="px-3 py-1.5 font-semibold text-slate-900"
-                            data-info={m.focus || "Handledarsamtal"}
-                          >
-                            {m.focus || "Handledarsamtal"}
-                          </td>
-                          <td className="px-3 py-1.5 text-slate-700" data-info={m.dateISO}>
-                            {m.dateISO}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            return (
+                              <tr key={a.id} className="border-t hover:bg-slate-50">
+                                <td className="px-3 py-1.5 font-semibold text-slate-900" data-info={title}>
+                                  {title}
+                                </td>
+                                <td className="px-3 py-1.5 text-slate-700" data-info={a.dateISO}>
+                                  {a.dateISO}
+                                </td>
+                                <td className="px-3 py-1.5 text-right text-slate-700" data-info={placeLabel}>
+                                  {placeLabel || <span className="text-slate-400">—</span>}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              <div>
+                <div className="text-sm font-bold text-slate-800">Handledarsamtal</div>
+                {supervisionSince.length === 0 ? (
+                  <div className="mt-1 text-sm text-slate-500">Inga handledarsamtal i perioden.</div>
+                ) : (
+                  <div className="mt-2 rounded-xl border bg-white overflow-hidden">
+                    <div className="max-h-[32vh] overflow-auto">
+                      <table className="w-full text-sm select-none">
+                        <thead className="sticky top-0 bg-slate-50 text-left">
+                          <tr>
+                            <th className="px-3 py-2">Handledarsamtal</th>
+                            <th className="px-3 py-2">Datum</th>
+                          </tr>
+                        </thead>
+                        <tbody className="cursor-default">
+                          {supervisionSince.map((m) => (
+                            <tr key={m.id} className="border-t hover:bg-slate-50">
+                              <td
+                                className="px-3 py-1.5 font-semibold text-slate-900"
+                                data-info={m.focus || "Handledarsamtal"}
+                              >
+                                {m.focus || "Handledarsamtal"}
+                              </td>
+                              <td className="px-3 py-1.5 text-slate-700" data-info={m.dateISO}>
+                                {m.dateISO}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div>
