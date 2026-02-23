@@ -952,7 +952,12 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
      prev.map((a) => {
        if (a.id !== selAct.id) return a;
        const newLen = Math.max(1, e - s);
-       return { ...a, startSlot: s, lengthSlots: newLen, phase: phaseForSlots(s, newLen) };
+       return {
+         ...a,
+         startSlot: s,
+         lengthSlots: newLen,
+         phase: (a as any).phase ? (a as any).phase : phaseForSlots(s, newLen),
+       };
      })
    );
  };
@@ -2372,13 +2377,25 @@ const phaseForSlots = (startSlot: number, lengthSlots: number) => {
   const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
   if (gv !== "2021") return "ST";
 
-  return phaseForSlotsCore(
-    startYear,
-    (profile as any)?.btStartDate ?? null,
-    stStartISO ?? (profile as any)?.stStartDate ?? null,
-    startSlot,
-    lengthSlots
+  const btStartISO: string | null = (profile as any)?.btStartDate ?? null;
+  const btEndEffISO: string | null = btEndISO ?? (profile as any)?.btEndDate ?? null;
+  if (!btStartISO || !btEndEffISO) return "ST";
+
+  // Default-fasning för placeringar utifrån BT-fönster [BT-start, BT-slut)
+  // (använd slot-start → faktisk startdag för slot)
+  void lengthSlots;
+  const s = slotToYearMonthHalf(startYear, startSlot);
+  const startD = mondayNearestTo(
+    s.year,
+    s.month0,
+    s.half === 0 ? 1 : 15
   );
+  const startISO = dateToISO(startD);
+  const sMs = new Date(startISO + "T00:00:00").getTime();
+  const btStartMs = new Date(btStartISO + "T00:00:00").getTime();
+  const btEndMs = new Date(btEndEffISO + "T00:00:00").getTime();
+  if (!Number.isFinite(sMs) || !Number.isFinite(btStartMs) || !Number.isFinite(btEndMs)) return "ST";
+  return sMs >= btStartMs && sMs < btEndMs ? "BT" : "ST";
 };
 
 const phaseForCourseDates = (startISO?: string) => {
@@ -3835,7 +3852,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
               ...a,
               startSlot: newStart,
               lengthSlots: newLen,
-              phase: phaseForSlots(newStart, newLen),
+              phase: (a as any).phase ? (a as any).phase : phaseForSlots(newStart, newLen),
             };
           }));
 
@@ -3870,7 +3887,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
               return {
                 ...a,
                 lengthSlots: newLen,
-                phase: phaseForSlots(a.startSlot, newLen),
+                phase: (a as any).phase ? (a as any).phase : phaseForSlots(a.startSlot, newLen),
               };
             })
           );
@@ -7678,7 +7695,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     prev.map(a => {
       if (a.id !== selAct.id) return a;
       const newLen = Math.max(1, e - s);
-      return { ...a, startSlot: s, lengthSlots: newLen, phase: phaseForSlots(s, newLen) };
+      return {
+        ...a,
+        startSlot: s,
+        lengthSlots: newLen,
+        phase: (a as any).phase ? (a as any).phase : phaseForSlots(s, newLen),
+      };
     })
   );
 
