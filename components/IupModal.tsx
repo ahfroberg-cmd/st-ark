@@ -160,6 +160,7 @@ function DirectorMeetingModal({
       setOpenForwardSections({});
       return;
     }
+
     setDraft({
       ...meeting,
       planningForward: meeting.planningForward ?? {},
@@ -1499,6 +1500,160 @@ function AssessmentModal({
   );
 }
 
+type SpecialistCollegiumModalProps = {
+  open: boolean;
+  collegium: IupSpecialistCollegium | null;
+  allCollegiums: IupSpecialistCollegium[];
+  onSave: (value: IupSpecialistCollegium) => void;
+  onClose: () => void;
+};
+
+function SpecialistCollegiumModal({
+  open,
+  collegium,
+  allCollegiums,
+  onSave,
+  onClose,
+}: SpecialistCollegiumModalProps) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [draft, setDraft] = useState<IupSpecialistCollegium | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (!open || !collegium) {
+      setDraft(null);
+      setDirty(false);
+      return;
+    }
+    setDraft({
+      id: collegium.id,
+      dateISO: collegium.dateISO,
+      feedback: collegium.feedback ?? "",
+      planningForward: collegium.planningForward ?? "",
+    });
+    setDirty(false);
+  }, [open, collegium]);
+
+  useEffect(() => {
+    if (!open || !overlayRef.current) return;
+    const el = overlayRef.current;
+    registerModal(el, onClose);
+    return () => unregisterModal(el);
+  }, [open, onClose]);
+
+  const updateDraft = (patch: Partial<IupSpecialistCollegium>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      setDirty(true);
+      return next;
+    });
+  };
+
+  const prev = useMemo(() => {
+    if (!draft) return null;
+    const sorted = [...(Array.isArray(allCollegiums) ? allCollegiums : [])]
+      .filter((x) => x && x.id !== draft.id)
+      .filter((x) => x.dateISO && x.dateISO < draft.dateISO)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    return sorted.slice(-1)[0] ?? null;
+  }, [allCollegiums, draft]);
+
+  const handleSave = () => {
+    if (!draft) return;
+    onSave(draft);
+    setDirty(false);
+    onClose();
+  };
+
+  if (!open || !draft) return null;
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[130] grid place-items-center bg-black/40 p-3"
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
+    >
+      <div
+        className="w-full max-w-[820px] overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b px-4 py-3">
+          <h2 className="m-0 text-base font-extrabold">Specialistkollegium</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!dirty}
+              className="inline-flex items-center justify-center rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 hover:border-sky-800 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
+            >
+              Spara
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 hover:border-slate-400 active:translate-y-px"
+            >
+              Stäng
+            </button>
+          </div>
+        </header>
+
+        <section className="max-h-[75vh] overflow-y-auto p-4 space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <div>
+              <CalendarDatePicker
+                value={draft.dateISO || isoToday()}
+                onChange={(iso) => updateDraft({ dateISO: iso })}
+                label="Datum"
+                weekStartsOn={1}
+              />
+            </div>
+          </div>
+
+          {prev ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-sm font-semibold text-slate-900">Förra specialistkollegium</div>
+              <div className="mt-0.5 text-xs font-semibold text-slate-700">{prev.dateISO}</div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold text-slate-700">Återkoppling</div>
+                  <div className="mt-1 text-xs text-slate-700 whitespace-pre-line">{prev.feedback || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-700">Planering</div>
+                  <div className="mt-1 text-xs text-slate-700 whitespace-pre-line">{prev.planningForward || "—"}</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-800">Återkoppling</label>
+              <textarea
+                value={draft.feedback}
+                onChange={(e) => updateDraft({ feedback: e.target.value })}
+                className="min-h-[160px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-800">Planering framåt</label>
+              <textarea
+                value={draft.planningForward}
+                onChange={(e) => updateDraft({ planningForward: e.target.value })}
+                className="min-h-[160px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 type InstrumentsModalProps = {
   open: boolean;
   instruments: string[];
@@ -2568,7 +2723,13 @@ export default function IupModal({
   useEffect(() => {
     if (!open || !overlayRef.current) return;
     // Om en undermodal är öppen, registrera inte huvudmodalen
-    if (editingMeetingId !== null || editingAssessmentId !== null || instrumentsModalOpen) {
+    if (
+      editingMeetingId !== null ||
+      editingAssessmentId !== null ||
+      editingDirectorMeetingId !== null ||
+      editingSpecialistCollegiumId !== null ||
+      instrumentsModalOpen
+    ) {
       return;
     }
     registerModal(overlayRef.current, handleRequestClose);
@@ -2577,7 +2738,15 @@ export default function IupModal({
         unregisterModal(overlayRef.current);
       }
     };
-  }, [open, handleRequestClose, editingMeetingId, editingAssessmentId, instrumentsModalOpen]);
+  }, [
+    open,
+    handleRequestClose,
+    editingMeetingId,
+    editingAssessmentId,
+    editingDirectorMeetingId,
+    editingSpecialistCollegiumId,
+    instrumentsModalOpen,
+  ]);
 
   const handleConfirmClose = useCallback(() => {
     setShowCloseConfirm(false);
@@ -3488,73 +3657,6 @@ export default function IupModal({
                         })
                     )}
                   </div>
-
-                  {currentSpecialistCollegium ? (() => {
-                    const sorted = [...specialistCollegiums]
-                      .filter((x) => x.id !== currentSpecialistCollegium.id)
-                      .filter((x) => x.dateISO && x.dateISO < currentSpecialistCollegium.dateISO)
-                      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-                    const prev = sorted.slice(-1)[0] ?? null;
-
-                    return (
-                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 space-y-3">
-                        <CalendarDatePicker
-                          value={currentSpecialistCollegium.dateISO || isoToday()}
-                          onChange={(iso) =>
-                            upsertSpecialistCollegium({
-                              ...currentSpecialistCollegium,
-                              dateISO: iso,
-                            })
-                          }
-                          label="Datum"
-                          weekStartsOn={1}
-                        />
-
-                        {prev ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
-                            <div className="text-xs font-semibold text-slate-800">Förra specialistkollegium</div>
-                            <div className="mt-0.5 text-[11px] font-semibold text-slate-700">{prev.dateISO}</div>
-                            <div className="mt-2">
-                              <div className="text-[11px] font-semibold text-slate-700">Återkoppling</div>
-                              <div className="mt-0.5 text-xs text-slate-700 whitespace-pre-line">{prev.feedback || "—"}</div>
-                            </div>
-                            <div className="mt-2">
-                              <div className="text-[11px] font-semibold text-slate-700">Planering</div>
-                              <div className="mt-0.5 text-xs text-slate-700 whitespace-pre-line">{prev.planningForward || "—"}</div>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div>
-                          <label className="mb-1 block text-xs font-semibold text-slate-700">Återkoppling</label>
-                          <textarea
-                            value={currentSpecialistCollegium.feedback}
-                            onChange={(e) =>
-                              upsertSpecialistCollegium({
-                                ...currentSpecialistCollegium,
-                                feedback: e.target.value,
-                              })
-                            }
-                            className="min-h-[96px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-xs font-semibold text-slate-700">Planering framåt</label>
-                          <textarea
-                            value={currentSpecialistCollegium.planningForward}
-                            onChange={(e) =>
-                              upsertSpecialistCollegium({
-                                ...currentSpecialistCollegium,
-                                planningForward: e.target.value,
-                              })
-                            }
-                            className="min-h-[96px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })() : null}
                 </div>
               </div>
             )}
@@ -4932,6 +5034,16 @@ export default function IupModal({
         }}
         onClose={() => setEditingAssessmentId(null)}
         profile={profile}
+      />
+
+      <SpecialistCollegiumModal
+        open={!!editingSpecialistCollegiumId && !!currentSpecialistCollegium}
+        collegium={currentSpecialistCollegium}
+        allCollegiums={specialistCollegiums}
+        onSave={(value: IupSpecialistCollegium) => {
+          upsertSpecialistCollegium(value);
+        }}
+        onClose={() => setEditingSpecialistCollegiumId(null)}
       />
 
 
