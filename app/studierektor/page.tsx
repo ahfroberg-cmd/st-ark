@@ -4262,7 +4262,9 @@ export default function StudierektorPage() {
                               {overallTimelineLinear.monthLabels.map((lab: string) => (
                                 <div
                                   key={lab}
-                                  className="h-8 flex items-end justify-center pb-1 border-l border-slate-200"
+                                  className={`h-8 flex items-end justify-center pb-1 border-l ${
+                                    lab.endsWith("-01") ? "border-slate-400 border-l-2" : "border-slate-200"
+                                  }`}
                                 >
                                   {lab}
                                 </div>
@@ -4315,9 +4317,17 @@ export default function StudierektorPage() {
                                         }px)`,
                                       }}
                                     >
-                                      {overallTimelineLinear.monthKeys.map((k: number) => (
-                                        <div key={`${r.id}-${k}`} className="border-l border-slate-100" />
-                                      ))}
+                                      {overallTimelineLinear.monthKeys.map((k: number) => {
+                                        const isYearStart = k % 12 === 0;
+                                        return (
+                                          <div
+                                            key={`${r.id}-${k}`}
+                                            className={`border-l ${
+                                              isYearStart ? "border-slate-300 border-l-2" : "border-slate-100"
+                                            }`}
+                                          />
+                                        );
+                                      })}
                                     </div>
 
                                     {bars.map((b: any, idx: number) => (
