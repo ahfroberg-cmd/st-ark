@@ -1048,6 +1048,19 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
     return "2021";
   };
 
+  const normalizeISODateOnly = (v: any): string | null => {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // Acceptera ISO med tidsdel och plocka datumdelen
+    if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+      const d = s.slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+    }
+    return null;
+  };
+
   // Beräkna BT-slutdatum
   const btEndISO = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
@@ -1057,19 +1070,8 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
     if (!btStart) return null;
     
     const btEndManual = (profile as any)?.btEndDate;
-    if (btEndManual && /^\d{4}-\d{2}-\d{2}$/.test(btEndManual)) {
-      const manualMonths = monthDiffExact(btStart, btEndManual);
-      if (manualMonths < 12) {
-        try {
-          const btDate = new Date(btStart + "T00:00:00");
-          btDate.setMonth(btDate.getMonth() + 12);
-          return dateToISO(nextSundayOnOrAfter(btDate));
-        } catch {
-          return btEndManual;
-        }
-      }
-      return btEndManual;
-    }
+    const manualISO = normalizeISODateOnly(btEndManual);
+    if (manualISO) return manualISO;
     
     try {
       const btDate = new Date(btStart + "T00:00:00");
