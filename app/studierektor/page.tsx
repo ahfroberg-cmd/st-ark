@@ -3650,12 +3650,22 @@ export default function StudierektorPage() {
       return Number.isFinite(n) && n > 0 ? n : 30;
     };
 
-    const toMonthLabel = (k: number): string => {
-      const y = Math.floor(k / 12);
-      const m0 = k % 12;
-      const mm = String(m0 + 1).padStart(2, "0");
-      return `${y}-${mm}`;
-    };
+    const MONTH_SHORT = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Maj",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Dec",
+    ];
+
+    const toMonthShort = (k: number): string => MONTH_SHORT[k % 12] || "";
 
     const rows = (students || []).map((s) => {
       const startISO = getStudentStartISO(s);
@@ -3741,7 +3751,7 @@ export default function StudierektorPage() {
       cellW,
       rowH,
       monthKeys,
-      monthLabels: monthKeys.map(toMonthLabel),
+      monthLabels: monthKeys.map(toMonthShort),
       rows,
       placementBarsByStudent,
       todayMarkerX,
@@ -4288,14 +4298,7 @@ export default function StudierektorPage() {
                             ST-läkare
                           </div>
                           <div className="border-b border-slate-200 bg-white">
-                            <div
-                              className="relative grid text-[11px] text-slate-600"
-                              style={{
-                                gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
-                                  overallTimelineLinear.cellW
-                                }px)`,
-                              }}
-                            >
+                            <div className="relative">
                               {typeof overallTimelineLinear.todayMarkerX === "number" && (
                                 <div
                                   className="pointer-events-none absolute inset-y-0 z-20"
@@ -4316,16 +4319,60 @@ export default function StudierektorPage() {
                                   />
                                 </div>
                               )}
-                              {overallTimelineLinear.monthLabels.map((lab: string) => (
-                                <div
-                                  key={lab}
-                                  className={`h-8 flex items-end justify-center pb-1 border-l ${
-                                    lab.endsWith("-01") ? "border-slate-400 border-l-2" : "border-slate-200"
-                                  }`}
-                                >
-                                  {lab}
-                                </div>
-                              ))}
+
+                              <div
+                                className="grid text-[11px] text-slate-700"
+                                style={{
+                                  gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
+                                    overallTimelineLinear.cellW
+                                  }px)`,
+                                }}
+                              >
+                                {(() => {
+                                  const keys = overallTimelineLinear.monthKeys as number[];
+                                  const segs: Array<{ year: number; start: number; len: number }> = [];
+                                  for (let i = 0; i < keys.length; ) {
+                                    const y = Math.floor(keys[i] / 12);
+                                    let j = i;
+                                    while (j < keys.length && Math.floor(keys[j] / 12) === y) j++;
+                                    segs.push({ year: y, start: i, len: j - i });
+                                    i = j;
+                                  }
+                                  return segs.map((s) => (
+                                    <div
+                                      key={`y-${s.year}-${s.start}`}
+                                      className="h-6 flex items-center justify-center font-semibold text-slate-700"
+                                      style={{ gridColumn: `${s.start + 1} / span ${s.len}` }}
+                                    >
+                                      {s.year}
+                                    </div>
+                                  ));
+                                })()}
+                              </div>
+
+                              <div
+                                className="grid text-[11px] text-slate-600"
+                                style={{
+                                  gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
+                                    overallTimelineLinear.cellW
+                                  }px)`,
+                                }}
+                              >
+                                {overallTimelineLinear.monthKeys.map((k: number, idx: number) => {
+                                  const lab = (overallTimelineLinear.monthLabels as string[])[idx] || "";
+                                  const isYearStart = k % 12 === 0;
+                                  return (
+                                    <div
+                                      key={`m-${k}`}
+                                      className={`h-8 flex items-end justify-center pb-1 border-l ${
+                                        isYearStart ? "border-slate-400 border-l-2" : "border-slate-200"
+                                      }`}
+                                    >
+                                      {lab}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
 
