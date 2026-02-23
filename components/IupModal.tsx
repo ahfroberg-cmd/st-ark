@@ -3588,7 +3588,7 @@ export default function IupModal({
                       onClick={addSpecialistCollegium}
                       className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
                     >
-                      + Ny
+                      + Nytt kollegium
                     </button>
                   </div>
 
