@@ -4299,27 +4299,6 @@ export default function StudierektorPage() {
                           </div>
                           <div className="border-b border-slate-200 bg-white">
                             <div className="relative">
-                              {typeof overallTimelineLinear.todayMarkerX === "number" && (
-                                <div
-                                  className="pointer-events-none absolute inset-y-0 z-20"
-                                  style={{ left: overallTimelineLinear.todayMarkerX, width: 0 }}
-                                  aria-hidden="true"
-                                >
-                                  <div
-                                    style={{
-                                      position: "absolute",
-                                      left: 0,
-                                      top: 0,
-                                      bottom: 0,
-                                      width: 0,
-                                      borderLeft: "3px solid #2563eb",
-                                      transform: "translateX(-1px)",
-                                    }}
-                                    title={`Idag (${new Date().toISOString().slice(0, 10)})`}
-                                  />
-                                </div>
-                              )}
-
                               <div
                                 className="grid text-[11px] text-slate-700"
                                 style={{
