@@ -4282,10 +4282,10 @@ export default function StudierektorPage() {
                   <div className="rounded-xl border border-slate-200 overflow-hidden">
                     <div
                       ref={overallTimelineMonthGridRef}
-                      className="overflow-x-auto overscroll-x-contain"
+                      className="overflow-x-auto overscroll-x-contain pb-4"
                       style={{ overscrollBehaviorX: "contain" }}
                     >
-                      <div className="min-w-max">
+                      <div className="min-w-max pb-1">
                         <div
                           className="grid"
                           style={{
