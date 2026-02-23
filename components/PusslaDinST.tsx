@@ -10172,7 +10172,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en, två eller tre utbildningsaktiviteter: klinisk tjänstgöring, kurs och/eller skriftligt arbete. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs. BT-delmål räknas separat.
                         </p>
                         <button
                           type="button"
@@ -10212,7 +10212,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                       
                       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-700">
                         <p className="mb-2">
-                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en eller två utbildningsaktiviteter: klinisk tjänstgöring (Klin) och/eller kurs (Kurs). Inte alla delmål kräver båda – vissa kräver endast Klin, andra kräver både Klin och Kurs. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
+                          <strong>Hur delmålsuppfyllelse räknas:</strong> Varje delmål kan kräva en, två eller tre utbildningsaktiviteter: klinisk tjänstgöring, kurs och/eller skriftligt arbete. Uppfyllelsen räknas som andelen genomförda utbildningsaktiviteter av det totala antalet som krävs.
                         </p>
                         <button
                           type="button"
