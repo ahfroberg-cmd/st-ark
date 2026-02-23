@@ -4300,81 +4300,6 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               );
             })}
 
-  {/* Studierektorsmöten – trianglar i kursspåret */}
-  {directorMeetingSessions
-    .filter((s) => {
-      if (!showDirectorMeetingsOnTimeline) return false;
-      if (!s.dateISO || !isValidISO(s.dateISO)) return false;
-      const d = isoToDateSafe(s.dateISO);
-      return d.getFullYear() === year;
-    })
-    .map((s) => {
-      const d = isoToDateSafe(s.dateISO);
-      const startOfYear = new Date(year, 0, 1);
-      const startOfNextYear = new Date(year + 1, 0, 1);
-      const msInDay = 24 * 60 * 60 * 1000;
-
-      const dayIndex = Math.floor((d.getTime() - startOfYear.getTime()) / msInDay);
-      const daysInYearLocal = Math.max(1, Math.floor((startOfNextYear.getTime() - startOfYear.getTime()) / msInDay));
-      const frac = Math.min(Math.max(dayIndex / daysInYearLocal, 0), 1);
-      const pct = frac * 100;
-      if (pct < 0 || pct > 100) return null;
-
-      const isHovered = hoveredDirectorMeetingId === s.id;
-
-      return (
-        <button
-          key={s.id + "@director@" + year}
-          type="button"
-          className="pointer-events-auto absolute"
-          style={{
-            left: `${pct}%`,
-            bottom: "3.2rem",
-            transform: isHovered ? "translate(-50%, -1px)" : "translate(-50%, 0)",
-          }}
-          onMouseEnter={() => setHoveredDirectorMeetingId(s.id)}
-          onMouseLeave={() =>
-            setHoveredDirectorMeetingId((prev) => (prev === s.id ? null : prev))
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            setIupInitialTab("handledning");
-            setIupInitialDirectorMeetingId(s.id);
-            setIupOpen(true);
-          }}
-          title={s.title && s.title.trim() ? `${s.title} (${s.dateISO})` : s.dateISO}
-          data-info="Möte med studierektor. Klicka för att öppna mötet i IUP-modalen."
-        >
-          <span aria-hidden="true" style={{ position: "relative", display: "block", width: 0, height: 0 }}>
-            <span
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: 0,
-                height: 0,
-                borderLeft: "7px solid transparent",
-                borderRight: "7px solid transparent",
-                borderBottom: "11px solid #0c4a6e",
-              }}
-            />
-            <span
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%) translateY(1px)",
-                width: 0,
-                height: 0,
-                borderLeft: "6px solid transparent",
-                borderRight: "6px solid transparent",
-                borderBottom: isHovered ? "9px solid #38bdf8" : "9px solid #0284c7",
-              }}
-            />
-          </span>
-        </button>
-      );
-    })}
-
             {/* Rad 2: kurs-lane */}
             {Array.from({ length: COLS }, (_, i) => {
               const globalSlot = rowStartSlot + i;
@@ -4900,6 +4825,84 @@ dragPlacementRef.current = {
     overflow: "visible", // ← viktigast: låt piggen få sticka ut lite
   }}
 >
+  {/* Studierektorsmöten – trianglar i kursspåret */}
+  {directorMeetingSessions
+    .filter((s) => {
+      if (!showDirectorMeetingsOnTimeline) return false;
+      if (!s.dateISO || !isValidISO(s.dateISO)) return false;
+      const d = isoToDateSafe(s.dateISO);
+      return d.getFullYear() === year;
+    })
+    .map((s) => {
+      const d = isoToDateSafe(s.dateISO);
+      const startOfYear = new Date(year, 0, 1);
+      const startOfNextYear = new Date(year + 1, 0, 1);
+      const msInDay = 24 * 60 * 60 * 1000;
+
+      const dayIndex = Math.floor((d.getTime() - startOfYear.getTime()) / msInDay);
+      const daysInYearLocal = Math.max(
+        1,
+        Math.floor((startOfNextYear.getTime() - startOfYear.getTime()) / msInDay)
+      );
+      const frac = Math.min(Math.max(dayIndex / daysInYearLocal, 0), 1);
+      const pct = frac * 100;
+      if (pct < 0 || pct > 100) return null;
+
+      const isHovered = hoveredDirectorMeetingId === s.id;
+
+      return (
+        <button
+          key={s.id + "@director@" + year}
+          type="button"
+          className="pointer-events-auto absolute"
+          style={{
+            left: `${pct}%`,
+            top: "-0.95rem",
+            transform: isHovered ? "translate(-50%, -1px)" : "translate(-50%, 0)",
+          }}
+          onMouseEnter={() => setHoveredDirectorMeetingId(s.id)}
+          onMouseLeave={() =>
+            setHoveredDirectorMeetingId((prev) => (prev === s.id ? null : prev))
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            setIupInitialTab("handledning");
+            setIupInitialDirectorMeetingId(s.id);
+            setIupOpen(true);
+          }}
+          title={s.title && s.title.trim() ? `${s.title} (${s.dateISO})` : s.dateISO}
+          data-info="Möte med studierektor. Klicka för att öppna mötet i IUP-modalen."
+        >
+          <span aria-hidden="true" style={{ position: "relative", display: "block", width: 0, height: 0 }}>
+            <span
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 0,
+                height: 0,
+                borderLeft: "7px solid transparent",
+                borderRight: "7px solid transparent",
+                borderBottom: "11px solid #0c4a6e",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) translateY(1px)",
+                width: 0,
+                height: 0,
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderBottom: isHovered ? "9px solid #38bdf8" : "9px solid #0284c7",
+              }}
+            />
+          </span>
+        </button>
+      );
+    })}
+
   {/* Handledningstrianglar i kursspåret */}
   {supervisionSessions
     .filter((s) => {
@@ -4943,7 +4946,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            bottom: "2.4rem",
+            top: "-0.75rem",
             transform: isHovered
               ? "translate(-50%, -1px)"
               : "translate(-50%, 0)",
@@ -5037,7 +5040,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            bottom: "1.6rem",
+            top: "-1.05rem",
             transform: isHovered
               ? "translate(-50%, -1px) scale(1.05)"
               : "translate(-50%, 0) scale(1)",
