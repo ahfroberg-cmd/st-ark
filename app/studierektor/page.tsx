@@ -4012,7 +4012,7 @@ export default function StudierektorPage() {
         ) : (
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
             <p className="text-slate-600">
-              Inga ST-läkare har lagts till ännu. Ladda upp JSON-filer för att komma igång.
+              Inga ST-läkare har lagts till ännu.
             </p>
           </div>
         )}
