@@ -7583,14 +7583,14 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         for (const o of overlaps) {
           if (o.oe > maxEnd) maxEnd = o.oe;
         }
-        proposedStart = addDaysISO(maxEnd, 1);
+        proposedStart = roundToAnchors(addDaysISO(maxEnd, 1), "start");
         if (proposedEnd < proposedStart) proposedEnd = proposedStart;
       } else {
         let minStart = proposedEnd;
         for (const o of overlaps) {
           if (o.os < minStart) minStart = o.os;
         }
-        proposedEnd = addDaysISO(minStart, -1);
+        proposedEnd = roundToAnchors(addDaysISO(minStart, -1), "end");
         if (proposedEnd < proposedStart) proposedStart = proposedEnd;
       }
     }
