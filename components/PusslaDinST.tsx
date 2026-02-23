@@ -1063,9 +1063,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
         try {
           const btDate = new Date(btStart + "T00:00:00");
           btDate.setMonth(btDate.getMonth() + 12);
-          const mm = String(btDate.getMonth() + 1).padStart(2, "0");
-          const dd = String(btDate.getDate()).padStart(2, "0");
-          return `${btDate.getFullYear()}-${mm}-${dd}`;
+          return dateToISO(nextSundayOnOrAfter(btDate));
         } catch {
           return btEndManual;
         }
@@ -1076,9 +1074,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
     try {
       const btDate = new Date(btStart + "T00:00:00");
       btDate.setDate(btDate.getDate() + 365);
-      const mm = String(btDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(btDate.getDate()).padStart(2, "0");
-      return `${btDate.getFullYear()}-${mm}-${dd}`;
+      return dateToISO(nextSundayOnOrAfter(btDate));
     } catch {
       return null;
     }
