@@ -1885,7 +1885,12 @@ function StudentDetailModal({
       if (days <= 0) continue;
 
       const label = p?.clinic || p?.title || p?.type || "Aktivitet";
-      const hue = placementHueById.get(String(p?.id ?? "")) ?? (p as any)?.hue ?? (Math.random() * 360);
+      const idStr = String(p?.id ?? "");
+      const fallbackHue =
+        ((idStr
+          .split("")
+          .reduce((acc, ch) => (acc + ch.charCodeAt(0)) % 360, 0) * 37) % 360);
+      const hue = placementHueById.get(idStr) ?? (p as any)?.hue ?? fallbackHue;
 
       const item = {
         id: String(p?.id ?? ""),
@@ -3935,9 +3940,7 @@ export default function StudierektorPage() {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                     Senast uppdaterad
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">
-                    Ta bort
-                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
