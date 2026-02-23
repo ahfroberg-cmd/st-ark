@@ -4185,11 +4185,7 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   className="st-row relative isolate bg-white"
   style={{
     height: "2.6rem",
-    backgroundImage:
-      "linear-gradient(to right, rgba(148,163,184,.35) 1px, transparent 1px)",
-    backgroundSize: "calc(100% / 24) 100%",
-    backgroundRepeat: "repeat-x",
-    backgroundPosition: "0 0",
+    backgroundImage: "none",
     borderTopLeftRadius: "2px",
     borderTopRightRadius: "2px",
     borderBottomLeftRadius: year === bottomYear ? "2px" : "0px",
@@ -4200,48 +4196,6 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
   }}
   onMouseLeave={() => setHover(null)}
 >
-
-
-
-
-
-          {/* Starkare månads-linjer i aktivitetsraden */}
-          <div
-  className="pointer-events-none absolute inset-0"
-  style={{
-    zIndex: 10,
-  }}
->
-  {/* Linjer för varje månad - exakt positionerade på månadsgränserna */}
-  {Array.from({ length: 13 }, (_, monthIdx) => {
-    // 13 linjer: en för varje månadstart (0-11) + en för slutet av sista månaden (12)
-    const leftPercent = (monthIdx / 12) * 100;
-    return (
-      <div
-        key={`month-line-${monthIdx}`}
-        style={{
-          position: "absolute",
-          left: `${leftPercent}%`,
-          top: 0,
-          bottom: "3px", // Pausa precis ovanför årsseparatorn (som på vänsterkanten)
-          width: "2px",
-          backgroundColor: "rgba(100,116,139,.85)",
-        }}
-      />
-    );
-  })}
-</div>
-
-{/* ÅRSSEPARATOR: vitt band precis under KURS-lanen */}
-<div
-  className="pointer-events-none absolute inset-x-0 z-[15]"
-  style={{
-    bottom: "-1px",      // hamnar precis under kurs-lanens botten/border
-    height: "3px",       // bandets tjocklek (4–6 px funkar bra)
-    background: "white", // maskar alla mörka linjer under
-  }}
-/>
-
 
           <div
             className="grid grid-cols-[repeat(24,minmax(0,1fr))]"
@@ -7256,7 +7210,6 @@ const persistTimelineToDb = async () => {
 
 
       <div className="relative rounded-xl">
-        <div className="pointer-events-none absolute inset-0 z-0 rounded-xl border border-slate-200" />
         <div className="relative z-10">
           {/* Månadsrubriker (sticky) */}
           <div className="mb-1"><MonthHeader /></div>
@@ -7270,9 +7223,7 @@ const persistTimelineToDb = async () => {
 
       {/* Förklaring (legend) + förlängning av ST */}
       <div className="grid grid-cols-[80px_1fr] items-start mb-4">
-        <div className="pr-2 text-right select-none">
-          <span>{startYear + visibleYearCount - 1}</span>
-        </div>
+        <div className="pr-2 text-right select-none" />
 
         <div
   className="mt-2 ml-[10px] flex flex-wrap items-center gap-4 text-xs text-slate-700"
