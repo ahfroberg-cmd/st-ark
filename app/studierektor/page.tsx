@@ -4343,8 +4343,12 @@ export default function StudierektorPage() {
                                   return (
                                     <div
                                       key={`m-${k}`}
-                                      className={`h-8 flex items-end justify-center pb-1 border-l ${
-                                        isYearStart ? "border-slate-400 border-l-2" : "border-slate-200"
+                                      className={`h-8 flex items-end justify-center pb-1 ${
+                                        idx === 0
+                                          ? ""
+                                          : `border-l ${
+                                              isYearStart ? "border-slate-400 border-l-2" : "border-slate-200"
+                                            }`
                                       }`}
                                     >
                                       {lab}
@@ -4400,14 +4404,18 @@ export default function StudierektorPage() {
                                         }px)`,
                                       }}
                                     >
-                                      {overallTimelineLinear.monthKeys.map((k: number) => {
+                                      {overallTimelineLinear.monthKeys.map((k: number, idx: number) => {
                                         const isYearStart = k % 12 === 0;
                                         return (
                                           <div
                                             key={`${r.id}-${k}`}
-                                            className={`border-l ${
-                                              isYearStart ? "border-slate-300 border-l-2" : "border-slate-100"
-                                            }`}
+                                            className={
+                                              idx === 0
+                                                ? ""
+                                                : `border-l ${
+                                                    isYearStart ? "border-slate-300 border-l-2" : "border-slate-100"
+                                                  }`
+                                            }
                                           />
                                         );
                                       })}
