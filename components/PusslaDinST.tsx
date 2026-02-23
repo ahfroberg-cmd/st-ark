@@ -7403,6 +7403,23 @@ const persistTimelineToDb = async () => {
               </div>
             )}
 
+            {showDirectorMeetingsOnTimeline && (
+              <div className="flex items-center gap-1" data-info="Möte med studierektor. Orange trekant i tidslinjen visar studierektorsmöten. Klicka på en trekant för att öppna mötet i IUP-modalen.">
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: "inline-block",
+                    width: 0,
+                    height: 0,
+                    borderLeft: "5px solid transparent",
+                    borderRight: "5px solid transparent",
+                    borderBottom: "8px solid #ea580c",
+                  }}
+                />
+                <span>= Möte med studierektor</span>
+              </div>
+            )}
+
             {showAssessmentsOnTimeline && (
               <div className="flex items-center gap-1" data-info="Progressionsbedömning. Gul stjärna i tidslinjen visar progressionsbedömningar. Klicka på en stjärna för att öppna den progressionsbedömningen i IUP-modalen där du kan redigera datum, bedömningsinstrument och bedömningsresultat.">
                 <svg

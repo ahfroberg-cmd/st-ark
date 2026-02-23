@@ -3226,7 +3226,24 @@ export default function IupModal({
                           }
                         }}
                       />
-                      <span>Visa på tidslinjen</span>
+                      <span className="inline-flex items-center gap-1">
+                        <span>Visa på tidslinjen</span>
+                        <span className="inline-flex items-center gap-[2px]">
+                          <span>(</span>
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              display: "inline-block",
+                              width: 0,
+                              height: 0,
+                              borderLeft: "5px solid transparent",
+                              borderRight: "5px solid transparent",
+                              borderBottom: "8px solid #ea580c",
+                            }}
+                          />
+                          <span>)</span>
+                        </span>
+                      </span>
                     </label>
                   </div>
 
