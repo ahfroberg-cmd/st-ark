@@ -2704,6 +2704,12 @@ useEffect(() => {
   // Kolumn-hover (för både rad 1 och kurs-lane)
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
 
+  const [courseHoverSpot, setCourseHoverSpot] = useState<{
+    row: number;
+    col: number;
+    xPx: number;
+  } | null>(null);
+
   // ---- drag states ----
   type PlacementDrag = {
     id: string; mode: "move" | "resize-left" | "resize-right";
@@ -4300,25 +4306,43 @@ const visibleStartSlot = (is2021Profile && snappedBtStartSlot != null)
               const isLastCol = i === COLS - 1;
               const isFirstHalfOfMonth = i % 2 === 0;
 
+              const isSpot =
+                courseHoverSpot?.row === rowIndex &&
+                courseHoverSpot?.col === i &&
+                typeof courseHoverSpot?.xPx === "number";
+
               return (
                 <div
   key={`lane-${i}`}
   className={[
-  "h-3 w-full transition cursor-pointer",
+  "h-3 w-full transition cursor-pointer relative overflow-hidden",
   // växla mellan två lite mörkare grå
   outside ? OUTSIDE_BG_LANE : (monthIndex % 2 ? "bg-slate-200" : INSIDE_BG_LANE),
-  outside ? "" : "hover:bg-slate-300",    // mörkare hover
 "border-y border-slate-300",            // ← NYTT: raka kanter
   isFirstCol ? "border-l border-slate-300" : "",
   isLastCol ? "border-r border-slate-300" : "",
   !isFirstCol && isFirstHalfOfMonth ? "border-l border-slate-300" : "",
 ].join(" ")}
 
-  style={{ gridRowStart: 2 }}
+  style={
+    isSpot
+      ? {
+          gridRowStart: 2,
+          backgroundImage: `radial-gradient(circle at ${Math.max(0, courseHoverSpot!.xPx)}px 50%, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.12) 10px, rgba(15, 23, 42, 0.00) 22px)`,
+        }
+      : { gridRowStart: 2 }
+  }
   title={`Klicka för datum ${defaultISO}`}
   data-info="Detta är spåret för kurser. Klicka här för att lägga till en ny kurs vid detta datum. Detta är det smalare spåret under placeringar-spåret i tidslinjen."
-  onMouseEnter={() => setHover({ row: rowIndex, col: i })}
-  onMouseLeave={() => setHover(h => (h?.row === rowIndex && h?.col === i ? null : h))}
+  onMouseMove={(e) => {
+    if (outside) return;
+    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    setCourseHoverSpot({ row: rowIndex, col: i, xPx: x });
+  }}
+  onMouseLeave={() => {
+    setCourseHoverSpot((h) => (h?.row === rowIndex && h?.col === i ? null : h));
+  }}
   onClick={(e) => {
     e.stopPropagation();
     // Om något är valt och dirty, stäng detaljrutan med varning
