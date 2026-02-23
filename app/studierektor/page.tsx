@@ -4273,7 +4273,7 @@ export default function StudierektorPage() {
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  Tidslinje (månadsrutor)
+                  Översikt
                 </button>
               </div>
 
