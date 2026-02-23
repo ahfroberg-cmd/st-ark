@@ -3649,11 +3649,12 @@ export default function IupModal({
                       />
                       <span className="inline-flex items-center gap-1">
                         <span>Visa på tidslinjen</span>
-                        <span className="text-slate-400">(</span>
+                        <span className="inline-flex items-center gap-[2px]">
+                          <span>(</span>
                         <svg
                           aria-hidden="true"
-                          width={12}
-                          height={12}
+                          width={14}
+                          height={14}
                           viewBox="0 0 24 24"
                           style={{ display: "block" }}
                         >
@@ -3665,7 +3666,8 @@ export default function IupModal({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        <span className="text-slate-400">)</span>
+                          <span>)</span>
+                        </span>
                       </span>
                     </label>
                   </div>
