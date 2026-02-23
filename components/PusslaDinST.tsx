@@ -191,6 +191,18 @@ function isValidISO(dateISO: string) {
   const d = new Date(dateISO + "T00:00:00");
   return !isNaN(d.getTime());
 }
+
+function normalizeISODateOnlyGlobal(v: any): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = s.slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+  }
+  return null;
+}
 function dateToISO(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
@@ -3619,44 +3631,21 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
       // Re-fasning vid varje ändring: BT/ST enbart utifrån BT-start + BT-slut i profil
       const is2021Profile = normalizeGoalsVersion((profile as any)?.goalsVersion) === "2021";
       const btStartISO: string | null = (profile as any)?.btStartDate || null;
-      const btEndManual: string | null = (profile as any)?.btEndDate || null;
+      const btEndEffISO: string | null = btEndISO;
 
-      let btEndISO: string | null = btEndManual;
-      if (btStartISO && !btEndManual) {
-        try {
-          const btStartD = isoToDateSafe(btStartISO);
-          btEndISO = dateToISO(addMonths(btStartD, 24));
-        } catch {
-          btEndISO = null;
-        }
-      }
+      // Behåll explicit fas om användaren satt den. Annars default-fasa baserat på datum.
+      const existingPhase = (next as any).phase as ("BT" | "ST" | undefined);
+      const startISOraw = next.startDate || next.certificateDate || next.endDate || undefined;
+      const startISO = normalizeISODateOnlyGlobal(startISOraw) || (startISOraw && isValidISO(startISOraw) ? startISOraw : null);
 
-      let phase: "BT" | "ST" = (next as any).phase || "ST";
-      const startISO =
-        next.startDate ||
-        next.certificateDate ||
-        next.endDate ||
-        undefined;
-
-      if (
-        is2021Profile &&
-        btStartISO &&
-        btEndISO &&
-        startISO &&
-        isValidISO(startISO)
-      ) {
+      if (!existingPhase && is2021Profile && btStartISO && btEndEffISO && startISO) {
         const sMs = Date.parse(startISO + "T00:00:00");
         const btStartMs = Date.parse(btStartISO + "T00:00:00");
-        const btEndMs = Date.parse(btEndISO + "T00:00:00");
-
+        const btEndMs = Date.parse(btEndEffISO + "T00:00:00");
         if (Number.isFinite(sMs) && Number.isFinite(btStartMs) && Number.isFinite(btEndMs)) {
-          phase = (sMs >= btStartMs && sMs < btEndMs) ? "BT" : "ST";
+          (next as any).phase = sMs >= btStartMs && sMs < btEndMs ? "BT" : "ST";
         }
-      } else {
-        phase = "ST";
       }
-
-      (next as any).phase = phase;
 
       return next;
     })
@@ -3771,10 +3760,11 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
               const goals2021 =
                 String((profile as any)?.goalsVersion || "").trim() === "2021";
               const btISO = (profile as any)?.btStartDate || null;
-              const stISO = stStartISO || (profile as any)?.stStartDate || null;
+              const btEndEffISO = btEndISO;
 
               let phase: "BT" | "ST" = (a as any).phase || "ST";
-              if (goals2021 && btISO && stISO) {
+              // Behåll explicit fas om användaren satt den. Annars default-fasa baserat på BT-fönster.
+              if (!(a as any).phase && goals2021 && btISO && btEndEffISO) {
                 const s = slotToYearMonthHalf(startYear, newStart);
                 const startD = mondayNearestTo(
                   s.year,
@@ -3784,8 +3774,8 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
                 const startISO = dateToISO(startD);
                 const sMs = new Date(startISO + "T00:00:00").getTime();
                 const bts = new Date(btISO + "T00:00:00").getTime();
-                const sts = new Date(stISO + "T00:00:00").getTime();
-                if (Number.isFinite(sMs) && sMs >= bts && sMs < sts) {
+                const bte = new Date(btEndEffISO + "T00:00:00").getTime();
+                if (Number.isFinite(sMs) && sMs >= bts && sMs < bte) {
                   phase = "BT";
                 } else {
                   phase = "ST";
