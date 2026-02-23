@@ -4108,7 +4108,7 @@ function updateSelectedCourse(upd: Partial<TLcourse>) {
         <div className="relative">
           <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] text-xs text-slate-700">
             {MONTH_NAMES.map((m, idx) => (
-              <div key={m} className={`col-span-2 text-center font-medium pb-1 ${idx === 0 ? "border-l border-slate-300" : ""} ${idx === MONTH_NAMES.length - 1 ? "border-r border-slate-300" : ""}`}>{m}</div>
+              <div key={m} className="col-span-2 text-center font-medium pb-1">{m}</div>
             ))}
           </div>
           
