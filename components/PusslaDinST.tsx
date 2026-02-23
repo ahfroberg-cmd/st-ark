@@ -1265,67 +1265,20 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
     return fteDays(btStart, stEndISO, 100);
   }, [profile, stStartISO, stEndISO]);
 
-  const workedCombinedFteSlots = useMemo(() => {
-    if (!dbPlacements || dbPlacements.length === 0) return 0;
-
-    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const today = todayISO();
-    const baseStartISO = gv === "2021" ? String((profile as any)?.btStartDate || "") : String(stStartISO || "");
-    if (!baseStartISO) return 0;
-
-    const startYearForSlots = new Date(baseStartISO + "T00:00:00").getFullYear();
-    const baseStartSlot = dateToSlot(startYearForSlots, baseStartISO, "start");
-    const todaySlot = dateToSlot(startYearForSlots, today, "end");
-    if (!Number.isFinite(baseStartSlot) || !Number.isFinite(todaySlot)) return 0;
-
-    return dbPlacements.reduce((acc, p: any) => {
-      if (isPlacementZeroAttendance(p)) return acc;
-      const start = String(p.startDate || p.startISO || p.start || "");
-      if (!start) return acc;
-
-      // För 2021: bara placeringar som startar efter eller vid BT-start
-      if (gv === "2021") {
-        const startMs = new Date(start + "T00:00:00").getTime();
-        const btStartMs = new Date(baseStartISO + "T00:00:00").getTime();
-        if (startMs < btStartMs) return acc;
-      }
-
-      const endRaw = String(p.endDate || p.endISO || p.end || today);
-      const endDate = endRaw > today ? today : endRaw;
-
-      const s0 = dateToSlot(startYearForSlots, start, "start");
-      const e0 = dateToSlot(startYearForSlots, endDate, "end");
-      if (!Number.isFinite(s0) || !Number.isFinite(e0)) return acc;
-
-      const s = Math.max(baseStartSlot, s0);
-      const e = Math.min(todaySlot, e0);
-      if (e < s) return acc;
-
-      const slots = e - s + 1;
-      const percent = pickPercent(p);
-      return acc + slots * (percent / 100);
-    }, 0);
-  }, [dbPlacements, profile, stStartISO]);
-
-  const totalCombinedSlots = useMemo(() => {
-    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const baseStartISO = gv === "2021" ? String((profile as any)?.btStartDate || "") : String(stStartISO || "");
-    if (!baseStartISO || !stEndISO) return 0;
-
-    const startYearForSlots = new Date(baseStartISO + "T00:00:00").getFullYear();
-    const s = dateToSlot(startYearForSlots, baseStartISO, "start");
-    const e = dateToSlot(startYearForSlots, stEndISO, "end");
-    if (!Number.isFinite(s) || !Number.isFinite(e) || e < s) return 0;
-    return e - s + 1;
-  }, [profile, stStartISO, stEndISO]);
-
   // Progress för tid
   const progressPct = useMemo(() => {
-    if (!totalCombinedSlots || totalCombinedSlots <= 0) return 0;
-    const raw = (workedCombinedFteSlots / totalCombinedSlots) * 100;
+    if (!totalCombinedDays || totalCombinedDays <= 0) return 0;
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const today = todayISO();
+    const startISO = gv === "2021" ? String((profile as any)?.btStartDate || "") : String(stStartISO || "");
+    const endISO = String(stEndISO || "");
+    if (!startISO || !endISO) return 0;
+    const workedEnd = endISO < today ? endISO : today;
+    const workedDays = fteDays(startISO, workedEnd, 100);
+    const raw = (workedDays / totalCombinedDays) * 100;
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
-  }, [workedCombinedFteSlots, totalCombinedSlots]);
+  }, [profile, stStartISO, stEndISO, totalCombinedDays]);
 
   // Totala antalet delmål (BT + ST för 2021, eller ST för 2015)
   const totalMilestones = useMemo(() => {
