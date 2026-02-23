@@ -4857,7 +4857,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            top: "-0.95rem",
+            top: "-0.55rem",
             transform: isHovered ? "translate(-50%, -1px)" : "translate(-50%, 0)",
           }}
           onMouseEnter={() => setHoveredDirectorMeetingId(s.id)}
@@ -4883,7 +4883,7 @@ dragPlacementRef.current = {
                 height: 0,
                 borderLeft: "7px solid transparent",
                 borderRight: "7px solid transparent",
-                borderBottom: "11px solid #0c4a6e",
+                borderBottom: "11px solid #7c2d12",
               }}
             />
             <span
@@ -4895,7 +4895,7 @@ dragPlacementRef.current = {
                 height: 0,
                 borderLeft: "6px solid transparent",
                 borderRight: "6px solid transparent",
-                borderBottom: isHovered ? "9px solid #38bdf8" : "9px solid #0284c7",
+                borderBottom: isHovered ? "9px solid #fb923c" : "9px solid #ea580c",
               }}
             />
           </span>
@@ -4946,7 +4946,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            top: "-0.75rem",
+            top: "-0.55rem",
             transform: isHovered
               ? "translate(-50%, -1px)"
               : "translate(-50%, 0)",
@@ -5040,7 +5040,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            top: "-1.05rem",
+            top: "-0.1rem",
             transform: isHovered
               ? "translate(-50%, -1px) scale(1.05)"
               : "translate(-50%, 0) scale(1)",
