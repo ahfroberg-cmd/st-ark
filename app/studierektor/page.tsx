@@ -3942,6 +3942,42 @@ export default function StudierektorPage() {
     }
   };
 
+  useEffect(() => {
+    if (!overallTimelineOpen) return;
+    if (overallTimelineView !== "linearMonths") return;
+    const el = overallTimelineMonthGridRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      const dx = e.deltaX;
+      const dy = e.deltaY;
+      const wantsHorizontal = Math.abs(dx) > Math.abs(dy) || e.shiftKey;
+      if (!wantsHorizontal) return;
+
+      // Viktigt i Safari: om man är vid kanten och fortsätter scrolla horisontellt
+      // kan browsern tolka det som back/forward. Blockera detta här.
+      const delta = e.shiftKey ? dy : dx;
+      const atLeft = el.scrollLeft <= 0;
+      const atRight = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+
+      if ((atLeft && delta < 0) || (atRight && delta > 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      el.scrollLeft += delta;
+    };
+
+    // Native listener med passive:false för att preventDefault ska fungera i Safari
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel as any);
+    };
+  }, [overallTimelineOpen, overallTimelineView]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {infoToast && (
@@ -4238,7 +4274,6 @@ export default function StudierektorPage() {
                       ref={overallTimelineMonthGridRef}
                       className="overflow-x-auto overscroll-x-contain"
                       style={{ overscrollBehaviorX: "contain" }}
-                      onWheel={handleOverallTimelineMonthGridWheel}
                     >
                       <div className="min-w-max">
                         <div
