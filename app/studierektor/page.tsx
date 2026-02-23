@@ -3514,7 +3514,7 @@ export default function StudierektorPage() {
   const [selectedStudent, setSelectedStudent] = useState<SupervisorStudent | null>(null);
   const [overallTimelineOpen, setOverallTimelineOpen] = useState(false);
   const [overallTimelineView, setOverallTimelineView] = useState<"computedEnd" | "linearMonths">(
-    "computedEnd"
+    "linearMonths"
   );
   const [infoToast, setInfoToast] = useState<{ title: string; message: string } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -4255,17 +4255,6 @@ export default function StudierektorPage() {
               <div className="flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 w-fit">
                 <button
                   type="button"
-                  onClick={() => setOverallTimelineView("computedEnd")}
-                  className={`rounded-md px-3 py-1 text-sm font-medium transition ${
-                    overallTimelineView === "computedEnd"
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Beräknat slutdatum
-                </button>
-                <button
-                  type="button"
                   onClick={() => setOverallTimelineView("linearMonths")}
                   className={`rounded-md px-3 py-1 text-sm font-medium transition ${
                     overallTimelineView === "linearMonths"
@@ -4274,6 +4263,17 @@ export default function StudierektorPage() {
                   }`}
                 >
                   Översikt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOverallTimelineView("computedEnd")}
+                  className={`rounded-md px-3 py-1 text-sm font-medium transition ${
+                    overallTimelineView === "computedEnd"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Slutdatum
                 </button>
               </div>
 
