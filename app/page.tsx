@@ -136,7 +136,7 @@ export default function HomePage() {
           className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg flex flex-col"
         >
           <div className="text-lg font-extrabold">Studierektor/<br />Handledare</div>
-          <p className="mt-1 text-slate-600">Ladda upp JSON-filer för att ha koll på flera ST-läkare.</p>
+          <p className="mt-1 text-slate-600">Följ flera ST-läkare samtidigt.</p>
         </button>
       </div>
 
