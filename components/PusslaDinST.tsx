@@ -4994,7 +4994,7 @@ dragPlacementRef.current = {
           className="pointer-events-auto absolute"
           style={{
             left: `${pct}%`,
-            top: "-0.1rem",
+            top: "-0.5rem",
             transform: isHovered
               ? "translate(-50%, -1px) scale(1.05)"
               : "translate(-50%, 0) scale(1)",
