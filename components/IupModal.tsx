@@ -14,7 +14,7 @@ import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import { MilestoneOverviewPanel } from "@/components/MilestoneOverviewModal";
 import { ReportPanel } from "@/components/ReportPrintModal";
-import type { Profile } from "@/lib/types";
+import type { Achievement, Course, Placement, Profile } from "@/lib/types";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import { addMonths, toISO, parseISO } from "@/lib/dateutils";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
@@ -52,6 +52,9 @@ export type IupDirectorMeeting = {
   id: string;
   dateISO: string;
   focus: string;
+  planningForward?: Record<string, string>;
+  personalDevelopment?: string;
+  extraAssignments?: string;
 };
 
 
@@ -108,22 +111,46 @@ type Props = {
 type DirectorMeetingModalProps = {
   open: boolean;
   meeting: IupDirectorMeeting | null;
+  allMeetings: IupDirectorMeeting[];
+  supervisionMeetings: IupMeeting[];
+  assessments: IupAssessment[];
+  placements: Placement[];
+  courses: Course[];
+  achievements: Achievement[];
   onSave: (value: IupDirectorMeeting) => void;
   onClose: () => void;
 };
 
-function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetingModalProps) {
+function DirectorMeetingModal({
+  open,
+  meeting,
+  allMeetings,
+  supervisionMeetings,
+  assessments,
+  placements,
+  courses,
+  achievements,
+  onSave,
+  onClose,
+}: DirectorMeetingModalProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupDirectorMeeting | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [openForwardSections, setOpenForwardSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!open || !meeting) {
       setDraft(null);
       setDirty(false);
+      setOpenForwardSections({});
       return;
     }
-    setDraft({ ...meeting });
+    setDraft({
+      ...meeting,
+      planningForward: meeting.planningForward ?? {},
+      personalDevelopment: meeting.personalDevelopment ?? "",
+      extraAssignments: meeting.extraAssignments ?? "",
+    });
     setDirty(false);
   }, [open, meeting]);
 
@@ -143,6 +170,21 @@ function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetin
     });
   };
 
+  const updateForward = (key: string, value: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next: IupDirectorMeeting = {
+        ...prev,
+        planningForward: {
+          ...(prev.planningForward ?? {}),
+          [key]: value,
+        },
+      };
+      setDirty(true);
+      return next;
+    });
+  };
+
   const handleSave = () => {
     if (!draft) return;
     onSave(draft);
@@ -150,6 +192,122 @@ function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetin
   };
 
   if (!open || !meeting || !draft) return null;
+
+  const currentDate = parseISO(draft.dateISO) ?? new Date(NaN);
+  const currentIso = draft.dateISO;
+
+  const prevDirectorMeetingIso = (() => {
+    const sorted = [...(Array.isArray(allMeetings) ? allMeetings : [])]
+      .filter((m) => m && m.id !== meeting.id && typeof m.dateISO === "string" && m.dateISO)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const prev = sorted
+      .filter((m) => m.dateISO < currentIso)
+      .slice(-1)[0];
+    return prev?.dateISO ?? null;
+  })();
+
+  const isAfterPrev = (iso: string | undefined | null): boolean => {
+    if (!iso) return false;
+    if (prevDirectorMeetingIso) return iso > prevDirectorMeetingIso && iso <= currentIso;
+    return iso <= currentIso;
+  };
+
+  const overlapsPeriod = (startIso?: string | null, endIso?: string | null): boolean => {
+    const start = typeof startIso === "string" ? startIso.slice(0, 10) : "";
+    const end = typeof endIso === "string" ? endIso.slice(0, 10) : "";
+    if (!start && !end) return false;
+    const s = start || end;
+    const e = end || start;
+    if (prevDirectorMeetingIso) {
+      // inkludera överlapp med start/end
+      return e >= prevDirectorMeetingIso && s <= currentIso;
+    }
+    return s <= currentIso;
+  };
+
+  const milestoneCodesForPlacement = (placementId: string): string[] => {
+    const set = new Set<string>();
+    (Array.isArray(achievements) ? achievements : []).forEach((a: any) => {
+      if (String((a as any)?.placementId ?? "") !== placementId) return;
+      const raw = (a as any).milestoneId ?? (a as any).goalId ?? (a as any).code ?? "";
+      const code = String(raw ?? "").trim();
+      if (code) set.add(displayMilestoneCode(code));
+    });
+    return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  };
+
+  const milestoneCodesForCourse = (courseId: string): string[] => {
+    const set = new Set<string>();
+    (Array.isArray(achievements) ? achievements : []).forEach((a: any) => {
+      if (String((a as any)?.courseId ?? "") !== courseId) return;
+      const raw = (a as any).milestoneId ?? (a as any).goalId ?? (a as any).code ?? "";
+      const code = String(raw ?? "").trim();
+      if (code) set.add(displayMilestoneCode(code));
+    });
+    return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  };
+
+  const placementAtIso = (iso: string): Placement | null => {
+    const d = parseISO(iso);
+    if (!d) return null;
+    const t = d.getTime();
+    const arr = Array.isArray(placements) ? placements : [];
+    const match = arr.find((p: any) => {
+      const s = parseISO((p as any)?.startDate ?? (p as any)?.startISO ?? "");
+      const e = parseISO((p as any)?.endDate ?? (p as any)?.endISO ?? "");
+      const st = s ? s.getTime() : NaN;
+      const et = e ? e.getTime() : NaN;
+      if (!isFinite(st) && !isFinite(et)) return false;
+      if (isFinite(st) && t < st) return false;
+      if (isFinite(et) && t > et) return false;
+      return true;
+    });
+    return (match as any) ?? null;
+  };
+
+  const placementsSince = (Array.isArray(placements) ? placements : [])
+    .filter((p: any) => overlapsPeriod((p as any)?.startDate, (p as any)?.endDate))
+    .sort((a: any, b: any) => String((a as any).startDate ?? "").localeCompare(String((b as any).startDate ?? "")));
+
+  const coursesSince = (Array.isArray(courses) ? courses : [])
+    .filter((c: any) => overlapsPeriod((c as any)?.startDate ?? (c as any)?.certificateDate, (c as any)?.endDate ?? (c as any)?.certificateDate))
+    .sort((a: any, b: any) => {
+      const da = String((a as any).startDate ?? (a as any).certificateDate ?? "");
+      const db = String((b as any).startDate ?? (b as any).certificateDate ?? "");
+      return da.localeCompare(db);
+    });
+
+  const assessmentsSince = (Array.isArray(assessments) ? assessments : [])
+    .filter((a) => isAfterPrev(a.dateISO))
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+  const supervisionSince = (Array.isArray(supervisionMeetings) ? supervisionMeetings : [])
+    .filter((m) => isAfterPrev(m.dateISO))
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+  const forwardSections = [
+    { key: "overallGoals", title: "Övergripande mål med utbildningen" },
+    { key: "clinicalService", title: "Kliniska tjänstgöringar" },
+    { key: "courses", title: "Kurser" },
+    { key: "supervisionMeetings", title: "Handledarsamtal" },
+    { key: "theoreticalStudies", title: "Teoretiska studier" },
+    { key: "researchWork", title: "Vetenskapligt arbete" },
+    { key: "journalClub", title: "Journal club" },
+    { key: "congresses", title: "Kongresser" },
+    { key: "qualityWork", title: "Kvalitetsarbete" },
+    { key: "patientSafety", title: "Patientsäkerhetsarbete" },
+    { key: "leadership", title: "Ledarskap" },
+    { key: "supervisingStudents", title: "Handledning av studenter/underläkare" },
+    { key: "teaching", title: "Undervisning" },
+    { key: "formativeAssessments", title: "Formativa bedömningar" },
+    ...(Array.isArray((draft as any)?.planningForwardExtra)
+      ? []
+      : []),
+  ];
+
+  const extraForwardSections = Array.isArray((meeting as any)?.planningExtra)
+    ? []
+    : [];
 
   return (
     <div
@@ -184,7 +342,7 @@ function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetin
           </div>
         </header>
 
-        <section className="max-h-[75vh] p-4 space-y-4">
+        <section className="max-h-[75vh] p-4 space-y-6">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
@@ -203,6 +361,195 @@ function DirectorMeetingModal({ open, meeting, onSave, onClose }: DirectorMeetin
                 className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Genomförda utbildningsaktiviteter</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              {prevDirectorMeetingIso
+                ? `Sedan senaste studierektorsmötet (${prevDirectorMeetingIso}) – inklusive aktiviteter som överlappar perioden.`
+                : "Alla aktiviteter fram till valt datum."}
+            </p>
+
+            <div className="mt-3 space-y-4">
+              <div>
+                <div className="text-sm font-bold text-slate-800">Placeringar</div>
+                {placementsSince.length === 0 ? (
+                  <div className="mt-1 text-sm text-slate-500">Inga placeringar i perioden.</div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {placementsSince.map((p: any) => {
+                      const id = String(p.id ?? "");
+                      const title = String(p.title ?? p.site ?? "Placering");
+                      const start = String(p.startDate ?? "").slice(0, 10);
+                      const end = String(p.endDate ?? "").slice(0, 10);
+                      const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "";
+                      const codes = id ? milestoneCodesForPlacement(id) : [];
+                      return (
+                        <div key={id || title + period} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-[14px] font-semibold text-slate-900">{title}</div>
+                              {period ? <div className="text-xs text-slate-600">{period}</div> : null}
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-1">
+                              {codes.map((c) => (
+                                <span key={c} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-sm font-bold text-slate-800">Kurser</div>
+                {coursesSince.length === 0 ? (
+                  <div className="mt-1 text-sm text-slate-500">Inga kurser i perioden.</div>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {coursesSince.map((c: any) => {
+                      const id = String(c.id ?? "");
+                      const title = String(c.title ?? c.courseName ?? "Kurs");
+                      const start = String(c.startDate ?? c.certificateDate ?? "").slice(0, 10);
+                      const end = String(c.endDate ?? c.certificateDate ?? "").slice(0, 10);
+                      const period = start || end ? `${start}${start && end ? " – " : ""}${end}` : "";
+                      const codes = id ? milestoneCodesForCourse(id) : [];
+                      return (
+                        <div key={id || title + period} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-[14px] font-semibold text-slate-900">{title}</div>
+                              {period ? <div className="text-xs text-slate-600">{period}</div> : null}
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-1">
+                              {codes.map((code) => (
+                                <span key={code} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Genomförda progressionsbedömningar</h3>
+            {assessmentsSince.length === 0 ? (
+              <div className="mt-1 text-sm text-slate-500">Inga progressionsbedömningar i perioden.</div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {assessmentsSince.map((a) => {
+                  const place = placementAtIso(a.dateISO);
+                  const placeLabel = place ? String((place as any).title ?? (place as any).site ?? "") : "";
+                  const title =
+                    (a.level && a.level.trim())
+                      ? a.level
+                      : (a.instrument && a.instrument.trim())
+                      ? a.instrument
+                      : "Progressionsbedömning";
+                  return (
+                    <div key={a.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-semibold text-slate-900">{title}</div>
+                          <div className="text-xs text-slate-600">{a.dateISO}</div>
+                        </div>
+                        {placeLabel ? (
+                          <div className="max-w-[45%] text-right text-xs font-semibold text-slate-700">{placeLabel}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Genomförda handledarsamtal</h3>
+            {supervisionSince.length === 0 ? (
+              <div className="mt-1 text-sm text-slate-500">Inga handledarsamtal i perioden.</div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {supervisionSince.map((m) => (
+                  <div key={m.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[14px] font-semibold text-slate-900">{m.focus || "Handledarsamtal"}</div>
+                        <div className="text-xs text-slate-600">{m.dateISO}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Planering framåt</h3>
+            <div className="mt-3 space-y-2">
+              {forwardSections.map((sec) => {
+                const isOpen = !!openForwardSections[sec.key];
+                const content = String((draft.planningForward ?? {})[sec.key] ?? "");
+
+                return (
+                  <div key={sec.key} className="rounded-xl border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+                      onClick={() =>
+                        setOpenForwardSections((prev) => ({
+                          ...prev,
+                          [sec.key]: !prev[sec.key],
+                        }))
+                      }
+                    >
+                      <div className="text-sm font-bold text-slate-800">{sec.title}</div>
+                      <div className="text-slate-500">{isOpen ? "▾" : "▸"}</div>
+                    </button>
+                    {isOpen ? (
+                      <div className="px-3 pb-3">
+                        <textarea
+                          value={content}
+                          onChange={(e) => updateForward(sec.key, e.target.value)}
+                          className="min-h-[90px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Personlig utveckling</h3>
+            <textarea
+              value={draft.personalDevelopment ?? ""}
+              onChange={(e) => updateDraft({ personalDevelopment: e.target.value })}
+              className="mt-2 min-h-[110px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+            />
+          </div>
+
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Extra uppdrag</h3>
+            <textarea
+              value={draft.extraAssignments ?? ""}
+              onChange={(e) => updateDraft({ extraAssignments: e.target.value })}
+              className="mt-2 min-h-[110px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+            />
           </div>
         </section>
       </div>
@@ -1337,6 +1684,10 @@ export default function IupModal({
   const [instruments, setInstruments] = useState<string[]>(DEFAULT_INSTRUMENTS);
   const [hiddenPlanningKeys, setHiddenPlanningKeys] = useState<string[]>([]);
 
+  const [placements, setPlacements] = useState<Placement[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [dirty, setDirty] = useState(false);
   // Delete confirmation dialog
@@ -1590,6 +1941,12 @@ export default function IupModal({
               id: String((m as any)?.id || `d_${Math.random().toString(36).slice(2, 10)}`),
               dateISO: String((m as any)?.dateISO || ""),
               focus: String((m as any)?.focus || ""),
+              planningForward:
+                (m as any)?.planningForward && typeof (m as any).planningForward === "object"
+                  ? ((m as any).planningForward as Record<string, string>)
+                  : {},
+              personalDevelopment: String((m as any)?.personalDevelopment || ""),
+              extraAssignments: String((m as any)?.extraAssignments || ""),
             }))
           : [];
         const loadedPlanning = row?.planning
@@ -1708,6 +2065,39 @@ export default function IupModal({
       cancelled = true;
     };
   }, [open, initialTab, initialMeetingId, initialAssessmentId]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const anyDb = db as any;
+        const [placementsRaw, coursesRaw, achievementsRaw] = await Promise.all([
+          (anyDb.placements?.toArray?.() as Promise<any[] | undefined>) ?? [],
+          (anyDb.courses?.toArray?.() as Promise<any[] | undefined>) ?? [],
+          (anyDb.achievements?.toArray?.() as Promise<any[] | undefined>) ?? [],
+        ]);
+
+        if (cancelled) return;
+
+        setPlacements(Array.isArray(placementsRaw) ? (placementsRaw as any) : []);
+        setCourses(Array.isArray(coursesRaw) ? (coursesRaw as any) : []);
+        setAchievements(Array.isArray(achievementsRaw) ? (achievementsRaw as any) : []);
+      } catch (e) {
+        console.error("Kunde inte läsa utbildningsaktiviteter för studierektorsmöte:", e);
+        if (!cancelled) {
+          setPlacements([]);
+          setCourses([]);
+          setAchievements([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
 
 
@@ -4126,6 +4516,12 @@ export default function IupModal({
       <DirectorMeetingModal
         open={!!editingDirectorMeetingId && !!currentDirectorMeeting}
         meeting={currentDirectorMeeting}
+        allMeetings={directorMeetings}
+        supervisionMeetings={meetings}
+        assessments={assessments}
+        placements={placements}
+        courses={courses}
+        achievements={achievements}
         onSave={(value) => {
           upsertDirectorMeeting(value);
         }}
