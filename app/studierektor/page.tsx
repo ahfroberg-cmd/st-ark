@@ -3504,6 +3504,7 @@ function spreadStudentColors(students: SupervisorStudent[]): Map<string, string>
 export default function StudierektorPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const overallTimelineMonthGridRef = useRef<HTMLDivElement | null>(null);
   const [hideImportZone, setHideImportZone] = useState<boolean>(false);
 
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -3925,6 +3926,22 @@ export default function StudierektorPage() {
     }
   };
 
+  const handleOverallTimelineMonthGridWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = overallTimelineMonthGridRef.current;
+    if (!el) return;
+
+    const dx = e.deltaX;
+    const dy = e.deltaY;
+    const wantsHorizontal = Math.abs(dx) > Math.abs(dy) || e.shiftKey;
+
+    if (wantsHorizontal) {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.shiftKey ? dy : dx;
+      el.scrollLeft += delta;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {infoToast && (
@@ -4217,7 +4234,12 @@ export default function StudierektorPage() {
               {overallTimelineView === "linearMonths" ? (
                 overallTimelineLinear.ok ? (
                   <div className="rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div
+                      ref={overallTimelineMonthGridRef}
+                      className="overflow-x-auto overscroll-x-contain"
+                      style={{ overscrollBehaviorX: "contain" }}
+                      onWheel={handleOverallTimelineMonthGridWheel}
+                    >
                       <div className="min-w-max">
                         <div
                           className="grid"
