@@ -4313,10 +4313,12 @@ export default function StudierektorPage() {
                             }px`,
                           }}
                         >
-                          <div className="sticky left-0 z-20 bg-white border-b border-slate-200 px-3 text-sm font-semibold text-slate-700 h-[56px] flex items-center whitespace-nowrap relative">
+                          <div className="sticky left-0 z-20 bg-white px-3 text-sm font-semibold text-slate-700 h-[56px] flex items-center whitespace-nowrap relative overflow-hidden">
                             <span className="relative z-10">ST-läkare</span>
                             <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-white" aria-hidden="true" />
                             <div className="pointer-events-none absolute inset-y-0 right-0 w-0 border-l-2 border-slate-300" aria-hidden="true" />
+                            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-2 bg-white" aria-hidden="true" />
+                            <div className="pointer-events-none absolute bottom-0 left-0 right-0 border-b border-slate-200" aria-hidden="true" />
                           </div>
                           <div className="border-b border-slate-200 bg-white">
                             <div className="relative">
@@ -4390,10 +4392,12 @@ export default function StudierektorPage() {
                                 overallTimelineLinear.placementBarsByStudent.get(String(r.id)) || [];
                               return (
                                 <Fragment key={String(r.id)}>
-                                  <div className="sticky left-0 z-10 bg-white border-b border-slate-200 px-3 text-sm text-slate-900 h-[32px] flex items-center whitespace-nowrap relative">
+                                  <div className="sticky left-0 z-10 bg-white px-3 text-sm text-slate-900 h-[32px] flex items-center whitespace-nowrap relative overflow-hidden">
                                     <span className="relative z-10">{r.name}</span>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-white" aria-hidden="true" />
                                     <div className="pointer-events-none absolute inset-y-0 right-0 w-0 border-l-2 border-slate-300" aria-hidden="true" />
+                                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-2 bg-white" aria-hidden="true" />
+                                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 border-b border-slate-200" aria-hidden="true" />
                                   </div>
                                   <div
                                     className="relative border-b border-slate-200 bg-white"
@@ -4401,7 +4405,7 @@ export default function StudierektorPage() {
                                   >
                                     {typeof overallTimelineLinear.todayMarkerX === "number" && (
                                       <div
-                                        className="pointer-events-none absolute inset-y-0 z-0"
+                                        className="pointer-events-none absolute inset-y-0 z-10"
                                         style={{ left: overallTimelineLinear.todayMarkerX, width: 0 }}
                                         aria-hidden="true"
                                       >
@@ -4420,7 +4424,7 @@ export default function StudierektorPage() {
                                       </div>
                                     )}
                                     <div
-                                      className="absolute inset-0 grid"
+                                      className="absolute inset-0 grid z-0"
                                       style={{
                                         gridTemplateColumns: `repeat(${overallTimelineLinear.monthKeys.length}, ${
                                           overallTimelineLinear.cellW
@@ -4447,7 +4451,7 @@ export default function StudierektorPage() {
                                     {bars.map((b: any, idx: number) => (
                                       <div
                                         key={`${r.id}-bar-${idx}`}
-                                        className="absolute top-1/2 -translate-y-1/2 h-[18px] rounded-md px-2 text-[11px] font-semibold text-white overflow-hidden whitespace-nowrap"
+                                        className="absolute top-1/2 -translate-y-1/2 z-20 h-[18px] rounded-md px-2 text-[11px] font-semibold text-white overflow-hidden whitespace-nowrap"
                                         style={{ left: b.left, width: b.width, backgroundColor: b.bg }}
                                         title={b.title}
                                       >
