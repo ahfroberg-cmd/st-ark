@@ -24,6 +24,7 @@ import { loadGoals } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { milestoneRequires } from "@/lib/milestoneRequirements";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 import { daysBetweenInclusive, fteDays } from "@/lib/dateutils";
 
@@ -1237,8 +1238,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       return dbPlacements.reduce((acc, p: any) => {
         if (isPlacementZeroAttendance(p)) return acc;
         const start = p.startDate || p.startISO || p.start || "";
-        const end = p.endDate || p.endISO || p.end || today;
-        const endDate = end > today ? today : end;
+        const endDate = p.endDate || p.endISO || p.end || today;
         const percent = pickPercent(p);
         const days = fteDays(start, endDate, percent);
         return acc + days;
@@ -1259,8 +1259,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       const btStartMs = new Date(btStart + "T00:00:00").getTime();
       if (startMs < btStartMs) return acc;
       
-      const end = p.endDate || p.endISO || p.end || today;
-      const endDate = end > today ? today : end;
+      const endDate = p.endDate || p.endISO || p.end || today;
       const percent = pickPercent(p);
       const days = fteDays(start, endDate, percent);
       return acc + days;
@@ -1287,17 +1286,10 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
   // Progress för tid
   const progressPct = useMemo(() => {
     if (!totalCombinedDays || totalCombinedDays <= 0) return 0;
-    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const today = todayISO();
-    const startISO = gv === "2021" ? String((profile as any)?.btStartDate || "") : String(stStartISO || "");
-    const endISO = String(stEndISO || "");
-    if (!startISO || !endISO) return 0;
-    const workedEnd = endISO < today ? endISO : today;
-    const workedDays = fteDays(startISO, workedEnd, 100);
-    const raw = (workedDays / totalCombinedDays) * 100;
+    const raw = (workedCombinedFteDays / totalCombinedDays) * 100;
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
-  }, [profile, stStartISO, stEndISO, totalCombinedDays]);
+  }, [workedCombinedFteDays, totalCombinedDays]);
 
   // Totala antalet delmål (BT + ST för 2021, eller ST för 2015)
   const totalMilestones = useMemo(() => {
@@ -1478,7 +1470,6 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
   // Total tid = dagar från startdatum till beräknat slutdatum (stEndISO)
   const timeDetails = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const today = todayISO();
     const btStart = (profile as any)?.btStartDate;
     const btEnd = btEndISO;
     // För 2021: ST startar vid BT-slut om inget explicit stStartISO finns
@@ -1493,25 +1484,26 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       const btStartMs = new Date(btStart + "T00:00:00").getTime();
       const btEndMs = new Date(btEnd + "T00:00:00").getTime();
       
-      for (const p of dbPlacements as any[]) {
-        const start = p.startDate || p.startISO || p.start || "";
+      for (const a of activities as any[]) {
+        if (isZeroAttendanceType(a.type)) continue;
+
+        const d = displayDatesForActivity(a);
+        const start = d.startISO;
         if (!start) continue;
-        
+
         const startMs = new Date(start + "T00:00:00").getTime();
         // Bara placeringar som startar efter eller vid BT-start
         if (startMs < btStartMs) continue;
-        
-        const end = p.endDate || p.endISO || p.end || today;
-        const endDate = end > today ? today : end;
-        
-        const percent = pickPercent(p);
+
+        const endDate = d.endISO;
+        const percent = Number(a.attendance ?? 100);
         const days = fteDays(start, endDate, percent);
-        
+
         // ST: räkna ALLA placeringar från BT-start
         stDays += days;
-        
+
         // BT: endast BT-fasade (respektera explicit phase om satt)
-        if (isPlacementBTPhase(p)) {
+        if (String(a.phase || "") === "BT") {
           btDays += days;
         }
       }
@@ -1535,11 +1527,12 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
         };
       }
       
-      for (const p of dbPlacements as any[]) {
-        const start = p.startDate || p.startISO || p.start || "";
-        const end = p.endDate || p.endISO || p.end || today;
-        const endDate = end > today ? today : end;
-        const percent = pickPercent(p);
+      for (const a of activities as any[]) {
+        if (isZeroAttendanceType(a.type)) continue;
+        const d = displayDatesForActivity(a);
+        const start = d.startISO;
+        const endDate = d.endISO;
+        const percent = Number(a.attendance ?? 100);
         const days = fteDays(start, endDate, percent);
         stDays += days;
       }
@@ -1551,13 +1544,12 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
         st: { worked: stDays, total: totalStDays },
       };
     }
-  }, [profile, dbPlacements, btEndISO, stStartISO, stEndISO, isPlacementBTPhase]);
+  }, [profile, btEndISO, stStartISO, stEndISO, activities]);
 
   // Tidsfördelning per individuell aktivitet (för färgade segment i progress-stapeln)
   // Varje aktivitet har sin egen färg baserat på hue från tidslinjen
   const timeByActivity = useMemo(() => {
     const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-    const today = todayISO();
     const btStart = (profile as any)?.btStartDate;
     // För 2021: ST startar vid BT-slut om inget explicit stStartISO finns
     const stStart = stStartISO || (gv === "2021" ? btEndISO : null);
@@ -1573,21 +1565,21 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       return act?.hue ?? (Math.random() * 360);
     };
     
-    for (const p of dbPlacements as any[]) {
-      const start = p.startDate || p.startISO || p.start || "";
+    for (const a of activities as any[]) {
+      if (isZeroAttendanceType(a.type)) continue;
+      const d = displayDatesForActivity(a);
+      const start = d.startISO;
       if (!start) continue;
-      
-      const end = p.endDate || p.endISO || p.end || today;
-      const endDate = end > today ? today : end;
-      const percent = pickPercent(p);
+      const endDate = d.endISO;
+      const percent = Number(a.attendance ?? 100);
       const days = fteDays(start, endDate, percent);
       if (days <= 0) continue;
-      
-      const label = p.clinic || p.title || p.type || "Aktivitet";
-      const hue = getHueForPlacement(p.id);
-      
+
+      const label = a.label || a.clinic || a.title || a.type || "Aktivitet";
+      const hue = getHueForPlacement(a.id);
+
       const item = {
-        id: p.id,
+        id: a.id,
         label,
         days,
         attendance: percent,
@@ -1608,7 +1600,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
         result.st.push(item);
         
         // BT: endast BT-fasade (respektera explicit phase om satt)
-        if (isPlacementBTPhase(p)) {
+        if (String(a.phase || "") === "BT") {
           result.bt.push(item);
         }
       } else {
@@ -1622,7 +1614,7 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
     result.st.sort((a, b) => a.startDate.localeCompare(b.startDate));
     
     return result;
-  }, [profile, dbPlacements, btEndISO, stStartISO, activities, isPlacementBTPhase]);
+  }, [profile, btEndISO, stStartISO, activities]);
 
   // Beräkningar för detaljvy: BT/ST delmål separat
   const milestoneDetails = useMemo(() => {
@@ -8322,7 +8314,10 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                     onClick={() => setBtMilestoneDetail(m)}
                     className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
                   >
-                    {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                    {displayMilestoneCode(
+                      String(m).trim().split(/\s|–|-|:|\u2013/)[0],
+                      (profile as any)?.goalsVersion
+                    )}
                   </button>
                 ))
               ) : (
@@ -8985,7 +8980,10 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 onClick={() => setBtMilestoneDetail(m)}
                 className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer hover:bg-slate-100 transition"
               >
-                {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                {displayMilestoneCode(
+                  String(m).trim().split(/\s|–|-|:|\u2013/)[0],
+                  (profile as any)?.goalsVersion
+                )}
               </button>
             ))
           ) : (
@@ -10660,7 +10658,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
           <div className="min-w-0 flex-1 flex items-center gap-2">
             <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-              {id.toLowerCase()}
+              {displayMilestoneCode(id, (profile as any)?.goalsVersion)}
             </span>
             <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
               {m?.title ?? "BT-delmål"}
