@@ -9895,10 +9895,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
                 onClick={() => setProgressDetailOpen("time")}
               >
-                <div
-                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
-                  style={{ width: `${progressPct}%` }}
-                />
+                {progressPct >= 1 && (
+                  <div
+                    className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -9927,10 +9929,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
                 onClick={() => setProgressDetailOpen("milestones")}
               >
-                <div
-                  className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
-                  style={{ width: `${milestoneProgressPct}%` }}
-                />
+                {milestoneProgressPct >= 1 && (
+                  <div
+                    className="h-4 rounded-full transition-[width] duration-300 bg-emerald-500/80"
+                    style={{ width: `${milestoneProgressPct}%` }}
+                  />
+                )}
               </div>
             </div>
           </div>
