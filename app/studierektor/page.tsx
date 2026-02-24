@@ -4002,7 +4002,7 @@ export default function StudierektorPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setGoHomeWarnOpen(true)}
-              className="select-none caret-transparent text-4xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+              className="select-none caret-transparent text-4xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus-visible:outline-none focus:ring-0"
             >
               <span className="text-sky-700">ST</span>
               <span className="text-emerald-700">ARK</span>
@@ -4082,7 +4082,7 @@ export default function StudierektorPage() {
               Dra och släpp JSON-filer här, eller{" "}
               <button
                 onClick={() => fileRef.current?.click()}
-                className="font-semibold text-sky-600 hover:text-sky-700"
+                className="font-semibold text-sky-600 hover:text-sky-700 focus:outline-none focus-visible:outline-none focus:ring-0"
               >
                 klicka för att välja filer
               </button>
