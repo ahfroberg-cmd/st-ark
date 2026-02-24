@@ -2,6 +2,12 @@ export function displayMilestoneCode(code: unknown, goalsVersion?: unknown): str
   const raw = String(code ?? "").trim();
   const v = String(goalsVersion ?? "");
 
+  // BT: alltid versalt "BT" + nummer (t.ex. "BT1") oavsett målversion
+  {
+    const m = raw.match(/^BT\s*[-_\s]*0*(\d+)\b/i);
+    if (m) return `BT${parseInt(m[1], 10) || 0}`;
+  }
+
   // 2021: "ST" + gemen bokstav + siffra (t.ex. "STa1")
   if (v.includes("2021")) {
     const m1 = raw.match(/^ST([abc])\s*(\d+)$/i);

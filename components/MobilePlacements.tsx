@@ -7,6 +7,7 @@ import MilestonePicker from "@/components/MilestonePicker";
 import BtMilestonePicker from "@/components/BtMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import type { Profile } from "@/lib/types";
+import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 
 type PlacementRow = {
   id: any;
@@ -722,7 +723,10 @@ function PlacementEditPopup({
                             key={m}
                             className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
                           >
-                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                            {displayMilestoneCode(
+                              String(m).trim().split(/\s|–|-|:|\u2013/)[0],
+                              profile?.goalsVersion
+                            )}
                           </span>
                         ))
                       ) : (
@@ -748,7 +752,10 @@ function PlacementEditPopup({
                               key={m}
                               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
                             >
-                              {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                              {displayMilestoneCode(
+                                String(m).trim().split(/\s|–|-|:|\u2013/)[0],
+                                profile?.goalsVersion
+                              )}
                             </span>
                           ))
                         ) : (
