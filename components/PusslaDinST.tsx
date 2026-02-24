@@ -7240,7 +7240,7 @@ const persistTimelineToDb = async () => {
         <button
           type="button"
           onClick={() => setGoHomeWarnOpen(true)}
-          className="select-none caret-transparent text-center text-4xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity"
+          className="select-none caret-transparent text-center text-4xl font-extrabold tracking-tight cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus-visible:outline-none focus:ring-0"
           title="Gå till startsidan"
         >
           <span className="text-sky-700">ST</span>
@@ -9883,7 +9883,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
               <div className="flex items-center justify-between text-xs">
                 <button
                   type="button"
-                  className="text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
+                  className="text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0 focus:outline-none focus-visible:outline-none focus:ring-0"
                   data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
                   onClick={() => setProgressDetailOpen("time")}
                 >
@@ -9891,7 +9891,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 </button>
                 <button
                   type="button"
-                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0"
+                  className="font-semibold text-slate-900 cursor-pointer hover:text-slate-500 bg-transparent border-0 p-0 focus:outline-none focus-visible:outline-none focus:ring-0"
                   data-info="Genomförd tid visar hur stor del av den planerade utbildningstiden som har genomförts. För 2021-versionen räknas tiden från BT-start till idag, och för 2015-versionen från ST-start till idag. Tiden beräknas baserat på alla registrerade kliniska tjänstgöringar, där varje tjänstgörings längd multipliceras med dess sysselsättningsprocent (t.ex. 50% sysselsättning ger hälften av tiden). Endast genomförda tjänstgöringar (med slutdatum i det förflutna) räknas med."
                   onClick={() => setProgressDetailOpen("time")}
                 >
