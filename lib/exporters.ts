@@ -3058,7 +3058,33 @@ async function fillBt2021Bilaga2(
       y = drawWrapped(page1, font, txt, coords1.aktiviteter.x, y, maxWidth, 11, lineHeight);
     };
 
-    for (const a of acts) {
+    const isCourseLike = (x: any) =>
+      Boolean((x as any)?.certificateDate || (x as any)?.courseLeaderName || (x as any)?.city);
+    const kindOrder = (x: any): number => {
+      const k = String((x as any)?.kind || "").toLowerCase();
+      if (k === "placement") return 0;
+      if (k === "course") return 1;
+      return isCourseLike(x) ? 1 : 0;
+    };
+    const dateKey = (x: any): number => {
+      const s = String((x as any)?.startDate || "").slice(0, 10);
+      const e = String((x as any)?.endDate || "").slice(0, 10);
+      const d = e || s;
+      const t = new Date(d || 0).getTime();
+      return Number.isFinite(t) ? t : 0;
+    };
+
+    const sortedActs = [...acts].sort((a, b) => {
+      const ka = kindOrder(a);
+      const kb = kindOrder(b);
+      if (ka !== kb) return ka - kb;
+      const da = dateKey(a);
+      const db = dateKey(b);
+      if (da !== db) return da - db;
+      return String(a?.text || a?.title || "").localeCompare(String(b?.text || b?.title || ""), "sv");
+    });
+
+    for (const a of sortedActs) {
       const title = String(a?.text || a?.title || "").trim();
       const s = String(a?.startDate || "").slice(0, 10);
       const e = String(a?.endDate || "").slice(0, 10);

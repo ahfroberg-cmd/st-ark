@@ -386,6 +386,8 @@ const [applicant, setApplicant] = useState({
       const placementById = new Map<string, any>(
         (btPlacements || []).map((pl: any) => [String(pl?.id ?? ""), pl])
       );
+      const isCourseLike = (x: any) =>
+        Boolean((x as any)?.certificateDate || (x as any)?.courseLeaderName || (x as any)?.city);
       const activity: any = {
         // Delmål som intyget avser
         goals: toMilestoneIds(btGoals),
@@ -396,6 +398,10 @@ const [applicant, setApplicant] = useState({
           endDate: a.endISO || null,
           source: a.source || "manual",
           refId: a.refId || null,
+          kind:
+            a.source === "registered" && a.refId
+              ? (isCourseLike(placementById.get(String(a.refId)) || null) ? "course" : "placement")
+              : "unknown",
           milestones:
             a.source === "registered" && a.refId
               ? extractPlacementGoals(placementById.get(String(a.refId)) || null)
