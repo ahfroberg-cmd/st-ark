@@ -3050,27 +3050,6 @@ async function fillBt2021Bilaga2(
   const singleEnd   = String((activity as any)?.endDate   || "").slice(0, 10);
 
   if (acts.length) {
-    const lines: string[] = [];
-    for (const a of acts) {
-      const title = String(a?.text || a?.title || "").trim();
-      const s = String(a?.startDate || "").slice(0, 10);
-      const e = String(a?.endDate || "").slice(0, 10);
-      const span = (s || e) ? `${s || "?"} – ${e || "?"}` : "";
-      const row = [title, span].filter(Boolean).join(" ").trim();
-      if (row) {
-        lines.push(row);
-        const actGoalsRaw: string[] =
-          (Array.isArray(a?.milestones) ? a.milestones : null) ||
-          (Array.isArray(a?.goals) ? a.goals : null) ||
-          (Array.isArray(a?.delmal) ? a.delmal : null) ||
-          [];
-        const actGoals = normalizeAndSortBtDelmal(actGoalsRaw);
-        if (actGoals.length > 0) {
-          lines.push(`, ${actGoals.join(", ")}`);
-        }
-      }
-    }
-
     let y: number = coords1.aktiviteter.y;
     const maxWidth = coords1.aktiviteter.width;
     const lineHeight = coords1.aktiviteter.lineHeight;
@@ -3079,8 +3058,26 @@ async function fillBt2021Bilaga2(
       y = drawWrapped(page1, font, txt, coords1.aktiviteter.x, y, maxWidth, 11, lineHeight);
     };
 
-    for (const line of lines) {
-      drawOne(line);
+    for (const a of acts) {
+      const title = String(a?.text || a?.title || "").trim();
+      const s = String(a?.startDate || "").slice(0, 10);
+      const e = String(a?.endDate || "").slice(0, 10);
+      const span = (s || e) ? `${s || "?"} – ${e || "?"}` : "";
+      const row1 = [title, span].filter(Boolean).join(" ").trim();
+
+      const actGoalsRaw: string[] =
+        (Array.isArray(a?.milestones) ? a.milestones : null) ||
+        (Array.isArray(a?.goals) ? a.goals : null) ||
+        (Array.isArray(a?.delmal) ? a.delmal : null) ||
+        [];
+      const actGoals = normalizeAndSortBtDelmal(actGoalsRaw);
+      const row2 = `Delmål som avses: ${actGoals.join(", ") || "—"}`;
+
+      if (row1) {
+        drawOne(row1);
+        drawOne(row2);
+        y -= lineHeight; // tom rad mellan aktiviteter
+      }
     }
   } else if (activitiesTextFallback) {
     const raw = String(activitiesTextFallback ?? "").trim();

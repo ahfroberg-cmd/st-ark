@@ -914,6 +914,7 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
           startDate,
           endDate,
           clinic,
+          btGoals: Array.from(btGoalMap[String((c as any)?.id ?? "")] ?? []),
         };
       });
 
@@ -3087,82 +3088,106 @@ useEffect(() => {
               </button>
             </header>
             <section className="max-h-[70vh] overflow-auto p-4">
-              <div className="grid gap-2">
-                {[...btPlacements]
-                  .sort(
-                    (a, b) =>
-                      new Date((a as any).endDate || (a as any).startDate || 0).getTime() -
-                      new Date((b as any).endDate || (b as any).startDate || 0).getTime()
-                  )
-                  .map((pl) => {
-                    const goals: string[] =
-                      Array.isArray((pl as any).btGoals) && (pl as any).btGoals.length
-                        ? (pl as any).btGoals.map((g: any) => String(g))
-                        : extractPlacementGoals(pl);
+              {(() => {
+                const all = [...btPlacements].sort(
+                  (a, b) =>
+                    new Date((a as any).endDate || (a as any).startDate || 0).getTime() -
+                    new Date((b as any).endDate || (b as any).startDate || 0).getTime()
+                );
+                const isCourse = (x: any) =>
+                  Boolean(
+                    (x as any)?.certificateDate ||
+                      (x as any)?.courseLeaderName ||
+                      (x as any)?.city
+                  );
+                const placements = all.filter((x) => !isCourse(x));
+                const courses = all.filter((x) => isCourse(x));
 
-                    const chosen = !!chooserChecked[pl.id];
-                    const include = !!chooserIncludeGoals[pl.id];
+                const renderItem = (pl: any) => {
+                  const goals: string[] =
+                    Array.isArray((pl as any).btGoals) && (pl as any).btGoals.length
+                      ? (pl as any).btGoals.map((g: any) => String(g))
+                      : extractPlacementGoals(pl);
 
-                    return (
-                      <div
-                        key={pl.id}
-                        className="rounded-lg border border-slate-300 bg-white p-2"
-                      >
-                        {/* Rad 1: Titel + delmålschips (vänster) och kryssrutor (höger) */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-semibold flex items-center gap-2 flex-wrap">
-                              <span className="truncate">
-                                {(pl as any).clinic || (pl as any).note || "Klinisk tjänstgöring"}
+                  const chosen = !!chooserChecked[pl.id];
+                  const include = !!chooserIncludeGoals[pl.id];
+
+                  return (
+                    <div
+                      key={pl.id}
+                      className="rounded-lg border border-slate-300 bg-white p-2"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold flex items-center gap-2 flex-wrap">
+                            <span className="truncate">
+                              {(pl as any).clinic || (pl as any).note || "Utbildningsaktivitet"}
+                            </span>
+                            {goals.map((gid) => (
+                              <span
+                                key={gid}
+                                className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] leading-4"
+                              >
+                                {gid}
                               </span>
-                              {goals.map((gid) => (
-                                <span
-                                  key={gid}
-                                  className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] leading-4"
-                                >
-                                  {gid}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="shrink-0 flex items-center gap-4">
-                            <label className="inline-flex items-center gap-2 text-[13px]">
-                              <span>Välj aktivitet:</span>
-                              <input
-                                type="checkbox"
-                                checked={chosen}
-                                onChange={(e) => {
-                                  const on = (e.currentTarget as HTMLInputElement).checked;
-                                  setChooserChecked((st) => ({ ...st, [pl.id]: on }));
-                                  setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on })); // auto-följ
-                                }}
-                              />
-                            </label>
-
-                            <label className="inline-flex items-center gap-2 text-[13px]">
-                              <span>Inkludera delmål i intyg</span>
-                              <input
-                                type="checkbox"
-                                checked={include}
-                                onChange={(e) => {
-                                  const on = (e.currentTarget as HTMLInputElement).checked;
-                                  setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on }));
-                                }}
-                                disabled={!chosen}
-                              />
-                            </label>
+                            ))}
                           </div>
                         </div>
 
-                        {/* Rad 2: Period under titeln */}
-                        <div className="mt-1 text-[12px] text-slate-600">
-                          {(pl.startDate || "").slice(0, 10)} – {(pl.endDate || pl.startDate || "").slice(0, 10)}
+                        <div className="shrink-0 flex items-center gap-4">
+                          <label className="inline-flex items-center gap-2 text-[13px]">
+                            <span>Välj aktivitet:</span>
+                            <input
+                              type="checkbox"
+                              checked={chosen}
+                              onChange={(e) => {
+                                const on = (e.currentTarget as HTMLInputElement).checked;
+                                setChooserChecked((st) => ({ ...st, [pl.id]: on }));
+                                setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on }));
+                              }}
+                            />
+                          </label>
+
+                          <label className="inline-flex items-center gap-2 text-[13px]">
+                            <span>Inkludera delmål i intyg</span>
+                            <input
+                              type="checkbox"
+                              checked={include}
+                              onChange={(e) => {
+                                const on = (e.currentTarget as HTMLInputElement).checked;
+                                setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on }));
+                              }}
+                              disabled={!chosen}
+                            />
+                          </label>
                         </div>
                       </div>
-                    );
-                  })}
-              </div>
+
+                      <div className="mt-1 text-[12px] text-slate-600">
+                        {(pl.startDate || "").slice(0, 10)} – {(pl.endDate || pl.startDate || "").slice(0, 10)}
+                      </div>
+                    </div>
+                  );
+                };
+
+                const renderSection = (title: string, items: any[]) => (
+                  <div className="grid gap-2">
+                    <div className="text-[13px] font-extrabold text-slate-800">{title}</div>
+                    {items.length === 0 ? (
+                      <div className="text-[13px] text-slate-500">Inga hittades.</div>
+                    ) : (
+                      items.map(renderItem)
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div className="grid gap-4">
+                    {renderSection("Placeringar", placements)}
+                    {renderSection("Kurser", courses)}
+                  </div>
+                );
+              })()}
 
             </section>
 
