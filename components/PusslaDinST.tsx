@@ -1238,7 +1238,8 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       return dbPlacements.reduce((acc, p: any) => {
         if (isPlacementZeroAttendance(p)) return acc;
         const start = p.startDate || p.startISO || p.start || "";
-        const endDate = p.endDate || p.endISO || p.end || today;
+        const end = p.endDate || p.endISO || p.end || today;
+        const endDate = end > today ? today : end;
         const percent = pickPercent(p);
         const days = fteDays(start, endDate, percent);
         return acc + days;
@@ -1259,7 +1260,8 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
       const btStartMs = new Date(btStart + "T00:00:00").getTime();
       if (startMs < btStartMs) return acc;
       
-      const endDate = p.endDate || p.endISO || p.end || today;
+      const end = p.endDate || p.endISO || p.end || today;
+      const endDate = end > today ? today : end;
       const percent = pickPercent(p);
       const days = fteDays(start, endDate, percent);
       return acc + days;
@@ -1286,10 +1288,17 @@ const [overlapSuggestion, setOverlapSuggestion] = useState<{
   // Progress för tid
   const progressPct = useMemo(() => {
     if (!totalCombinedDays || totalCombinedDays <= 0) return 0;
-    const raw = (workedCombinedFteDays / totalCombinedDays) * 100;
+    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+    const today = todayISO();
+    const startISO = gv === "2021" ? String((profile as any)?.btStartDate || "") : String(stStartISO || "");
+    const endISO = String(stEndISO || "");
+    if (!startISO || !endISO) return 0;
+    const workedEnd = endISO < today ? endISO : today;
+    const workedDays = fteDays(startISO, workedEnd, 100);
+    const raw = (workedDays / totalCombinedDays) * 100;
     if (!Number.isFinite(raw)) return 0;
     return Math.max(0, Math.min(100, raw));
-  }, [workedCombinedFteDays, totalCombinedDays]);
+  }, [profile, stStartISO, stEndISO, totalCombinedDays]);
 
   // Totala antalet delmål (BT + ST för 2021, eller ST för 2015)
   const totalMilestones = useMemo(() => {
