@@ -3088,8 +3088,7 @@ async function fillBt2021Bilaga2(
       const title = String(a?.text || a?.title || "").trim();
       const s = String(a?.startDate || "").slice(0, 10);
       const e = String(a?.endDate || "").slice(0, 10);
-      const span = (s || e) ? `${s || "?"} – ${e || "?"}` : "";
-      const row1 = [title, span].filter(Boolean).join(" ").trim();
+      const span = (s || e) ? `${s || "?"} – ${e || "?"}` : "—";
 
       const actGoalsRaw: string[] =
         (Array.isArray(a?.milestones) ? a.milestones : null) ||
@@ -3097,11 +3096,16 @@ async function fillBt2021Bilaga2(
         (Array.isArray(a?.delmal) ? a.delmal : null) ||
         [];
       const actGoals = normalizeAndSortBtDelmal(actGoalsRaw);
-      const row2 = `Delmål som avses: ${actGoals.join(", ") || "—"}`;
 
-      if (row1) {
+      const isCourse = kindOrder(a) === 1;
+      const row1 = `${isCourse ? "Kurs" : "Klinisk tjänstgöring"}: ${title || "—"}`;
+      const row2 = `Datum: ${span}`;
+      const row3 = `Delmål som avses: ${actGoals.join(", ") || "—"}`;
+
+      if (title || s || e || actGoals.length) {
         drawOne(row1);
         drawOne(row2);
+        drawOne(row3);
         y -= lineHeight; // tom rad mellan aktiviteter
       }
     }
