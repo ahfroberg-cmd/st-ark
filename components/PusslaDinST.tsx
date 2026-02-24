@@ -9790,12 +9790,12 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
   <div className="mt-1 grid w-full grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3 md:grid-rows-2 md:items-center">
     {/* VÄNSTER KOLUMN */}
     <div className="md:col-start-1 md:row-start-1 flex items-center gap-2">
-      <span className="font-medium w-[250px] shrink-0">Registrerad tid motsvarande heltid:</span>
+      <span className="font-medium whitespace-nowrap">Registrerad tid motsvarande heltid:</span>
       <span className="font-semibold">{workedFteMonths.toFixed(1)} mån</span>
     </div>
 
     <div className="md:col-start-1 md:row-start-2 flex items-center gap-2">
-      <span className="font-medium w-[250px] shrink-0">{totalLabel}</span>
+      <span className="font-medium whitespace-nowrap">{totalLabel}</span>
       <select
         value={String(Math.max(0, Math.floor(totalPlanMonths)))}
         onChange={(e) => {
@@ -9828,7 +9828,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
           {/* MITTEN KOLUMN */}
           <div className="md:col-start-2 md:row-start-1 flex items-center gap-2">
-            <span className="font-medium w-[250px] shrink-0">Slutdatum för ST vid tjänstgöring på</span>
+            <span className="font-medium whitespace-nowrap">Slutdatum för ST vid tjänstgöring på</span>
             <select
               value={String(Math.max(5, Math.min(100, Math.round(restAttendance / 5) * 5)))}
               onChange={(e) => {
@@ -9853,7 +9853,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
           <div className="md:col-start-2 md:row-start-2">
             {gv === "2021" && (
               <div className="flex items-center gap-2">
-                <span className="font-medium w-[250px] shrink-0 whitespace-nowrap">Slutdatum för BT:</span>
+                <span className="font-medium whitespace-nowrap">Slutdatum för BT:</span>
                 <div className="w-[140px]">
                   <CalendarDatePicker
                     value={effectiveBtEndISO || ""}
