@@ -6315,8 +6315,20 @@ async function openPreviewForBtGoals(a: Activity) {
       site: (a as any).site || (a as any).clinic || "",
 
       // Datumfält (ej kritiska för listan med delmål, men kan användas i intyget)
-      startDate: "",
-      endDate: "",
+      startDate: (a as any).exactStartISO || (a as any).startDate || "",
+      endDate: (a as any).exactEndISO || (a as any).endDate || (a as any).startDate || "",
+
+      // Lista aktiviteter för Bilaga 2 (samma format som PrepareBtModal)
+      activities: [
+        {
+          text: a.label || a.type || "",
+          startDate: (a as any).exactStartISO || (a as any).startDate || null,
+          endDate: (a as any).exactEndISO || (a as any).endDate || (a as any).startDate || null,
+          source: "registered",
+          refId: (a as any).linkedPlacementId || (a as any).id || null,
+          milestones: Array.isArray((a as any).btMilestones) ? (a as any).btMilestones : [],
+        },
+      ],
 
       // Handledare – ska komma från den enskilda aktiviteten, inte huvudhandledare i profilen
       supervisor: (a as any).supervisor || "",

@@ -382,6 +382,10 @@ const [applicant, setApplicant] = useState({
       }
       const { exportCertificate } = await import("@/lib/exporters");
       const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
+
+      const placementById = new Map<string, any>(
+        (btPlacements || []).map((pl: any) => [String(pl?.id ?? ""), pl])
+      );
       const activity: any = {
         // Delmål som intyget avser
         goals: toMilestoneIds(btGoals),
@@ -392,14 +396,13 @@ const [applicant, setApplicant] = useState({
           endDate: a.endISO || null,
           source: a.source || "manual",
           refId: a.refId || null,
+          milestones:
+            a.source === "registered" && a.refId
+              ? extractPlacementGoals(placementById.get(String(a.refId)) || null)
+              : [],
         })),
         // Hur kontrollerats
-        controlHow:
-          String(
-            (typeof (window as any) !== "undefined"
-              ? (document.querySelector("textarea") as HTMLTextAreaElement)?.value
-              : "") || ""
-          ).trim() || "",
+        controlHow: String(controlHow || "").trim() || "",
 
         // Flagga för exportlogik: true om "någon annan" ska användas
         useOtherSigner: mainSupervisorPrints,
@@ -1560,14 +1563,14 @@ useEffect(() => {
                       Start
                     </label>
                     <CalendarDatePicker
-                      value={row.intyg?.startISO || null}
+                      value={row.intyg?.startISO || ""}
                       onChange={(iso) =>
                         setRows((all) =>
                           all.map((r) =>
                             r.id === row.id
                               ? {
                                   ...r,
-                                  intyg: { ...(r.intyg ?? defaultIntyg()), startISO: iso },
+                                  intyg: { ...(r.intyg ?? defaultIntyg()), startISO: iso || null },
                                 }
                               : r
                           )
@@ -1582,14 +1585,14 @@ useEffect(() => {
                       Slut
                     </label>
                     <CalendarDatePicker
-                      value={row.intyg?.endISO || null}
+                      value={row.intyg?.endISO || ""}
                       onChange={(iso) =>
                         setRows((all) =>
                           all.map((r) =>
                             r.id === row.id
                               ? {
                                   ...r,
-                                  intyg: { ...(r.intyg ?? defaultIntyg()), endISO: iso },
+                                  intyg: { ...(r.intyg ?? defaultIntyg()), endISO: iso || null },
                                 }
                               : r
                           )
@@ -1809,7 +1812,7 @@ useEffect(() => {
 
     setAttachments((list) => {
       const filtered = list.filter((x) => String(x) !== label);
-      return on ? [...filtered, label] : filtered;
+      return on ? [...filtered, label as AttachKey] : filtered;
     });
   }
 
@@ -1833,9 +1836,9 @@ useEffect(() => {
           !/^Intyg tjänstgöring före legitimation\b/.test(String(x)) &&
           !String(x).startsWith("Tjänstgöring före legitimation:")
       );
-      if (!enabled) return normalizeAndSortAttachments(base as string[]);
+      if (!enabled) return normalizeAndSortAttachments(base as string[]) as AttachKey[];
       const extras = Array.from({ length: Math.max(1, count) }, (_, i) => `Intyg tjänstgöring före legitimation ${i + 1}`);
-      return normalizeAndSortAttachments([...(base as string[]), ...extras]);
+      return normalizeAndSortAttachments([...(base as string[]), ...extras]) as AttachKey[];
     });
   }
 
@@ -1984,10 +1987,10 @@ useEffect(() => {
                           <label className="mb-1 block text-xs text-slate-600">Start</label>
                           <div className={isReg ? "pointer-events-none" : ""} aria-disabled={isReg}>
                             <CalendarDatePicker
-                              value={a.startISO}
+                              value={a.startISO || ""}
                               onChange={(iso) =>
                                 setBtActivities((s) =>
-                                  s.map((x) => (x.id === a.id ? { ...x, startISO: iso } : x))
+                                  s.map((x) => (x.id === a.id ? { ...x, startISO: iso || null } : x))
                                 )
                               }
                               align="right"
@@ -2002,10 +2005,10 @@ useEffect(() => {
                           <label className="mb-1 block text-xs text-slate-600">Slut</label>
                           <div className={isReg ? "pointer-events-none" : ""} aria-disabled={isReg}>
                             <CalendarDatePicker
-                              value={a.endISO}
+                              value={a.endISO || ""}
                               onChange={(iso) =>
                                 setBtActivities((s) =>
-                                  s.map((x) => (x.id === a.id ? { ...x, endISO: iso } : x))
+                                  s.map((x) => (x.id === a.id ? { ...x, endISO: iso || null } : x))
                                 )
                               }
                               align="right"
@@ -2451,7 +2454,9 @@ useEffect(() => {
           return (
             <div
               key={`${key}-${idx}`}
-              ref={(el) => (rowRefs.current[idx] = el)}
+              ref={(el) => {
+                rowRefs.current[idx] = el;
+              }}
               className="mb-1 grid grid-cols-[48px_1fr] gap-2"
             >
               {/* #-kolumn */}
@@ -3058,7 +3063,7 @@ useEffect(() => {
         ? prev.filter((g) => g.id !== id)
         : [...prev, { id, label: id }];
     });
-    if (hydratedRef.current) updateDirty();
+    if (readyRef.current) updateDirty();
 
   }}
   onClose={() => setPickerOpen(false)}

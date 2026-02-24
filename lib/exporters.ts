@@ -2926,6 +2926,28 @@ async function fillBt2021Bilaga2(
 ) {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
+  const normalizeAndSortBtDelmal = (input: string[]): string[] => {
+    const items = (input || [])
+      .map((d) => String(d ?? "").trim())
+      .filter((d) => d.length > 0)
+      .map((raw) => {
+        const up = raw.toUpperCase().replace(/\s+/g, "");
+        const m = up.match(/^BT(\d+)$/);
+        const num = m ? parseInt(m[1], 10) || 0 : 0;
+        return { up, num, raw };
+      });
+
+    items.sort((a, b) => {
+      const aIsBt = a.up.startsWith("BT");
+      const bIsBt = b.up.startsWith("BT");
+      if (aIsBt !== bIsBt) return aIsBt ? -1 : 1;
+      if (aIsBt && bIsBt && a.num !== b.num) return a.num - b.num;
+      return a.up.localeCompare(b.up);
+    });
+
+    return items.map((x) => x.up);
+  };
+
   // — Sidor
   const pages = pdfDoc.getPages();
   const page1 = pages[0];            // personuppgifter, delmål, aktiviteter
@@ -2969,7 +2991,8 @@ async function fillBt2021Bilaga2(
   page1.drawText(pnr,       { x: coords1.personnummer.x, y: coords1.personnummer.y, size: 11, font });
 
   // ===== Delmål (sida 1) =====
-  const ids = Array.isArray(milestones) ? milestones.filter(Boolean) : [];
+  const idsRaw = Array.isArray(milestones) ? milestones.filter(Boolean) : [];
+  const ids = normalizeAndSortBtDelmal(idsRaw);
 
   if (ids.length > 0) {
     const maxPerLine = 8; // samma logik som ST: bryt efter 8 delmål
@@ -3034,7 +3057,18 @@ async function fillBt2021Bilaga2(
       const e = String(a?.endDate || "").slice(0, 10);
       const span = (s || e) ? `${s || "?"} – ${e || "?"}` : "";
       const row = [title, span].filter(Boolean).join(" ").trim();
-      if (row) lines.push(row);
+      if (row) {
+        lines.push(row);
+        const actGoalsRaw: string[] =
+          (Array.isArray(a?.milestones) ? a.milestones : null) ||
+          (Array.isArray(a?.goals) ? a.goals : null) ||
+          (Array.isArray(a?.delmal) ? a.delmal : null) ||
+          [];
+        const actGoals = normalizeAndSortBtDelmal(actGoalsRaw);
+        if (actGoals.length > 0) {
+          lines.push(`, ${actGoals.join(", ")}`);
+        }
+      }
     }
 
     let y: number = coords1.aktiviteter.y;
