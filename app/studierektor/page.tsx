@@ -4007,7 +4007,7 @@ export default function StudierektorPage() {
               <span className="text-sky-700">ST</span>
               <span className="text-emerald-700">ARK</span>
             </button>
-            <span className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+            <span className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 select-none">
               Studierektor / Huvudhandledare
             </span>
           </div>
@@ -4042,7 +4042,7 @@ export default function StudierektorPage() {
       {/* Main content */}
       <main className="mx-auto max-w-7xl px-4 py-8 md:px-6">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Mina ST-läkare</h1>
+          <h1 className="text-2xl font-bold text-slate-900 select-none">Mina ST-läkare</h1>
           {hideImportZone && (
             <button
               type="button"
