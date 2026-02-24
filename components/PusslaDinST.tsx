@@ -9276,7 +9276,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
                     >
-                      <td className="px-3 py-1.5" data-info={title}>
+                      <td className="px-3 py-1.5 align-middle leading-5" data-info={title}>
   {(() => {
     const baseStyle: React.CSSProperties =
       a.type === "Forskning"
@@ -9324,15 +9324,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 </td>
 
 
-                      <td className="px-3 py-1.5 text-center" data-info={startISO}>{startISO}</td>
-                      <td className="px-3 py-1.5 text-center" data-info={endISO}>{endISO}</td>
-                      <td className="px-3 py-1.5 text-center" data-info={isZeroAttendanceType(a.type) ? "—" : String(a.attendance ?? 100)}>{isZeroAttendanceType(a.type) ? "—" : (a.attendance ?? 100)}</td>
-                      <td className="px-3 py-1.5 text-center" data-info={isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}>{isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}</td>
+                      <td className="px-3 py-1.5 text-center align-middle leading-5 whitespace-nowrap" data-info={startISO}>{startISO}</td>
+                      <td className="px-3 py-1.5 text-center align-middle leading-5 whitespace-nowrap" data-info={endISO}>{endISO}</td>
+                      <td className="px-3 py-1.5 text-center align-middle leading-5 whitespace-nowrap" data-info={isZeroAttendanceType(a.type) ? "—" : String(a.attendance ?? 100)}>{isZeroAttendanceType(a.type) ? "—" : (a.attendance ?? 100)}</td>
+                      <td className="px-3 py-1.5 text-center align-middle leading-5 whitespace-nowrap" data-info={isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}>{isZeroAttendanceType(a.type) ? "—" : fteMonths.toFixed(1)}</td>
                       
 
 
 
-                      <td className="px-3 py-1.5 text-right">
+                      <td className="px-3 py-1.5 text-right align-middle leading-5 whitespace-nowrap">
   {a.phase === "BT" ? (
     <div className="inline-flex items-center gap-2">
       {/* BT-intyg alltid för BT-fasade KLINISKA tjänstgöringar */}
@@ -9578,7 +9578,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
               >
-                                <td className="px-3 py-1.5" data-info={c.title || "—"}>
+                                <td className="px-3 py-1.5 align-middle leading-5" data-info={c.title || "—"}>
   <span className="inline-flex items-center">
     <span>{c.title || "—"}</span>
     {c.phase === "BT" && (
@@ -9599,9 +9599,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
                
-                <td className="px-3 py-1.5" data-info={c.endDate || "—"}>{c.endDate || "—"}</td>
+                <td className="px-3 py-1.5 align-middle leading-5 whitespace-nowrap" data-info={c.endDate || "—"}>{c.endDate || "—"}</td>
 
-                                          <td className="px-3 py-1.5 text-right">
+                                          <td className="px-3 py-1.5 text-right align-middle leading-5 whitespace-nowrap">
                   {c.phase === "BT" ? (
                     <div className="inline-flex items-center gap-2">
                       {/* BT-intyg – Delmål i BT, samma som klinisk tjänstgöring */}
