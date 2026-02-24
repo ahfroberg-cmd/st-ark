@@ -3119,14 +3119,14 @@ useEffect(() => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap text-[13px] font-semibold">
                             <span className="truncate">
                               {(pl as any).clinic || (pl as any).note || "Utbildningsaktivitet"}
                             </span>
                             {goals.map((gid) => (
                               <span
                                 key={gid}
-                                className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] leading-4"
+                                className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[9px] leading-4"
                               >
                                 {gid}
                               </span>
@@ -3135,7 +3135,7 @@ useEffect(() => {
                         </div>
 
                         <div className="shrink-0 flex items-center gap-4">
-                          <label className="inline-flex items-center gap-2 text-[13px]">
+                          <label className="inline-flex items-center gap-2 text-[12px]">
                             <span>Välj aktivitet:</span>
                             <input
                               type="checkbox"
@@ -3148,7 +3148,7 @@ useEffect(() => {
                             />
                           </label>
 
-                          <label className="inline-flex items-center gap-2 text-[13px]">
+                          <label className="inline-flex items-center gap-2 text-[12px]">
                             <span>Inkludera delmål i intyg</span>
                             <input
                               type="checkbox"
@@ -3163,7 +3163,7 @@ useEffect(() => {
                         </div>
                       </div>
 
-                      <div className="mt-1 text-[12px] text-slate-600">
+                      <div className="mt-1 text-[11px] text-slate-600">
                         {(pl.startDate || "").slice(0, 10)} – {(pl.endDate || pl.startDate || "").slice(0, 10)}
                       </div>
                     </div>
@@ -3172,7 +3172,7 @@ useEffect(() => {
 
                 const renderSection = (title: string, items: any[]) => (
                   <div className="grid gap-2">
-                    <div className="text-[13px] font-extrabold text-slate-800">{title}</div>
+                    <div className="text-[16px] font-extrabold text-slate-900">{title}</div>
                     {items.length === 0 ? (
                       <div className="text-[13px] text-slate-500">Inga hittades.</div>
                     ) : (
@@ -3183,7 +3183,7 @@ useEffect(() => {
 
                 return (
                   <div className="grid gap-4">
-                    {renderSection("Placeringar", placements)}
+                    {renderSection("Kliniska tjänstgöringar", placements)}
                     {renderSection("Kurser", courses)}
                   </div>
                 );
