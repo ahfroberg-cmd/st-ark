@@ -9775,123 +9775,91 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
             Vänster: Arbetad tid + Total tid BT+ST
             Mitten: Beräknat slutdatum + Slutdatum BT
             Höger: BT/ST-väljare + Progress bars (rad 2 och 3) */}
-<div className="mt-1 grid gap-2 grid-cols-1 md:grid-cols-[1fr_1fr_1fr] w-full">
-
+        <div className="mt-1 grid w-full grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3 md:grid-rows-2 md:items-start">
           {/* VÄNSTER KOLUMN */}
-          <div className="space-y-3">
-            {/* Rad 1: Registrerad tid motsvarande heltid */}
-            <div>
-              <span className="font-medium">Registrerad tid motsvarande heltid:</span>{" "}
-              <span className="font-semibold">
-                {workedFteMonths.toFixed(1)} mån
-              </span>
-            </div>
+          <div className="md:col-start-1 md:row-start-1 flex items-center gap-2">
+            <span className="font-medium min-w-[250px]">Registrerad tid motsvarande heltid:</span>
+            <span className="font-semibold">{workedFteMonths.toFixed(1)} mån</span>
+          </div>
 
-            {/* Rad 2: Total tid för BT + ST */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{totalLabel}</span>
-              <select
-                value={String(Math.max(0, Math.floor(totalPlanMonths)))}
-                onChange={(e) => {
-                  const v = Math.floor(
-                    Number((e.target as HTMLSelectElement).value) || 0
-                  );
-                  const next = Math.max(0, v);
-                  setTotalPlanMonths(next);
-                  void persistProfilePatch({ stTotalMonths: next });
-                }}
-                className="h-8 rounded-lg border px-2 text-sm w-[110px]"
-                title="Planerad total tid i månader"
-              >
-                {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
-                  const isSix = m % 6 === 0;
-                  const label = (() => {
-                    if (!isSix) return `${m}`;
-                    if (m % 12 === 0) return `${m} (${m / 12} år)`;
-                    return `${m} (${Math.floor(m / 12)},5 år)`;
-                  })();
-                  return (
-                    <option key={m} value={m}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-              <span>månader</span>
-            </div>
+          <div className="md:col-start-1 md:row-start-2 flex items-center gap-2">
+            <span className="font-medium min-w-[250px]">{totalLabel}</span>
+            <select
+              value={String(Math.max(0, Math.floor(totalPlanMonths)))}
+              onChange={(e) => {
+                const v = Math.floor(
+                  Number((e.target as HTMLSelectElement).value) || 0
+                );
+                const next = Math.max(0, v);
+                setTotalPlanMonths(next);
+                void persistProfilePatch({ stTotalMonths: next });
+              }}
+              className="h-8 rounded-lg border px-2 text-sm w-[110px]"
+              title="Planerad total tid i månader"
+            >
+              {Array.from({ length: 240 }, (_, i) => i + 1).map((m) => {
+                const isSix = m % 6 === 0;
+                const label = (() => {
+                  if (!isSix) return `${m}`;
+                  if (m % 12 === 0) return `${m} (${m / 12} år)`;
+                  return `${m} (${Math.floor(m / 12)},5 år)`;
+                })();
+                return (
+                  <option key={m} value={m}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <span>månader</span>
           </div>
 
           {/* MITTEN KOLUMN */}
-          <div className="space-y-3">
-            {/* Rad 1: Beräknat slutdatum vid tjänstgöring på X % */}
-            <div className="flex items-center gap-2">
-              <span className="font-medium">
-                Slutdatum för ST vid tjänstgöring på
-              </span>
-              <select
-                value={String(Math.max(5, Math.min(100, Math.round(restAttendance / 5) * 5)))}
-                onChange={(e) => {
-                  const v = Number((e.target as HTMLSelectElement).value) || 100;
-                  const next = Math.max(5, Math.min(100, v));
-                  setRestAttendance(next);
-                  void persistProfilePatch({ stEndAttendance: next });
-                }}
-                className="h-8 rounded-lg border px-2 text-sm w-[90px]"
-                title="Sysselsättningsgrad"
-              >
-                {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-              <span>%:</span>
-              <span className="font-semibold">{stEndISO || "—"}</span>
-            </div>
+          <div className="md:col-start-2 md:row-start-1 flex items-center gap-2">
+            <span className="font-medium">Slutdatum för ST vid tjänstgöring på</span>
+            <select
+              value={String(Math.max(5, Math.min(100, Math.round(restAttendance / 5) * 5)))}
+              onChange={(e) => {
+                const v = Number((e.target as HTMLSelectElement).value) || 100;
+                const next = Math.max(5, Math.min(100, v));
+                setRestAttendance(next);
+                void persistProfilePatch({ stEndAttendance: next });
+              }}
+              className="h-8 rounded-lg border px-2 text-sm w-[90px]"
+              title="Sysselsättningsgrad"
+            >
+              {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <span>%:</span>
+            <span className="font-semibold">{stEndISO || "—"}</span>
+          </div>
 
-            {/* Rad 2: Slutdatum för BT (med kalender) */}
+          <div className="md:col-start-2 md:row-start-2">
             {gv === "2021" && (
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium whitespace-nowrap">
-                    Slutdatum för BT:
-                  </span>
-                  <div className="w-[140px]">
-                    <CalendarDatePicker
-                      value={effectiveBtEndISO || ""}
-                      onChange={(iso) => {
-                        void handleBtEndChange(iso || null);
-                      }}
-                      weekStartsOn={1}
-                      className="h-8 w-full"
-                      align="right"
-                      forceDirection="up"
-                    />
-                  </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium whitespace-nowrap">Slutdatum för BT:</span>
+                <div className="w-[140px]">
+                  <CalendarDatePicker
+                    value={effectiveBtEndISO || ""}
+                    onChange={(iso) => {
+                      void handleBtEndChange(iso || null);
+                    }}
+                    weekStartsOn={1}
+                    className="h-8 w-full"
+                    align="right"
+                    forceDirection="up"
+                  />
                 </div>
-
-                {(btStartISO && !btEndManualISO && autoBtEndISO) ||
-                (btEndManualISO &&
-                  autoBtEndISO &&
-                  btEndManualISO !== autoBtEndISO) ? (
-                  <div className="text-xs text-slate-500">
-                    {btStartISO && !btEndManualISO && autoBtEndISO && (
-                      <div></div>
-                    )}
-                    {btEndManualISO &&
-                      autoBtEndISO &&
-                      btEndManualISO !== autoBtEndISO && (
-                        <div>justerat från standard (2 år)</div>
-                      )}
-                  </div>
-                ) : null}
               </div>
             )}
           </div>
 
           {/* HÖGER KOLUMN */}
-          <div className="space-y-3 w-full">
-            {/* Rad 2: Progressbar - Genomförd tid */}
+          <div className="md:col-start-3 md:row-start-1 w-full">
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
                 <button
@@ -9911,7 +9879,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   {progressPct.toFixed(0)} %
                 </button>
               </div>
-              <div 
+              <div
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
                 onClick={() => setProgressDetailOpen("time")}
               >
@@ -9921,8 +9889,9 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                 />
               </div>
             </div>
+          </div>
 
-            {/* Rad 3: Progressbar - Delmålsuppfyllelse */}
+          <div className="md:col-start-3 md:row-start-2 w-full">
             <div className="w-full">
               <div className="flex items-baseline justify-between text-xs">
                 <button
@@ -9942,7 +9911,7 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
                   {milestoneProgressPct.toFixed(0)} %
                 </button>
               </div>
-              <div 
+              <div
                 className="mt-1 h-4 w-full rounded-full bg-slate-200 cursor-pointer"
                 onClick={() => setProgressDetailOpen("milestones")}
               >
