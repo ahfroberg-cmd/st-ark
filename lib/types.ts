@@ -2,6 +2,8 @@
 // All rights reserved.
 // Proprietary. See LICENSE for terms.
 
+export type GoalsVersion = "2015" | "2021";
+
 export type Profile = {
   name?: string;
   personalNumber?: string;
@@ -19,6 +21,23 @@ export type Profile = {
 };
 
 
+export type ActivityComment = {
+  id: string;
+  author: string;             // Namn på den som kommenterar
+  role?: string;              // t.ex. "handledare", "studierektor"
+  text: string;
+  createdAt: string;          // ISO
+};
+
+export type Attestation = {
+  attestedBy: string;         // Namn på den som attesterar
+  attestedRole?: string;      // t.ex. "handledare", "studierektor"
+  attestedAt: string;         // ISO
+  revoked?: boolean;
+  revokedAt?: string;         // ISO
+  revokedBy?: string;
+};
+
 export type Placement = {
   id: string;
   clinic: string;             // Placering/arbete
@@ -27,6 +46,8 @@ export type Placement = {
   attendance: number;         // Sysselsättningsgrad (%)
   supervisor?: string;
   note?: string;
+  attestation?: Attestation;
+  comments?: ActivityComment[];
 };
 
 export type Course = {
@@ -47,6 +68,9 @@ export type Course = {
   courseLeaderName?: string;
   courseLeaderSite?: string;
   courseLeaderSpeciality?: string;
+
+  attestation?: Attestation;
+  comments?: ActivityComment[];
 };
 
 

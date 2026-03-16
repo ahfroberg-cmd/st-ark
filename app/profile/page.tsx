@@ -9,6 +9,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import { exportPersonalData, deleteAllPersonalData } from "@/lib/gdpr";
+import { logAudit } from "@/lib/audit";
 
 /** Platt lista över specialiteter – sorteras i UI med svensk locale */
 const SPECIALTIES: string[] = [
@@ -274,6 +276,7 @@ function ProfilePageInner() {
     const newProfile = { ...form, firstName, lastName, locked: true } as any;
 
     await db.profile.put(newProfile);
+      void logAudit("update", "profile", `Profil sparad: ${form.name} (${form.specialty})`);
       console.log("[saveProfile] Profil sparad, navigerar...", { isSetupMode });
       
       if (isSetupMode) {
@@ -776,6 +779,58 @@ function ProfilePageInner() {
           </div>
 
         </article>
+      </section>
+
+      {/* GDPR – Dataportabilitet & radering */}
+      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-2 text-lg font-extrabold">Persondata (GDPR)</h2>
+        <p className="mb-3 text-sm text-slate-600">
+          Du kan exportera all din data som JSON-fil, eller radera all persondata som lagras lokalt i webbläsaren.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const blob = await exportPersonalData();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `st-ark-gdpr-export-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                alert("Kunde inte exportera data: " + (err instanceof Error ? err.message : String(err)));
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+          >
+            Exportera mina data
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              const ok = window.confirm(
+                "Är du säker på att du vill radera ALL din persondata?\n\nDetta kan inte ångras."
+              );
+              if (!ok) return;
+              const ok2 = window.confirm(
+                "Sista varningen: All data (profil, placeringar, kurser, delmål, IUP, etc.) raderas permanent."
+              );
+              if (!ok2) return;
+              try {
+                await deleteAllPersonalData();
+                alert("All persondata har raderats.");
+                window.location.reload();
+              } catch (err) {
+                alert("Kunde inte radera data: " + (err instanceof Error ? err.message : String(err)));
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+          >
+            Radera all min data
+          </button>
+        </div>
       </section>
 
       <footer className="mt-6 flex justify-end gap-2">

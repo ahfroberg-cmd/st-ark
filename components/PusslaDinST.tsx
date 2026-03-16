@@ -27,6 +27,7 @@ import { milestoneRequires } from "@/lib/milestoneRequirements";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 import { exportCertificate, exportSta3Certificate } from "@/lib/exporters";
 import { daysBetweenInclusive, fteDays } from "@/lib/dateutils";
+import { logAudit } from "@/lib/audit";
 
 import dynamic from "next/dynamic";
 const ScanIntygModal = dynamic(() => import("@/components/ScanIntygModal"), { ssr: false });
@@ -825,6 +826,10 @@ useEffect(() => {
   // Draft-data i tidslinjen (lokal) + länkade från DB (locked)
   const [activities, setActivities] = useState<Activity[]>([]);
   const [courses, setCourses] = useState<TLcourse[]>(initialCourses ?? []);
+
+  // Filter/sök i listor
+  const [activityFilter, setActivityFilter] = useState("");
+  const [courseFilter, setCourseFilter] = useState("");
 
   // valt objekt
 const [selectedPlacementId, setSelectedPlacementId] = useState<string | null>(null);
@@ -6717,6 +6722,8 @@ const savePlacementToDb = useCallback(
         btMilestones: ((selAct as any)?.btMilestones || []),
         milestones: ((selAct as any)?.milestones || []),
         fulfillsStGoals: !!(selAct as any)?.fulfillsStGoals,
+        attestation: (selAct as any)?.attestation || undefined,
+        comments: (selAct as any)?.comments || undefined,
       };
 
       let newId = selAct.linkedPlacementId;
@@ -6743,6 +6750,15 @@ const savePlacementToDb = useCallback(
       await refreshLists();
       baselineRef.current = { placement: structuredClone(selAct) };
       setDirty(false);
+
+      // Audit-logg
+      void logAudit(
+        newId ? "update" : "create",
+        "placements",
+        `${selAct.type || "Aktivitet"}: ${selAct.label || ""} (${startISO} – ${endISO})`,
+        newId || selAct.id
+      );
+
       return true;
     } catch (e) {
       console.error(e);
@@ -6806,6 +6822,8 @@ const saveCourseToDb = useCallback(
         ...(typeof (selCourse as any)?.showAsInterval === "boolean"
           ? { showAsInterval: !!(selCourse as any).showAsInterval }
           : {}),
+        attestation: (selCourse as any)?.attestation || undefined,
+        comments: (selCourse as any)?.comments || undefined,
       };
 
       let newId = selCourse.linkedCourseId;
@@ -6830,6 +6848,15 @@ const saveCourseToDb = useCallback(
       await refreshLists();
       baselineRef.current = { course: structuredClone(selCourse) };
       setDirty(false);
+
+      // Audit-logg
+      void logAudit(
+        newId ? "update" : "create",
+        "courses",
+        `Kurs: ${selCourse.title || ""} (${cert})`,
+        newId || selCourse.id
+      );
+
       return true;
     } catch (e) {
       console.error(e);
@@ -6918,6 +6945,9 @@ const requestDeletePlacement = useCallback(() => {
       await refreshLists();
       setShowDeleteConfirm(false);
       setDeleteConfirmConfig(null);
+
+      // Audit-logg
+      void logAudit("delete", "placements", `Raderade: ${a.type || "Aktivitet"} ${a.label || ""}`, a.linkedPlacementId || a.id);
     },
   });
   setShowDeleteConfirm(true);
@@ -6942,6 +6972,9 @@ const requestDeleteCourse = useCallback(() => {
       setDirty(false);
       setShowDeleteConfirm(false);
       setDeleteConfirmConfig(null);
+
+      // Audit-logg
+      void logAudit("delete", "courses", `Raderade kurs: ${selectedCourse.title || ""}`, linkedId || id);
     },
   });
   setShowDeleteConfirm(true);
@@ -8406,6 +8439,124 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 )}
 
 
+        {/* Attestering */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {(selAct as any).attestation && !(selAct as any).attestation.revoked ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-800">
+                <span aria-hidden="true">✓</span>
+                Attesterad av {(selAct as any).attestation.attestedBy}
+                <span className="text-emerald-600">
+                  ({new Date((selAct as any).attestation.attestedAt).toLocaleDateString("sv-SE")})
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const ok = window.confirm("Vill du återkalla attesteringen?");
+                  if (!ok) return;
+                  setActivities((prev) =>
+                    prev.map((a) =>
+                      a.id === selAct.id
+                        ? {
+                            ...a,
+                            attestation: {
+                              ...(a as any).attestation,
+                              revoked: true,
+                              revokedAt: new Date().toISOString(),
+                              revokedBy: (profile as any)?.name || "Okänd",
+                            },
+                          }
+                        : a
+                    )
+                  );
+                }}
+                className="text-xs text-red-600 underline hover:text-red-800"
+              >
+                Återkalla
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const name = window.prompt("Namn på den som attesterar:");
+                if (!name?.trim()) return;
+                setActivities((prev) =>
+                  prev.map((a) =>
+                    a.id === selAct.id
+                      ? {
+                          ...a,
+                          attestation: {
+                            attestedBy: name.trim(),
+                            attestedAt: new Date().toISOString(),
+                          },
+                        }
+                      : a
+                  )
+                );
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 hover:border-emerald-400 active:translate-y-px"
+              data-info="Attestera denna aktivitet. Handledare eller studierektor kan markera att momentet är godkänt."
+            >
+              Attestera
+            </button>
+          )}
+          {(selAct as any).attestation?.revoked && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-800">
+              Attestering återkallad
+            </span>
+          )}
+        </div>
+
+        {/* Kommentarer (placering) */}
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700 select-none">
+            Kommentarer ({((selAct as any).comments || []).length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {((selAct as any).comments || []).map((c: any) => (
+              <div key={c.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">{c.author}</span>
+                  {c.role && <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px]">{c.role}</span>}
+                  <span>{new Date(c.createdAt).toLocaleString("sv-SE")}</span>
+                </div>
+                <p className="mt-1 text-slate-800 whitespace-pre-wrap">{c.text}</p>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Skriv en kommentar..."
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const input = e.currentTarget;
+                  const text = input.value.trim();
+                  if (!text) return;
+                  const author = (profile as any)?.name || "Okänd";
+                  const newComment = {
+                    id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8),
+                    author,
+                    role: "",
+                    text,
+                    createdAt: new Date().toISOString(),
+                  };
+                  setActivities((prev) =>
+                    prev.map((a) =>
+                      a.id === selAct.id
+                        ? { ...a, comments: [...((a as any).comments || []), newComment] }
+                        : a
+                    )
+                  );
+                  input.value = "";
+                }}
+              />
+            </div>
+          </div>
+        </details>
+
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
                     <button
@@ -9065,6 +9216,124 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
 
 
 
+        {/* Attestering (kurs) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {(selCourse as any).attestation && !(selCourse as any).attestation.revoked ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 border border-emerald-300 px-3 py-1 text-xs font-semibold text-emerald-800">
+                <span aria-hidden="true">✓</span>
+                Attesterad av {(selCourse as any).attestation.attestedBy}
+                <span className="text-emerald-600">
+                  ({new Date((selCourse as any).attestation.attestedAt).toLocaleDateString("sv-SE")})
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const ok = window.confirm("Vill du återkalla attesteringen?");
+                  if (!ok) return;
+                  setCourses((prev) =>
+                    prev.map((c) =>
+                      c.id === selCourse.id
+                        ? {
+                            ...c,
+                            attestation: {
+                              ...(c as any).attestation,
+                              revoked: true,
+                              revokedAt: new Date().toISOString(),
+                              revokedBy: (profile as any)?.name || "Okänd",
+                            },
+                          }
+                        : c
+                    )
+                  );
+                }}
+                className="text-xs text-red-600 underline hover:text-red-800"
+              >
+                Återkalla
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                const name = window.prompt("Namn på den som attesterar:");
+                if (!name?.trim()) return;
+                setCourses((prev) =>
+                  prev.map((c) =>
+                    c.id === selCourse.id
+                      ? {
+                          ...c,
+                          attestation: {
+                            attestedBy: name.trim(),
+                            attestedAt: new Date().toISOString(),
+                          },
+                        }
+                      : c
+                  )
+                );
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 hover:border-emerald-400 active:translate-y-px"
+              data-info="Attestera denna kurs. Handledare eller studierektor kan markera att kursen är godkänd."
+            >
+              Attestera
+            </button>
+          )}
+          {(selCourse as any).attestation?.revoked && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-800">
+              Attestering återkallad
+            </span>
+          )}
+        </div>
+
+        {/* Kommentarer (kurs) */}
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700 select-none">
+            Kommentarer ({((selCourse as any).comments || []).length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {((selCourse as any).comments || []).map((c: any) => (
+              <div key={c.id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">{c.author}</span>
+                  {c.role && <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px]">{c.role}</span>}
+                  <span>{new Date(c.createdAt).toLocaleString("sv-SE")}</span>
+                </div>
+                <p className="mt-1 text-slate-800 whitespace-pre-wrap">{c.text}</p>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Skriv en kommentar..."
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const input = e.currentTarget;
+                  const text = input.value.trim();
+                  if (!text) return;
+                  const author = (profile as any)?.name || "Okänd";
+                  const newComment = {
+                    id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8),
+                    author,
+                    role: "",
+                    text,
+                    createdAt: new Date().toISOString(),
+                  };
+                  setCourses((prev) =>
+                    prev.map((c) =>
+                      c.id === selCourse.id
+                        ? { ...c, comments: [...((c as any).comments || []), newComment] }
+                        : c
+                    )
+                  );
+                  input.value = "";
+                }}
+              />
+            </div>
+          </div>
+        </details>
+
         {/* Höger: Spara / Stäng / Ta bort (Ta bort varnar endast om ändrat) */}
         <div className="flex items-center gap-2">
           <button
@@ -9117,8 +9386,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Vänster: Utbildningsaktiviteter */}
         <div className="md:col-span-2 rounded-xl border bg-white overflow-hidden">
 
-          <div className="flex items-center justify-between border-b px-3 py-2">
-  <div className="font-semibold">Klinisk tjänstgöring, arbeten, ledighet, sjukskrivning</div>
+          <div className="flex items-center justify-between border-b px-3 py-2 gap-2">
+  <div className="font-semibold whitespace-nowrap">Klinisk tjänstgöring, arbeten, ledighet, sjukskrivning</div>
+  <input
+    type="text"
+    value={activityFilter}
+    onChange={(e) => setActivityFilter(e.target.value)}
+    placeholder="Sök aktivitet..."
+    className="w-40 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-300"
+  />
 </div>
 
 <GapWarnings
@@ -9153,6 +9429,17 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     (a.startSlot - b.startSlot) ||
     ((a.startSlot + a.lengthSlots) - (b.startSlot + b.lengthSlots))
   )
+  .filter((a) => {
+    if (!activityFilter.trim()) return true;
+    const q = activityFilter.toLowerCase();
+    return (
+      (a.label || "").toLowerCase().includes(q) ||
+      (a.type || "").toLowerCase().includes(q) ||
+      (a.note || "").toLowerCase().includes(q) ||
+      (a.supervisor || "").toLowerCase().includes(q) ||
+      ((a as any).leaveSubtype || "").toLowerCase().includes(q)
+    );
+  })
   .map((a) => {
 
                   const { startISO, endISO } = displayDatesForActivity(a);
@@ -9488,8 +9775,15 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         {/* Höger: Kurser */}
 <div className="rounded-xl border bg-white overflow-hidden">
 
-  <div className="flex items-center justify-between border-b px-3 py-2">
-  <div className="font-semibold">Kurser</div>
+  <div className="flex items-center justify-between border-b px-3 py-2 gap-2">
+  <div className="font-semibold whitespace-nowrap">Kurser</div>
+  <input
+    type="text"
+    value={courseFilter}
+    onChange={(e) => setCourseFilter(e.target.value)}
+    placeholder="Sök kurs..."
+    className="w-32 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-300"
+  />
 </div>
 
 
@@ -9515,6 +9809,16 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
     const da = (a.endDate || a.certificateDate || a.startDate || "");
     const db = (b.endDate || b.certificateDate || b.startDate || "");
     return da.localeCompare(db);
+  })
+  .filter((c) => {
+    if (!courseFilter.trim()) return true;
+    const q = courseFilter.toLowerCase();
+    return (
+      (c.title || "").toLowerCase().includes(q) ||
+      (c.note || "").toLowerCase().includes(q) ||
+      (c.city || "").toLowerCase().includes(q) ||
+      (c.courseLeaderName || "").toLowerCase().includes(q)
+    );
   })
   .map((c) => {
 
@@ -9715,6 +10019,53 @@ const applyPlacementDates = (which: "start" | "end", iso: string) => {
         )}
       </tbody>
     </table>
+  </div>
+</div>
+
+{/* Delmålssammanfattning – kompakt överblick */}
+<div className="md:col-span-3 mt-2 rounded-xl border bg-white p-3">
+  <div className="flex flex-wrap items-center gap-4 text-sm">
+    <span className="font-semibold text-slate-700">Delmål:</span>
+
+    {/* BT (2021) */}
+    {String((profile as any)?.goalsVersion || "").trim() === "2021" && (
+      <div className="flex items-center gap-2">
+        <span className="text-slate-600">BT</span>
+        <div className="h-2 w-24 rounded-full bg-slate-200 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-sky-500 transition-all"
+            style={{ width: `${milestoneDetails.bt.total > 0 ? Math.min(100, (milestoneDetails.bt.fulfilled / milestoneDetails.bt.total) * 100) : 0}%` }}
+          />
+        </div>
+        <span className={`text-xs font-semibold ${milestoneDetails.bt.fulfilled >= milestoneDetails.bt.total ? "text-emerald-600" : "text-slate-600"}`}>
+          {milestoneDetails.bt.fulfilled}/{milestoneDetails.bt.total}
+        </span>
+        {milestoneDetails.bt.total - milestoneDetails.bt.fulfilled > 0 && (
+          <span className="text-xs text-amber-600">
+            ({milestoneDetails.bt.total - milestoneDetails.bt.fulfilled} återstår)
+          </span>
+        )}
+      </div>
+    )}
+
+    {/* ST */}
+    <div className="flex items-center gap-2">
+      <span className="text-slate-600">ST</span>
+      <div className="h-2 w-32 rounded-full bg-slate-200 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-indigo-500 transition-all"
+          style={{ width: `${milestoneDetails.st.total > 0 ? Math.min(100, (milestoneDetails.st.fulfilled / milestoneDetails.st.total) * 100) : 0}%` }}
+        />
+      </div>
+      <span className={`text-xs font-semibold ${milestoneDetails.st.fulfilled >= milestoneDetails.st.total ? "text-emerald-600" : "text-slate-600"}`}>
+        {milestoneDetails.st.fulfilled}/{milestoneDetails.st.total}
+      </span>
+      {milestoneDetails.st.total - milestoneDetails.st.fulfilled > 0 && (
+        <span className="text-xs text-amber-600">
+          ({milestoneDetails.st.total - milestoneDetails.st.fulfilled} återstår)
+        </span>
+      )}
+    </div>
   </div>
 </div>
 

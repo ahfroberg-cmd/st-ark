@@ -4,6 +4,7 @@
 
 import { db } from "@/lib/db";
 import type { Profile, Placement, Course, Achievement } from "@/lib/types";
+import { logAudit } from "@/lib/audit";
 
 export type ExportBundle = {
   schemaVersion: number;
@@ -109,7 +110,7 @@ export async function exportAll(): Promise<ExportBundle> {
   const profileOut = profile ? (normalizeProfileDates(profile) as Profile) : null;
   const placementsOut = (placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
 
-  return {
+  const bundle = {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     app: { name: "ST-ARK", version: "1.0.0" },
     exportedAt: new Date().toISOString(),
@@ -122,6 +123,8 @@ export async function exportAll(): Promise<ExportBundle> {
     specialistApplication: specApp,
   };
 
+  void logAudit("export", "all", `Backup-export (${placementsOut.length} placeringar, ${courses.length} kurser)`);
+  return bundle;
 }
 
 /** Ladda ner JSON som fil (ren klientfunktion) */
@@ -180,6 +183,11 @@ export async function importAll(bundle: ExportBundle, mode: "replace" | "merge" 
   } else {
     await mergeAll(migrated);
   }
+  void logAudit(
+    "import",
+    "all",
+    `Backup-import (${mode}): ${migrated.placements?.length ?? 0} placeringar, ${migrated.courses?.length ?? 0} kurser`
+  );
 }
 
 /** Rensa DB och skriv in allt från bundle */
