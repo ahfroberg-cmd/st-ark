@@ -4,15 +4,19 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { exportAll, downloadJson } from "@/lib/backup";
+import { supabase } from "@/lib/supabase";
 import MobileHome from "./MobileHome";
 import MobilePlacements from "./MobilePlacements";
 import MobileCourses from "./MobileCourses";
 import MobileProfile from "./MobileProfile";
 import MobileIup from "./MobileIup";
 import MobileAbout from "./MobileAbout";
+import { useMobileProfile } from "@/lib/hooks/useMobileData";
+import MobileRoleWorkspace from "./MobileRoleWorkspace";
+import MobileHemklinik from "./MobileHemklinik";
 
 const ScanIntygModal = dynamic(
   () => import("@/components/ScanIntygModal"),
@@ -20,22 +24,83 @@ const ScanIntygModal = dynamic(
 );
 
 
-type TabKey = "home" | "placements" | "courses" | "iup";
+type TabKey =
+  | "home"
+  | "placements"
+  | "courses"
+  | "iup"
+  | "hemklinik"
+  | "role"
+  | "sr-st-lakare"
+  | "sr-handledare"
+  | "sr-klinik";
 
-const TABS: { id: TabKey; label: string; info: string }[] = [
+const BASE_TABS: { id: Exclude<TabKey, "role">; label: string; info: string }[] = [
   { id: "home",       label: "Hem", info: "Växlar till startsidan där du kan se en översikt över din utbildning, tidslinje och snabbåtkomst till viktiga funktioner som att skanna intyg eller förbereda ansökningar." },
   { id: "placements", label: "Tjänstgöring", info: "Växlar till vyn för klinisk tjänstgöring där du kan se, lägga till och redigera alla dina kliniska tjänstgöringar, auskultationer, arbeten och ledighet." },
   { id: "courses",    label: "Kurser", info: "Växlar till vyn för kurser där du kan se, lägga till och redigera alla dina kurser och utbildningsmoment." },
   { id: "iup",        label: "IUP", info: "Växlar till IUP-vyn (Individuell utbildningsplan) där du kan hantera planering, handledarsamtal, progressionsbedömningar och delmål." },
+  { id: "hemklinik",  label: "Hemklinik", info: "Växlar till hemklinik med kommunikation, kollegor och aktivitetsförslag." },
 ];
 
 export default function MobileAppShell() {
-  const [tab, setTab] = useState<TabKey>("home");
+  const { profile } = useMobileProfile();
+  const role = String((profile as any)?.role || "st_lakare");
+  const isStRole = role === "st_lakare";
+  const roleTab =
+    role === "studierektor"
+      ? ({
+          id: "role" as const,
+          label: "Klinik",
+          info: "Växlar till mobil klinikvy för studierektor med medlemmar och inbjudningar.",
+        })
+      : role === "huvudhandledare"
+      ? ({
+          id: "role" as const,
+          label: "ST-läkare",
+          info: "Växlar till mobil handledarvy med tilldelade ST-läkare.",
+        })
+      : null;
+  const studierektorTabs =
+    role === "studierektor"
+      ? [
+          { id: "sr-st-lakare" as const, label: "ST-läkare", info: "Visa och öppna ST-läkare." },
+          { id: "sr-handledare" as const, label: "Handledare", info: "Huvudhandledare och inbjudningar." },
+          { id: "sr-klinik" as const, label: "Klinik", info: "Klinikmedlemmar och väntande inbjudningar." },
+        ]
+      : null;
+  const tabs = isStRole ? BASE_TABS : studierektorTabs ? studierektorTabs : roleTab ? [roleTab] : BASE_TABS;
+  const [tab, setTab] = useState<TabKey>(
+    isStRole ? "home" : role === "studierektor" ? "sr-st-lakare" : "role"
+  );
   const [scanOpen, setScanOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    // Rollstyrd mobilnavigering:
+    // ST-läkare använder full ST-flikrad, övriga roller går direkt till rollarbetsyta.
+    if (isStRole) {
+      if (
+        tab === "role" ||
+        tab === "sr-st-lakare" ||
+        tab === "sr-handledare" ||
+        tab === "sr-klinik"
+      ) {
+        setTab("home");
+      }
+      return;
+    }
+    if (role === "studierektor") {
+      if (!["sr-st-lakare", "sr-handledare", "sr-klinik"].includes(tab)) {
+        setTab("sr-st-lakare");
+      }
+      return;
+    }
+    if (tab !== "role") setTab("role");
+  }, [isStRole, role, tab]);
 
   async function handleExport() {
     setExporting(true);
@@ -69,6 +134,13 @@ export default function MobileAppShell() {
     }
   }
 
+  async function handleLogout() {
+    const ok = window.confirm("Logga ut?");
+    if (!ok) return;
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  }
+
   return (
     <div className="flex h-screen flex-col bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
@@ -76,54 +148,100 @@ export default function MobileAppShell() {
           <span className="text-sky-700">ST</span>
           <span className="text-emerald-700">ARK</span>
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-2">
           <button
             type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-700 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 active:translate-y-px disabled:opacity-50"
-            title="Spara (JSON-backup)"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2Zm0 2v3H7V5h10ZM7 10h10v9H7v-9Z"/>
-            </svg>
-            {exporting ? "Sparar..." : "Spara"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setProfileOpen(true)}
+            onClick={() => setMenuOpen((v) => !v)}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
           >
-            Profil
+            Meny
           </button>
-          <button
-            type="button"
-            onClick={() => setAboutOpen(true)}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:translate-y-px"
-          >
-            Om
-          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-12 z-20 min-w-[180px] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleExport();
+                }}
+                disabled={exporting}
+                className={
+                  isStRole
+                    ? "block w-full rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-left text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 disabled:opacity-60"
+                    : "block w-full rounded-lg border border-sky-300 bg-sky-100 px-3 py-2 text-left text-sm font-semibold text-sky-800 hover:bg-sky-200 disabled:opacity-60"
+                }
+              >
+                {exporting ? "Sparar..." : "Spara"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Profil
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAboutOpen(true);
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Om
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+              >
+                Logga ut
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pt-3 pb-16">
-        {tab === "home" && (
+        {isStRole && tab === "home" && (
           <MobileHome
             onOpenScan={() => setScanOpen(true)}
-            onProfileLoaded={setHasProfile}
+            onProfileLoaded={undefined}
           />
         )}
 
-        {tab === "placements" && <MobilePlacements />}
+        {isStRole && tab === "placements" && <MobilePlacements />}
 
-        {tab === "courses" && <MobileCourses />}
+        {isStRole && tab === "courses" && <MobileCourses />}
 
-        {tab === "iup" && <MobileIup />}
+        {isStRole && tab === "iup" && <MobileIup />}
+
+        {isStRole && tab === "hemklinik" && <MobileHemklinik />}
+
+        {role === "studierektor" && (
+          <MobileRoleWorkspace
+            forcedStudierektorTab={
+              tab === "sr-handledare"
+                ? "huvudhandledare"
+                : tab === "sr-klinik"
+                ? "klinik"
+                : "st-lakare"
+            }
+          />
+        )}
+        {!isStRole && role !== "studierektor" && <MobileRoleWorkspace />}
+        {isStRole && tab === "role" && <MobileRoleWorkspace />}
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-md items-stretch justify-between">
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const active = tab === t.id;
             return (
               <button
@@ -155,12 +273,14 @@ export default function MobileAppShell() {
         </div>
       </nav>
 
-      <ScanIntygModal
-        open={scanOpen}
-        onClose={() => setScanOpen(false)}
-        onSaved={undefined}
-        goalsVersion={undefined}
-      />
+      {isStRole && (
+        <ScanIntygModal
+          open={scanOpen}
+          onClose={() => setScanOpen(false)}
+          onSaved={undefined}
+          goalsVersion={profile?.goalsVersion}
+        />
+      )}
 
       <MobileProfile
         open={profileOpen}

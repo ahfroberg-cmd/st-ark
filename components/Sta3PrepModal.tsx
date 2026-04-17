@@ -3,8 +3,6 @@
 
 import React, { useState, useEffect } from "react";
 import { exportSta3Certificate } from "@/lib/exporters";
-import { db } from "@/lib/db";
-
 export type Sta3Item = {
   id: string;
   title: string;
@@ -118,9 +116,9 @@ export default function Sta3PrepModal({
     (async () => {
       try {
         const [achsRaw, placsRaw, crsRaw] = await Promise.all([
-          (db as any).achievements?.toArray?.() ?? [],
-          (db as any).placements?.toArray?.() ?? [],
-          (db as any).courses?.toArray?.() ?? [],
+          [] as any[],
+          [] as any[],
+          [] as any[],
         ]);
 
         const achs = achsRaw as any[];

@@ -126,6 +126,33 @@ function findCloseButton(modalElement: HTMLElement): HTMLElement | null {
   return null;
 }
 
+function triggerCloseOnTopmostOverlayFallback(): boolean {
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>(".fixed.inset-0"))
+    .filter((el) => {
+      if (!document.body.contains(el)) return false;
+      const style = window.getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+      if (style.pointerEvents === "none") return false;
+      return true;
+    })
+    .map((el) => ({ el, z: getZIndex(el) }))
+    .sort((a, b) => b.z - a.z);
+
+  for (const { el } of candidates) {
+    const closeBtn = findCloseButton(el);
+    if (closeBtn) {
+      closeBtn.click();
+      return true;
+    }
+
+    // Fallback: prova backdrop-click på översta overlayn
+    el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    return true;
+  }
+
+  return false;
+}
+
 // Global ESC-hantering som körs först
 let globalEscHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -148,8 +175,9 @@ export function setupGlobalEscHandler() {
       return; // Block ESC completely when info view is active
     }
     
-    // Om vi har en modal registrerad, trigga dess stäng-funktion
-    if (triggerCloseOnTopmostModal()) {
+    // Om vi har en modal registrerad, trigga dess stäng-funktion.
+    // Fallback: hantera oregistrerade overlays (ex. äldre modaler).
+    if (triggerCloseOnTopmostModal() || triggerCloseOnTopmostOverlayFallback()) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();

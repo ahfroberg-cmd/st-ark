@@ -7,6 +7,7 @@ import "./globals.css";
 import SWRegister from "./sw-register";
 import { TitleOverride } from "./TitleOverride";
 import BetaGuard from "@/components/BetaGuard";
+import RoleGuard from "@/components/RoleGuard";
 import GlobalEscHandler from "@/components/GlobalEscHandler";
 import { InfoViewProvider } from "@/components/InfoView";
 
@@ -47,7 +48,9 @@ export default function RootLayout({
           <GlobalEscHandler />
           <SWRegister />
           <TitleOverride />
-          <BetaGuard>{children}</BetaGuard>
+          <BetaGuard>
+            <RoleGuard>{children}</RoleGuard>
+          </BetaGuard>
         </InfoViewProvider>
       </body>
     </html>

@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
@@ -143,7 +142,7 @@ export default function MobileProfile({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const p = (await db.profile.get("default")) as any;
+      const p = (null) as any;
       const base = p ? { ...empty, ...p } : empty;
       setOrig(base);
       setForm(base);
@@ -195,7 +194,7 @@ export default function MobileProfile({ open, onClose }: Props) {
       const lastName = parts.slice(1).join(" ") ?? "";
       const toSave = { ...form, firstName, lastName, locked: true };
 
-      await db.profile.put(toSave);
+      /* Supabase handles profile */;
       setOrig(toSave);
       // Stäng inte fönstret, bara uppdatera baseline så att dirty blir false
     } catch (e) {
@@ -214,7 +213,7 @@ export default function MobileProfile({ open, onClose }: Props) {
   async function handleReset() {
     // 1) Radera hela IndexedDB-databasen
     try {
-      await db.delete();
+      /* Supabase handles data deletion */;
     } catch {
       // ignorera ev. fel vid radering av DB
     }
@@ -336,9 +335,6 @@ export default function MobileProfile({ open, onClose }: Props) {
               <Labeled>Telefon (arbete)</Labeled>
               <Input value={form.phoneWork} onChange={(v) => setForm({ ...form, phoneWork: v })} inputMode="tel" />
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-slate-600">
-              <strong>Lagring:</strong> Allt sparas endast lokalt i din webbläsare. Ingen server används.
-            </p>
           </div>
         ) : (
           <div className="space-y-4">

@@ -605,10 +605,10 @@ export function extractZonesFromWords<
         expectedSize!.height,
         actualSize!.width,
         actualSize!.height
-      );
+      ) as typeof zone;
     }
     
-    result[key] = extractZoneTextFromWords(words, zone);
+    (result as any)[key] = extractZoneTextFromWords(words, zone);
   });
 
   return result as Record<K, string>;
@@ -931,7 +931,7 @@ async function ocrViaOcrSpace(
 
   const words: OcrWord[] | undefined = Array.isArray(result?.words)
     ? (result.words as any[])
-        .map((w: any) => {
+        .map((w: any): OcrWord | null => {
           const t = String(w?.text ?? "").trim();
           if (!t) return null;
           return {
@@ -944,7 +944,7 @@ async function ocrViaOcrSpace(
               typeof w?.confidence === "number" ? (w.confidence as number) : undefined,
           } as OcrWord;
         })
-        .filter((x: any) => x !== null)
+        .filter((x): x is OcrWord => x !== null)
     : undefined;
 
   return {

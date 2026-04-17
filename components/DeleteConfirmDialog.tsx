@@ -71,12 +71,12 @@ export default function DeleteConfirmDialog({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          e.stopImmediatePropagation();
+          (e.nativeEvent as Event).stopImmediatePropagation?.();
           onCancel();
         } else if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
           e.preventDefault();
           e.stopPropagation();
-          e.stopImmediatePropagation();
+          (e.nativeEvent as Event).stopImmediatePropagation?.();
           onConfirm();
         }
       }}
@@ -89,12 +89,12 @@ export default function DeleteConfirmDialog({
           if (e.key === "Escape") {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            (e.nativeEvent as Event).stopImmediatePropagation?.();
             onCancel();
           } else if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            (e.nativeEvent as Event).stopImmediatePropagation?.();
             onConfirm();
           }
         }}

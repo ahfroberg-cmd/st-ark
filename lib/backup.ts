@@ -2,9 +2,18 @@
 // All rights reserved.
 // Proprietary. See LICENSE for terms.
 
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import type { Profile, Placement, Course, Achievement } from "@/lib/types";
 import { logAudit } from "@/lib/audit";
+
+async function getAuthUserId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export type ExportBundle = {
   schemaVersion: number;
@@ -95,17 +104,74 @@ function normalizeProfileDates(p: any): any {
 }
 
 export async function exportAll(): Promise<ExportBundle> {
-  const anyDb: any = db as any;
-  const [profile, placements, courses, achievements, timeline, iupPlans, specApp] =
-    await Promise.all([
-      db.profile.get("default"),
-      db.placements.toArray(),
-      db.courses.toArray(),
-      db.achievements.toArray(),
-      anyDb.timeline?.toArray?.() ?? [],
-      anyDb.iupMilestonePlans?.toArray?.() ?? [],
-      anyDb.specialistApplication?.toArray?.() ?? [],
+  
+  const userId = await getAuthUserId();
+
+  let profile: Profile | undefined;
+  let placements: Placement[] = [];
+  let courses: Course[] = [];
+  let achievements: Achievement[] = [];
+
+  if (userId) {
+    try {
+      const [profRes, plRes, crRes, achRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+        supabase.from("placements").select("*").eq("user_id", userId),
+        supabase.from("courses").select("*").eq("user_id", userId),
+        supabase.from("achievements").select("*").eq("user_id", userId),
+      ]);
+      if (!profRes.error && profRes.data) {
+        const d = profRes.data as any;
+        profile = {
+          id: "default",
+          name: d.name || "",
+          specialty: d.specialty,
+          speciality: d.specialty,
+          goalsVersion: d.goals_version === "2021" ? "st_2021" : d.goals_version,
+          stStartDate: d.st_start_date,
+          startDate: d.st_start_date,
+          btStartDate: d.bt_start_date,
+          btEndDate: d.bt_end_date,
+          homeClinic: d.home_clinic,
+        } as any;
+      }
+      if (!plRes.error && plRes.data) placements = plRes.data.map((p: any) => ({ id: p.id, type: p.type, clinic: p.clinic, title: p.title, startDate: p.start_date, endDate: p.end_date, attendance: p.attendance, supervisor: p.supervisor, note: p.note, showOnTimeline: p.show_on_timeline !== false } as any));
+      if (!crRes.error && crRes.data) courses = crRes.data.map((c: any) => ({ id: c.id, title: c.title, kind: c.kind, city: c.city, courseLeaderName: c.course_leader_name, startDate: c.start_date, endDate: c.end_date, certificateDate: c.certificate_date, note: c.note, courseTitle: c.course_title, showOnTimeline: c.show_on_timeline !== false, showAsInterval: !!c.show_as_interval } as any));
+      if (!achRes.error && achRes.data) achievements = achRes.data.map((a: any) => ({ id: a.id, placementId: a.placement_id || undefined, courseId: a.course_id || undefined, milestoneId: a.milestone_id || "", date: a.date || "" } as any));
+    } catch {
+      // fallback below
+    }
+  }
+
+  if (!userId || (!profile && placements.length === 0)) {
+    const [localProfile, localPlacements, localCourses, localAchievements] = await Promise.all([
+      null,
+      [],
+      [],
+      [],
     ]);
+    profile = localProfile ?? undefined;
+    placements = localPlacements;
+    courses = localCourses;
+    achievements = localAchievements;
+  }
+
+  let iupSettings: any = null;
+  let milestonePlans: any[] = [];
+  let appDrafts: any[] = [];
+
+  if (userId) {
+    try {
+      const [iupRes, mpRes, adRes] = await Promise.all([
+        supabase.from("iup_settings").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("milestone_plans").select("*").eq("user_id", userId),
+        supabase.from("app_drafts").select("*").eq("user_id", userId),
+      ]);
+      if (!iupRes.error && iupRes.data) iupSettings = iupRes.data;
+      if (!mpRes.error && mpRes.data) milestonePlans = mpRes.data;
+      if (!adRes.error && adRes.data) appDrafts = adRes.data;
+    } catch { /* ignore */ }
+  }
 
   const profileOut = profile ? (normalizeProfileDates(profile) as Profile) : null;
   const placementsOut = (placements as any[]).map((p) => normalizePlacementDates(p)) as Placement[];
@@ -118,9 +184,9 @@ export async function exportAll(): Promise<ExportBundle> {
     placements: placementsOut,
     courses,
     achievements,
-    timeline,
-    iupMilestonePlans: iupPlans,
-    specialistApplication: specApp,
+    iupSettings,
+    milestonePlans,
+    appDrafts,
   };
 
   void logAudit("export", "all", `Backup-export (${placementsOut.length} placeringar, ${courses.length} kurser)`);
@@ -183,6 +249,15 @@ export async function importAll(bundle: ExportBundle, mode: "replace" | "merge" 
   } else {
     await mergeAll(migrated);
   }
+
+  // Mirror to Supabase
+  const userId = await getAuthUserId();
+  if (userId) {
+    try {
+      await mirrorBundleToSupabase(migrated, userId, mode);
+    } catch {}
+  }
+
   void logAudit(
     "import",
     "all",
@@ -190,38 +265,110 @@ export async function importAll(bundle: ExportBundle, mode: "replace" | "merge" 
   );
 }
 
+async function mirrorBundleToSupabase(bundle: ExportBundle, userId: string, mode: string) {
+  if (mode === "replace") {
+    await Promise.all([
+      supabase.from("achievements").delete().eq("user_id", userId),
+      supabase.from("placements").delete().eq("user_id", userId),
+      supabase.from("courses").delete().eq("user_id", userId),
+    ]);
+  }
+
+  if (bundle.profile) {
+    const p = bundle.profile as any;
+    await supabase.from("profiles").upsert({
+      id: userId,
+      name: p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || "",
+      specialty: p.specialty || p.speciality || "psykiatri",
+      goals_version: p.goalsVersion === "st_2021" ? "2021" : p.goalsVersion || "2021",
+      st_start_date: p.stStartDate || null,
+      bt_start_date: p.btStartDate || null,
+      bt_end_date: p.btEndDate || null,
+      home_clinic: p.homeClinic || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+  }
+
+  if (bundle.placements?.length) {
+    const rows = bundle.placements.map((p: any) => ({
+      id: p.id,
+      user_id: userId,
+      type: p.type || "",
+      clinic: p.clinic || "",
+      title: p.title || "",
+      start_date: p.startDate || null,
+      end_date: p.endDate || null,
+      attendance: p.attendance ?? 100,
+      supervisor: p.supervisor || "",
+      note: p.note || "",
+      show_on_timeline: p.showOnTimeline !== false,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("placements").upsert(rows, { onConflict: "id" });
+  }
+
+  if (bundle.courses?.length) {
+    const rows = bundle.courses.map((c: any) => ({
+      id: c.id,
+      user_id: userId,
+      title: c.title || "",
+      kind: c.kind || "Kurs",
+      city: c.city || "",
+      course_leader_name: c.courseLeaderName || "",
+      start_date: c.startDate || null,
+      end_date: c.endDate || null,
+      certificate_date: c.certificateDate || null,
+      note: c.note || "",
+      course_title: c.courseTitle || null,
+      show_on_timeline: c.showOnTimeline !== false,
+      show_as_interval: !!c.showAsInterval,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("courses").upsert(rows, { onConflict: "id" });
+  }
+
+  if (bundle.achievements?.length) {
+    const rows = bundle.achievements.map((a: any) => ({
+      id: a.id,
+      user_id: userId,
+      placement_id: a.placementId || null,
+      course_id: a.courseId || null,
+      milestone_id: a.milestoneId || "",
+      date: a.date || "",
+    }));
+    await supabase.from("achievements").upsert(rows, { onConflict: "id" });
+  }
+}
+
 /** Rensa DB och skriv in allt från bundle */
 async function replaceAll(bundle: ExportBundle) {
-  const anyDb: any = db as any;
-  const tables: any[] = [db.profile, db.placements, db.courses, db.achievements];
-  if (anyDb.timeline) tables.push(anyDb.timeline);
-  if (anyDb.iupMilestonePlans) tables.push(anyDb.iupMilestonePlans);
-  if (anyDb.specialistApplication) tables.push(anyDb.specialistApplication);
+  const userId = await getAuthUserId();
+  if (!userId) return;
 
-  await (db as any).transaction("readwrite", ...tables, async () => {
-    await Promise.all([
-      db.profile.clear(),
-      db.placements.clear(),
-      db.courses.clear(),
-      db.achievements.clear(),
-      anyDb.timeline?.clear?.() ?? Promise.resolve(),
-      anyDb.iupMilestonePlans?.clear?.() ?? Promise.resolve(),
-      anyDb.specialistApplication?.clear?.() ?? Promise.resolve(),
-    ]);
+  // Rensa nya tabeller
+  await Promise.all([
+    supabase.from("iup_settings").delete().eq("user_id", userId),
+    supabase.from("milestone_plans").delete().eq("user_id", userId),
+    supabase.from("app_drafts").delete().eq("user_id", userId),
+  ]);
 
-    if (bundle.profile) {
-      const prof = normalizeProfileDates({ ...(bundle.profile as any), id: "default" } as any) as any;
-      await db.profile.put(prof);
-    }
-    if (bundle.placements?.length) await db.placements.bulkPut(bundle.placements);
-    if (bundle.courses?.length) await db.courses.bulkPut(bundle.courses);
-    if (bundle.achievements?.length) await db.achievements.bulkPut(bundle.achievements);
-    if (bundle.timeline?.length) await anyDb.timeline?.bulkPut?.(bundle.timeline);
-    if (bundle.iupMilestonePlans?.length)
-      await anyDb.iupMilestonePlans?.bulkPut?.(bundle.iupMilestonePlans);
-    if (bundle.specialistApplication?.length)
-      await anyDb.specialistApplication?.bulkPut?.(bundle.specialistApplication);
-  });
+  // Importera IUP settings
+  if ((bundle as any).iupSettings) {
+    const iup = (bundle as any).iupSettings;
+    await supabase.from("iup_settings").upsert({ ...iup, user_id: userId }, { onConflict: "user_id" });
+  }
+
+  // Importera milestone plans
+  if ((bundle as any).milestonePlans?.length) {
+    const rows = (bundle as any).milestonePlans.map((r: any) => ({ ...r, user_id: userId }));
+    await supabase.from("milestone_plans").upsert(rows, { onConflict: "user_id,milestone_id" });
+  }
+
+  // Importera app drafts
+  if ((bundle as any).appDrafts?.length) {
+    const rows = (bundle as any).appDrafts.map((r: any) => ({ ...r, user_id: userId }));
+    await supabase.from("app_drafts").upsert(rows, { onConflict: "user_id,draft_key" });
+  }
 }
 
 /** Slå ihop:
@@ -229,24 +376,26 @@ async function replaceAll(bundle: ExportBundle) {
  *  - placements/courses/achievements: put per id (skapar om den inte finns)
  */
 async function mergeAll(bundle: ExportBundle) {
-  const anyDb: any = db as any;
-  const tables: any[] = [db.profile, db.placements, db.courses, db.achievements];
-  if (anyDb.timeline) tables.push(anyDb.timeline);
-  if (anyDb.iupMilestonePlans) tables.push(anyDb.iupMilestonePlans);
-  if (anyDb.specialistApplication) tables.push(anyDb.specialistApplication);
+  const userId = await getAuthUserId();
+  if (!userId) return;
 
-  await (db as any).transaction("readwrite", ...tables, async () => {
-    if (bundle.profile) {
-      const prof = normalizeProfileDates({ ...(bundle.profile as any), id: "default" } as any) as any;
-      await db.profile.put(prof);
-    }
-    for (const p of bundle.placements ?? []) await db.placements.put(p);
-    for (const c of bundle.courses ?? []) await db.courses.put(c);
-    for (const a of bundle.achievements ?? []) await db.achievements.put(a);
-    for (const t of bundle.timeline ?? []) await anyDb.timeline?.put?.(t);
-    for (const p of bundle.iupMilestonePlans ?? []) await anyDb.iupMilestonePlans?.put?.(p);
-    for (const s of bundle.specialistApplication ?? []) await anyDb.specialistApplication?.put?.(s);
-  });
+  // Importera IUP settings (merge = upsert)
+  if ((bundle as any).iupSettings) {
+    const iup = (bundle as any).iupSettings;
+    await supabase.from("iup_settings").upsert({ ...iup, user_id: userId }, { onConflict: "user_id" });
+  }
+
+  // Importera milestone plans (merge = upsert per milestone)
+  if ((bundle as any).milestonePlans?.length) {
+    const rows = (bundle as any).milestonePlans.map((r: any) => ({ ...r, user_id: userId }));
+    await supabase.from("milestone_plans").upsert(rows, { onConflict: "user_id,milestone_id" });
+  }
+
+  // Importera app drafts (merge = upsert per draft_key)
+  if ((bundle as any).appDrafts?.length) {
+    const rows = (bundle as any).appDrafts.map((r: any) => ({ ...r, user_id: userId }));
+    await supabase.from("app_drafts").upsert(rows, { onConflict: "user_id,draft_key" });
+  }
 }
 
 /** Migreringstub – bumpa när schemaVersion ändras */

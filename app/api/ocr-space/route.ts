@@ -136,11 +136,38 @@ export async function POST(req: Request) {
       fd.append("scale", "true");
       fd.append("OCREngine", "2");
       // OCR.space: multipart file upload (field name: file)
-      fd.append("file", file, file.name || "upload.jpg");
+      fd.append("file", file as Blob, (file as File)?.name || "upload.jpg");
 
-      const resp = await fetch(apiUrl, { method: "POST", body: fd as any });
-      const json = await resp.json().catch(() => null);
-      return { resp, json };
+      const timeoutMs = 20000;
+      const maxAttempts = 2;
+      let lastError: unknown = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const resp = await fetch(apiUrl, {
+            method: "POST",
+            body: fd as any,
+            signal: ctrl.signal,
+          });
+          clearTimeout(t);
+          const json = await resp.json().catch(() => null);
+          return { resp, json };
+        } catch (e) {
+          clearTimeout(t);
+          lastError = e;
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 400 * attempt));
+            continue;
+          }
+        }
+      }
+
+      const msg = lastError instanceof Error ? lastError.message : String(lastError || "fetch failed");
+      throw new Error(
+        `Kunde inte nå OCR.space (nätverksfel). Kontrollera internet/VPN/proxy och försök igen. Detalj: ${msg}`
+      );
     }
 
     let { resp, json } = await callOcrSpace(ocrLang);

@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile, Placement, Achievement } from "@/lib/types";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import { btMilestones } from "@/lib/goals-bt";
 import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { validateJsonFile, safeJsonParse } from "@/lib/validation";
+import { useMobileData } from "@/lib/hooks/useMobileData";
 
 type MobileHomeProps = {
   onOpenScan?: () => void;
@@ -67,12 +67,18 @@ function normalizeGoalsVersion(v: any): "2015" | "2021" {
 }
 
 export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomeProps) {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [placements, setPlacements] = useState<Placement[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const {
+    profile: dbProfile,
+    placements: dbPlacements,
+    courses: dbCourses,
+    achievements: dbAchievements,
+    loading: dbLoading,
+  } = useMobileData();
+  const [importedProfile, setImportedProfile] = useState<Profile | null>(null);
+  const [importedPlacements, setImportedPlacements] = useState<Placement[] | null>(null);
+  const [importedCourses, setImportedCourses] = useState<any[] | null>(null);
+  const [importedAchievements, setImportedAchievements] = useState<Achievement[] | null>(null);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
-  const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -81,65 +87,44 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
   const [stEndISO, setStEndISO] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"bt" | "st">("st"); // BT eller ST-läge för 2021
 
+  const profile = importedProfile ?? dbProfile;
+  const placements = importedPlacements ?? dbPlacements;
+  const courses = importedCourses ?? dbCourses;
+  const achievements = importedAchievements ?? dbAchievements;
+  const loading = dbLoading && !importedProfile;
+
   useEffect(() => {
     let live = true;
-
     (async () => {
-      try {
-        const profArr = await (db as any).profile?.toArray?.();
-        const prof = (Array.isArray(profArr) ? profArr[0] : null) as Profile | null;
-
-        const pls =
-          ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
-        const crs =
-          ((await (db as any).courses?.toArray?.()) ?? []) as any[];
-        const ach =
-          ((await (db as any).achievements?.toArray?.()) ?? []) as Achievement[];
-
-        if (!live) return;
-
-        setProfile(prof ?? null);
-        setPlacements(pls);
-        setCourses(crs);
-        setAchievements(ach);
-
-        // Ladda goals-katalog för att räkna ST-delmål
-        if (prof?.goalsVersion && (prof.specialty || (prof as any).speciality)) {
-          try {
-            const g = await loadGoals(
-              prof.goalsVersion,
-              prof.specialty || (prof as any).speciality || ""
-            );
-            if (live) setGoals(g);
-          } catch {
-            // ignore
-          }
+      const prof = profile;
+      if (prof?.goalsVersion && (prof.specialty || (prof as any).speciality)) {
+        try {
+          const g = await loadGoals(
+            prof.goalsVersion,
+            prof.specialty || (prof as any).speciality || ""
+          );
+          if (live) setGoals(g);
+        } catch {
+          if (live) setGoals(null);
         }
-
-        // Planerad total tid
-        const gv = normalizeGoalsVersion((prof as any)?.goalsVersion);
-        const fromProfile = Number((prof as any)?.stTotalMonths);
-        if (Number.isFinite(fromProfile) && fromProfile > 0) {
-          setPlanMonths(fromProfile);
-        } else {
-          setPlanMonths(gv === "2021" ? 66 : 60);
-        }
-
-        // Meddela föräldern om profilstatus
-        if (onProfileLoaded) {
-          onProfileLoaded(!!prof);
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (live) setLoading(false);
+      } else {
+        setGoals(null);
       }
-    })();
 
+      const gv = normalizeGoalsVersion((prof as any)?.goalsVersion);
+      const fromProfile = Number((prof as any)?.stTotalMonths);
+      if (Number.isFinite(fromProfile) && fromProfile > 0) {
+        setPlanMonths(fromProfile);
+      } else {
+        setPlanMonths(gv === "2021" ? 66 : 60);
+      }
+
+      if (onProfileLoaded) onProfileLoaded(!!prof);
+    })();
     return () => {
       live = false;
     };
-  }, []);
+  }, [profile, onProfileLoaded]);
 
   // Beräkna BT-slutdatum (från profil eller 1 år efter BT-start)
   const btEndISO = useMemo(() => {
@@ -635,7 +620,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
 
       // Rensa timeline-tabellen och localStorage INNAN import för att undvika konflikter med gammal data
       try {
-        await (db as any).timeline?.clear?.();
+        /* no-op: timeline clear removed */
       } catch {
         // Ignorera om tabellen inte finns
       }
@@ -645,22 +630,16 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
         // Ignorera localStorage-fel
       }
 
-      if (p) await (db as any).profile?.put?.({ id: "default", ...(p.id ? p : { ...p, id: "default" }) });
-      if (Array.isArray(placementsData)) for (const pl of placementsData) { try { await (db as any).placements?.put?.(pl); } catch {} }
-      if (Array.isArray(courses))    for (const c of courses)    { try { await (db as any).courses?.put?.(c); } catch {} }
-      if (Array.isArray(achievements))for (const a of achievements){ try { await (db as any).achievements?.put?.(a); } catch {} }
-
-      // Ladda om data
-      const profArr = await (db as any).profile?.toArray?.();
-      const prof = (Array.isArray(profArr) ? profArr[0] : null) as Profile | null;
-      const pls = ((await (db as any).placements?.toArray?.()) ?? []) as Placement[];
-      const crs = ((await (db as any).courses?.toArray?.()) ?? []) as any[];
-      const ach = ((await (db as any).achievements?.toArray?.()) ?? []) as Achievement[];
+      // Data imported from JSON - use directly (no local DB)
+      const prof = p as Profile | null;
+      const pls = (Array.isArray(placementsData) ? placementsData : []) as Placement[];
+      const crs = (Array.isArray(courses) ? courses : []) as any[];
+      const ach = (Array.isArray(achievements) ? achievements : []) as Achievement[];
       
-      setProfile(prof ?? null);
-      setPlacements(pls);
-      setCourses(crs);
-      setAchievements(ach);
+      setImportedProfile(prof ?? null);
+      setImportedPlacements(pls);
+      setImportedCourses(crs);
+      setImportedAchievements(ach);
 
       // Ladda goals-katalog för att räkna ST-delmål
       if (prof?.goalsVersion && (prof.specialty || (prof as any).speciality)) {
@@ -676,9 +655,7 @@ export default function MobileHome({ onOpenScan, onProfileLoaded }: MobileHomePr
       }
 
       // Meddela föräldern om profilstatus
-      if (onProfileLoaded) {
-        onProfileLoaded(!!prof);
-      }
+      if (onProfileLoaded) onProfileLoaded(!!prof);
     } catch (err) {
       console.error(err);
       window.alert("Kunde inte läsa JSON-filen.");

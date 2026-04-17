@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-const VERSION = "v1.0.0";
-const APP_SHELL = ["/", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
+const VERSION = "v2.0.0";
+const APP_SHELL = ["/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
 const CORE_CACHE = `core-${VERSION}`;
 const RUNTIME_CACHE = `rt-${VERSION}`;
 

@@ -5,34 +5,66 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function BetaGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState(true);
+  const publicPath =
+    pathname === "/auth" ||
+    pathname === "/auth/signup" ||
+    pathname === "/auth/confirm" ||
+    pathname === "/accept-invite" ||
+    pathname === "/admin" ||
+    pathname?.startsWith("/admin/") ||
+    pathname?.startsWith("/api") ||
+    pathname?.startsWith("/_next") ||
+    pathname?.startsWith("/icons") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/favicon.ico";
 
   useEffect(() => {
-    // Hoppa över beta-guard för beta-login-sidan och API-routes
-    if (pathname?.startsWith("/beta-login") || pathname?.startsWith("/api")) {
+    let mounted = true;
+
+    if (publicPath) {
       setIsAuthenticated(true);
+      setIsChecking(false);
       return;
     }
 
-    // Kontrollera autentisering
-    if (typeof window !== "undefined") {
-      const authenticated = sessionStorage.getItem("beta_authenticated") === "true";
-      setIsAuthenticated(authenticated);
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        const authenticated = !!data.session?.user;
+        setIsAuthenticated(authenticated);
+        setIsChecking(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setIsAuthenticated(false);
+        setIsChecking(false);
+      });
 
-      if (!authenticated) {
-        // Redirecta till beta-login
-        router.push("/beta-login");
-      }
-    }
-  }, [pathname, router]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      const authenticated = !!session?.user;
+      setIsAuthenticated(authenticated);
+      setIsChecking(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [pathname, publicPath]);
 
   // Visa ingenting medan vi kontrollerar autentisering
-  if (isAuthenticated === null) {
+  if (isChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -43,11 +75,6 @@ export default function BetaGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Om inte autentiserad, visa ingenting (redirect sker i useEffect)
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // Om autentiserad, visa innehållet
+  // Låt respektive sida hantera redirectlogik om användaren inte är autentiserad
   return <>{children}</>;
 }

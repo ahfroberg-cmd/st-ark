@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
+import { useMobileData } from "@/lib/hooks/useMobileData";
 
 type Props = {
   open: boolean;
@@ -14,6 +14,12 @@ type Props = {
 type BtRow = { code: string; klinCount: number; kursCount: number };
 
 export default function BtMilestonesModal({ open, onClose }: Props) {
+  const {
+    profile: dbProfile,
+    achievements: dbAchievements,
+    placements: dbPlacements,
+    courses: dbCourses,
+  } = useMobileData();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [achAll, setAchAll] = useState<Achievement[]>([]);
   const [placements, setPlacements] = useState<Placement[]>([]);
@@ -32,26 +38,11 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
   // Load data
   useEffect(() => {
     if (!open) return;
-    (async () => {
-      const p = await db.profile.get("default");
-      setProfile(p ?? null);
-
-      try {
-        const [aAll, placs, crs] = await Promise.all([
-          db.achievements.toArray(),
-          db.placements.toArray(),
-          db.courses.toArray(),
-        ]);
-        setAchAll(aAll);
-        setPlacements(placs);
-        setCourses(crs);
-      } catch {
-        setAchAll([]);
-        setPlacements([]);
-        setCourses([]);
-      }
-    })();
-  }, [open]);
+    setProfile(dbProfile ?? null);
+    setAchAll((dbAchievements || []) as Achievement[]);
+    setPlacements((dbPlacements || []) as Placement[]);
+    setCourses((dbCourses || []) as Course[]);
+  }, [open, dbProfile, dbAchievements, dbPlacements, dbCourses]);
 
   // Prevent body scroll
   useEffect(() => {
@@ -157,9 +148,6 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
 
     const sortNum = (code: string) => Number(code.replace(/[^\d]/g, "")) || 0;
 
-    console.log("[BtMilestonesModal] btMilestones length:", btMilestones?.length ?? 0);
-    console.log("[BtMilestonesModal] btMilestones:", btMilestones);
-
     // Ensure btMilestones is an array
     const milestonesArray = Array.isArray(btMilestones) ? btMilestones : [];
     
@@ -174,7 +162,6 @@ export default function BtMilestonesModal({ open, onClose }: Props) {
       })
       .sort((a, b) => sortNum(a.code) - sortNum(b.code));
 
-    console.log("[BtMilestonesModal] btRows result:", result);
     return result;
   }, [achAll, placements, courses, showDone, showOngoing, showPlanned]);
 

@@ -15,28 +15,21 @@ export type Profile = {
   lastName?: string;
   homeClinic?: string;
   locked?: boolean;
+  isThirdCountrySpecialist?: boolean;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  mobile?: string;
+  phoneHome?: string;
+  phoneWork?: string;
+  email?: string;
+  supervisor?: string;
+  supervisorWorkplace?: string;
 
   /** Tillåt historiska namn (vid giftermål etc.) för intygsvalidering */
   previousNames?: string[]; // ex: ["Anna Andersson", "Anna Karlsson"]
 };
 
-
-export type ActivityComment = {
-  id: string;
-  author: string;             // Namn på den som kommenterar
-  role?: string;              // t.ex. "handledare", "studierektor"
-  text: string;
-  createdAt: string;          // ISO
-};
-
-export type Attestation = {
-  attestedBy: string;         // Namn på den som attesterar
-  attestedRole?: string;      // t.ex. "handledare", "studierektor"
-  attestedAt: string;         // ISO
-  revoked?: boolean;
-  revokedAt?: string;         // ISO
-  revokedBy?: string;
-};
 
 export type Placement = {
   id: string;
@@ -46,8 +39,6 @@ export type Placement = {
   attendance: number;         // Sysselsättningsgrad (%)
   supervisor?: string;
   note?: string;
-  attestation?: Attestation;
-  comments?: ActivityComment[];
 };
 
 export type Course = {
@@ -55,6 +46,8 @@ export type Course = {
   title: string;
   city: string;
   certificateDate: string;    // YYYY-MM-DD
+  startDate?: string;          // YYYY-MM-DD
+  endDate?: string;            // YYYY-MM-DD
   note?: string;
 
   // Handledaruppgifter (för kursintyg m.m.)
@@ -68,9 +61,6 @@ export type Course = {
   courseLeaderName?: string;
   courseLeaderSite?: string;
   courseLeaderSpeciality?: string;
-
-  attestation?: Attestation;
-  comments?: ActivityComment[];
 };
 
 
@@ -79,5 +69,8 @@ export type Achievement = {
   placementId?: string;
   courseId?: string;
   milestoneId: string;        // Goals.milestones[].id
+  goalId?: string;
+  code?: string;
+  milestone?: string;
   date: string;               // kopplings-/intygsdatum
 };

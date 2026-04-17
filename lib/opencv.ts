@@ -1,7 +1,7 @@
 // lib/opencv.ts
 let cvPromise: Promise<void> | null = null;
 
-export async function loadOpenCV(): Promise<typeof globalThis.cv> {
+export async function loadOpenCV(): Promise<any> {
   if (typeof window === "undefined") {
     throw new Error("OpenCV can only be loaded in the browser.");
   }

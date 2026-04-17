@@ -1,10 +1,36 @@
-import { db } from "@/lib/db";
 import { loadGoals } from "@/lib/goals";
+import {
+  getAuthenticatedUserId,
+  insertAchievementRows,
+  insertCourseRowForUser,
+  insertPlacementRowForUser,
+} from "@/lib/repositories/starkRepository";
 import type { Profile, Course, Achievement } from "@/lib/types";
+
+function normalizeScannedMilestones(raw: unknown): string[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of arr) {
+    const base = String(item ?? "")
+      .trim()
+      .split(/\s|–|-|:|\u2013/)[0]
+      .toUpperCase()
+      .replace(/\s+/g, "");
+    const m = base.match(/^ST([ABC])(\d+)$/) || base.match(/^([ABC])(\d+)$/);
+    if (!m) continue;
+    const normalized = `ST${m[1].toLowerCase()}${parseInt(m[2], 10)}`;
+    const key = normalized.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(normalized);
+  }
+  return out;
+}
 
 /** Slår upp aktiv målversion och ger en Map från kod (STa1/a1 etc.) -> milestoneId */
 async function activeGoalsMap() {
-  const profile = (await db.profile.get("default")) as Profile | undefined;
+  const profile = undefined as Profile | undefined;
   const catalog = profile ? await loadGoals(profile.goalsVersion, profile.specialty ?? profile.speciality) : null;
   const byCode = new Map<string, string>();
   if (catalog && Array.isArray(catalog.milestones)) {
@@ -36,6 +62,7 @@ export async function mapAndSaveKurs(parsed: {
   const endDate = parsed.period?.endISO;
   const startDate = isInterval ? parsed.period?.startISO : undefined; // Bara om intervall-läge
   
+  const scannedMilestones = normalizeScannedMilestones(parsed.delmalCodes);
   const course: any = {
     id: crypto.randomUUID(),
     title: parsed.title ?? parsed.courseTitle ?? "Kurs",
@@ -55,11 +82,37 @@ export async function mapAndSaveKurs(parsed: {
     // För kompatibilitet: spara även som courseLeader-fält om det är kursledare
     courseLeaderName: parsed.signingRole === "kursledare" ? parsed.supervisorName : undefined,
     courseLeaderSite: parsed.signingRole === "kursledare" ? parsed.supervisorSite : undefined,
+    milestones: scannedMilestones,
+    fulfillsStGoals: scannedMilestones.length > 0,
   };
-  await db.courses.add(course);
+  /* Supabase handles course */;
+
+  const userId = await getAuthenticatedUserId();
+  if (userId) {
+    try {
+      await insertCourseRowForUser(userId, {
+        id: course.id,
+        title: course.title || "",
+        kind: "Kurs",
+        city: course.city || "",
+        course_leader_name: course.courseLeaderName || "",
+        start_date: course.startDate || null,
+        end_date: course.endDate || null,
+        certificate_date: course.certificateDate || null,
+        note: course.note || "",
+        course_title: course.courseTitle || null,
+        show_on_timeline: course.showOnTimeline !== false,
+        show_as_interval: !!course.showAsInterval,
+        milestones: course.milestones || [],
+        fulfills_st_goals: !!course.fulfillsStGoals,
+        updated_at: new Date().toISOString(),
+      });
+    } catch {}
+  }
 
   const codeMap = await activeGoalsMap();
   const codes = (parsed.delmalCodes ?? []).map((c) => c.toUpperCase());
+  const achievementsToAdd: Achievement[] = [];
   for (const code of codes) {
     const milestoneId = codeMap.get(code);
     if (!milestoneId) continue;
@@ -70,8 +123,25 @@ export async function mapAndSaveKurs(parsed: {
       placementId: undefined,
       date: course.certificateDate ?? new Date().toISOString().slice(0, 10),
     };
-    await db.achievements.add(a);
+    /* Supabase handles achievement */;
+    achievementsToAdd.push(a);
   }
+
+  if (userId && achievementsToAdd.length) {
+    try {
+      await insertAchievementRows(
+        achievementsToAdd.map((a) => ({
+          id: a.id,
+          user_id: userId,
+          placement_id: a.placementId || null,
+          course_id: a.courseId || null,
+          milestone_id: a.milestoneId,
+          date: a.date,
+        }))
+      );
+    } catch {}
+  }
+
   return course.id;
 }
 
@@ -89,6 +159,7 @@ export async function mapAndSavePlacement2015(parsed: {
   lastName?: string;
   specialtyHeader?: string;
 }) {
+  const scannedMilestones = normalizeScannedMilestones(parsed.delmalCodes);
   const placement: any = {
     id: crypto.randomUUID(),
     title: parsed.clinic ?? "Klinisk tjänstgöring",
@@ -104,13 +175,39 @@ export async function mapAndSavePlacement2015(parsed: {
     headerLastName: parsed.lastName,
     headerFirstName: parsed.firstName,
     headerSpeciality: parsed.specialtyHeader,
+    milestones: scannedMilestones,
+    fulfillsStGoals: scannedMilestones.length > 0,
   };
 
   // @ts-ignore – om din Placement-typ saknar dessa fält
-  await db.placements.add(placement);
+  /* Supabase handles placement */;
+
+  const userId2 = await getAuthenticatedUserId();
+  if (userId2) {
+    try {
+      await insertPlacementRowForUser(userId2, {
+        id: placement.id,
+        type: "Klinisk tjänstgöring",
+        clinic: parsed.clinic || "",
+        title: parsed.clinic || "Klinisk tjänstgöring",
+        start_date: placement.startDate || null,
+        end_date: placement.endDate || null,
+        attendance: 100,
+        supervisor: placement.supervisorName || "",
+        supervisor_specialty: placement.supervisorSpeciality || "",
+        supervisor_site: placement.supervisorSite || "",
+        note: placement.note || "",
+        show_on_timeline: true,
+        milestones: placement.milestones || [],
+        fulfills_st_goals: !!placement.fulfillsStGoals,
+        updated_at: new Date().toISOString(),
+      });
+    } catch {}
+  }
 
   const codeMap = await activeGoalsMap();
   const codes = (parsed.delmalCodes ?? []).map((c) => c.toUpperCase());
+  const achievementsToAdd: Achievement[] = [];
   for (const code of codes) {
     const milestoneId = codeMap.get(code);
     if (!milestoneId) continue;
@@ -121,7 +218,24 @@ export async function mapAndSavePlacement2015(parsed: {
       courseId: undefined,
       date: placement.endDate ?? new Date().toISOString().slice(0, 10),
     };
-    await db.achievements.add(a);
+    /* Supabase handles achievement */;
+    achievementsToAdd.push(a);
   }
+
+  if (userId2 && achievementsToAdd.length) {
+    try {
+      await insertAchievementRows(
+        achievementsToAdd.map((a) => ({
+          id: a.id,
+          user_id: userId2,
+          placement_id: a.placementId || null,
+          course_id: a.courseId || null,
+          milestone_id: a.milestoneId,
+          date: a.date,
+        }))
+      );
+    } catch {}
+  }
+
   return placement.id;
 }

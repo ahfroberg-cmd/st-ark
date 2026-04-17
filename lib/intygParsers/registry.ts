@@ -15,7 +15,7 @@ import { parse_2021_bilaga11 } from "@/lib/intygParsers/parse_2021_bilaga11";
 import { parse_2021_bilaga12 } from "@/lib/intygParsers/parse_2021_bilaga12";
 import { parse_2021_bilaga13 } from "@/lib/intygParsers/parse_2021_bilaga13";
 
-const registry: Partial<Record<IntygKind, ParserFn>> = {
+const registry: Partial<Record<NonNullable<IntygKind>, ParserFn>> = {
   // 2015
   "2015-B3-AUSK":       parse_2015_bilaga3,
   "2015-B4-KLIN":       parse_2015_bilaga4,     // ← din stabila

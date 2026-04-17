@@ -1,16 +1,90 @@
 // components/MilestoneOverviewModal.tsx
 "use client";
 
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { db } from "@/lib/db";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+import { usePlacements, useCourses, useAchievements } from "@/lib/hooks/useSupabaseData";
 import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
-import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
+import { COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { milestoneRequires } from "@/lib/milestoneRequirements";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { normalizeSupabaseData } from "@/components/milestoneOverview/dataNormalization";
+import {
+  buildBtRows,
+  countMilestoneActivities,
+} from "@/components/milestoneOverview/activityMetrics";
+import {
+  buildMilestoneListPayload,
+  type MilestoneListItem,
+  type MilestoneListKind,
+} from "@/components/milestoneOverview/listDomain";
+import { useMilestoneDetailState } from "@/components/milestoneOverview/useMilestoneDetailState";
+import { StMilestoneDetailModal } from "@/components/milestoneOverview/StMilestoneDetailModal";
+
+const IUP_GOAL_SUGGESTIONS_CONFIG_TITLE = "__config__:iup-goal-suggestions";
+const IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX = "__iup_goal_suggestions_config_json__:";
+const DEFAULT_MILESTONE_SUGGESTIONS: string[] = [
+  "Klinisk tjänstgöring",
+  "Auskultation",
+  "Självständigt skriftligt arbete",
+  "Kvalitets-/förbättringsarbete",
+  "Kurs/er",
+  "Handledning av studenter/AT/BT/underläkare",
+  "Undervisning för studenter/AT/BT/underläkare",
+  "Deltagande i reflektionsgrupp",
+  "Journal Club",
+  "Deltagande i kurs/kongress",
+  "Återkoppling till kliniken efter kurs/kongress",
+  "Leda och delta i APT",
+  "Kontinuerlig uppföljning av huvudhandledare",
+  "Mini Clinical Evaluation Exercise (Mini-CEX)",
+  "Case-based discussion (CBD)",
+  "Medsittning",
+  "360-gradersbedömning",
+  "ST-kollegium",
+];
+
+function parseIupGoalSuggestionsConfig(rows: string[]): { byMilestone: Record<string, string[]>; optionPool: string[] } | null {
+  for (const raw of rows || []) {
+    const value = String(raw || "").trim();
+    if (!value.startsWith(IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX)) continue;
+    try {
+      const parsed = JSON.parse(value.slice(IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX.length));
+      const byMilestoneSource = parsed?.byMilestone;
+      const byMilestone: Record<string, string[]> = {};
+      if (byMilestoneSource && typeof byMilestoneSource === "object" && !Array.isArray(byMilestoneSource)) {
+        for (const [k, arr] of Object.entries(byMilestoneSource as Record<string, unknown>)) {
+          const key = String(k || "").trim().toUpperCase();
+          if (!key || !Array.isArray(arr)) continue;
+          byMilestone[key] = Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
+        }
+      }
+      const optionPool: string[] = Array.isArray(parsed?.optionPool)
+        ? Array.from(
+            new Set(parsed.optionPool.map((x: unknown) => String(x || "").trim()).filter(Boolean))
+          ) as string[]
+        : [];
+      return { byMilestone, optionPool };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function mergePlanTextWithSuggestions(planText: string, suggestions: string[]): string {
+  const planLines = String(planText || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const suggestionLines = (suggestions || []).map((s) => String(s || "").trim()).filter(Boolean);
+  const merged = Array.from(new Set([...planLines, ...suggestionLines]));
+  return merged.join("\n");
+}
 
 
 /** Trim av rubriker utan flimmer */
@@ -54,33 +128,34 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
   }, [initialTab]);
   const [showOngoing, setShowOngoing] = useState(true);
   const [showPlanned, setShowPlanned] = useState(true);
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [detailPlanText, setDetailPlanText] = useState<string>("");
-  const [detailDirty, setDetailDirty] = useState(false);
-  const [detailSaving, setDetailSaving] = useState(false);
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
-  // Meddela föräldern när dirty-state ändras (bara när det blir true)
+  const { placements: placementsRaw } = usePlacements();
+  const { courses: coursesRaw } = useCourses();
+  const { achievements: achievementsRaw } = useAchievements();
+
   useEffect(() => {
-    if (onDirtyChange && detailDirty) {
-      onDirtyChange(true);
-    }
-  }, [detailDirty, onDirtyChange]);
-  const [detailSelectedSuggestions, setDetailSelectedSuggestions] = useState<Record<string, boolean>>({});
+    if (!open) return;
+    const normalized = normalizeSupabaseData({
+      placementsRaw,
+      coursesRaw,
+      achievementsRaw,
+    });
+    setPlacements(normalized.placements);
+    setCourses(normalized.courses);
+    setAchAll(normalized.achievements);
+  }, [open, placementsRaw, coursesRaw, achievementsRaw]);
+
   const [planByMilestone, setPlanByMilestone] = useState<Record<string, string>>({});
   const [planDatesByMilestone, setPlanDatesByMilestone] = useState<Record<string, string>>({});
-  
-  // Refs för att mäta höjder dynamiskt i ST-delmål detaljvy
-  const leftColRef = useRef<HTMLDivElement>(null);
-  const rightColRef = useRef<HTMLDivElement>(null);
-  const [suggestionsMaxHeight, setSuggestionsMaxHeight] = useState<number | undefined>(undefined);
+  const [srGoalSuggestionsByMilestone, setSrGoalSuggestionsByMilestone] = useState<Record<string, string[]>>({});
+  const [srGoalSuggestionPool, setSrGoalSuggestionPool] = useState<string[]>(DEFAULT_MILESTONE_SUGGESTIONS);
 
   // Lista (Klin/Kurs/Intyg)
   const [listOpen, setListOpen] = useState(false);
 
   const [listTitle, setListTitle] = useState("");
-  const [listItems, setListItems] = useState<{ id: string; line1: string; line2?: string }[]>([]);
-  const [listKind, setListKind] = useState<"klin" | "kurs" | "arb" | "intyg">("intyg");
+  const [listItems, setListItems] = useState<MilestoneListItem[]>([]);
+  const [listKind, setListKind] = useState<MilestoneListKind>("intyg");
 
   // Popup "Inget kopplat"
   const [notMetOpen, setNotMetOpen] = useState(false);
@@ -99,7 +174,7 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
   // Förhindra scroll på body när popup är öppen
   useEffect(() => {
-    if (open || detailId) {
+    if (open) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -107,13 +182,80 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open, detailId]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const p = await db.profile.get("default");
+      // Ladda profil från Supabase
+      let p: Profile | null = null;
+      let authUserId = "";
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        authUserId = String(user?.id || "");
+        if (user?.id) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (profileData) {
+            p = {
+              id: profileData.id,
+              name: profileData.name || "",
+              specialty: profileData.specialty || "",
+              goalsVersion: profileData.goals_version || "2021",
+              btStartDate: profileData.bt_start_date || "",
+              btEndDate: profileData.bt_end_date || "",
+              stStartDate: profileData.st_start_date || "",
+              stTotalMonths: profileData.st_total_months ?? 66,
+            } as Profile;
+          }
+        }
+      } catch (err) {
+        console.error("[MilestoneOverviewPanel] Failed to load profile:", err);
+      }
       setProfile(p ?? null);
+
+      // Ladda studierektorns valda delmålsförslag för kliniken.
+      if (authUserId) {
+        try {
+          const { data: membershipRows } = await supabase
+            .from("clinic_memberships")
+            .select("clinic_id")
+            .eq("user_id", authUserId)
+            .limit(1);
+          const clinicId = Array.isArray(membershipRows) && membershipRows[0]?.clinic_id
+            ? String(membershipRows[0].clinic_id)
+            : "";
+          if (clinicId) {
+            const { data: cfgRows } = await supabase
+              .from("clinic_activity_templates")
+              .select("suggested_rows")
+              .eq("clinic_id", clinicId)
+              .eq("title", IUP_GOAL_SUGGESTIONS_CONFIG_TITLE)
+              .order("updated_at", { ascending: false })
+              .limit(1);
+            const cfg = Array.isArray(cfgRows) ? cfgRows[0] : null;
+            const parsed = parseIupGoalSuggestionsConfig(
+              Array.isArray((cfg as any)?.suggested_rows) ? (cfg as any).suggested_rows : []
+            );
+            if (parsed) {
+              setSrGoalSuggestionsByMilestone(parsed.byMilestone || {});
+              const mergedPool = Array.from(
+                new Set([...(parsed.optionPool || []), ...DEFAULT_MILESTONE_SUGGESTIONS])
+              );
+              setSrGoalSuggestionPool(mergedPool.length > 0 ? mergedPool : DEFAULT_MILESTONE_SUGGESTIONS);
+            } else {
+              setSrGoalSuggestionsByMilestone({});
+              setSrGoalSuggestionPool(DEFAULT_MILESTONE_SUGGESTIONS);
+            }
+          }
+        } catch {
+          setSrGoalSuggestionsByMilestone({});
+          setSrGoalSuggestionPool(DEFAULT_MILESTONE_SUGGESTIONS);
+        }
+      }
 
       const spec = p?.specialty ?? (p as any)?.speciality ?? "";
       if (p?.goalsVersion && spec) {
@@ -127,38 +269,24 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
         setGoals(null);
       }
 
-      try {
-        const [aAll, placs, crs] = await Promise.all([
-          db.achievements.toArray(),
-          db.placements.toArray(),
-          db.courses.toArray(),
-        ]);
-        setAchAll(aAll);
-        setPlacements(placs);
-        setCourses(crs);
-      } catch {
-        setAchAll([]);
-        setPlacements([]);
-        setCourses([]);
-      }
+      // Data laddas nu via hooks istället för direkt här
+      // setAchAll, setPlacements, setCourses anropas i separat useEffect
 
-      // Försök läsa in tidigare sparade planer för delmål (om tabell finns)
+      // Ladda milestone plans från Supabase
       try {
-        const anyDb = db as any;
-        const table =
-          anyDb.iupMilestonePlans ??
-          anyDb.milestonePlans ??
-          (typeof anyDb.table === "function" ? anyDb.table("iupMilestonePlans") : null);
-        if (table && typeof table.toArray === "function") {
-          const rows = await table.toArray();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data: rows } = await supabase
+            .from("milestone_plans")
+            .select("*")
+            .eq("user_id", user.id);
           const map: Record<string, string> = {};
           const dateMap: Record<string, string> = {};
-          for (const row of rows as any[]) {
-            const mid = String((row as any).milestoneId ?? (row as any).id ?? "");
+          for (const row of (rows || []) as any[]) {
+            const mid = String(row.milestone_id ?? "");
             if (!mid) continue;
-            const text = String((row as any).planText ?? (row as any).text ?? "");
-            map[mid] = text;
-            const updatedAt = String((row as any).updatedAt ?? "");
+            map[mid] = String(row.plan_text ?? "");
+            const updatedAt = String(row.updated_at ?? "");
             if (updatedAt) {
               dateMap[mid] = updatedAt;
             }
@@ -179,7 +307,6 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
       setDetailId(null);
       setDetailPlanText("");
       setDetailDirty(false);
-      setDetailSaving(false);
       setDetailSelectedSuggestions({});
       setListOpen(false);
       setNotMetOpen(false);
@@ -189,50 +316,69 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     })();
   }, [open]);
   
-  // Uppdatera maxHeight för Förslag-rutan baserat på vänsterkolumnens faktiska höjd
-  useEffect(() => {
-    // Bara köra när ST-delmål detaljvy är öppen
-    if (!detailId || /^BT\d+$/i.test(String(detailId))) {
-      setSuggestionsMaxHeight(undefined);
-      return;
-    }
-    if (!leftColRef.current || !rightColRef.current) return;
-    
-    const updateHeight = () => {
-      const leftHeight = leftColRef.current?.offsetHeight || 0;
-      
-      // Hitta textarea och knapp i högerkolumnen
-      const textarea = rightColRef.current?.querySelector('textarea');
-      const button = rightColRef.current?.querySelector('button');
-      
-      const textareaHeight = textarea?.offsetHeight || 120;
-      const labelHeight = 20; // Approximate height of labels
-      const gap = 12; // space-y-3 = 12px
-      const buttonHeight = (button?.offsetHeight || 0) + 8; // button + margin
-      
-      // Beräkna tillgänglig höjd: vänsterkolumnens höjd minus textarea, labels, gap och knapp
-      const availableHeight = leftHeight - textareaHeight - (labelHeight * 2) - gap - buttonHeight;
-      
-      // Sätt maxHeight till tillgänglig höjd, minst 100px
-      setSuggestionsMaxHeight(Math.max(100, availableHeight));
-    };
-    
-    // Uppdatera vid mount och när innehållet ändras
-    const timeoutId = setTimeout(updateHeight, 0);
-    
-    // Använd ResizeObserver för att uppdatera när höjder ändras
-    const resizeObserver = new ResizeObserver(() => {
-      updateHeight();
-    });
-    if (leftColRef.current) resizeObserver.observe(leftColRef.current);
-    if (rightColRef.current) resizeObserver.observe(rightColRef.current);
-    
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-    };
-  }, [detailId, detailPlanText]);
+  const getConfiguredSuggestionsForMilestone = useCallback(
+    (milestoneId: string): string[] => {
+      const key = String(milestoneId || "").trim();
+      if (!key) return [];
+      const toKey = (v: unknown) => String(v || "").trim().toUpperCase().replace(/\s+/g, "");
+      const toGrouped = (v: unknown) => toKey(v).replace(/^ST(?=[ABC]\d+)/, "");
 
+      const candidates = new Set<string>();
+      candidates.add(toKey(key));
+      candidates.add(toGrouped(key));
+
+      const goalMatch = (Array.isArray(goals?.milestones) ? goals!.milestones : []).find(
+        (m: any) => String(m?.id || "") === key || String(m?.code || "") === key
+      );
+      if (goalMatch) {
+        candidates.add(toKey((goalMatch as any)?.id));
+        candidates.add(toKey((goalMatch as any)?.code));
+        candidates.add(toGrouped((goalMatch as any)?.id));
+        candidates.add(toGrouped((goalMatch as any)?.code));
+      }
+
+      const out: string[] = [];
+      for (const [rawKey, values] of Object.entries(srGoalSuggestionsByMilestone || {})) {
+        const sourceExact = toKey(rawKey);
+        const sourceGrouped = toGrouped(rawKey);
+        if (!candidates.has(sourceExact) && !candidates.has(sourceGrouped)) continue;
+        for (const v of Array.isArray(values) ? values : []) {
+          const txt = String(v || "").trim();
+          if (txt && !out.includes(txt)) out.push(txt);
+        }
+      }
+      return out;
+    },
+    [goals, srGoalSuggestionsByMilestone]
+  );
+
+  const {
+    detailId,
+    setDetailId,
+    detailPlanText,
+    setDetailPlanText,
+    detailDirty,
+    setDetailDirty,
+    detailSaving,
+    showCloseConfirm,
+    detailSelectedSuggestions,
+    setDetailSelectedSuggestions,
+    openDetail,
+    handleRequestCloseDetail,
+    handleConfirmCloseDetail,
+    handleSaveAndCloseDetail,
+    handleCancelCloseDetail,
+    handleSaveDetail,
+    toggleSuggestion,
+    addSelectedSuggestions,
+  } = useMilestoneDetailState({
+    planByMilestone,
+    setPlanByMilestone,
+    setPlanDatesByMilestone,
+    getConfiguredSuggestionsForMilestone,
+    mergePlanTextWithSuggestions,
+    onDirtyChange,
+  });
 
   const is2021 = (profile?.goalsVersion ?? "") === "2021";
 
@@ -436,285 +582,43 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
   // ====== BT rader (visa ALLA BT-mål, med counts från data) ======
-  type BtRow = { code: string; klinCount: number; kursCount: number };
-
-  const normalizeBtCode = (x: unknown) => {
-    const s = String(x ?? "").trim();
-    const m = s.match(/^BT[\s\-_]*([0-9]+)/i);
-    return m ? "BT" + m[1] : null;
-  };
-
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const classifyActivity = (
-    startDate?: string | null,
-    endDate?: string | null
-  ): "done" | "ongoing" | "planned" | null => {
-    const s = (startDate ?? "").trim();
-    const e = (endDate ?? "").trim();
-
-    if (!s && !e) return null;
-
-    if (e && e < todayIso) return "done";
-    if (s && s > todayIso) return "planned";
-    if (s && (!e || e >= todayIso) && s <= todayIso) return "ongoing";
-
-    return null;
-  };
-
-  const statusAllowed = (
-    status: "done" | "ongoing" | "planned" | null
-  ): boolean => {
-    if (!status) return false;
-    if (status === "done") return showDone;
-    if (status === "ongoing") return showOngoing;
-    if (status === "planned") return showPlanned;
-    return false;
-  };
-
-  const btRows = useMemo((): BtRow[] => {
-    const klin: Record<string, number> = {};
-    const kurs: Record<string, number> = {};
-
-    // 1) Achievements med kopplad BT-kod
-    for (const a of achAll as any[]) {
-      const cand = [a.goalId, a.milestoneId, a.id, a.code, a.milestone].filter(Boolean);
-      for (const c of cand) {
-        const code = normalizeBtCode(c);
-        if (!code) continue;
-
-        if (a.placementId) {
-          const pl = placements.find((p) => p.id === a.placementId);
-          const st = classifyActivity(pl?.startDate, pl?.endDate);
-          if (statusAllowed(st)) {
-            klin[code] = (klin[code] ?? 0) + 1;
-          }
-        }
-
-        if (a.courseId) {
-          const cr = courses.find((c0) => c0.id === a.courseId);
-          // Använd any här så vi slipper krav på startDate/endDate i Course-typen
-          const st = classifyActivity((cr as any)?.startDate, (cr as any)?.endDate);
-          if (statusAllowed(st)) {
-            kurs[code] = (kurs[code] ?? 0) + 1;
-          }
-        }
-
-      }
-    }
-
-    // 2) Direktkopplingar från placeringar/kurser (utan achievements)
-    const scan = (obj: any, isPlacement: boolean) => {
-      const status = classifyActivity(obj?.startDate, obj?.endDate);
-      if (!statusAllowed(status)) return;
-
-      const arrs = [
-        obj?.btMilestones,
-        obj?.btGoals,
-        obj?.milestones,
-        obj?.goals,
-        obj?.goalIds,
-        obj?.milestoneIds,
-      ];
-      for (const arr of arrs) {
-        if (!arr) continue;
-        for (const v of arr as any[]) {
-          const code = normalizeBtCode(v);
-          if (!code) continue;
-          if (isPlacement) klin[code] = (klin[code] ?? 0) + 1;
-          else kurs[code] = (kurs[code] ?? 0) + 1;
-        }
-      }
-    };
-
-    for (const p of placements as any[]) scan(p, true);
-    for (const c of courses as any[]) scan(c, false);
-
-    const filtered = btMilestones.filter((m) => {
-      if (!q.trim()) return true;
-      const hay = (m.id + " " + m.title + " " + m.bullets.join(" ")).toLowerCase();
-      return hay.includes(q.trim().toLowerCase());
-    });
-
-    const sortNum = (code: string) => Number(code.replace(/[^\d]/g, "")) || 0;
-
-    return filtered
-      .map((m) => {
-        const code = m.id.toUpperCase().replace(/\s|_|-/g, "");
-        return {
-          code,
-          klinCount: klin[code] ?? 0,
-          kursCount: kurs[code] ?? 0,
-        };
-      })
-      .sort((a, b) => sortNum(a.code) - sortNum(b.code));
-  }, [achAll, placements, courses, q, showDone, showOngoing, showPlanned]);
-
+  const btRows = useMemo(
+    () =>
+      buildBtRows({
+        achievements: achAll,
+        placements,
+        courses,
+        query: q,
+        todayIso,
+        showDone,
+        showOngoing,
+        showPlanned,
+      }),
+    [achAll, placements, courses, q, todayIso, showDone, showOngoing, showPlanned]
+  );
 
   // ====== UI actions ======
-  const countsFor = (mid: string) => {
-    let klin = 0;
-    let kurs = 0;
-    let arb = 0;
-
-    // Normalisera så att "a3", "A3-medicinsk-vetenskap" osv blir samma nyckel
-    const norm = (v: any) =>
-      String(v ?? "")
-        .trim()
-        .split("-")[0]
-        .toUpperCase()
-        .replace(/\s|_/g, "");
-
-    const midNorm = norm(mid);
-    if (!midNorm) return { klin, kurs, arb };
-
-    const isArbPlacement = (pl: any): boolean => {
-      const t = String(pl?.type ?? "").trim().toLowerCase();
-      return t === "vetenskapligt arbete" || t === "förbättringsarbete";
-    };
-
-    // Alias STa1 <-> A1, STb3 <-> B3, osv
-    const aliases = new Set<string>([midNorm]);
-
-    const m1 = midNorm.match(/^ST([ABC])(\d+)$/);
-    if (m1) aliases.add(`${m1[1]}${m1[2]}`);
-
-    const m2 = midNorm.match(/^([ABC])(\d+)$/);
-    if (m2) aliases.add(`ST${m2[1]}${m2[2]}`);
-
-    const matchKey = (v: any) => {
-      const k = norm(v);
-      return !!k && aliases.has(k);
-    };
-
-    // Kurser kan sakna startDate/endDate → använd certificateDate
-    const courseStatus = (cr: any) => {
-      const s = cr?.startDate;
-      const e = cr?.endDate;
-      if (s || e) return classifyActivity(s, e);
-
-      const cert = cr?.certificateDate;
-      if (!cert) return null;
-
-      return cert < todayIso ? "done" : "planned";
-    };
-
-    const countedPlac = new Set<string>();
-    const countedCourse = new Set<string>();
-
-    // 1) Räknas via achievements
-    for (const a of achAll as any[]) {
-      const cand = [a.milestoneId, a.goalId, a.id, a.code, a.milestone];
-      if (!cand.some(matchKey)) continue;
-
-      if (a.placementId) {
-        const pl = placements.find((p) => p.id === a.placementId);
-        const st = classifyActivity(pl?.startDate, pl?.endDate);
-        if (pl && statusAllowed(st) && !countedPlac.has(pl.id)) {
-          countedPlac.add(pl.id);
-          if (isArbPlacement(pl)) arb += 1;
-          else klin += 1;
-        }
-      }
-
-      if (a.courseId) {
-        const cr = courses.find((c) => c.id === a.courseId);
-        const st = courseStatus(cr);
-        if (cr && statusAllowed(st) && !countedCourse.has(cr.id)) {
-          countedCourse.add(cr.id);
-          kurs += 1;
-        }
-      }
-    }
-
-    // 2) Direkt från placeringar (utan achievements)
-    for (const pl of placements as any[]) {
-      if (countedPlac.has(pl.id)) continue;
-      const st = classifyActivity(pl?.startDate, pl?.endDate);
-      if (!statusAllowed(st)) continue;
-
-      const arrs = [pl.milestones, pl.goals, pl.goalIds, pl.milestoneIds];
-      if (arrs.some((arr) => arr && arr.some(matchKey))) {
-        countedPlac.add(pl.id);
-        if (isArbPlacement(pl)) arb += 1;
-        else klin += 1;
-      }
-    }
-
-    // 3) Direkt från kurser (utan achievements)
-    for (const cr of courses as any[]) {
-      if (countedCourse.has(cr.id)) continue;
-      const st = courseStatus(cr);
-      if (!statusAllowed(st)) continue;
-
-      const arrs = [cr.milestones, cr.goals, cr.goalIds, cr.milestoneIds];
-      if (arrs.some((arr) => arr && arr.some(matchKey))) {
-        countedCourse.add(cr.id);
-        kurs += 1;
-      }
-    }
-
-    return { klin, kurs, arb };
-  };
-
-
-
-
-  const openDetail = (id: string) => {
-    // Kolla om det finns osparade ändringar innan vi öppnar ett nytt delmål
-    if (detailDirty && detailId) {
-      const ok = window.confirm("Du har osparade ändringar. Vill du öppna ett annat delmål utan att spara?");
-      if (!ok) return;
-      // Återställ ändringarna om användaren väljer att fortsätta
-      const currentInitial = planByMilestone[detailId] ?? "";
-      setDetailPlanText(currentInitial);
-      setDetailDirty(false);
-    }
-    
-    setDetailId(id);
-    const existing = planByMilestone[id] ?? "";
-    setDetailPlanText(existing);
-    setDetailDirty(false);
-    setDetailSaving(false);
-    setDetailSelectedSuggestions({});
-  };
-
-  const handleRequestCloseDetail = useCallback(() => {
-    if (detailDirty) {
-      setShowCloseConfirm(true);
-      return;
-    }
-    setDetailId(null);
-  }, [detailDirty]);
-
-  const handleConfirmCloseDetail = useCallback(() => {
-    // Återställ ändringarna om användaren väljer att stänga utan att spara
-    if (detailId) {
-      const initial = planByMilestone[detailId] ?? "";
-      setDetailPlanText(initial);
-      setDetailDirty(false);
-    }
-    setShowCloseConfirm(false);
-    setDetailId(null);
-  }, [detailId, planByMilestone]);
-
-  const handleSaveAndCloseDetail = useCallback(async () => {
-    if (detailId) {
-      await savePlanForMilestone(detailId, detailPlanText);
-    }
-    setShowCloseConfirm(false);
-    setDetailId(null);
-  }, [detailId, detailPlanText]);
-
-  const handleCancelCloseDetail = useCallback(() => {
-    setShowCloseConfirm(false);
-  }, []);
-
+  const countsFor = useCallback(
+    (mid: string) =>
+      countMilestoneActivities({
+        mid,
+        achievements: achAll,
+        placements,
+        courses,
+        todayIso,
+        showDone,
+        showOngoing,
+        showPlanned,
+      }),
+    [achAll, placements, courses, todayIso, showDone, showOngoing, showPlanned]
+  );
   // Registrera detaljvyn för planering i modalRegistry när den öppnas
   const detailOverlayRef = useRef<HTMLDivElement | null>(null);
   const handleCloseBtDetail = useCallback(() => {
     setDetailId(null);
-  }, []);
+  }, [setDetailId]);
   
   useEffect(() => {
     if (!detailId || !detailOverlayRef.current) {
@@ -736,344 +640,23 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
     };
   }, [detailId, handleRequestCloseDetail, handleCloseBtDetail]);
 
-  const savePlanForMilestone = async (mid: string, text: string) => {
-    try {
-      setDetailSaving(true);
-      const anyDb = db as any;
-      const table =
-        anyDb.iupMilestonePlans ??
-        anyDb.milestonePlans ??
-        (typeof anyDb.table === "function" ? anyDb.table("iupMilestonePlans") : null);
-      if (table && typeof table.put === "function") {
-        const row: any = {
-          id: `${(profile as any)?.id ?? "default"}::${mid}`,
-          profileId: (profile as any)?.id ?? "default",
-          milestoneId: mid,
-          planText: text,
-          updatedAt: new Date().toISOString(),
-        };
-        await table.put(row);
-      }
-      const now = new Date().toISOString();
-      setPlanByMilestone((prev) => ({ ...prev, [mid]: text }));
-      setPlanDatesByMilestone((prev) => ({ ...prev, [mid]: now }));
-      setDetailDirty(false);
-    } finally {
-      setDetailSaving(false);
-    }
-  };
-
-  const handleSaveDetail = async (mid: string) => {
-    await savePlanForMilestone(mid, detailPlanText);
-  };
-
-
-
-  function openList(kind: "intyg" | "klin" | "kurs" | "arb", m: { id?: string; code?: string }) {
-    const idOrCode = (m as any)?.id ?? (m as any)?.code ?? "";
-    const isBt = /^BT\d+$/i.test(String(idOrCode));
-
-    // --- Builders för listobjekt ---
-    const buildItemsPlac = (arr: any[]) =>
-      (arr
-        .map((a) => {
-          const r = placements.find((p) => p.id === a.placementId);
-          if (!r) return null;
-          return {
-            id: (r as Placement).id,
-            line1: (r as any).clinic || (r as any).title || "Klinisk tjänstgöring",
-            line2: `${(r as Placement).startDate || ""}${
-              (r as Placement).endDate ? ` – ${(r as Placement).endDate}` : ""
-            }${(r as any).attendance ? ` · ${(r as any).attendance}%` : ""}`,
-          };
-        })
-        .filter(Boolean) as { id: string; line1: string; line2?: string }[]);
-
-    const buildItemsCourse = (arr: any[]) =>
-      (arr
-        .map((a) => {
-          const r = courses.find((c) => c.id === a.courseId);
-          if (!r) return null;
-          return {
-            id: (r as Course).id,
-            line1: (r as any).title || (r as any).provider || "Kurs",
-            line2: [(r as any).city, (r as any).certificateDate].filter(Boolean).join(" · "),
-          };
-        })
-        .filter(Boolean) as { id: string; line1: string; line2?: string }[]);
-
-    const buildItemsAll = (arr: any[]) => {
-      const both = [
-        ...buildItemsPlac(arr.filter((a) => a.placementId)),
-        ...buildItemsCourse(arr.filter((a) => a.courseId)),
-      ];
-      return both;
-    };
-
-    // === BT: alltid "Intyg" (samlad lista), öppna även om tomt ===
-    if (isBt) {
-      const code = String(idOrCode).toUpperCase().replace(/\s|_|-/g, "");
-
-      // Hjälpare: kolla om BT-kod finns i ett objekt (placement/kurs) i någon känd property
-      const objHasBtCode = (obj: any, codeNorm: string) => {
-        const arrs = [
-          obj?.btMilestones,
-          obj?.btGoals,
-          obj?.milestones,
-          obj?.goals,
-          obj?.goalIds,
-          obj?.milestoneIds,
-        ];
-        for (const arr of arrs) {
-          if (!arr) continue;
-          for (const v of arr as any[]) {
-            const cand = String(v ?? "").toUpperCase().replace(/\s|_|-/g, "");
-            if (cand === codeNorm) return true;
-          }
-        }
-        return false;
-      };
-
-      const btPlacementStatus = (pl: any) =>
-        classifyActivity(pl?.startDate, pl?.endDate);
-
-      const btCourseStatus = (cr: any) => {
-        const s = cr?.startDate;
-        const e = cr?.endDate;
-        if (s || e) return classifyActivity(s, e);
-
-        const cert = cr?.certificateDate;
-        if (!cert) return null;
-
-        return cert < todayIso ? "done" : "planned";
-      };
-
-      // 1) Träffar via achievements (om sådana finns registrerade)
-      const achMatches = (achAll as any[]).filter((a) => {
-        const cand = [a.goalId, a.milestoneId, a.id, a.code, a.milestone].filter(Boolean);
-        const hit = cand.some((c) =>
-          String(c).toUpperCase().replace(/\s|_|-/g, "") === code
-        );
-        if (!hit) return false;
-
-        if (a.placementId) {
-          const pl = placements.find((p) => p.id === a.placementId);
-          const st = btPlacementStatus(pl);
-          return !!pl && statusAllowed(st);
-        }
-
-        if (a.courseId) {
-          const cr = courses.find((c) => c.id === a.courseId);
-          const st = btCourseStatus(cr);
-          return !!cr && statusAllowed(st);
-        }
-
-        return false;
-      });
-
-      // 2) Träffar direkt på placeringar/kurser (om inget achievement skapats)
-      const placMatches = (placements as any[])
-        .filter((p) => objHasBtCode(p, code))
-        .filter((p) => statusAllowed(btPlacementStatus(p)))
-        .map((p) => ({ placementId: p.id }));
-      const courseMatches = (courses as any[])
-        .filter((c) => objHasBtCode(c, code))
-        .filter((c) => statusAllowed(btCourseStatus(c)))
-        .map((c) => ({ courseId: c.id }));
-
-
-      // 3) Sammanfoga och deduplicera (kan annars bli dubbletter mellan achievements och direktskanning)
-      const keyOf = (x: any) => (x.placementId ? `P:${x.placementId}` : `C:${x.courseId}`);
-      const mergedMap = new Map<string, any>();
-      [...achMatches, ...placMatches, ...courseMatches].forEach((x: any) => {
-        const k = keyOf(x);
-        if (!mergedMap.has(k)) mergedMap.set(k, x);
-      });
-      const merged = Array.from(mergedMap.values());
-
-      // 4) Bygg list-items
-      const items =
-        merged.length > 0
-          ? [
-              ...buildItemsPlac(merged.filter((a: any) => a.placementId)),
-              ...buildItemsCourse(merged.filter((a: any) => a.courseId)),
-            ]
-          : [];
-
-      setListKind("intyg");
-      setListTitle(`${code} – Utbildningsmoment`);
-      setListItems(items);
-      setListOpen(true);
-      return;
-    }
-
-    // === ST: separera Klin / Kurs, med samma logik som countsFor ===
-    const norm = (v: any) =>
-      String(v ?? "")
-        .trim()
-        .split("-")[0]
-        .toUpperCase()
-        .replace(/\s|_/g, "");
-
-    const idNorm = norm(idOrCode);
-    const aliases = new Set<string>();
-    if (idNorm) {
-      aliases.add(idNorm);
-
-      // STa1 ↔ A1 osv
-      const m1 = idNorm.match(/^ST([ABC])(\d+)$/);
-      if (m1) aliases.add(`${m1[1]}${m1[2]}`);
-      const m2 = idNorm.match(/^([ABC])(\d+)$/);
-      if (m2) aliases.add(`ST${m2[1]}${m2[2]}`);
-    }
-
-    const matchKey = (v: any) => {
-      const k = norm(v);
-      return !!k && aliases.has(k);
-    };
-
-    const courseStatus = (cr: any) => {
-      if (!cr) return null;
-      const s = cr.startDate;
-      const e = cr.endDate;
-      if (s || e) return classifyActivity(s, e);
-      const cert = cr.certificateDate;
-      if (!cert) return null;
-      return cert < todayIso ? "done" : "planned";
-    };
-
-    const mFull =
-      goals?.milestones.find((x) => {
-        const idK = norm(x.id);
-        const codeK = norm(x.code);
-        return aliases.has(idK) || aliases.has(codeK);
-      }) ?? ((m as any) as GoalsMilestone | undefined);
-
-
-
-    const rawCode = String(((mFull as any)?.code ?? idOrCode) || "");
-    const titleCode = displayMilestoneCode(rawCode, (profile as any)?.goalsVersion);
-
-    const seenPlac = new Set<string>();
-    const seenCourse = new Set<string>();
-    const placRefs: any[] = [];
-    const courseRefs: any[] = [];
-
-    const isArbPlacementId = (placementId: string): boolean => {
-      const pl = placements.find((p) => p.id === placementId) as any;
-      const t = String(pl?.type ?? "").trim().toLowerCase();
-      return t === "vetenskapligt arbete" || t === "förbättringsarbete";
-    };
-
-    // 1) Via achievements
-    for (const a of achAll as any[]) {
-      const cand = [a.milestoneId, a.goalId, a.id, a.code, a.milestone];
-      if (!cand.some(matchKey)) continue;
-
-      if (a.placementId) {
-        const pl = placements.find((p) => p.id === a.placementId);
-        const st = classifyActivity(pl?.startDate, pl?.endDate);
-        if (!pl || !statusAllowed(st)) continue;
-        if (!seenPlac.has(pl.id)) {
-          seenPlac.add(pl.id);
-          placRefs.push({ placementId: pl.id });
-        }
-      }
-
-      if (a.courseId) {
-        const cr = courses.find((c) => c.id === a.courseId);
-        const st = courseStatus(cr);
-        if (!cr || !statusAllowed(st)) continue;
-        if (!seenCourse.has(cr.id)) {
-          seenCourse.add(cr.id);
-          courseRefs.push({ courseId: cr.id });
-        }
-      }
-
-    }
-
-    // 2) Direkt från placeringar (utan achievements), med datumfilter
-    for (const pl of placements as any[]) {
-      if (seenPlac.has(pl.id)) continue;
-      const st = classifyActivity(pl?.startDate, pl?.endDate);
-      if (!statusAllowed(st)) continue;
-
-      const arrs = [pl.milestones, pl.goals, pl.goalIds, pl.milestoneIds];
-      let hit = false;
-      for (const arr of arrs) {
-        if (!arr) continue;
-        for (const v of arr as any[]) {
-          if (matchKey(v)) {
-            hit = true;
-            break;
-          }
-        }
-        if (hit) break;
-      }
-      if (hit) {
-        seenPlac.add(pl.id);
-        placRefs.push({ placementId: pl.id });
-      }
-    }
-
-    // 3) Direkt från kurser (utan achievements)
-    for (const cr of courses as any[]) {
-      if (seenCourse.has(cr.id)) continue;
-
-      const arrs = [cr.milestones, cr.goals, cr.goalIds, cr.milestoneIds];
-      let hit = false;
-      for (const arr of arrs) {
-        if (!arr) continue;
-        for (const v of arr as any[]) {
-          if (matchKey(v)) {
-            hit = true;
-            break;
-          }
-        }
-        if (hit) break;
-      }
-      if (!hit) continue;
-
-      const st = courseStatus(cr);
-      if (!statusAllowed(st)) continue;
-
-      seenCourse.add(cr.id);
-      courseRefs.push({ courseId: cr.id });
-    }
-
-
-
-    const klinPlacRefs = placRefs.filter((x: any) => x?.placementId && !isArbPlacementId(String(x.placementId)));
-    const arbPlacRefs = placRefs.filter((x: any) => x?.placementId && isArbPlacementId(String(x.placementId)));
-
-    if (kind === "klin") {
-      setListKind("klin");
-      setListTitle(`${titleCode} – Kliniska tjänstgöringar`);
-      setListItems(klinPlacRefs.length > 0 ? buildItemsPlac(klinPlacRefs) : []);
-      setListOpen(true);
-      return;
-    }
-
-    if (kind === "kurs") {
-      setListKind("kurs");
-      setListTitle(`${titleCode} – Kurser`);
-      setListItems(courseRefs.length > 0 ? buildItemsCourse(courseRefs) : []);
-      setListOpen(true);
-      return;
-    }
-
-    if (kind === "arb") {
-      setListKind("arb");
-      setListTitle(`${titleCode} – Arbeten`);
-      setListItems(arbPlacRefs.length > 0 ? buildItemsPlac(arbPlacRefs) : []);
-      setListOpen(true);
-      return;
-    }
-
-    // Fallback om ST når "intyg" som kind av misstag
-    setListKind(kind);
-    setListTitle(`${titleCode} – Utbildningsaktiviteter`);
-    setListItems(buildItemsAll([...placRefs, ...courseRefs]));
+  function openList(kind: MilestoneListKind, m: { id?: string; code?: string }) {
+    const payload = buildMilestoneListPayload({
+      kind,
+      milestone: m,
+      goals,
+      goalsVersion: (profile as any)?.goalsVersion,
+      achievements: achAll,
+      placements,
+      courses,
+      todayIso,
+      showDone,
+      showOngoing,
+      showPlanned,
+    });
+    setListKind(payload.kind);
+    setListTitle(payload.title);
+    setListItems(payload.items);
     setListOpen(true);
   }
 
@@ -1237,259 +820,30 @@ export function MilestoneOverviewPanel({ open, onClose, initialTab, title, hideH
 
 
         {/* Detalj (ST) */}
-        {detailId && !/^BT\d+$/i.test(String(detailId)) && goals && (() => {
-          const mid = String(detailId);
-          const midNorm = mid.toUpperCase().replace(/\s+/g, "");
-          const isAb2015 = !is2021 && /^[AB]\d+$/i.test(midNorm);
-
-          let base: GoalsMilestone | null = null;
-
-          if (isAb2015) {
-            // 2015: A- och B-delmål ska hämtas enbart från COMMON_AB_MILESTONES
-            const commonByKey =
-              (COMMON_AB_MILESTONES as any)[midNorm] ??
-              (COMMON_AB_MILESTONES as any)[midNorm.toLowerCase()];
-            if (commonByKey) {
-              base = commonByKey as GoalsMilestone;
-            } else {
-              const commonByCode = Object.values(COMMON_AB_MILESTONES as any).find((cm: any) => {
-                const codeRaw = String(cm?.code ?? cm?.id ?? "");
-                const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
-                return codeKey === midNorm;
-              }) as GoalsMilestone | undefined;
-              if (commonByCode) {
-                base = commonByCode;
-              }
-            }
-          } else {
-            // 1) Försök hitta i specialitetens egna mål
-            base =
-              (goals.milestones.find((m) => m.id === mid || m.code === mid) as GoalsMilestone | undefined) ??
-              null;
-
-            // 2) Om inte hittat (t.ex. gemensamma STa/STb) – försök i COMMON_AB_MILESTONES
-            if (!base) {
-              const commonByKey =
-                (COMMON_AB_MILESTONES as any)[midNorm] ??
-                (COMMON_AB_MILESTONES as any)[midNorm.toLowerCase()];
-              if (commonByKey) {
-                base = commonByKey as GoalsMilestone;
-              } else {
-                const commonByCode = Object.values(COMMON_AB_MILESTONES as any).find((cm: any) => {
-                  const codeRaw = String(cm?.code ?? cm?.id ?? "");
-                  const codeKey = codeRaw.toUpperCase().replace(/\s+/g, "");
-                  return codeKey === midNorm;
-                }) as GoalsMilestone | undefined;
-                if (commonByCode) {
-                  base = commonByCode;
-                }
-              }
-            }
-          }
-
-          const m = mergeWithCommon(base);
-
-          const suggestionItems: string[] = [
-
-            "Klinisk tjänstgöring",
-            "Auskultation",
-            "Självständigt skriftligt arbete",
-            "Kvalitets-/förbättringsarbete",
-            "Kurs/er",
-            "Handledning av studenter/AT/BT/underläkare",
-            "Undervisning för studenter/AT/BT/underläkare",
-            "Deltagande i reflektionsgrupp",
-            "Journal Club",
-            "Deltagande i kurs/kongress",
-            "Återkoppling till kliniken efter kurs/kongress",
-            "Leda och delta i APT",
-            "Kontinuerlig uppföljning av huvudhandledare",
-            "Mini Clinical Evaluation Exercise (Mini-CEX)",
-            "Case-based discussion (CBD)",
-            "Medsittning",
-            "360-gradersbedömning",
-            "ST-kollegium",
-          ];
-
-          const toggleSuggestion = (s: string) => {
-            setDetailSelectedSuggestions((prev) => ({
-              ...prev,
-              [s]: !prev[s],
-            }));
-          };
-
-          const addSelectedSuggestions = () => {
-            const selected = suggestionItems.filter((s) => detailSelectedSuggestions[s]);
-            if (!selected.length) return;
-            const trimmed = detailPlanText.replace(/\s+$/g, "");
-            const prefix = trimmed.length > 0 ? trimmed + "\n" : "";
-            const next = prefix + selected.join("\n");
-            setDetailPlanText(next);
-            // Jämför med initialTextForMid för att sätta dirty korrekt
-            setDetailDirty(next !== initialTextForMid);
-            setDetailSelectedSuggestions({});
-          };
-
-          const initialTextForMid = planByMilestone[mid] ?? "";
-
-          return (
-            <div
-              ref={detailOverlayRef}
-              className="fixed inset-0 z-[270] grid place-items-center bg-black/40 p-4"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  handleRequestCloseDetail();
-                }
-              }}
-            >
-              <div
-                className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 gap-4">
-                  <div className="min-w-0 flex-1 flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-900 shrink-0">
-                      {displayMilestoneCode(String((m as any)?.code ?? detailId), (profile as any)?.goalsVersion)}
-                      </span>
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
-                      {String((m as any)?.title ?? "Delmål")}
-                      </h3>
-                  </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 py-5">
-
-                  {m ? (
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)] md:items-start">
-
-                      {/* Vänster: beskrivning från målfilen */}
-                      <div className="space-y-4" ref={leftColRef}>
-                        {typeof (m as any).description === "string" &&
-                        (m as any).description.trim().length > 0 ? (
-                          <p className="text-[14px] leading-relaxed text-slate-900">
-                            {(m as any).description}
-                          </p>
-                        ) : null}
-
-                        {Array.isArray((m as any).sections) && (m as any).sections.length > 0 ? (
-                          <div className="space-y-4">
-                            {(m as any).sections.map(
-                              (sec: { title?: string; items?: any[]; text?: string }, idx: number) => (
-                                <section key={idx}>
-                                  {sec.title ? (
-                                    <div className="mb-1 text-[13px] font-semibold text-slate-900">
-                                      {sec.title}
-                                    </div>
-                                  ) : null}
-                                  {Array.isArray(sec.items) ? (
-                                    <ul className="list-disc space-y-1 pl-5 text-[14px] leading-relaxed text-slate-900">
-                                      {sec.items.map((it, i) => (
-                                        <li key={i} className="text-slate-900">{typeof it === "string" ? it : String(it)}</li>
-                                      ))}
-                                    </ul>
-                                  ) : sec.text ? (
-                                    <p className="text-[14px] leading-relaxed text-slate-900">
-                                      {sec.text}
-                                    </p>
-                                  ) : null}
-                                </section>
-                              )
-                            )}
-                          </div>
-                        ) : !((m as any).description) ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
-                            Ingen beskrivning hittades i målfilen.
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {/* Höger: plan + förslag */}
-                      <div className="flex flex-col space-y-3" ref={rightColRef}>
-                        <div>
-                          <div className="mb-1 text-[13px] font-semibold text-slate-900">
-                            Planerade metoder och bedömningsinstrument
-                          </div>
-                          <textarea
-                            value={detailPlanText}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setDetailPlanText(value);
-                              setDetailDirty(value !== initialTextForMid);
-                            }}
-                            className="w-full rounded-lg border border-slate-300 px-2 py-2 text-[13px] leading-relaxed text-slate-900 shadow-inner focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                            style={{ minHeight: 120, resize: "vertical" }}
-                          />
-                        </div>
-
-                        <div className="flex flex-col">
-                          <div className="mb-1 text-[13px] font-semibold text-slate-900">
-                            Förslag
-                          </div>
-                          <div 
-                            className="overflow-y-auto overscroll-contain touch-pan-y rounded-lg border border-slate-200 bg-slate-50 p-2"
-                            style={{
-                              maxHeight: suggestionsMaxHeight
-                            }}
-                          >
-                            <ul className="space-y-1.5 text-[13px] text-slate-900">
-                              {suggestionItems.map((s) => (
-                                <li key={s} className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
-                                    checked={!!detailSelectedSuggestions[s]}
-                                    onChange={() => toggleSuggestion(s)}
-                                  />
-                                  <span className="leading-snug text-slate-900">{s}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="mt-2 flex justify-end shrink-0">
-                            <button
-                              type="button"
-                              onClick={addSelectedSuggestions}
-                              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-                            >
-                              Lägg till markerade
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] text-slate-900">
-                      Information saknas för det valda delmålet.
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer med Spara och Stäng */}
-                <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await handleSaveDetail(mid);
-                      setDetailDirty(false);
-                    }}
-                    disabled={!detailDirty || detailSaving}
-                    className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {detailSaving ? "Sparar..." : "Spara"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRequestCloseDetail}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 active:translate-y-px"
-                  >
-                    Stäng
-                  </button>
-                </footer>
-
-              </div>
-            </div>
-          );
-        })()}
+        {detailId && !/^BT\d+$/i.test(String(detailId)) && goals && (
+          <StMilestoneDetailModal
+            detailId={detailId}
+            is2021={is2021}
+            goals={goals}
+            goalsVersion={(profile as any)?.goalsVersion}
+            planByMilestone={planByMilestone}
+            srGoalSuggestionsByMilestone={srGoalSuggestionsByMilestone}
+            srGoalSuggestionPool={srGoalSuggestionPool}
+            defaultSuggestions={DEFAULT_MILESTONE_SUGGESTIONS}
+            detailPlanText={detailPlanText}
+            detailDirty={detailDirty}
+            detailSaving={detailSaving}
+            detailSelectedSuggestions={detailSelectedSuggestions}
+            setDetailPlanText={setDetailPlanText}
+            setDetailDirty={setDetailDirty}
+            handleRequestCloseDetail={handleRequestCloseDetail}
+            handleSaveDetail={handleSaveDetail}
+            toggleSuggestion={toggleSuggestion}
+            addSelectedSuggestions={addSelectedSuggestions}
+            mergePlanTextWithSuggestions={mergePlanTextWithSuggestions}
+            overlayRef={detailOverlayRef}
+          />
+        )}
 
 
 
@@ -1640,7 +994,7 @@ export default function MilestoneOverviewModal({ open, onClose }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const p = await db.profile.get("default");
+      const p = null;
       setProfile(p ?? null);
     })();
   }, [open]);
@@ -1737,6 +1091,99 @@ function StGrid({
     
     return { text: "Planering uppdaterad", color: "text-slate-900", italic: true };
   };
+
+  const renderCountBadge = (
+    kind: "klin" | "kurs" | "arb",
+    label: "Klin" | "Kurs" | "Arb",
+    count: number,
+    enabled: boolean,
+    m: GoalsMilestone,
+    info: string,
+    titleWhenHas: string,
+    titleWhenEmpty: string
+  ) => {
+    if (!enabled) {
+      return (
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1 text-[10px] font-normal opacity-0 select-none"
+        >
+          <span>{label}</span>
+          <span className="min-w-[1.2ch] text-right">0</span>
+        </span>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => openList(kind, m)}
+        className={
+          count > 0
+            ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
+            : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
+        }
+        title={count > 0 ? titleWhenHas : titleWhenEmpty}
+        data-info={info}
+      >
+        <span>{label}</span>
+        <span className="min-w-[1.2ch] text-right">{count}</span>
+      </button>
+    );
+  };
+
+  const renderMilestoneCountBadges = (
+    m: GoalsMilestone,
+    req: ReturnType<typeof milestoneRequires>,
+    klin: number,
+    kurs: number,
+    arb: number
+  ) => {
+    const hasArbColumn = !!req.arb;
+    return (
+      <div
+        className={
+          hasArbColumn
+            ? "grid grid-cols-3 gap-1.5 min-w-[172px] justify-items-end"
+            : "grid grid-cols-2 gap-1.5 min-w-[112px] justify-items-end"
+        }
+      >
+        {hasArbColumn &&
+          renderCountBadge(
+            "arb",
+            "Arb",
+            arb,
+            !!req.arb,
+            m,
+            "Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten.",
+            "Visa kopplade arbeten",
+            "Inga kopplade arbeten"
+          )}
+
+        {renderCountBadge(
+          "klin",
+          "Klin",
+          klin,
+          !!req.klin,
+          m,
+          "Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer.",
+          "Visa kopplade kliniska tjänstgöringar",
+          "Inga kopplade kliniska tjänstgöringar"
+        )}
+
+        {renderCountBadge(
+          "kurs",
+          "Kurs",
+          kurs,
+          !!req.kurs,
+          m,
+          "Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet.",
+          "Visa kopplade kurser",
+          "Inga kopplade kurser"
+        )}
+      </div>
+    );
+  };
   return (
     <div className="grid grid-cols-1 gap-4">
       {/* Kolumn 1: Delmål A + B */}
@@ -1773,62 +1220,7 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
-                  {req.klin && (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        klin > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={
-                        klin > 0
-                          ? "Visa kopplade kliniska tjänstgöringar"
-                          : "Inga kopplade kliniska tjänstgöringar"
-                      }
-                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
-                    >
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{klin}</span>
-                    </button>
-                  )}
-
-                  {req.kurs && (
-                    <button
-                      type="button"
-                      onClick={() => openList("kurs", m)}
-                      className={
-                        kurs > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                    >
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
-                    </button>
-                  )}
-
-                  {req.arb && (
-                    <button
-                      type="button"
-                      onClick={() => openList("arb", m)}
-                      className={
-                        arb > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
-                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
-                    >
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">{arb}</span>
-                    </button>
-                  )}
-                </div>
+                {renderMilestoneCountBadges(m, req, klin, kurs, arb)}
               </article>
             );
           })}
@@ -1866,62 +1258,7 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
-                  {req.klin && (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        klin > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={
-                        klin > 0
-                          ? "Visa kopplade kliniska tjänstgöringar"
-                          : "Inga kopplade kliniska tjänstgöringar"
-                      }
-                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
-                    >
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{klin}</span>
-                    </button>
-                  )}
-
-                  {req.kurs && (
-                    <button
-                      type="button"
-                      onClick={() => openList("kurs", m)}
-                      className={
-                        kurs > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                    >
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
-                    </button>
-                  )}
-
-                  {req.arb && (
-                    <button
-                      type="button"
-                      onClick={() => openList("arb", m)}
-                      className={
-                        arb > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
-                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
-                    >
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">{arb}</span>
-                    </button>
-                  )}
-                </div>
+                {renderMilestoneCountBadges(m, req, klin, kurs, arb)}
               </article>
             );
           })}
@@ -1962,62 +1299,7 @@ function StGrid({
                   </span>
                 </button>
 
-                <div className="grid grid-flow-col auto-cols-max gap-1.5 min-w-[112px] justify-end">
-                  {req.klin && (
-                    <button
-                      type="button"
-                      onClick={() => openList("klin", m)}
-                      className={
-                        klin > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={
-                        klin > 0
-                          ? "Visa kopplade kliniska tjänstgöringar"
-                          : "Inga kopplade kliniska tjänstgöringar"
-                      }
-                      data-info="Visar antalet kliniska tjänstgöringar som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade aktiviteter med deras perioder och detaljer."
-                    >
-                      <span>Klin</span>
-                      <span className="min-w-[1.2ch] text-right">{klin}</span>
-                    </button>
-                  )}
-
-                  {req.kurs && (
-                    <button
-                      type="button"
-                      onClick={() => openList("kurs", m)}
-                      className={
-                        kurs > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={kurs > 0 ? "Visa kopplade kurser" : "Inga kopplade kurser"}
-                      data-info="Visar antalet kurser som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade kurser med deras perioder och detaljer. Dessa är kurser från tidslinjen som har markerats som relevanta för att uppfylla delmålet."
-                    >
-                      <span>Kurs</span>
-                      <span className="min-w-[1.2ch] text-right">{kurs}</span>
-                    </button>
-                  )}
-
-                  {req.arb && (
-                    <button
-                      type="button"
-                      onClick={() => openList("arb", m)}
-                      className={
-                        arb > 0
-                          ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-normal text-slate-900 hover:bg-emerald-100 hover:border-emerald-300"
-                          : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-[10px] font-normal text-slate-700 hover:bg-slate-200"
-                      }
-                      title={arb > 0 ? "Visa kopplade arbeten" : "Inga kopplade arbeten"}
-                      data-info="Visar antalet arbeten (t.ex. förbättringsarbete eller vetenskapligt arbete) som är kopplade till detta delmål. Klicka för att se en lista över alla kopplade arbeten."
-                    >
-                      <span>Arb</span>
-                      <span className="min-w-[1.2ch] text-right">{arb}</span>
-                    </button>
-                  )}
-                </div>
+                {renderMilestoneCountBadges(m, req, klin, kurs, arb)}
               </article>
             );
           })}

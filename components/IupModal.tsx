@@ -8,9 +8,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { supabase } from "@/lib/supabase";
+import { usePlacements, useCourses, useAchievements, useProfile } from "@/lib/hooks/useSupabaseData";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
-import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import { MilestoneOverviewPanel } from "@/components/MilestoneOverviewModal";
 import { ReportPanel } from "@/components/ReportPrintModal";
@@ -18,6 +19,13 @@ import type { Achievement, Course, Placement, Profile } from "@/lib/types";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
 import { addMonths, toISO, parseISO } from "@/lib/dateutils";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
+import { loadGoals, type GoalsCatalog } from "@/lib/goals";
+import {
+  DEFAULT_PROGRESSION_INSTRUMENTS as DEFAULT_INSTRUMENTS,
+  IUP_PROGRESSION_INSTRUMENTS_CONFIG_TITLE,
+  parseIupProgressionInstrumentsConfig,
+  synthesisFromClinicConfig,
+} from "@/lib/dashboard/iupProgressionInstruments";
 
 
 
@@ -33,6 +41,8 @@ export type IupMeeting = {
   summary: string; // Kort sammanfattning
   actions: string; // Överenskomna åtgärder
   nextDateISO?: string; // Nästa planerade samtal
+  supervisorComment?: string; // Kommentar från huvudhandledare
+  supervisorCommentCreatedAt?: string; // När kommentaren sattes
 };
 
 export type IupAssessmentPhase = "BT" | "ST";
@@ -67,10 +77,12 @@ export type IupDirectorMeeting = {
 
 export type IupPlanning = {
   overallGoals: string; // Övergripande mål med utbildningen
+  placementNotes?: Record<string, string>; // Per-placering anteckningar
   clinicalService: string; // Kliniska tjänstgöringar
   courses: string; // Kurser
   supervisionMeetings: string; // Handledarsamtal
   theoreticalStudies: string; // Teoretiska studier
+  practicalMoments: string; // Praktiska moment
   researchWork: string; // Vetenskapligt arbete
   journalClub: string; // Journal club
   congresses: string; // Kongresser
@@ -307,6 +319,7 @@ function DirectorMeetingModal({
     { key: "courses", title: "Kurser" },
     { key: "supervisionMeetings", title: "Handledarsamtal" },
     { key: "theoreticalStudies", title: "Teoretiska studier" },
+    { key: "practicalMoments", title: "Praktiska moment" },
     { key: "researchWork", title: "Vetenskapligt arbete" },
     { key: "journalClub", title: "Journal club" },
     { key: "congresses", title: "Kongresser" },
@@ -686,16 +699,131 @@ function DirectorMeetingModal({
   );
 }
 
+const IUP_GOAL_SUGGESTIONS_CONFIG_TITLE = "__config__:iup-goal-suggestions";
+const IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX = "__iup_goal_suggestions_config_json__:";
+const REQUIRED_ROW_PREFIX = "__required__:";
+const RECOMMENDED_ROW_PREFIX = "__recommended__:";
+const REQUIREMENT_LEVEL_PREFIX = "__kravniva__:";
+const ALTERNATIVE_PREFIX = "__alternativ__:";
+const SUGGESTED_PERIOD_MONTHS_PREFIX = "__suggested_period_months__:";
+const COURSE_GROUP_PREFIX = "__course_group__:";
+const COURSE_SUBGROUP_PREFIX = "__course_subgroup__:";
+const UTBILDNINGSMOMENT_INSTANCE_TYPE_PREFIX = "__utb_moment_typ__:";
 
+function splitSuggestedRows(rows: string[]): { required: string[]; recommended: string[] } {
+  const required: string[] = [];
+  const recommended: string[] = [];
+  for (const raw of rows || []) {
+    const value = String(raw || "").trim();
+    if (!value) continue;
+    if (value.startsWith(REQUIREMENT_LEVEL_PREFIX)) continue;
+    if (value.startsWith(UTBILDNINGSMOMENT_INSTANCE_TYPE_PREFIX)) continue;
+    if (value.startsWith(SUGGESTED_PERIOD_MONTHS_PREFIX)) continue;
+    if (value.startsWith(ALTERNATIVE_PREFIX)) continue;
+    if (value.startsWith(COURSE_GROUP_PREFIX)) continue;
+    if (value.startsWith(COURSE_SUBGROUP_PREFIX)) continue;
+    if (value.startsWith(RECOMMENDED_ROW_PREFIX)) {
+      const cleaned = value.slice(RECOMMENDED_ROW_PREFIX.length).trim();
+      if (cleaned) recommended.push(cleaned);
+      continue;
+    }
+    if (value.startsWith(REQUIRED_ROW_PREFIX)) {
+      const cleaned = value.slice(REQUIRED_ROW_PREFIX.length).trim();
+      if (cleaned) required.push(cleaned);
+      continue;
+    }
+    required.push(value);
+  }
+  return { required, recommended };
+}
 
+function normalizeTemplateTitle(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
+function resolveTemplateMomentsForPlacement(
+  placementLabel: string,
+  byTemplateKey: Record<string, Record<string, { required: string[]; recommended: string[] }>>
+): Record<string, { required: string[]; recommended: string[] }> {
+  const normalized = normalizeTemplateTitle(placementLabel);
+  if (!normalized) return {};
+  if (byTemplateKey[normalized]) return byTemplateKey[normalized];
+  const entries = Object.entries(byTemplateKey);
+  const fuzzy = entries.find(([k]) => normalized.includes(k) || k.includes(normalized));
+  return fuzzy ? fuzzy[1] : {};
+}
 
-const DEFAULT_INSTRUMENTS = [
-  "Medsittning/Sit-in",
-  "Mini-CEX",
-  "360 grader",
-  "Case-based discussion (CBD)",
-];
+/** Obligatoriska/rekommenderade moment ska visas parallellt med delmål, inte radvis per delmål. */
+function mergePlacementTemplateMoments(
+  milestoneKeys: string[],
+  templateByMilestone: Record<string, { required: string[]; recommended: string[] }>,
+  goalSuggestionsByMilestone: Record<string, string[]>
+): { required: string[]; recommended: string[] } {
+  const keys =
+    milestoneKeys.length > 0
+      ? milestoneKeys
+      : Object.keys(templateByMilestone).sort(compareMilestoneCodes);
+  const requiredOut: string[] = [];
+  const recommendedOut: string[] = [];
+  const seenReq = new Set<string>();
+  const seenRec = new Set<string>();
+  for (const mk of keys) {
+    const t = templateByMilestone[mk] || { required: [], recommended: [] };
+    for (const item of t.required || []) {
+      if (item && !seenReq.has(item)) {
+        seenReq.add(item);
+        requiredOut.push(item);
+      }
+    }
+    for (const item of t.recommended || []) {
+      if (item && !seenRec.has(item)) {
+        seenRec.add(item);
+        recommendedOut.push(item);
+      }
+    }
+    for (const item of goalSuggestionsByMilestone[mk] || []) {
+      if (item && !seenRec.has(item)) {
+        seenRec.add(item);
+        recommendedOut.push(item);
+      }
+    }
+  }
+  return { required: requiredOut, recommended: recommendedOut };
+}
+
+function parseIupGoalSuggestionsConfig(
+  rows: string[]
+): { byMilestone: Record<string, string[]>; optionPool: string[] } | null {
+  for (const raw of rows || []) {
+    const value = String(raw || "").trim();
+    if (!value.startsWith(IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX)) continue;
+    try {
+      const parsed = JSON.parse(value.slice(IUP_GOAL_SUGGESTIONS_CONFIG_PREFIX.length));
+      const byMilestoneSource = parsed?.byMilestone;
+      const byMilestone: Record<string, string[]> = {};
+      if (byMilestoneSource && typeof byMilestoneSource === "object" && !Array.isArray(byMilestoneSource)) {
+        for (const [k, arr] of Object.entries(byMilestoneSource as Record<string, unknown>)) {
+          const key = String(k || "").trim().toUpperCase();
+          if (!key || !Array.isArray(arr)) continue;
+          byMilestone[key] = Array.from(new Set(arr.map((x) => String(x || "").trim()).filter(Boolean)));
+        }
+      }
+      const optionPool: string[] = Array.isArray(parsed?.optionPool)
+        ? Array.from(new Set(parsed.optionPool.map((x: unknown) => String(x || "").trim()).filter(Boolean))) as string[]
+        : [];
+      return { byMilestone, optionPool };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 type IupSettingsRow = {
   id: "iup";
@@ -726,6 +854,34 @@ function shortMilestoneCode(code: string | undefined | null): string {
   const s = String(code);
   const idx = s.indexOf("-");
   return idx > 0 ? s.slice(0, idx) : s;
+}
+
+function normalizeMilestoneCodeForGrouping(code: string | undefined | null): string {
+  const short = shortMilestoneCode(code).trim().toUpperCase().replace(/\s|_|-/g, "");
+  const withoutSt = short.replace(/^ST(?=[ABC]\d+)/, "");
+  return withoutSt;
+}
+
+function compareMilestoneCodes(a: string, b: string): number {
+  const pa = normalizeMilestoneCodeForGrouping(a);
+  const pb = normalizeMilestoneCodeForGrouping(b);
+
+  const parse = (v: string) => {
+    const m = v.match(/^([A-Z]+)(\d+)([A-Z]*)$/);
+    if (!m) return { prefix: v, num: Number.MAX_SAFE_INTEGER, suffix: "" };
+    return {
+      prefix: m[1],
+      num: Number.parseInt(m[2], 10),
+      suffix: m[3] ?? "",
+    };
+  };
+
+  const va = parse(pa);
+  const vb = parse(pb);
+  if (va.prefix !== vb.prefix) return va.prefix.localeCompare(vb.prefix, "sv");
+  if (va.num !== vb.num) return va.num - vb.num;
+  if (va.suffix !== vb.suffix) return va.suffix.localeCompare(vb.suffix, "sv");
+  return pa.localeCompare(pb, "sv");
 }
 
 function isoToday(): string {
@@ -768,6 +924,8 @@ function cloneMeeting(m: IupMeeting): IupMeeting {
     summary: m.summary,
     actions: m.actions,
     nextDateISO: m.nextDateISO,
+    supervisorComment: m.supervisorComment,
+    supervisorCommentCreatedAt: m.supervisorCommentCreatedAt,
   };
 }
 
@@ -840,6 +998,7 @@ function defaultPlanning(): IupPlanning {
     courses: "",
     supervisionMeetings: "",
     theoreticalStudies: "",
+    practicalMoments: "",
     researchWork: "",
     journalClub: "",
     congresses: "",
@@ -852,17 +1011,68 @@ function defaultPlanning(): IupPlanning {
   };
 }
 
+const IUP_PLANNING_BASE_SECTIONS: { key: keyof IupPlanning; label: string }[] = [
+  { key: "clinicalService", label: "Kliniska tjänstgöringar" },
+  { key: "courses", label: "Kurser" },
+  { key: "supervisionMeetings", label: "Handledarsamtal" },
+  { key: "theoreticalStudies", label: "Teoretiska studier" },
+  { key: "practicalMoments", label: "Praktiska moment" },
+  { key: "researchWork", label: "Vetenskapligt arbete" },
+  { key: "journalClub", label: "Journal club" },
+  { key: "congresses", label: "Kongresser" },
+  { key: "qualityWork", label: "Kvalitetsarbete" },
+  { key: "patientSafety", label: "Patientsäkerhetsarbete" },
+  { key: "leadership", label: "Ledarskap" },
+  { key: "supervisingStudents", label: "Handledning av studenter/underläkare" },
+  { key: "teaching", label: "Undervisning" },
+  { key: "formativeAssessments", label: "Formativa bedömningar" },
+];
+
+function normalizePlanningTitleKey(title: string): string {
+  return String(title || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+const IUP_PLANNING_CONFIG_TITLE = "__config__:iup-planning";
+const IUP_PLANNING_CONFIG_PREFIX = "__iup_planning_config_json__:";
+
+function parseIupPlanningConfigRows(rows: string[]): { selectedBaseKeys: string[]; suggestedTitles: string[] } | null {
+  for (const raw of rows || []) {
+    const value = String(raw || "").trim();
+    if (!value.startsWith(IUP_PLANNING_CONFIG_PREFIX)) continue;
+    try {
+      const parsed = JSON.parse(value.slice(IUP_PLANNING_CONFIG_PREFIX.length));
+      const selectedBaseKeys = Array.isArray(parsed?.selectedBaseKeys)
+        ? parsed.selectedBaseKeys.map((x: unknown) => String(x || "").trim()).filter(Boolean)
+        : [];
+      const suggestedTitles = Array.isArray(parsed?.suggestedTitles)
+        ? parsed.suggestedTitles.map((x: unknown) => String(x || "").trim()).filter(Boolean)
+        : [];
+      return { selectedBaseKeys, suggestedTitles };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 
 
 /** ====== Under-modal: Handledarsamtal ====== */
 type MeetingModalProps = {
   open: boolean;
   meeting: IupMeeting | null;
+  allMeetings: IupMeeting[];
+  placements: Placement[];
+  courses: Course[];
+  achievements: Achievement[];
   onSave: (value: IupMeeting) => void;
   onClose: () => void;
 };
 
-function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
+function MeetingModal({ open, meeting, allMeetings, placements, courses, achievements, onSave, onClose }: MeetingModalProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<IupMeeting | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -1007,7 +1217,103 @@ function MeetingModal({ open, meeting, onSave, onClose }: MeetingModalProps) {
         </header>
 
         {/* Body */}
-        <section className="max-h-[75vh] p-4 space-y-4" data-info="Fyll i information om handledarsamtalet: datum, rubrik/fokus, sammanfattning av diskussionen, överenskomna åtgärder och eventuellt nästa planerade samtal.">
+        <section className="max-h-[75vh] overflow-y-auto p-4 space-y-4" data-info="Fyll i information om handledarsamtalet: datum, rubrik/fokus, sammanfattning av diskussionen, överenskomna åtgärder och eventuellt nästa planerade samtal.">
+          {(() => {
+            // Placerings-/kurshistorik sedan föregående handledarsamtal
+            const prevMtgISO = (() => {
+              const d = draft.dateISO;
+              const prev = allMeetings
+                .filter(m => m.id !== meeting?.id && m.dateISO && m.dateISO < (d || '9999'))
+                .sort((a,b)=>b.dateISO.localeCompare(a.dateISO))[0];
+              return prev?.dateISO || null;
+            })();
+            const parseD = (s?: string|null) => { if(!s) return null; const d=new Date(s); return isNaN(d.getTime())?null:d; };
+            const overlapsPeriod = (start?: string, end?: string) => {
+              const cutoff = prevMtgISO ? parseD(prevMtgISO) : null;
+              const endDate = parseD(draft.dateISO || new Date().toISOString().slice(0,10));
+              const s = parseD(start); const e = parseD(end);
+              if (!endDate) return false;
+              if (s && s > endDate) return false;
+              if (e && cutoff && e < cutoff) return false;
+              return true;
+            };
+            const milestoneCodesForPlacement = (plId: string) => {
+              const set = new Set<string>();
+              (Array.isArray(achievements) ? achievements : []).forEach((a:any) => {
+                if (String((a as any)?.linkedPlacementId ?? (a as any)?.placementId ?? '') !== plId) return;
+                const raw = (a as any).milestoneId ?? (a as any).goalId ?? (a as any).code ?? '';
+                const code = String(raw ?? '').trim();
+                if (code) set.add(displayMilestoneCode(code));
+              });
+              return [...set].filter(Boolean).sort();
+            };
+            const milestoneCodesForCourse = (cId: string) => {
+              const set = new Set<string>();
+              (Array.isArray(achievements) ? achievements : []).forEach((a:any) => {
+                if (String((a as any)?.courseId ?? '') !== cId) return;
+                const raw = (a as any).milestoneId ?? (a as any).goalId ?? (a as any).code ?? '';
+                const code = String(raw ?? '').trim();
+                if (code) set.add(displayMilestoneCode(code));
+              });
+              return [...set].filter(Boolean).sort();
+            };
+            const placsSince = (Array.isArray(placements) ? placements : []).filter((p:any) => overlapsPeriod((p as any)?.startDate,(p as any)?.endDate)).sort((a:any,b:any)=>String((a as any).startDate??'').localeCompare(String((b as any).startDate??'')));
+            const coursesSince = (Array.isArray(courses) ? courses : []).filter((c:any) => overlapsPeriod((c as any)?.startDate ?? (c as any)?.certificateDate,(c as any)?.endDate ?? (c as any)?.certificateDate)).sort((a:any,b:any)=>String((a as any).startDate ?? (a as any).certificateDate ?? '').localeCompare(String((b as any).startDate ?? (b as any).certificateDate ?? '')));
+            if (placsSince.length === 0 && coursesSince.length === 0) return null;
+            return (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Genomförda aktiviteter</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">{prevMtgISO ? `Sedan föregående handledarsamtal (${prevMtgISO})` : 'Alla aktiviteter fram till valt datum'}</p>
+                </div>
+                {placsSince.length > 0 && (
+                  <div>
+                    <div className="text-sm font-bold text-slate-800 mb-1">Placeringar</div>
+                    <div className="rounded-xl border bg-white overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-left"><tr>
+                          <th className="px-3 py-2">Placering</th><th className="px-3 py-2">Period</th><th className="px-3 py-2 text-right">Delmål</th>
+                        </tr></thead>
+                        <tbody>{placsSince.map((p:any) => {
+                          const id = String(p.id??''); const title = String(p.title??p.site??p.clinic??'Placering');
+                          const start = String(p.startDate??'').slice(0,10); const end = String(p.endDate??'').slice(0,10);
+                          const period = start||end?`${start}${start&&end?' – ':''}${end}`:'—';
+                          const codes = id ? milestoneCodesForPlacement(id) : [];
+                          return (<tr key={id||title+period} className="border-t hover:bg-slate-50">
+                            <td className="px-3 py-1.5 font-semibold text-slate-900">{title}</td>
+                            <td className="px-3 py-1.5 text-slate-700">{period}</td>
+                            <td className="px-3 py-1.5"><div className="flex flex-wrap justify-end gap-1">{codes.length===0?<span className="text-slate-400">—</span>:codes.map(c=><span key={c} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">{c}</span>)}</div></td>
+                          </tr>);
+                        })}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+                {coursesSince.length > 0 && (
+                  <div>
+                    <div className="text-sm font-bold text-slate-800 mb-1">Kurser</div>
+                    <div className="rounded-xl border bg-white overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-left"><tr>
+                          <th className="px-3 py-2">Kurs</th><th className="px-3 py-2">Datum</th><th className="px-3 py-2 text-right">Delmål</th>
+                        </tr></thead>
+                        <tbody>{coursesSince.map((c:any) => {
+                          const id = String(c.id??''); const title = String(c.title??'Kurs');
+                          const date = String(c.startDate??c.certificateDate??'').slice(0,10);
+                          const codes = id ? milestoneCodesForCourse(id) : [];
+                          return (<tr key={id||title+date} className="border-t hover:bg-slate-50">
+                            <td className="px-3 py-1.5 font-semibold text-slate-900">{title}</td>
+                            <td className="px-3 py-1.5 text-slate-700">{date||'—'}</td>
+                            <td className="px-3 py-1.5"><div className="flex flex-wrap justify-end gap-1">{codes.length===0?<span className="text-slate-400">—</span>:codes.map(k=><span key={k} className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700">{k}</span>)}</div></td>
+                          </tr>);
+                        })}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
             <div>
               <CalendarDatePicker
@@ -1232,7 +1538,7 @@ function AssessmentModal({
           );
         }
 
-        const allPlacements = await db.placements.toArray();
+        const allPlacements: any[] = [];
         const date = draft.dateISO;
         // Hitta placering som är aktiv under valt datum
         const match = allPlacements.find(
@@ -1851,12 +2157,14 @@ function InstrumentsModal({
 
 type NewPlanningSectionModalProps = {
   open: boolean;
+  suggestedTitles: string[];
   onSave: (title: string) => void;
   onClose: () => void;
 };
 
 function NewPlanningSectionModal({
   open,
+  suggestedTitles,
   onSave,
   onClose,
 }: NewPlanningSectionModalProps) {
@@ -1914,6 +2222,23 @@ function NewPlanningSectionModal({
               
             />
           </div>
+          {suggestedTitles.length > 0 && (
+            <div>
+              <div className="mb-1 block text-sm text-slate-700">Förslag</div>
+              <div className="max-h-36 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+                {suggestedTitles.map((s, idx) => (
+                  <button
+                    key={`${normalizePlanningTitleKey(s)}-${idx}`}
+                    type="button"
+                    onClick={() => setTitle(s)}
+                    className="block w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-100"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -1969,8 +2294,16 @@ export default function IupModal({
   const [specialistCollegiums, setSpecialistCollegiums] = useState<IupSpecialistCollegium[]>([]);
   const [planning, setPlanning] = useState<IupPlanning>(defaultPlanning);
   const [planningExtra, setPlanningExtra] = useState<ExtraPlanningSection[]>([]);
-  const [instruments, setInstruments] = useState<string[]>(DEFAULT_INSTRUMENTS);
+  const [instruments, setInstruments] = useState<string[]>([...DEFAULT_INSTRUMENTS]);
   const [hiddenPlanningKeys, setHiddenPlanningKeys] = useState<string[]>([]);
+  const [planningBaseSections, setPlanningBaseSections] = useState<{ key: keyof IupPlanning; label: string }[]>(
+    IUP_PLANNING_BASE_SECTIONS
+  );
+  const [planningSectionSuggestions, setPlanningSectionSuggestions] = useState<string[]>(
+    IUP_PLANNING_BASE_SECTIONS.map((s) => s.label)
+  );
+  const [planTab, setPlanTab] = useState<'overgripande'|'enskild'>('overgripande');
+  const [selectedPlanPlacIdx, setSelectedPlanPlacIdx] = useState<number>(0);
 
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -2001,6 +2334,11 @@ export default function IupModal({
 
   // Rader för rapporten "Delmål"
   const [goalReportRows, setGoalReportRows] = useState<GoalReportRow[]>([]);
+  const [srGoalSuggestionsByMilestone, setSrGoalSuggestionsByMilestone] = useState<Record<string, string[]>>({});
+  const [srTemplateMomentsByTemplateKey, setSrTemplateMomentsByTemplateKey] = useState<
+    Record<string, Record<string, { required: string[]; recommended: string[] }>>
+  >({});
+  const [iupGoalsCatalog, setIupGoalsCatalog] = useState<GoalsCatalog | null>(null);
 
   // Synlighet för sektioner i "Planering och handledning"
   const [showPlanOverview, setShowPlanOverview] = useState(true);
@@ -2084,7 +2422,6 @@ export default function IupModal({
   const [goalPreviewOpen, setGoalPreviewOpen] = useState(false);
   const goalPreviewContentRef = useRef<HTMLDivElement | null>(null);
 
-
       // Central spar-funktion – används både av huvud-Spara och vid ändringar
 
   const saveAllToDb = useCallback(
@@ -2113,7 +2450,31 @@ export default function IupModal({
           planningHidden: hiddenPlanningKeys,
         };
 
-        await (db as any).timeline?.put?.(row);
+        // Spara IUP-data till Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { error: upsertError } = await supabase
+            .from("iup_settings")
+            .upsert({
+              user_id: user.id,
+              meetings: row.meetings,
+              assessments: row.assessments,
+              director_meetings: row.directorMeetings,
+              specialist_collegiums: row.specialistCollegiums,
+              planning: row.planning,
+              planning_extra: row.planningExtra,
+              instruments: row.instruments,
+              planning_hidden: row.planningHidden,
+              show_meetings_on_timeline: row.showMeetingsOnTimeline,
+              show_assessments_on_timeline: row.showAssessmentsOnTimeline,
+              show_director_meetings_on_timeline: row.showDirectorMeetingsOnTimeline,
+              show_specialist_collegiums_on_timeline: row.showSpecialistCollegiumsOnTimeline,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "user_id" });
+          if (upsertError) {
+            console.error("Kunde inte spara IUP-data:", upsertError);
+          }
+        }
         setDirty(false);
 
         if (onMeetingsChange) {
@@ -2220,7 +2581,7 @@ export default function IupModal({
 
 
 
-  // Läser in IUP-data från DB.timeline("iup") när modalen öppnas
+  // IUP-data är inte längre lagrad i Dexie
 
   useEffect(() => {
     if (!open) return;
@@ -2239,9 +2600,94 @@ export default function IupModal({
 
         (async () => {
       try {
-        const row = (await (db as any).timeline?.get?.(
-          "iup"
-        )) as IupSettingsRow | undefined;
+        // Ladda IUP-data från Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        let row: IupSettingsRow | undefined = undefined;
+        let planningConfigSelectedBaseKeys: string[] = IUP_PLANNING_BASE_SECTIONS.map((s) => String(s.key));
+        let planningConfigSuggestedTitles: string[] = IUP_PLANNING_BASE_SECTIONS.map((s) => s.label);
+        let clinicProgressionSynthesis: string[] = [...DEFAULT_INSTRUMENTS];
+        if (user?.id) {
+          const { data: iupRow } = await supabase
+            .from("iup_settings")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (iupRow) {
+            row = {
+              id: "iup",
+              meetings: iupRow.meetings || [],
+              assessments: iupRow.assessments || [],
+              directorMeetings: iupRow.director_meetings || [],
+              specialistCollegiums: iupRow.specialist_collegiums || [],
+              planning: iupRow.planning || {},
+              planningExtra: iupRow.planning_extra || [],
+              instruments: iupRow.instruments || [],
+              planningHidden: iupRow.planning_hidden || [],
+              showMeetingsOnTimeline: iupRow.show_meetings_on_timeline ?? true,
+              showAssessmentsOnTimeline: iupRow.show_assessments_on_timeline ?? true,
+              showDirectorMeetingsOnTimeline: iupRow.show_director_meetings_on_timeline ?? true,
+              showSpecialistCollegiumsOnTimeline: iupRow.show_specialist_collegiums_on_timeline ?? true,
+            } as IupSettingsRow;
+          }
+
+          // Hämta studierektorns IUP-standard för kliniken (rubriker/förslag).
+          try {
+            const { data: membershipRows } = await supabase
+              .from("clinic_memberships")
+              .select("clinic_id")
+              .eq("user_id", user.id)
+              .limit(1);
+            const clinicId = Array.isArray(membershipRows) && membershipRows[0]?.clinic_id
+              ? String(membershipRows[0].clinic_id)
+              : "";
+            if (clinicId) {
+              const { data: cfgRows } = await supabase
+                .from("clinic_activity_templates")
+                .select("suggested_rows")
+                .eq("clinic_id", clinicId)
+                .eq("title", IUP_PLANNING_CONFIG_TITLE)
+                .order("updated_at", { ascending: false })
+                .limit(1);
+              const cfgRow = Array.isArray(cfgRows) ? cfgRows[0] : null;
+              const parsedConfig = parseIupPlanningConfigRows(
+                Array.isArray((cfgRow as any)?.suggested_rows) ? (cfgRow as any).suggested_rows : []
+              );
+              if (parsedConfig) {
+                if (parsedConfig.selectedBaseKeys.length > 0) {
+                  planningConfigSelectedBaseKeys = parsedConfig.selectedBaseKeys;
+                }
+                const mergedSuggestions = Array.from(
+                  new Set([
+                    ...IUP_PLANNING_BASE_SECTIONS.map((s) => s.label),
+                    ...parsedConfig.suggestedTitles,
+                  ])
+                );
+                planningConfigSuggestedTitles = mergedSuggestions;
+              }
+
+              try {
+                const { data: progRows } = await supabase
+                  .from("clinic_activity_templates")
+                  .select("suggested_rows")
+                  .eq("clinic_id", clinicId)
+                  .eq("title", IUP_PROGRESSION_INSTRUMENTS_CONFIG_TITLE)
+                  .order("updated_at", { ascending: false })
+                  .limit(1);
+                const progRow = Array.isArray(progRows) ? progRows[0] : null;
+                const progParsed = parseIupProgressionInstrumentsConfig(
+                  Array.isArray((progRow as any)?.suggested_rows)
+                    ? (progRow as any).suggested_rows
+                    : []
+                );
+                clinicProgressionSynthesis = synthesisFromClinicConfig(progParsed);
+              } catch {
+                clinicProgressionSynthesis = [...DEFAULT_INSTRUMENTS];
+              }
+            }
+          } catch {
+            // Fallback till inbyggda standardrubriker.
+          }
+        }
 
         if (cancelled) return;
 
@@ -2292,13 +2738,24 @@ export default function IupModal({
           Array.isArray(row.instruments) &&
           row.instruments.length > 0
             ? [...row.instruments]
-            : DEFAULT_INSTRUMENTS;
+            : clinicProgressionSynthesis;
 
         const loadedHiddenPlanningKeys: string[] = Array.isArray(
           (row as any)?.planningHidden
         )
           ? [...((row as any).planningHidden as string[])]
           : [];
+
+        const allowedBaseKeys = new Set(planningConfigSelectedBaseKeys.map((k) => String(k || "").trim()));
+        const nextPlanningBaseSections = IUP_PLANNING_BASE_SECTIONS.filter((sec) =>
+          allowedBaseKeys.has(String(sec.key))
+        );
+        const hiddenFromConfig = IUP_PLANNING_BASE_SECTIONS.map((sec) => String(sec.key)).filter(
+          (k) => !allowedBaseKeys.has(k)
+        );
+        const mergedHiddenKeys = Array.from(
+          new Set([...loadedHiddenPlanningKeys, ...hiddenFromConfig])
+        );
 
         const loadedShowMeetingsOnTimeline =
           typeof (row as any)?.showMeetingsOnTimeline === "boolean"
@@ -2327,7 +2784,9 @@ export default function IupModal({
         setPlanning(loadedPlanning);
         setPlanningExtra(loadedPlanningExtra);
         setInstruments(loadedInstruments);
-        setHiddenPlanningKeys(loadedHiddenPlanningKeys);
+        setHiddenPlanningKeys(mergedHiddenKeys);
+        setPlanningBaseSections(nextPlanningBaseSections.length > 0 ? nextPlanningBaseSections : IUP_PLANNING_BASE_SECTIONS);
+        setPlanningSectionSuggestions(planningConfigSuggestedTitles);
         setShowMeetingsOnTimeline(loadedShowMeetingsOnTimeline);
         setShowAssessmentsOnTimeline(loadedShowAssessmentsOnTimeline);
         setShowDirectorMeetingsOnTimeline(loadedShowDirectorMeetingsOnTimeline);
@@ -2407,7 +2866,7 @@ export default function IupModal({
           setAssessments([]);
           setSpecialistCollegiums([]);
           setPlanning(defaultPlanning());
-          setInstruments(DEFAULT_INSTRUMENTS);
+          setInstruments([...DEFAULT_INSTRUMENTS]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -2419,63 +2878,183 @@ export default function IupModal({
     };
   }, [open, initialTab, initialMeetingId, initialAssessmentId]);
 
+  const { placements: supabasePlacements } = usePlacements();
+  const { courses: supabaseCourses } = useCourses();
+  const { achievements: supabaseAchievements } = useAchievements();
+  const { profile: supabaseProfile } = useProfile();
+
+  useEffect(() => {
+    if (!open) return;
+
+    // Konvertera Supabase-data till IUP-format
+    const convertedPlacements = supabasePlacements.map(p => ({
+      id: p.id,
+      clinic: p.clinic,
+      startDate: p.start_date,
+      endDate: p.end_date,
+      type: p.type,
+      milestones: p.milestones || [],
+      supervisor: p.supervisor,
+      note: p.note,
+    }));
+
+    const convertedCourses = supabaseCourses.map(c => ({
+      id: c.id,
+      title: c.title,
+      startDate: c.start_date,
+      endDate: c.end_date,
+      certificateDate: c.certificate_date,
+      milestones: c.milestones || [],
+      note: c.note,
+    }));
+
+    const convertedAchievements = supabaseAchievements.map(a => ({
+      id: a.id,
+      milestoneId: a.milestone_id,
+      achievedDate: a.achieved_date,
+      note: a.note,
+    }));
+
+    setPlacements(convertedPlacements as any);
+    setCourses(convertedCourses as any);
+    setAchievements(convertedAchievements as any);
+  }, [open, supabasePlacements, supabaseCourses, supabaseAchievements]);
+
+
+
+
+
+  // Ladda profilinfo för rapportförhandsvisningar
+  useEffect(() => {
+    if (!open) return;
+    const p: any = supabaseProfile ?? null;
+    if (!p) {
+      setProfile(null);
+      return;
+    }
+    setProfile({
+      ...(p as any),
+      goalsVersion: (p as any)?.goalsVersion ?? (p as any)?.goals_version ?? "",
+      specialty: (p as any)?.specialty ?? (p as any)?.speciality ?? "",
+    } as any);
+  }, [open, supabaseProfile]);
+
+  useEffect(() => {
+    if (!open || !profile) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const goals = await loadGoals(String(profile.goalsVersion || "2015"), String(profile.specialty || "Psykiatri"));
+        if (!cancelled) setIupGoalsCatalog(goals);
+      } catch {
+        if (!cancelled) setIupGoalsCatalog(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, profile]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-
     (async () => {
       try {
-        const anyDb = db as any;
-        const [placementsRaw, coursesRaw, achievementsRaw] = await Promise.all([
-          (anyDb.placements?.toArray?.() as Promise<any[] | undefined>) ?? [],
-          (anyDb.courses?.toArray?.() as Promise<any[] | undefined>) ?? [],
-          (anyDb.achievements?.toArray?.() as Promise<any[] | undefined>) ?? [],
-        ]);
-
-        if (cancelled) return;
-
-        setPlacements(Array.isArray(placementsRaw) ? (placementsRaw as any) : []);
-        setCourses(Array.isArray(coursesRaw) ? (coursesRaw as any) : []);
-        setAchievements(Array.isArray(achievementsRaw) ? (achievementsRaw as any) : []);
-      } catch (e) {
-        console.error("Kunde inte läsa utbildningsaktiviteter för studierektorsmöte:", e);
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = String(user?.id || "");
+        if (!userId) {
+          if (!cancelled) {
+            setSrGoalSuggestionsByMilestone({});
+            setSrTemplateMomentsByTemplateKey({});
+          }
+          return;
+        }
+        const { data: membershipRows } = await supabase
+          .from("clinic_memberships")
+          .select("clinic_id")
+          .eq("user_id", userId)
+          .limit(1);
+        const clinicId = Array.isArray(membershipRows) && membershipRows[0]?.clinic_id
+          ? String(membershipRows[0].clinic_id)
+          : "";
+        if (!clinicId) {
+          if (!cancelled) {
+            setSrGoalSuggestionsByMilestone({});
+            setSrTemplateMomentsByTemplateKey({});
+          }
+          return;
+        }
+        const { data: cfgRows } = await supabase
+          .from("clinic_activity_templates")
+          .select("suggested_rows")
+          .eq("clinic_id", clinicId)
+          .eq("title", IUP_GOAL_SUGGESTIONS_CONFIG_TITLE)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const cfg = Array.isArray(cfgRows) ? cfgRows[0] : null;
+        const parsed = parseIupGoalSuggestionsConfig(
+          Array.isArray((cfg as any)?.suggested_rows) ? (cfg as any).suggested_rows : []
+        );
+        const { data: templateRows } = await supabase
+          .from("clinic_activity_templates")
+          .select("title,suggested_milestones,suggested_rows,is_active")
+          .eq("clinic_id", clinicId)
+          .eq("is_active", true);
         if (!cancelled) {
-          setPlacements([]);
-          setCourses([]);
-          setAchievements([]);
+          if (parsed) {
+            const normalizedByMilestone: Record<string, string[]> = {};
+            for (const [rawKey, list] of Object.entries(parsed.byMilestone || {})) {
+              const key = normalizeMilestoneCodeForGrouping(rawKey);
+              if (!key) continue;
+              normalizedByMilestone[key] = Array.from(
+                new Set((normalizedByMilestone[key] || []).concat(Array.isArray(list) ? list : []))
+              );
+            }
+            setSrGoalSuggestionsByMilestone(normalizedByMilestone);
+          } else {
+            setSrGoalSuggestionsByMilestone({});
+          }
+
+          const byTemplateKey: Record<string, Record<string, { required: string[]; recommended: string[] }>> = {};
+          for (const row of Array.isArray(templateRows) ? templateRows : []) {
+            const title = String((row as any)?.title || "").trim();
+            const templateKey = normalizeTemplateTitle(title);
+            const milestones = Array.isArray((row as any)?.suggested_milestones)
+              ? ((row as any).suggested_milestones as string[])
+              : [];
+            if (!milestones.length) continue;
+            const split = splitSuggestedRows(
+              Array.isArray((row as any)?.suggested_rows) ? ((row as any).suggested_rows as string[]) : []
+            );
+            const required = split.required;
+            const recommended = split.recommended.length > 0 ? split.recommended : required.length === 0 && title ? [title] : [];
+            for (const rawMilestone of milestones) {
+              const milestoneKey = normalizeMilestoneCodeForGrouping(rawMilestone);
+              if (!milestoneKey) continue;
+              if (templateKey) {
+                const tmpl = byTemplateKey[templateKey] || {};
+                const currTemplateMilestone = tmpl[milestoneKey] || { required: [], recommended: [] };
+                tmpl[milestoneKey] = {
+                  required: Array.from(new Set([...currTemplateMilestone.required, ...required])),
+                  recommended: Array.from(new Set([...currTemplateMilestone.recommended, ...recommended])),
+                };
+                byTemplateKey[templateKey] = tmpl;
+              }
+            }
+          }
+          setSrTemplateMomentsByTemplateKey(byTemplateKey);
+        }
+      } catch {
+        if (!cancelled) {
+          setSrGoalSuggestionsByMilestone({});
+          setSrTemplateMomentsByTemplateKey({});
         }
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, [open]);
-
-
-
-
-
-  // Ladda profilinfo för rapportförhandsvisningar (samma logik som i PrepareBtModal)
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const p = await db.profile.get("default");
-        if (!cancelled) {
-          setProfile(p ?? null);
-        }
-      } catch (e) {
-        console.error("Kunde inte läsa profil för IUP-rapport:", e);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, initialTab, initialMeetingId, initialAssessmentId]);
 
 
 
@@ -2487,13 +3066,27 @@ export default function IupModal({
 
     (async () => {
       try {
-        const anyDb = db as any;
+        // Konvertera Supabase-data till rapport-format
+        const placementsRaw = supabasePlacements.map(p => ({
+          clinic: p.clinic,
+          startDate: p.start_date,
+          endDate: p.end_date,
+          type: p.type,
+          milestones: p.milestones || [],
+        }));
 
-        const [placementsRaw, coursesRaw, achievementsRaw] = await Promise.all([
-          (anyDb.placements?.toArray?.() as Promise<any[] | undefined>) ?? [],
-          (anyDb.courses?.toArray?.() as Promise<any[] | undefined>) ?? [],
-          (anyDb.achievements?.toArray?.() as Promise<any[] | undefined>) ?? [],
-        ]);
+        const coursesRaw = supabaseCourses.map(c => ({
+          title: c.title,
+          startDate: c.start_date,
+          endDate: c.end_date,
+          certificateDate: c.certificate_date,
+          milestones: c.milestones || [],
+        }));
+
+        const achievementsRaw = supabaseAchievements.map(a => ({
+          milestoneId: a.milestone_id,
+          achievedDate: a.achieved_date,
+        }));
 
         if (cancelled) return;
 
@@ -2503,64 +3096,38 @@ export default function IupModal({
             .toUpperCase()
             .replace(/\s|_|-/g, "");
 
-        // Läs in planer per delmål från IUP-delmålsplaner
-        let planMap: Record<string, string> = {};
+        // Läs planerade metoder från DB (milestone_plans) för aktuell användare.
+        const planMap: Record<string, string> = {};
         try {
-          const table =
-            anyDb.iupMilestonePlans ??
-            anyDb.milestonePlans ??
-            (typeof anyDb.table === "function"
-              ? anyDb.table("iupMilestonePlans")
-              : null);
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user?.id) {
+            const { data: planRows } = await supabase
+              .from("milestone_plans")
+              .select("milestone_id,plan_text,updated_at")
+              .eq("user_id", user.id)
+              .order("updated_at", { ascending: false });
 
-          if (table && typeof table.toArray === "function") {
-            const planRows = await table.toArray();
-            const map: Record<string, string> = {};
-
-            for (const row of planRows as any[]) {
-              const rawId =
-                (row as any).milestoneId ??
-                (row as any).id ??
-                (row as any).code ??
-                "";
-              const text =
-                (row as any).planText ??
-                (row as any).text ??
-                "";
-
-              const baseText = String(text ?? "").trim();
-              if (!rawId || !baseText) continue;
-
-              const key = norm(rawId);
-              if (!key) continue;
-
-              // Basnyckel
-              map[key] = baseText;
-
-              // Alias STa1 <-> A1, STb3 <-> B3 osv, så att både A1 och STa1 träffar samma plan
-              const m1 = key.match(/^ST([ABC])(\d+)$/);
-              if (m1) {
-                map[`${m1[1]}${m1[2]}`] = baseText;
+            (Array.isArray(planRows) ? planRows : []).forEach((row: any) => {
+              const code = normalizeMilestoneCodeForGrouping(row?.milestone_id);
+              const key = norm(code);
+              const text = String(row?.plan_text ?? "").trim();
+              if (!key || !text) return;
+              if (!planMap[key]) {
+                planMap[key] = text;
               }
-              const m2 = key.match(/^([ABC])(\d+)$/);
-              if (m2) {
-                map[`ST${m2[1]}${m2[2]}`] = baseText;
-              }
-            }
-
-            planMap = map;
-          } else {
-            planMap = {};
+            });
           }
-        } catch {
-          planMap = {};
+        } catch (e) {
+          console.error("Kunde inte läsa planerade metoder för delmålsrapport:", e);
         }
 
         type AccMap = Record<string, { activities: string[] }>;
         const acc: AccMap = {};
 
         const addActivity = (code: string, label: string) => {
-          const key = String(code ?? "").trim();
+          const key = normalizeMilestoneCodeForGrouping(code);
           if (!key) return;
           if (!acc[key]) acc[key] = { activities: [] };
           if (!acc[key].activities.includes(label)) {
@@ -2686,17 +3253,33 @@ export default function IupModal({
           });
         });
 
-        const rows: GoalReportRow[] = Object.entries(acc)
-          .sort((a, b) => a[0].localeCompare(b[0], "sv"))
-          .map(([milestoneCode, value]) => {
-            const key = norm(milestoneCode);
-            const methodsText = planMap[key] ?? "";
+        const allMilestoneKeys = new Set<string>();
+        Object.keys(acc).forEach((k) => {
+          const normalized = normalizeMilestoneCodeForGrouping(k);
+          if (normalized) allMilestoneKeys.add(normalized);
+        });
+        Object.keys(planMap).forEach((k) => {
+          const normalized = normalizeMilestoneCodeForGrouping(k);
+          if (normalized) allMilestoneKeys.add(normalized);
+        });
+        Object.keys(srGoalSuggestionsByMilestone).forEach((k) => {
+          const normalized = normalizeMilestoneCodeForGrouping(k);
+          if (normalized) allMilestoneKeys.add(normalized);
+        });
+
+        const rows: GoalReportRow[] = Array.from(allMilestoneKeys)
+          .sort((a, b) => compareMilestoneCodes(a, b))
+          .map((milestoneCode) => {
+            const key = norm(normalizeMilestoneCodeForGrouping(milestoneCode));
+            const configuredSuggestions = srGoalSuggestionsByMilestone[key] || [];
+            const methodsText = (planMap[key] || "").trim() || configuredSuggestions.join("\n");
+            const activities = (acc[milestoneCode]?.activities || []).slice().sort((a, b) =>
+              a.localeCompare(b, "sv")
+            );
             return {
-              milestoneCode,
+              milestoneCode: normalizeMilestoneCodeForGrouping(milestoneCode),
               methodsText,
-              activities: value.activities.sort((a, b) =>
-                a.localeCompare(b, "sv")
-              ),
+              activities,
             };
           });
 
@@ -2715,7 +3298,7 @@ export default function IupModal({
     return () => {
       cancelled = true;
     };
-  }, [open, tab]);
+  }, [open, srGoalSuggestionsByMilestone, tab]);
 
 
 
@@ -2836,94 +3419,73 @@ export default function IupModal({
     [directorMeetings]
   );
 
-  const planningReportEntries = useMemo(
-    () => {
-      const base: { id: string; title: string; content: string }[] = [
-        {
-          id: "overallGoals",
-          title: "Övergripande mål med utbildningen",
-          content: planning.overallGoals,
-        },
-        {
-          id: "clinicalService",
-          title: "Kliniska tjänstgöringar",
-          content: planning.clinicalService,
-        },
-        {
-          id: "courses",
-          title: "Kurser",
-          content: planning.courses,
-        },
-        {
-          id: "supervisionMeetings",
-          title: "Handledarsamtal (övergripande plan)",
-          content: planning.supervisionMeetings,
-        },
-        {
-          id: "theoreticalStudies",
-          title: "Teoretiska studier",
-          content: planning.theoreticalStudies,
-        },
-        {
-          id: "researchWork",
-          title: "Vetenskapligt arbete",
-          content: planning.researchWork,
-        },
-        {
-          id: "journalClub",
-          title: "Journal club",
-          content: planning.journalClub,
-        },
-        {
-          id: "congresses",
-          title: "Kongresser",
-          content: planning.congresses,
-        },
-        {
-          id: "qualityWork",
-          title: "Kvalitetsarbete",
-          content: planning.qualityWork,
-        },
-        {
-          id: "patientSafety",
-          title: "Patientsäkerhetsarbete",
-          content: planning.patientSafety,
-        },
-        {
-          id: "leadership",
-          title: "Ledarskap",
-          content: planning.leadership,
-        },
-        {
-          id: "supervisingStudents",
-          title: "Handledning av studenter/underläkare",
-          content: planning.supervisingStudents,
-        },
-        {
-          id: "teaching",
-          title: "Undervisning",
-          content: planning.teaching,
-        },
-        {
-          id: "formativeAssessments",
-          title: "Formativa bedömningar",
-          content: planning.formativeAssessments,
-        },
-      ];
+  const planningReportEntries = useMemo(() => {
+    const rows: { id: string; title: string; content: string }[] = [];
 
-      const extra: { id: string; title: string; content: string }[] =
-        planningExtra.map((sec) => ({
-          id: sec.id,
-          title: sec.title || "Övrig planeringspunkt",
-          content: sec.content,
-        }));
+    const og = (planning.overallGoals ?? "").trim();
+    if (og) {
+      rows.push({
+        id: "overallGoals",
+        title: "Övergripande mål med utbildningen",
+        content: planning.overallGoals,
+      });
+    }
 
-      return [...base, ...extra].filter(
-        (row) => row.content && row.content.trim().length > 0
-      );
-    },
-    [planning, planningExtra]
-  );
+    for (const sec of planningBaseSections) {
+      if (hiddenPlanningKeys.includes(String(sec.key))) continue;
+      if (sec.key === "placementNotes") continue;
+      const raw = planning[sec.key];
+      const content = typeof raw === "string" ? raw : "";
+      if (!content.trim()) continue;
+      rows.push({
+        id: String(sec.key),
+        title: sec.label,
+        content,
+      });
+    }
+
+    for (const sec of planningExtra) {
+      const title = (sec.title ?? "").trim();
+      if (!title) continue;
+      rows.push({
+        id: sec.id,
+        title: sec.title || "Övrig planeringspunkt",
+        content: sec.content ?? "",
+      });
+    }
+
+    return rows;
+  }, [planning, planningExtra, planningBaseSections, hiddenPlanningKeys]);
+
+  const newSectionModalSuggestedTitles = useMemo(() => {
+    const taken = new Set<string>();
+    taken.add(normalizePlanningTitleKey("Övergripande mål med utbildningen"));
+    for (const sec of planningBaseSections) {
+      if (hiddenPlanningKeys.includes(String(sec.key))) continue;
+      if (sec.key === "placementNotes") continue;
+      taken.add(normalizePlanningTitleKey(sec.label));
+    }
+    for (const sec of planningExtra) {
+      const t = (sec.title ?? "").trim();
+      if (t) taken.add(normalizePlanningTitleKey(t));
+    }
+    const seenSuggestion = new Set<string>();
+    const out: string[] = [];
+    for (const raw of planningSectionSuggestions) {
+      const s = String(raw || "").trim();
+      if (!s) continue;
+      const k = normalizePlanningTitleKey(s);
+      if (taken.has(k) || seenSuggestion.has(k)) continue;
+      seenSuggestion.add(k);
+      out.push(s);
+    }
+    return out;
+  }, [
+    planningSectionSuggestions,
+    planningBaseSections,
+    hiddenPlanningKeys,
+    planningExtra,
+  ]);
 
   const addMeeting = () => {
 
@@ -3380,6 +3942,37 @@ export default function IupModal({
                                     </span>
                                   )}
                                 </div>
+                                {String((m as any).supervisorComment || "").trim().length > 0 && (
+                                  <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1">
+                                    <p className="text-[11px] font-semibold text-emerald-800">Kommentar från huvudhandledare</p>
+                                    <p className="mt-0.5 whitespace-pre-wrap text-xs text-slate-700">
+                                      {String((m as any).supervisorComment || "")}
+                                    </p>
+                                    <div className="mt-1 flex justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setMeetings((prev) =>
+                                            prev.map((mm) =>
+                                              mm.id === m.id
+                                                ? {
+                                                    ...mm,
+                                                    supervisorComment: "",
+                                                    supervisorCommentCreatedAt: "",
+                                                  }
+                                                : mm
+                                            )
+                                          );
+                                          setDirty(true);
+                                        }}
+                                        className="rounded border border-emerald-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100"
+                                      >
+                                        Dölj kommentar
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                       
                               </div>
                               <div className="flex flex-col items-end gap-1">
@@ -3721,7 +4314,19 @@ export default function IupModal({
             )}
 
                                     {tab === "planering" && (
-              <div className="space-y-4" data-info="Fyll i din planering för ST-utbildningen. Här kan du dokumentera övergripande mål, kliniska tjänstgöringar, kurser, handledning, teoretiska studier, vetenskapligt arbete och andra utbildningsaktiviteter. Du kan också lägga till egna rubriker.">
+              <div className="space-y-4">
+
+                {/* Sub-flikar: Övergripande / Enskild placering */}
+                <div className="flex gap-0 border-b border-slate-200 -mt-2 mb-2">
+                  {([['overgripande','Övergripande'],['enskild','Enskild placering']] as const).map(([v,l])=>(
+                    <button key={v} type="button" onClick={()=>setPlanTab(v)}
+                      className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                        planTab===v?'border-sky-600 text-sky-700':'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}>{l}</button>
+                  ))}
+                </div>
+
+                {planTab === 'overgripande' && <div className="space-y-4" data-info="Fyll i din planering för ST-utbildningen. Här kan du dokumentera övergripande mål, kliniska tjänstgöringar, kurser, handledning, teoretiska studier, vetenskapligt arbete och andra utbildningsaktiviteter. Du kan också lägga till egna rubriker.">
 
                 {/* Övergripande mål */}
                 <div>
@@ -3756,28 +4361,12 @@ export default function IupModal({
                 {/* Alla övriga fält i två kolumner */}
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Fördefinierade kortare textfält */}
-                  {(
-                    [
-                      ["clinicalService", "Kliniska tjänstgöringar"],
-                      ["courses", "Kurser"],
-                      ["supervisionMeetings", "Handledarsamtal"],
-                      ["theoreticalStudies", "Teoretiska studier"],
-                      ["researchWork", "Vetenskapligt arbete"],
-                      ["journalClub", "Journal club"],
-                      ["congresses", "Kongresser"],
-                      ["qualityWork", "Kvalitetsarbete"],
-                      ["patientSafety", "Patientsäkerhetsarbete"],
-                      ["leadership", "Ledarskap"],
-                      [
-                        "supervisingStudents",
-                        "Handledning av studenter/underläkare",
-                      ],
-                      ["teaching", "Undervisning"],
-                      ["formativeAssessments", "Formativa bedömningar"],
-                    ] as [keyof IupPlanning, string][]
-                  )
-                    .filter(([key]) => !hiddenPlanningKeys.includes(key as string))
-                    .map(([key, label]) => (
+                  {planningBaseSections
+                    .filter((sec) => !hiddenPlanningKeys.includes(String(sec.key)) && sec.key !== 'placementNotes')
+                    .map((sec) => {
+                      const key = sec.key;
+                      const label = sec.label;
+                      return (
                       <div key={key}>
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <label className="block text-sm font-semibold text-slate-800">
@@ -3793,14 +4382,15 @@ export default function IupModal({
                         </div>
                         <textarea
                           rows={2}
-                          value={planning[key]}
+                          value={planning[key] as string}
                           onChange={(e) =>
                             updatePlanning({ [key]: e.target.value } as Partial<IupPlanning>)
                           }
                           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
                         />
                       </div>
-                    ))}
+                      );
+                    })}
 
 
                   {/* Dynamiskt tillagda rubriker */}
@@ -3830,6 +4420,196 @@ export default function IupModal({
                     </div>
                   ))}
                 </div>
+              </div>}
+
+                {planTab === 'enskild' && (() => {
+                  const sortedPlacements = [...placements].sort((a:any,b:any)=>String(a.startDate||'').localeCompare(String(b.startDate||'')));
+                  const today = new Date().toISOString().slice(0,10);
+                  const defaultIdx = (() => {
+                    const i = sortedPlacements.findIndex((p:any)=> (p.startDate||'')<=today && (p.endDate||'9999')>=today);
+                    return i>=0?i:Math.max(0,sortedPlacements.length-1);
+                  })();
+                  const idx = Math.min(selectedPlanPlacIdx ?? defaultIdx, Math.max(0,sortedPlacements.length-1));
+                  const selP: any = sortedPlacements[idx];
+                  const notes = planning.placementNotes || {};
+                  const milestoneTitleByKey = (() => {
+                    const out: Record<string, string> = {};
+                    const all = Array.isArray((iupGoalsCatalog as any)?.milestones) ? ((iupGoalsCatalog as any).milestones as any[]) : [];
+                    for (const m of all) {
+                      const key = normalizeMilestoneCodeForGrouping(String((m as any)?.code || (m as any)?.id || ""));
+                      const title = String((m as any)?.title || "").trim();
+                      if (key && title) out[key] = title;
+                    }
+                    return out;
+                  })();
+                  const placementMilestones = (() => {
+                    if (!selP) return [] as string[];
+                    const set = new Set<string>();
+                    const lists = [selP?.milestones, selP?.goals, selP?.goalIds, selP?.milestoneIds];
+                    for (const list of lists) {
+                      if (!Array.isArray(list)) continue;
+                      for (const raw of list) {
+                        const key = normalizeMilestoneCodeForGrouping(String(raw || ""));
+                        if (key) set.add(key);
+                      }
+                    }
+                    for (const ach of achievements as any[]) {
+                      if (String((ach as any)?.placementId || "") !== String(selP?.id || "")) continue;
+                      const raw = (ach as any)?.milestoneId ?? (ach as any)?.goalId ?? (ach as any)?.code ?? "";
+                      const key = normalizeMilestoneCodeForGrouping(String(raw || ""));
+                      if (key) set.add(key);
+                    }
+                    return Array.from(set).sort(compareMilestoneCodes);
+                  })();
+                  return (
+                    <div className="space-y-4">
+                      {sortedPlacements.length === 0 ? (
+                        <p className="text-sm text-slate-400">Inga placeringar registrerade ännu.</p>
+                      ) : (
+                        <>
+                          {/* Bläddringsrad */}
+                          <div className="flex items-center gap-2">
+                            <button type="button" disabled={idx===0} onClick={()=>setSelectedPlanPlacIdx(idx-1)}
+                              className="rounded border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-40 hover:bg-slate-50">←</button>
+                            <div className="flex-1 overflow-x-auto">
+                              <div className="flex gap-1.5 pb-1">
+                                {sortedPlacements.map((p:any,i)=>{
+                                  const label = p.clinic||p.title||'Placering';
+                                  const start = String(p.startDate||'').slice(0,10);
+                                  const end = String(p.endDate||'').slice(0,10);
+                                  const isActive = start<=today && end>=today;
+                                  return (
+                                    <button key={p.id||i} type="button" onClick={()=>setSelectedPlanPlacIdx(i)}
+                                      className={`flex-shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                        i===idx?'border-sky-500 bg-sky-50 text-sky-800':
+                                        isActive?'border-emerald-400 bg-emerald-50 text-emerald-800':'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                                      }`}>
+                                      {label}
+                                      {isActive && <span className="ml-1 text-[10px]">(pågående)</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <button type="button" disabled={idx>=sortedPlacements.length-1} onClick={()=>setSelectedPlanPlacIdx(idx+1)}
+                              className="rounded border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-40 hover:bg-slate-50">→</button>
+                          </div>
+
+                          {selP && (
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-semibold text-slate-900">{selP.clinic||selP.title||'Placering'}</p>
+                                  <p className="text-xs text-slate-500">{String(selP.startDate||'').slice(0,10)} – {String(selP.endDate||'').slice(0,10)}</p>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-1">Anteckningar för denna placering</label>
+                                <textarea
+                                  rows={5}
+                                  value={notes[selP.id]||''}
+                                  onChange={(e)=>{
+                                    const next = {...(planning.placementNotes||{}),[selP.id]:e.target.value};
+                                    updatePlanning({placementNotes:next});
+                                  }}
+                                  placeholder="Dina mål, reflektioner och anteckningar för denna placering…"
+                                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-sky-300"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="text-sm font-semibold text-slate-900">Studierektors förslag</h4>
+                                {(() => {
+                                  const placementLabel = String(selP?.clinic || selP?.title || "");
+                                  const templateSpecificMoments = resolveTemplateMomentsForPlacement(
+                                    placementLabel,
+                                    srTemplateMomentsByTemplateKey
+                                  );
+                                  const hasTemplateMapping = Object.keys(templateSpecificMoments).length > 0;
+                                  const { required: mergedRequired, recommended: mergedRecommended } =
+                                    mergePlacementTemplateMoments(
+                                      placementMilestones,
+                                      templateSpecificMoments,
+                                      srGoalSuggestionsByMilestone
+                                    );
+                                  return (
+                                    <>
+                                      {!hasTemplateMapping ? (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                          Ingen matchande studierektorsmall hittades för denna kliniska tjänstgöring.
+                                        </div>
+                                      ) : null}
+                                      <p className="text-[11px] text-slate-500">
+                                        Tre parallella listor: delmål för placeringen, samt mallens obligatoriska och
+                                        rekommenderade moment (sammanslagna, inte kopplade rad för rad).
+                                      </p>
+                                      <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-3 text-xs md:grid-cols-3">
+                                        <div className="min-w-0 border-slate-100 md:border-r md:pr-3">
+                                          <h5 className="mb-2 font-semibold text-slate-800">Delmål</h5>
+                                          {placementMilestones.length === 0 ? (
+                                            <p className="text-slate-400">Inga delmål kopplade till placeringen ännu.</p>
+                                          ) : (
+                                            <ul className="space-y-2 text-slate-700">
+                                              {placementMilestones.map((milestoneKey) => {
+                                                const codeLabel = displayMilestoneCode(
+                                                  milestoneKey,
+                                                  String(profile?.goalsVersion || "")
+                                                );
+                                                const title = milestoneTitleByKey[milestoneKey] || "";
+                                                return (
+                                                  <li key={`${selP.id}-dm-${milestoneKey}`} className="leading-snug">
+                                                    <span className="font-semibold text-slate-900">
+                                                      {codeLabel || milestoneKey}
+                                                    </span>
+                                                    {title ? (
+                                                      <div className="mt-0.5 text-[11px] text-slate-600">{title}</div>
+                                                    ) : null}
+                                                  </li>
+                                                );
+                                              })}
+                                            </ul>
+                                          )}
+                                        </div>
+                                        <div className="min-w-0 border-slate-100 md:border-r md:pr-3">
+                                          <h5 className="mb-2 font-semibold text-slate-800">Obligatoriska moment</h5>
+                                          {mergedRequired.length > 0 ? (
+                                            <ul className="space-y-1 text-slate-700">
+                                              {mergedRequired.map((item) => (
+                                                <li key={`req-${item}`} className="leading-snug">
+                                                  {item}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          ) : (
+                                            <span className="text-slate-400">—</span>
+                                          )}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <h5 className="mb-2 font-semibold text-slate-800">Rekommenderade moment</h5>
+                                          {mergedRecommended.length > 0 ? (
+                                            <ul className="space-y-1 text-slate-700">
+                                              {mergedRecommended.map((item) => (
+                                                <li key={`rec-${item}`} className="leading-snug">
+                                                  {item}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          ) : (
+                                            <span className="text-slate-400">—</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
               </div>
             )}
 
@@ -4492,7 +5272,7 @@ export default function IupModal({
                                       showGoalActivities ? "text-slate-800" : "text-slate-400"
                                     }`}
                                   >
-                                    {row.activities.join("\n")}
+                                    {row.activities.length > 0 ? row.activities.join("\n") : "—"}
                                   </td>
                                 </tr>
                               );
@@ -4615,7 +5395,7 @@ export default function IupModal({
                         </div>
                         <div>
                           <span className="font-semibold">Målversion: </span>
-                          {String((profile as any)?.goalsVersion ?? "") || "—"}
+                          {String((profile as any)?.goalsVersion ?? (profile as any)?.goals_version ?? "") || "—"}
                         </div>
                       </div>
                     </div>
@@ -4983,7 +5763,7 @@ export default function IupModal({
                         </div>
                         <div>
                           <span className="font-semibold">Målversion: </span>
-                          {String((profile as any)?.goalsVersion ?? "") || "—"}
+                          {String((profile as any)?.goalsVersion ?? (profile as any)?.goals_version ?? "") || "—"}
                         </div>
                       </div>
                     </div>
@@ -5039,7 +5819,7 @@ export default function IupModal({
                                 )}
                                 {showGoalActivities && (
                                   <td className="border border-slate-200 px-3 py-2 align-top whitespace-pre-line text-[11px] text-slate-800">
-                                    {row.activities.join("\n")}
+                                    {row.activities.length > 0 ? row.activities.join("\n") : "—"}
                                   </td>
                                 )}
                               </tr>
@@ -5064,6 +5844,10 @@ export default function IupModal({
       <MeetingModal
         open={!!editingMeetingId && !!currentMeeting}
         meeting={currentMeeting}
+        allMeetings={meetings}
+        placements={placements}
+        courses={courses}
+        achievements={achievements}
         onSave={(value) => {
           upsertMeeting(value);
         }}
@@ -5118,6 +5902,7 @@ export default function IupModal({
 
       <NewPlanningSectionModal
         open={newSectionModalOpen}
+        suggestedTitles={newSectionModalSuggestedTitles}
         onSave={(title) => {
           addPlanningSection(title);
           setNewSectionModalOpen(false);

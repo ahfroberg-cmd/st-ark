@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestonePicker from "@/components/MilestonePicker";
 import BtMilestonePicker from "@/components/BtMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import type { Profile } from "@/lib/types";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
+import { sortMilestoneIds as sortMilestoneIdsBySequence } from "@/lib/milestoneSequence";
+import { usePlacements } from "@/lib/hooks/useSupabaseData";
+import { useMobileProfile } from "@/lib/hooks/useMobileData";
 
 type PlacementRow = {
   id: any;
@@ -159,40 +161,31 @@ function findNextAvailableDate(
 }
 
 export default function MobilePlacements() {
-  const [rows, setRows] = useState<PlacementRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { placements, loading, savePlacement, deletePlacement } = usePlacements();
+  const { profile: dbProfile } = useMobileProfile();
   const [selectedId, setSelectedId] = useState<any | null>(null);
   const [editing, setEditing] = useState<PlacementRow | null>(null);
   const [originalEditing, setOriginalEditing] = useState<PlacementRow | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const anyDb: any = db as any;
-        const list =
-          ((await anyDb.placements?.toArray?.()) as PlacementRow[] | undefined) ??
-          [];
-        if (!cancelled) {
-          const sorted = [...list].sort((a, b) =>
-            fmtDate(a.startDate).localeCompare(fmtDate(b.startDate))
-          );
-          setRows(sorted);
-        }
-      } catch (e) {
-        console.error("Kunde inte läsa placeringar:", e);
-        if (!cancelled) setRows([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const rows = useMemo(() => {
+    return placements.map(p => ({
+      id: p.id,
+      clinic: p.clinic,
+      title: p.clinic,
+      note: p.note,
+      startDate: p.start_date,
+      endDate: p.end_date,
+      type: p.type,
+      milestones: p.milestones || [],
+      btMilestones: p.bt_milestones || [],
+      fulfillsStGoals: p.fulfills_st_goals,
+      supervisor: p.supervisor,
+      supervisorSpeciality: p.supervisor_speciality,
+      supervisorSite: p.supervisor_site,
+      showOnTimeline: p.show_on_timeline,
+    } as PlacementRow));
+  }, [placements]);
 
   function handleSelect(row: PlacementRow) {
     setSelectedId(row.id);
@@ -257,7 +250,7 @@ export default function MobilePlacements() {
     if (!editing || !isDirty) return;
     setSaving(true);
     try {
-      const anyDb: any = db as any;
+      
 
       const isExisting = rows.some((r) => r.id === editing.id);
 
@@ -288,14 +281,21 @@ export default function MobilePlacements() {
 
       if (isExisting) {
         const id = editing.id;
-        const updatePatch = { ...patch };
-        delete (updatePatch as any).id;
-        await anyDb.placements?.update?.(id, updatePatch);
-        setRows((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, ...patch } : p))
-        );
-        // Uppdatera både editing och originalEditing så att isDirty blir false
-        // patch har redan formaterade datum, så använd dem direkt
+        await savePlacement({
+          id,
+          type: patch.type,
+          clinic: patch.clinic,
+          supervisor: patch.supervisor,
+          supervisor_speciality: patch.supervisorSpeciality,
+          supervisor_site: patch.supervisorSite,
+          start_date: patch.startDate,
+          end_date: patch.endDate,
+          milestones: patch.milestones,
+          bt_milestones: patch.btMilestones,
+          note: patch.note,
+          show_on_timeline: patch.showOnTimeline,
+          fulfills_st_goals: patch.fulfillsStGoals,
+        });
         const updatedEditing = {
           ...editing,
           ...patch,
@@ -303,19 +303,29 @@ export default function MobilePlacements() {
         setEditing(updatedEditing);
         setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       } else {
-        // Ny rad: behåll id och skicka in hela patch (med id) till add
         const insertPatch: PlacementRow = { ...patch };
-        await anyDb.placements?.add?.(insertPatch);
-        setRows((prev) => [...prev, insertPatch]);
-        setSelectedId(insertPatch.id);
-        // Formatera datum för editing (samma format som när man väljer en rad)
+        await savePlacement({
+          type: insertPatch.type,
+          clinic: insertPatch.clinic,
+          supervisor: insertPatch.supervisor,
+          supervisor_speciality: insertPatch.supervisorSpeciality,
+          supervisor_site: insertPatch.supervisorSite,
+          start_date: insertPatch.startDate,
+          end_date: insertPatch.endDate,
+          milestones: insertPatch.milestones,
+          bt_milestones: insertPatch.btMilestones,
+          note: insertPatch.note,
+          show_on_timeline: insertPatch.showOnTimeline,
+          fulfills_st_goals: insertPatch.fulfillsStGoals,
+        });
+        setSelectedId(null);
         const updatedEditing = {
           ...insertPatch,
           startDate: fmtDate(insertPatch.startDate),
           endDate: fmtDate(insertPatch.endDate),
         };
-        setEditing(updatedEditing);
-        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
+        setEditing(null);
+        setOriginalEditing(null);
       }
     } catch (e) {
       console.error("Kunde inte spara placering:", e);
@@ -338,9 +348,7 @@ export default function MobilePlacements() {
     if (!window.confirm("Vill du ta bort denna aktivitet?")) return;
     
     try {
-      const anyDb: any = db as any;
-      await anyDb.placements?.delete?.(editing.id);
-      setRows((prev) => prev.filter((p) => p.id !== editing.id));
+      await deletePlacement(editing.id);
       setEditing(null);
       setSelectedId(null);
     } catch (e) {
@@ -411,6 +419,7 @@ export default function MobilePlacements() {
       {editing && (
         <PlacementEditPopup
           placement={editing}
+          baseProfile={dbProfile}
           onSave={handleSave}
           onClose={() => {
             setEditing(null);
@@ -431,6 +440,7 @@ export default function MobilePlacements() {
 // Placement edit popup component
 function PlacementEditPopup({
   placement,
+  baseProfile,
   onSave,
   onClose,
   onDelete,
@@ -440,6 +450,7 @@ function PlacementEditPopup({
   allPlacements,
 }: {
   placement: PlacementRow;
+  baseProfile: Profile | null;
   onSave: () => void;
   onClose: () => void;
   onDelete: () => void;
@@ -488,22 +499,20 @@ function PlacementEditPopup({
   const currentPhase = placement.phase || calculatedPhase;
 
   useEffect(() => {
-    (async () => {
-      const p = await db.profile.get("default");
-      setProfile(p ?? null);
-      if (p?.goalsVersion && (p.specialty || (p as any).speciality)) {
-        try {
-          const g = await loadGoals(
-            p.goalsVersion,
-            p.specialty || (p as any).speciality || ""
-          );
-          setGoals(g);
-        } catch (e) {
+    setProfile(baseProfile ?? null);
+    if ((baseProfile as any)?.goalsVersion && ((baseProfile as any)?.specialty || (baseProfile as any)?.speciality)) {
+      loadGoals(
+        (baseProfile as any).goalsVersion,
+        (baseProfile as any).specialty || (baseProfile as any).speciality || ""
+      )
+        .then(setGoals)
+        .catch((e) => {
           console.error("Kunde inte ladda mål:", e);
-        }
-      }
-    })();
-  }, []);
+        });
+    } else {
+      setGoals(null);
+    }
+  }, [baseProfile]);
 
   function handleToggleMilestone(milestoneId: string) {
     const current = placement.milestones || [];
@@ -517,11 +526,8 @@ function PlacementEditPopup({
   }
 
   function sortMilestoneIds(ids: string[]): string[] {
-    return [...ids].sort((a, b) => {
-      const aNorm = String(a).toLowerCase().replace(/^st/, "");
-      const bNorm = String(b).toLowerCase().replace(/^st/, "");
-      return aNorm.localeCompare(bNorm);
-    });
+    // Use shared ordering so pills/text match across the app.
+    return sortMilestoneIdsBySequence(ids);
   }
 
   return (
@@ -783,7 +789,7 @@ function PlacementEditPopup({
                             key={m}
                             className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
                           >
-                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                            {displayMilestoneCode(String(m).trim(), profile?.goalsVersion)}
                           </span>
                         ))
                       ) : (

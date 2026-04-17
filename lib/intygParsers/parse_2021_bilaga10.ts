@@ -6,7 +6,10 @@ import { normalizeAndSortDelmalCodes2021, extractDelmalCodes } from "./common";
 
 export type ParsedKurs2021 = ExtractedCommon & {
   type: "KURS";
-  // kompatibilitet med mapAndSaveKurs
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  specialtyHeader?: string;
   courseTitle?: string;
   description?: string;
   subject?: string;

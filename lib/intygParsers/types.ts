@@ -27,6 +27,7 @@ export type ParsedIntyg = {
   supervisorSite?: string;
   // För kursintyg 2015: Kursledare (namn)
   courseLeader?: string;
+  signingRole?: string;
 };
 
 // Parser-funktioner kan nu acceptera optional words-parameter för zonlogik

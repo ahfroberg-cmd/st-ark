@@ -23,7 +23,10 @@ Thumbs.db
 dist/
 build/
 
-# Environment variables
-.env.local
-.env*.local
+# Environment variables (hemligheter — committa aldrig)
+.env
+.env.*
+!.env.example
+!.env.local.example
+!.env*.example
 

@@ -79,17 +79,17 @@ export default function UnsavedChangesDialog({
         if (e.key === "Escape") {
           e.preventDefault();
           e.stopPropagation();
-          e.stopImmediatePropagation();
+          (e.nativeEvent as Event).stopImmediatePropagation?.();
           onCancel();
         } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && onSaveAndClose) {
           e.preventDefault();
           e.stopPropagation();
-          e.stopImmediatePropagation();
+          (e.nativeEvent as Event).stopImmediatePropagation?.();
           onSaveAndClose();
         } else if (e.key === "Delete" || ((e.metaKey || e.ctrlKey) && e.key === "Backspace")) {
           e.preventDefault();
           e.stopPropagation();
-          e.stopImmediatePropagation();
+          (e.nativeEvent as Event).stopImmediatePropagation?.();
           onDiscard();
         }
       }}
@@ -102,17 +102,17 @@ export default function UnsavedChangesDialog({
           if (e.key === "Escape") {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            (e.nativeEvent as Event).stopImmediatePropagation?.();
             onCancel();
           } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && onSaveAndClose) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            (e.nativeEvent as Event).stopImmediatePropagation?.();
             onSaveAndClose();
           } else if (e.key === "Delete" || ((e.metaKey || e.ctrlKey) && e.key === "Backspace")) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            (e.nativeEvent as Event).stopImmediatePropagation?.();
             onDiscard();
           }
         }}

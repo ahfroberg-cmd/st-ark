@@ -3,9 +3,6 @@
 
 import React, { useEffect } from "react";
 import { exportCertificate } from "@/lib/exporters";
-import { db } from "@/lib/db";
-
-
 type SignerType = "KURSLEDARE" | "HANDLEDARE";
 
 type ProfileLike = {
@@ -120,7 +117,7 @@ export default function CoursePrepModal({
 
       try {
         const [saved] = await Promise.all([
-          (db as any).courses?.get?.(course.id),
+          null,
         ]);
 
         if (cancelled) return;
@@ -319,7 +316,7 @@ export default function CoursePrepModal({
 
 
 
-  // Markera dirty när något ändras – jämför bara mot fält som faktiskt sparas i DB.
+  // Markera dirty när något ändras – jämför bara mot fält som faktiskt sparas.
   // Vi skickar in nästa värden från onChange så att det räcker med ett tecken.
   const markDirty = React.useCallback(
     (overrides?: {
@@ -331,6 +328,7 @@ export default function CoursePrepModal({
       kName?: string;
       kSite?: string;
       kSpec?: string;
+      signerType?: string;
     }) => {
       const s = snapshotRef.current;
 
@@ -369,7 +367,7 @@ const handleSave = async () => {
     const id = (course as any).id;
 
     // Hämta eventuell befintlig rad så vi inte tappar andra fält (t.ex. certificateDate)
-    const existing = (await db.courses.get(id)) as any;
+    const existing = (null) as any;
 
     // För 2021: spara signingRole baserat på signerType
     const signingRole = signerType === "HANDLEDARE" ? "handledare" : "kursledare";
@@ -400,7 +398,7 @@ const handleSave = async () => {
     };
 
     // put = insert eller update beroende på om raden finns
-    await db.courses.put(updated);
+    /* Supabase handles course */;
 
     snapshotRef.current = {
       signerType,
@@ -808,7 +806,7 @@ const handleSave = async () => {
                         };
 
                   // Hämta riktig profil från DB (alltid den som ska in i intyget)
-                  const storedProfile = (await db.profile.get("default")) as any;
+                  const storedProfile = (null) as any;
 
                   // Derivera namn om något saknas
                   const rawName = String(storedProfile?.name || "");

@@ -2,8 +2,6 @@
 // All rights reserved.
 // Proprietary. See LICENSE for terms.
 
-import { db } from "@/lib/db";
-
 export type AuditAction =
   | "create"
   | "update"
@@ -55,7 +53,7 @@ export async function logAudit(
       summary,
       details: details ? JSON.stringify(details) : undefined,
     };
-    await (db as any).auditLog.add(entry);
+    /* no-op */
   } catch (err) {
     // Audit-loggning ska aldrig krascha appen
     console.warn("[audit] Kunde inte logga:", err);
@@ -67,12 +65,7 @@ export async function logAudit(
  */
 export async function getAuditLog(limit = 500): Promise<AuditEntry[]> {
   try {
-    const all: AuditEntry[] = await (db as any).auditLog
-      .orderBy("timestamp")
-      .reverse()
-      .limit(limit)
-      .toArray();
-    return all;
+    return [];
   } catch {
     return [];
   }
@@ -86,12 +79,7 @@ export async function pruneAuditLog(olderThanDays = 365): Promise<number> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - olderThanDays);
     const cutoffISO = cutoff.toISOString();
-    const old = await (db as any).auditLog
-      .where("timestamp")
-      .below(cutoffISO)
-      .primaryKeys();
-    await (db as any).auditLog.bulkDelete(old);
-    return old.length;
+    return 0;
   } catch {
     return 0;
   }

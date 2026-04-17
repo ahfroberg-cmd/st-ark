@@ -7,13 +7,47 @@ import React, {
   useMemo,
   useRef,
   useState,
-  Fragment,
 } from "react";
 import dynamic from "next/dynamic";
-import { db } from "@/lib/db";
 import type { Profile, Placement, Course } from "@/lib/types";
-import CalendarDatePicker from "@/components/CalendarDatePicker";
+import { supabase } from "@/lib/supabase";
+import { fetchClinicContactsForUser } from "@/lib/clinicContacts";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
+import { BtGoalsTab } from "@/components/prepareBt/BtGoalsTab";
+import { AttachmentsTab } from "@/components/prepareBt/AttachmentsTab";
+import { BtCompetenceTab } from "@/components/prepareBt/BtCompetenceTab";
+import { BtFullTab } from "@/components/prepareBt/BtFullTab";
+import { BtPreviewActionFooter } from "@/components/prepareBt/BtPreviewActionFooter";
+import { CertificatePreviewModal } from "@/components/prepareBt/CertificatePreviewModal";
+import { IntygDetailsModal } from "@/components/prepareBt/IntygDetailsModal";
+import { IntygGoalsPickerModal } from "@/components/prepareBt/IntygGoalsPickerModal";
+import {
+  normalizeAndSortAttachments,
+} from "@/components/prepareBt/attachmentsUtils";
+import {
+  extractPlacementGoals,
+  isoToday,
+  makeId,
+  monthDiffExact,
+  pickPercent,
+} from "@/components/prepareBt/modalHelpers";
+import type {
+  BtActivity,
+  AttachKey,
+  BtPlacementRow,
+  Chip,
+  ForeignOrPrelicenseRow,
+  Props,
+} from "@/components/prepareBt/modalTypes";
+import {
+  buildBtApplicationPreviewBlob,
+  buildBtCompetencePreviewBlob,
+  buildBtFullPreviewBlob,
+  buildBtGoalsPreviewBlob,
+  buildPlacementPreviewBlob,
+  buildSavedBtPreviewBlob,
+} from "@/components/prepareBt/previewBuilders";
+import { RegisteredActivitiesChooserModal } from "@/components/prepareBt/RegisteredActivitiesChooserModal";
 
 
 /** ========= Dependencies (popups) ========= */
@@ -22,217 +56,7 @@ const BtMilestonePicker = dynamic(
   { ssr: false }
 );
 
-/** ========= Helpers ========= */
-const makeId = () =>
-  Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const isoToday = () => {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
-
-function monthDiffExact(startISO?: string, endISO?: string) {
-  const s = new Date(startISO || "");
-  const e = new Date(endISO || "");
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
-  const ms = e.getTime() - s.getTime();
-  const days = ms / (1000 * 60 * 60 * 24);
-  return Math.max(0, days / 30.4375);
-}
-
-function pickPercent(p: any): number {
-  const v = Number(
-    p?.percent ?? p?.ftePercent ?? p?.scopePercent ?? p?.omfattning ?? 100
-  );
-  return Number.isFinite(v) && v > 0 ? Math.min(100, Math.max(0, v)) : 100;
-}
-
-/** Samla BT-delmål från placement – robust, med djupskanning */
-function extractPlacementGoals(pl: any): string[] {
-  // Endast riktiga BT-delmål: kräver nummer efter "BT"
-  const BT = (s: string) =>
-    /^BT[-_\s]*\d+/i.test(s || "");
-
-  const out = new Set<string>();
-
-  function add(s: unknown) {
-    if (typeof s !== "string") return;
-    const raw = s.trim();
-    if (!BT(raw)) return;
-    // Normalisera: "bt 1", "BT-1", "bt_01" -> "BT1" / "BT01" (behåll nummer som står)
-    const norm = raw
-      .replace(/\s+/g, "")
-      .replace(/^bt/i, "BT")
-      .replace(/[-_]/g, "");
-    out.add(norm.toUpperCase());
-  }
-
-  function visit(v: any, depth = 0) {
-    if (v == null || depth > 4) return;
-
-    if (typeof v === "string") {
-      add(v);
-      return;
-    }
-
-    if (Array.isArray(v)) {
-      for (const x of v) visit(x, depth + 1);
-      return;
-    }
-
-    if (typeof v === "object") {
-      // Vanliga fält
-      add((v as any).id as any);
-      add((v as any).code as any);
-      add((v as any).goalId as any);
-      add((v as any).milestoneId as any);
-      add((v as any).milestone as any);
-
-      // Djupskanna objekt (begränsad)
-      for (const k of Object.keys(v)) {
-        add(k);
-        visit((v as any)[k], depth + 1);
-      }
-    }
-  }
-
-  // Primära, kända fält först
-  visit(pl?.btGoals);
-  visit(pl?.btGoalIds);
-  visit(pl?.btMilestones);
-  visit(pl?.bt_milestones);
-  visit(pl?.milestones);
-  visit(pl?.goals);
-  visit(pl?.goalIds);
-  visit(pl?.milestoneIds);
-  visit(pl?.meta);
-
-  // Som fallback: skanna hela placementet ytligt
-  visit(
-    {
-      id: (pl as any)?.id,
-      phase: (pl as any)?.phase,
-      tags: (pl as any)?.tags,
-      extra: (pl as any)?.extra,
-    },
-    0
-  );
-
-  return Array.from(out);
-}
-
-
-
-/** ========= Local inputs matching PrepareApplicationModal UX ========= */
-function LabeledInputLocal({
-  label,
-  value,
-  onCommit,
-  placeholder,
-  inputMode,
-}: {
-  label: string;
-  value?: string;
-  onCommit: (v: string) => void;
-  placeholder?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-}) {
-  const [local, setLocal] = useState<string>(value ?? "");
-  useEffect(() => {
-    setLocal(value ?? "");
-  }, [value]);
-
-  const handleChange = useCallback(
-    (e: React.FormEvent<HTMLInputElement>) => {
-      const v = (e.target as HTMLInputElement).value;
-      setLocal(v);
-      if ((value ?? "") !== v) onCommit(v);
-    },
-    [value, onCommit]
-  );
-
-  const handleBlur = useCallback(() => {
-    if ((value ?? "") !== local) onCommit(local);
-  }, [local, value, onCommit]);
-
-
-  return (
-    <div className="min-w-0">
-      <label className="mb-1 block text-sm text-slate-700">{label}</label>
-      <input
-        type="text"
-        value={local}
-        onInput={handleChange}
-        onBlur={handleBlur}
-        inputMode={inputMode}
-
-        autoComplete="off"
-        spellCheck={false}
-        className="h-[40px] w-full rounded-lg border border-slate-300 bg-white px-3 text-[14px]
-                   focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-      />
-    </div>
-  );
-}
-
-function ReadonlyInput({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="min-w-0" title={'Ändras i "Profil"'}>
-      <label className="mb-1 block text-sm text-slate-700">{label}</label>
-      <div
-        className="min-h-[40px] w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-[14px] text-slate-700"
-        aria-readonly="true"
-        role="textbox"
-      >
-        <span className="whitespace-normal break-words">{value || "—"}</span>
-      </div>
-    </div>
-  );
-}
-
-
-/** ========= Types (local state) ========= */
-type Props = { open: boolean; onClose: () => void };
-
-type BtGoalId = string; // t.ex. "BT1"..."BT6"
-type Chip = { id: BtGoalId; label: string };
-
-type BtActivity = {
-  id: string;
-  text: string;
-  startISO: string | null;
-  endISO: string | null;
-  source?: "manual" | "registered";
-  refId?: string;
-};
-
-
-type BtPlacementRow = {
-  id: string;
-  ref: Placement;
-  primaryCare: boolean;
-  acuteCare: boolean;
-  percent: number;
-  monthsFte: number;
-};
-
-type ForeignOrPrelicenseRow = {
-  id: string;
-  title: string;
-  intyg?: {
-    clinic: string;
-    startISO: string | null;
-    endISO: string | null;
-    percent: number;
-    supervisor: string;
-    supervisorSpec: string;
-    supervisorWorkplace: string;
-    controlHow: string;
-    goals: Chip[];
-  };
-};
 
 /** ========= Component ========= */
 export default function PrepareBtModal({ open, onClose }: Props) {
@@ -246,6 +70,34 @@ export default function PrepareBtModal({ open, onClose }: Props) {
       setDirty(false);
       setShowCloseConfirm(false);
     }
+  }, [open]);
+
+  const [resolvedMainSupervisor, setResolvedMainSupervisor] = useState<{
+    name: string;
+    specialty: string;
+    workplace: string;
+  }>({ name: "", specialty: "", workplace: "" });
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+        const contacts = await fetchClinicContactsForUser(user.id);
+        if (cancelled) return;
+        setResolvedMainSupervisor({
+          name: contacts.mainSupervisor?.name || "",
+          specialty: contacts.mainSupervisor?.specialty || "",
+          workplace: contacts.mainSupervisor?.workplace || contacts.clinicName || "",
+        });
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   /** Profile + DB content */
@@ -296,18 +148,6 @@ const [applicant, setApplicant] = useState({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Endast ID-delen av BT-delmål (”BT1”, ”BT2”, …)
-  const toMilestoneIds = (chips: Chip[]) =>
-    Array.isArray(chips) ? chips.map((c) => String(c.id).trim().split(/\s|–|-|:|\u2013/)[0]) : [];
-
-  // Hjälpare: normalisera målversion till "2015" | "2021"
-  function normalizeGoalsVersion(v: any): "2015" | "2021" {
-    const s = String(v ?? "").toLowerCase();
-    if (s.includes("2015")) return "2015";
-    if (s.includes("2021")) return "2021";
-    return "2021";
-  }
-
   // Öppna generisk PDF-blob i förhandsvisningsmodulen
   function openPreviewFromBlob(blob: Blob) {
     try {
@@ -320,56 +160,6 @@ const [applicant, setApplicant] = useState({
     }
   }
 
-  // Enkel förhandsvisnings-modal (PDF) – samma UI som i PusslaDinST
-  function CertificatePreview({
-    open,
-    url,
-    onClose,
-  }: {
-    open: boolean;
-    url: string | null;
-    onClose: () => void;
-  }) {
-    if (!open) return null;
-    return (
-      <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-4xl h-[85vh] rounded-xl shadow-xl flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b flex items-center justify-between">
-            <h2 className="font-semibold">Förhandsvisning av intyg</h2>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            {url ? (
-              <iframe src={url} className="w-full h-full" />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center text-slate-500">
-                Genererar …
-              </div>
-            )}
-          </div>
-          <div className="px-4 py-3 border-t flex items-center justify-end gap-2">
-            <a
-              href={url ?? "#"}
-              download
-              className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50"
-              onClick={(e) => {
-                if (!url) e.preventDefault();
-              }}
-            >
-              Ladda ned PDF
-            </a>
-            <button
-              onClick={onClose}
-              className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-200 hover:border-slate-400 active:translate-y-px"
-              title="Stäng förhandsvisningen"
-            >
-              Stäng
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // — Handlers för knapparna längst ned —
 
 
@@ -380,78 +170,16 @@ const [applicant, setApplicant] = useState({
         alert("Profil saknas – kan inte skapa intyget.");
         return;
       }
-      const { exportCertificate } = await import("@/lib/exporters");
-      const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-      const placementById = new Map<string, any>(
-        (btPlacements || []).map((pl: any) => [String(pl?.id ?? ""), pl])
-      );
-      const isCourseLike = (x: any) =>
-        Boolean((x as any)?.certificateDate || (x as any)?.courseLeaderName || (x as any)?.city);
-      const activity: any = {
-        // Delmål som intyget avser
-        goals: toMilestoneIds(btGoals),
-        // Lista aktiviteter (fritext + ev. datum)
-        activities: btActivities.map((a) => ({
-          text: a.text || "",
-          startDate: a.startISO || null,
-          endDate: a.endISO || null,
-          source: a.source || "manual",
-          refId: a.refId || null,
-          kind:
-            a.source === "registered" && a.refId
-              ? (isCourseLike(placementById.get(String(a.refId)) || null) ? "course" : "placement")
-              : "unknown",
-          milestones:
-            a.source === "registered" && a.refId
-              ? extractPlacementGoals(placementById.get(String(a.refId)) || null)
-              : [],
-        })),
-        // Hur kontrollerats
-        controlHow: String(controlHow || "").trim() || "",
-
-        // Flagga för exportlogik: true om "någon annan" ska användas
-        useOtherSigner: mainSupervisorPrints,
-
-        // Vem signerar (om rutan är ikryssad = annan, annars huvudhandledare från Profil)
-        signer: mainSupervisorPrints
-          ? {
-              // ifyllda fält i modalen
-              name: issuingSupervisor?.name || "",
-              specialty: issuingSupervisor?.specialty || "",
-              workplace: issuingSupervisor?.workplace || "",
-              useOther: true,
-            }
-          : {
-              // PROFILFÄLT (enligt dina krav)
-              // Huvudhandledare = profile.supervisor
-              name: (profile as any)?.supervisor || "",
-              // Handledarens specialitet = sökandens specialitet
-              specialty: (profile as any)?.specialty || (profile as any)?.speciality || "",
-              // Handledarens tjänsteställe:
-              // 1) specifikt handledartjänsteställe om ifyllt
-              // 2) annars sökandens hemklinik
-              workplace:
-                (profile as any)?.supervisorWorkplace ||
-                (profile as any)?.homeClinic ||
-                "",
-              useOther: false,
-            },
-
-      };
-
-      const blob = (await exportCertificate(
-        {
-          goalsVersion: gv,
-          // BT-specifik typ för exportern – kan mappas i exporters.ts
-          activityType: "BT_GOALS",
-          profile: profile as any,
-          activity,
-          // Milestones explicit (en del exporter läser här)
-          milestones: toMilestoneIds(btGoals),
-        },
-        { output: "blob", filename: "bt-delmal-preview.pdf" }
-      )) as Blob;
+      const blob = await buildBtGoalsPreviewBlob({
+        profile,
+        btGoals,
+        btActivities,
+        btPlacements,
+        controlHow,
+        mainSupervisorPrints,
+        issuingSupervisor,
+        extractPlacementGoals,
+      });
 
       openPreviewFromBlob(blob);
     } catch (e) {
@@ -467,36 +195,12 @@ const [applicant, setApplicant] = useState({
         alert("Profil saknas – kan inte skapa intyget.");
         return;
       }
-      const { exportCertificate } = await import("@/lib/exporters");
-      const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-      const activity: any = {
-        // Placeringar markerade som BT i tabellen
-        rows: btRows.map((r) => ({
-          id: r.id,
-          clinic: (r.ref as any)?.clinic || (r.ref as any)?.note || "",
-          startDate: (r.ref as any)?.startDate || "",
-          endDate: (r.ref as any)?.endDate || (r.ref as any)?.startDate || "",
-          percent: r.percent,
-          monthsFte: r.monthsFte,
-          primaryCare: !!r.primaryCare,
-          acuteCare: !!r.acuteCare,
-        })),
-        // Vem signerar (verksamhetschef eller ”annan”)
-        signer: (otherThanManager
-          ? { role: "appointed", name: appointedSigner.name || "", workplace: appointedSigner.workplace || "" }
-          : { role: "manager", name: (profile as any)?.managerName || "", workplace: (profile as any)?.homeClinic || "" }),
-      };
-
-      const blob = (await exportCertificate(
-        {
-          goalsVersion: gv,
-          activityType: "BT_FULLGJORD",
-          profile: profile as any,
-          activity,
-        },
-        { output: "blob", filename: "bt-fullgjord-preview.pdf" }
-      )) as Blob;
+      const blob = await buildBtFullPreviewBlob({
+        profile,
+        btRows,
+        otherThanManager,
+        appointedSigner,
+      });
 
       openPreviewFromBlob(blob);
     } catch (e) {
@@ -512,34 +216,10 @@ const [applicant, setApplicant] = useState({
         alert("Profil saknas – kan inte skapa intyget.");
         return;
       }
-      const { exportCertificate } = await import("@/lib/exporters");
-      const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-      const activity: any = {
-        externAssessor: {
-          name: (profile as any)?.btExtAssessorName || "",
-          specialty: (profile as any)?.btExtAssessorSpec || "",
-          workplace: (profile as any)?.btExtAssessorWorkplace || "",
-        },
-        mainSupervisor: {
-          name: (profile as any)?.mainSupervisorName || "",
-          specialty: (profile as any)?.mainSupervisorSpec || "",
-          workplace:
-            (profile as any)?.mainSupervisorWorkplace ||
-            (profile as any)?.homeClinic ||
-            "",
-        },
-      };
-
-      const blob = (await exportCertificate(
-        {
-          goalsVersion: gv,
-          activityType: "BT_KOMPETENS",
-          profile: profile as any,
-          activity,
-        },
-        { output: "blob", filename: "bt-uppnadd-baskompetens-preview.pdf" }
-      )) as Blob;
+      const blob = await buildBtCompetencePreviewBlob({
+        profile,
+        resolvedMainSupervisor,
+      });
 
       openPreviewFromBlob(blob);
     } catch (e) {
@@ -555,130 +235,99 @@ const [applicant, setApplicant] = useState({
       alert("Profil saknas – kan inte skapa intyget.");
       return;
     }
-    const { exportCertificate } = await import("@/lib/exporters");
-    const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-    // Komprimera löpnummer: [1,2,3,8,9,10,12] -> "1-3, 8-10, 12"
-    const collapseRanges = (nums: number[]) => {
-      const arr = Array.from(new Set(nums.filter((n) => Number.isFinite(n)).map((n) => Math.trunc(n)))).sort((a, b) => a - b);
-      if (arr.length === 0) return "";
-      const pieces: string[] = [];
-      let start = arr[0];
-      let prev = arr[0];
-      for (let i = 1; i < arr.length; i++) {
-        const n = arr[i];
-        if (n === prev + 1) {
-          prev = n;
-          continue;
-        }
-        pieces.push(start === prev ? String(start) : `${start}-${prev}`);
-        start = prev = n;
-      }
-      pieces.push(start === prev ? String(start) : `${start}-${prev}`);
-      return pieces.join(", ");
-    };
-
-    // Kategorier för bilagor
-    const prefixSavedBt = "Delmål i bastjänstgöringen: Intyg delmål i BT ";
-    const isSavedBtCert = (x: string) => x.startsWith(prefixSavedBt);
-    const isFullgjord = (x: string) => x === "Fullgjord bastjänstgöring";
-    const isBaskomp = (x: string) => x === "Uppnådd baskompetens";
-    const isPrelicense = (x: string) =>
-      x.startsWith("Tjänstgöring före legitimation:") || /^Intyg tjänstgöring före legitimation\b/.test(x);
-    const isForeign = (x: string) => x.startsWith("Utländsk tjänstgöring:");
-
-    // Löpnummer (1-baserat) för varje rad i attachments-listan
-    const numbered = (attachments as string[]).map((label, idx) => ({ no: idx + 1, label }));
-
-    const delmalNos = numbered.filter((x) => isSavedBtCert(x.label)).map((x) => x.no);
-    const fullgjordNos = numbered.filter((x) => isFullgjord(x.label)).map((x) => x.no);
-    const baskompNos = numbered.filter((x) => isBaskomp(x.label)).map((x) => x.no);
-    const prelicenseNos = numbered.filter((x) => isPrelicense(x.label)).map((x) => x.no);
-    const foreignNos = numbered.filter((x) => isForeign(x.label)).map((x) => x.no);
-
-    const attachmentsSummary = {
-      delmalLine: collapseRanges(delmalNos),           // t.ex. "1-5, 8, 9-12"
-      fullgjordLine: collapseRanges(fullgjordNos),     // t.ex. "13"
-      baskompetensLine: collapseRanges(baskompNos),    // t.ex. "14"
-      prelicenseLine: collapseRanges(prelicenseNos),   // t.ex. "15, 16"
-      foreignLine: collapseRanges(foreignNos),         // t.ex. "17-18"
-    };
-
-    // Bygg legitimationsländer enligt krav:
-    //  - Rad 1: Profilens "Land för legitimation" + "Datum för legitimation"
-    //  - Rad 2–3: Upp till två rader från "Har legitimation från annat land"
-    const primaryLicense = {
-      country: String((profile as any)?.licenseCountry ?? ""),
-      date: String((profile as any)?.licenseDate ?? ""),
-    };
-    const extraForeign = Array.isArray((profile as any)?.foreignLicenses)
-      ? ((profile as any).foreignLicenses as any[])
-          .slice(0, 2) // max två extra
-          .map((r) => ({
-            country: String(r?.country ?? ""),
-            date: String(r?.date ?? ""),
-          }))
-      : [];
-    const foreignLicenses = [primaryLicense, ...extraForeign]
-      .filter((r) => (r.country || r.date)) // rensa tomma rader
-      .slice(0, 3);
-
-    // Singulärt legitimationsland: alltid profilens "Land för legitimation" om satt,
-    // annars fall back till examensland.
-    const derivedLicenseCountry =
-      String((profile as any)?.licenseCountry || "") ||
-      String((profile as any)?.medDegreeCountry || "");
-
-    const activity: any = {
-      applicant: {
-        // Namn/personuppgifter i första hand från profil
-        name: (profile as any)?.name || "",
-        personalNumber: (profile as any)?.personalNumber || "",
-        address: (profile as any)?.address || "",
-        postalCode: (profile as any)?.postalCode || "",
-        city: (profile as any)?.city || "",
-
-        // Telefoner
-        mobile: (profile as any)?.mobile || "",
-        phoneHome: (profile as any)?.phoneHome || "",
-        phoneWork: (profile as any)?.phoneWork || "",
-
-        // E-post från Profil
-        email: String((profile as any)?.email || ""),
-
-        // Arbetsplats: hemklinik från Profil
-        workplace: String((profile as any)?.homeClinic || ""),
-
-        // Examen/leg
-        medDegreeCountry: (profile as any)?.medDegreeCountry || "",
-        medDegreeDate: (profile as any)?.medDegreeDate || "",
-
-        // Legitimation
-        licenseCountry: derivedLicenseCountry,
-        licenseDate: String((profile as any)?.licenseDate || ""),
-        foreignLicenses,
-      },
-      attachments: attachments.slice(),
-      attachmentsSummary,
-    };
-
-
-
-    const blob = (await exportCertificate(
-      {
-        goalsVersion: gv,
-        activityType: "BT_ANSOKAN",
-        profile: profile as any,
-        activity,
-      },
-      { output: "blob", filename: "bt-ansokan-preview.pdf" }
-    )) as Blob;
+    const blob = await buildBtApplicationPreviewBlob({
+      profile,
+      attachments: attachments as string[],
+    });
 
     openPreviewFromBlob(blob);
   } catch (e) {
     console.error(e);
     alert("Kunde inte skapa förhandsvisningen.");
   }
+}
+
+async function handlePreviewPlacementAttachment(placement: Placement) {
+  try {
+    if (!profile) {
+      alert("Profil saknas – kan inte skapa intyget.");
+      return;
+    }
+    const blob = await buildPlacementPreviewBlob({
+      profile,
+      placement,
+      extractPlacementGoals,
+    });
+    openPreviewFromBlob(blob);
+  } catch (e) {
+    console.error(e);
+    alert("Kunde inte skapa förhandsvisningen.");
+  }
+}
+
+function handleEditSavedBtCert(key: string) {
+  const saved = btSavedCerts[key];
+  if (!saved) return;
+  setBtGoals(structuredClone(saved.goals));
+  setBtActivities(structuredClone(saved.activities));
+  setControlHow(saved.controlHow || "");
+  setMainSupervisorPrints(!!saved.signer?.useOther);
+  setIssuingSupervisor({
+    name: saved.signer?.name || "",
+    specialty: saved.signer?.specialty || "",
+    workplace: saved.signer?.workplace || "",
+  });
+  setEditingSavedKey(key);
+  setTab("btgoals");
+}
+
+async function handlePreviewSavedBtCert(key: string) {
+  try {
+    if (!profile) {
+      alert("Profil saknas – kan inte skapa intyget.");
+      return;
+    }
+    const saved = btSavedCerts[key];
+    if (!saved) return;
+    const blob = await buildSavedBtPreviewBlob({
+      profile,
+      saved,
+    });
+    openPreviewFromBlob(blob);
+  } catch (e) {
+    console.error(e);
+    alert("Kunde inte skapa förhandsvisningen.");
+  }
+}
+
+async function handleDeleteSavedBtCert(key: string) {
+  const go = window.confirm("Vill du verkligen ta bort intyget?");
+  if (!go) return;
+
+  const next = { ...btSavedCerts };
+  delete next[key];
+  setBtSavedCerts(next);
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id) {
+      await supabase.from("app_drafts").upsert(
+        {
+          user_id: user.id,
+          draft_key: "bt_saved_certs",
+          draft_data: next,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,draft_key" }
+      );
+    }
+  } catch (e) {
+    console.error("Kunde inte spara btSavedCerts:", e);
+  }
+
+  setAttachments((list) => list.filter((x) => String(x) !== key));
 }
 
 
@@ -727,12 +376,6 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
   });
 
   /** Attachments tab */
-  type AttachKey =
-    | "Delmål i bastjänstgöringen"
-    | "Fullgjord bastjänstgöring"
-    | "Uppnådd baskompetens"
-    | "Tjänstgöring före legitimation"
-    | "Utländsk tjänstgöring";
   const [attachments, setAttachments] = useState<AttachKey[]>([
     "Fullgjord bastjänstgöring",
     "Uppnådd baskompetens",
@@ -780,18 +423,75 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
     if (!open) return;
 
     (async () => {
-      const [p, pls, cs, ach] = await Promise.all([
-        db.profile.get("default"),
-        db.placements.toArray(),
-        db.courses.toArray(),
-        // achievements kan saknas i vissa DB-versioner – fånga fel och returnera tom lista
-        (db as any).achievements?.toArray?.().catch?.(() => []) ?? [],
-      ]);
+      const [p, pls, cs, ach] = await (async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.id) return [null, [], [], []] as [any, any[], any[], any[]];
+
+        const [profileRes, placementsRes, coursesRes, achievementsRes] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+          supabase.from("placements").select("*").eq("user_id", user.id),
+          supabase.from("courses").select("*").eq("user_id", user.id),
+          supabase.from("achievements").select("*").eq("user_id", user.id),
+        ]);
+
+        const profileRow: any = profileRes.data || null;
+        const mappedProfile: any = profileRow
+          ? {
+              ...profileRow,
+              goalsVersion: profileRow.goals_version ?? profileRow.goalsVersion ?? "",
+              personalNumber: profileRow.personal_number ?? profileRow.personalNumber ?? "",
+              homeClinic: profileRow.home_clinic ?? profileRow.homeClinic ?? "",
+              specialty: profileRow.specialty ?? profileRow.speciality ?? "",
+            }
+          : null;
+
+        const mappedPlacements = ((placementsRes.data || []) as any[]).map((row) => ({
+          ...row,
+          startDate: row.start_date ?? row.startDate ?? "",
+          endDate: row.end_date ?? row.endDate ?? "",
+          showOnTimeline: row.show_on_timeline ?? row.showOnTimeline ?? true,
+          fulfillsStGoals: row.fulfills_st_goals ?? row.fulfillsStGoals ?? false,
+        }));
+
+        const mappedCourses = ((coursesRes.data || []) as any[]).map((row) => ({
+          ...row,
+          title: row.title ?? row.course_title ?? "",
+          startDate: row.start_date ?? row.startDate ?? "",
+          endDate: row.end_date ?? row.endDate ?? "",
+          certificateDate: row.certificate_date ?? row.certificateDate ?? "",
+          showOnTimeline: row.show_on_timeline ?? row.showOnTimeline ?? true,
+          fulfillsStGoals: row.fulfills_st_goals ?? row.fulfillsStGoals ?? false,
+        }));
+
+        const mappedAchievements = (achievementsRes.data || []) as any[];
+        return [mappedProfile, mappedPlacements, mappedCourses, mappedAchievements] as const;
+      })();
 
       setProfile(p ?? null);
       setPlacements(pls);
-      // Ladda in sparade "Intyg delmål i BT" från profile (persistens i IndexedDB)
-      setBtSavedCerts(((p as any)?.btSavedCerts ?? {}) as typeof btSavedCerts);
+      // Ladda sparade "Intyg delmål i BT" från Supabase
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data: draftRow } = await supabase
+            .from("app_drafts")
+            .select("draft_data")
+            .eq("user_id", user.id)
+            .eq("draft_key", "bt_saved_certs")
+            .maybeSingle();
+          if (draftRow?.draft_data) {
+            setBtSavedCerts(draftRow.draft_data as typeof btSavedCerts);
+          } else {
+            setBtSavedCerts(((p as any)?.btSavedCerts ?? {}) as typeof btSavedCerts);
+          }
+        } else {
+          setBtSavedCerts(((p as any)?.btSavedCerts ?? {}) as typeof btSavedCerts);
+        }
+      } catch {
+        setBtSavedCerts(((p as any)?.btSavedCerts ?? {}) as typeof btSavedCerts);
+      }
 
 
             // Heuristik: BT-phasade placeringar – här ska vi bara ta de som faktiskt är BT-fasade.
@@ -851,7 +551,7 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
       //  1) existerande fält (btMilestones/btGoals/milestones/goalIds/...)
       //  2) achievements-tabellen (btGoalMap)
       const enrichedBt = bt.map((pl: any) => {
-        const full = pls.find((x) => x.id === pl.id) as any;
+        const full = pls.find((x: any) => x.id === pl.id) as any;
 
         // Samla ihop befintliga mål direkt på placement (inkl. btMilestones)
         const directCandidates = [
@@ -958,7 +658,7 @@ const [issuingSupervisor, setIssuingSupervisor] = useState({
         const labels = allBt.map(
           (pl: any) => `${prefix}${String(pl.clinic || pl.note || "Klinisk tjänstgöring")}`
         );
-        return normalizeAndSortAttachments([...base, ...labels]);
+        return normalizeAndSortAttachments([...base, ...labels], btPlacements);
       });
 
       /* Defer ready-flaggan – sätts efter baseline i [open]-effekten */
@@ -1128,150 +828,7 @@ useEffect(() => {
 }
 
 
-
-
-
-
-  /** ====== Render helpers ====== */
-  function ChipView({ chip, onRemove }: { chip: Chip; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-xs">
-      {chip.label}
-    </span>
-  );
-}
-
-
   /** ====== Ordna bilagor (drag & drop – samma interaktion/estetik som PrepareApplicationModal) ====== */
-  type Swatch = { bg: string; bd: string; pill: string; pillBd: string };
-
-  const GREY_BG = "hsl(220 14% 95%/.96)";
-  const GREY_BD = "hsl(220 12% 75%/.96)";
-  const GREY_PILL = "hsl(220 16% 98%/.96)";
-  const GREY_PILLBD = "hsl(220 10% 86%/.96)";
-
-  // Tydliga, distinkta färger per grupp
-  const BT_GROUP_COLORS: Record<AttachKey, Swatch> = {
-    // Delmål i BT: cyan
-    "Delmål i bastjänstgöringen": {
-      bg: "hsl(190 30% 94%/.96)",
-      bd: "hsl(190 22% 72%/.96)",
-      pill: "hsl(190 35% 98%/.96)",
-      pillBd: "hsl(190 20% 84%/.96)",
-    },
-    // Fullgjord BT: blå
-    "Fullgjord bastjänstgöring": {
-      bg: "hsl(222 30% 94%/.96)",
-      bd: "hsl(222 22% 72%/.96)",
-      pill: "hsl(222 35% 98%/.96)",
-      pillBd: "hsl(222 20% 84%/.96)",
-    },
-    // Uppnådd baskompetens: orange
-    "Uppnådd baskompetens": {
-      bg: "hsl(12 35% 94%/.96)",
-      bd: "hsl(12 25% 75%/.96)",
-      pill: "hsl(12 40% 98%/.96)",
-      pillBd: "hsl(12 23% 85%/.96)",
-    },
-    // Tjänstgöring före legitimation: gul
-    "Tjänstgöring före legitimation": {
-      bg: "hsl(48 85% 93%/.96)",
-      bd: "hsl(48 70% 75%/.96)",
-      pill: "hsl(48 90% 98%/.96)",
-      pillBd: "hsl(48 60% 86%/.96)",
-    },
-    // Utländsk tjänstgöring: grå (som tidigare)
-    "Utländsk tjänstgöring": {
-      bg: "hsl(220 14% 95%/.96)",
-      bd: "hsl(220 12% 75%/.96)",
-      pill: "hsl(220 16% 98%/.96)",
-      pillBd: "hsl(220 10% 86%/.96)",
-    },
-  };
-
-
-  function colorsForBt(key: string | AttachKey) {
-    const raw = String(key).trim();
-
-    // 1) Om formatet är "Typ: Titel" – använd "Typ" som gruppnyckel
-    let kind: AttachKey | string = raw.includes(":")
-      ? raw.split(":")[0].trim()
-      : raw;
-
-    // 2) Hantera icke-koloniserade rubriker som vi skapar dynamiskt
-    //    t.ex. "Intyg tjänstgöring före legitimation 1"
-    if (/^Intyg tjänstgöring före legitimation\b/i.test(raw)) {
-      kind = "Tjänstgöring före legitimation";
-    } else if (/^Utländsk tjänstgöring\b/i.test(raw)) {
-      kind = "Utländsk tjänstgöring";
-    }
-
-    // 3) Fallback till definierade grupper; om okänd → färgsätt som Delmål i BT
-    const sw = BT_GROUP_COLORS[kind as AttachKey] ?? BT_GROUP_COLORS["Delmål i bastjänstgöringen"];
-    return { cardBg: sw.bg, cardBd: sw.bd, pillBg: sw.pill, pillBd: sw.pillBd };
-  }
-
-
-  /** Normalisera och sortera bilagelistan enligt prioritet:
-   * 1) Delmål i BT (registrerade kliniska placeringar) – kronologiskt på slutdatum (tidigast först)
-   * 2) Delmål i ST (sparade intyg från fliken "Delmål i BT") – lägsta nummer först
-   * 3) Fullgjord bastjänstgöring
-   * 4) Uppnådd baskompetens
-   * 5) Tjänstgöring före legitimation (om ikryssad)
-   * 6) Utländsk tjänstgöring (om ikryssad)
-   */
-  function normalizeAndSortAttachments(list: string[]): AttachKey[] {
-    // Filtrera bort råa gruppetiketter utan innehåll som inte ska finnas längre
-    const filtered = list.filter((x) => x && x !== "Delmål i bastjänstgöringen");
-
-    const isBTPlacement = (x: string) =>
-      x.startsWith("Delmål i bastjänstgöringen: Klinisk tjänstgöring — ");
-    const isSavedBtCert = (x: string) =>
-      x.startsWith("Delmål i bastjänstgöringen: Intyg delmål i BT ");
-    const isFullgjord = (x: string) => x === "Fullgjord bastjänstgöring";
-    const isBaskomp = (x: string) => x === "Uppnådd baskompetens";
-    const isPrelicense = (x: string) =>
-      x.startsWith("Tjänstgöring före legitimation:") ||
-      /^Intyg tjänstgöring före legitimation\b/.test(x);
-
-    const isForeign = (x: string) => x.startsWith("Utländsk tjänstgöring:");
-
-    // 1) BT placeringar: sortera på slutdatum (hämta ur btPlacements)
-    const btMap = new Map<string, number>(); // label -> time(end or start)
-    for (const pl of btPlacements) {
-      const label =
-        `Delmål i bastjänstgöringen: Klinisk tjänstgöring — ` +
-        String((pl as any).clinic || (pl as any).note || "Klinisk tjänstgöring");
-      const t = new Date((pl as any).endDate || (pl as any).startDate || 0).getTime();
-      btMap.set(label, t);
-    }
-    const a1 = filtered
-      .filter(isBTPlacement)
-      .sort((a, b) => (btMap.get(a) ?? 0) - (btMap.get(b) ?? 0));
-
-    // 2) Sparade intyg från fliken "Delmål i BT": numerisk sort på sista talet
-    const num = (s: string) => Number(s.match(/\d+/)?.[0] ?? 0);
-    const a2 = filtered
-      .filter(isSavedBtCert)
-      .sort((a, b) => num(a) - num(b));
-
-    // 3) Fullgjord BT
-    const a3 = filtered.filter(isFullgjord);
-
-    // 4) Uppnådd baskompetens
-    const a4 = filtered.filter(isBaskomp);
-
-    // 5) Tjänstgöring före legitimation (alla titlar i den gruppen, i tillagd ordning)
-    const a5 = filtered.filter(isPrelicense);
-
-    // 6) Utländsk tjänstgöring (alla titlar i den gruppen, i tillagd ordning)
-    const a6 = filtered.filter(isForeign);
-
-    return [...a1, ...a2, ...a3, ...a4, ...a5, ...a6] as AttachKey[];
-  }
-
-
-
   // Drag & drop state (som i PrepareApplicationModal)
   const listRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -1495,296 +1052,6 @@ useEffect(() => {
 
 
 
-  /** ====== Intyg-popup (för 4/5) ====== */
-  function renderIntygModal() {
-    const { mode, rowId } = intygModalOpen;
-    if (!mode) return null;
-
-    const rows = mode === "prelicense" ? prelicenseRows : foreignRows;
-    const setRows = mode === "prelicense" ? setPrelicenseRows : setForeignRows;
-    const row = rows.find((r) => r.id === rowId);
-    if (!row) return null;
-
-    const canSave =
-      (row.intyg?.clinic || "").trim().length > 0 ||
-      (row.intyg?.supervisor || "").trim().length > 0 ||
-      (row.intyg?.goals?.length || 0) > 0 ||
-      !!row.intyg?.startISO ||
-      !!row.intyg?.endISO ||
-      (row.intyg?.controlHow || "").trim().length > 0 ||
-      (row.intyg?.percent ?? 0) > 0;
-
-    return (
-      <div className="fixed inset-0 z-[120] grid place-items-center bg-black/40 p-3">
-        <div className="w-full max-w-[820px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-          <header className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="m-0 text-base font-extrabold">
-              {mode === "prelicense"
-                ? "Intyg – Tjänstgöring före legitimation"
-                : "Intyg – Utländsk tjänstgöring"}
-            </h3>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={!canSave}
-                onClick={() => {
-                  setRows((all) =>
-                    all.map((r) =>
-                      r.id === row.id ? { ...r } : r
-                    )
-                  );
-                  updateDirty();
-                }}
-                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-              >
-                Spara
-              </button>
-              <button
-                onClick={() => setIntygModalOpen({ mode: null })}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              >
-                Stäng
-              </button>
-            </div>
-          </header>
-
-          <section className="max-h-[70vh] overflow-auto p-4">
-            <div className="grid grid-cols-1 gap-3">
-              <LabeledInputLocal
-                label="Klinisk tjänstgöring"
-                value={row.intyg?.clinic || ""}
-                onCommit={(v) =>
-                  setRows((all) =>
-                    all.map((r) =>
-                      r.id === row.id
-                        ? { ...r, intyg: { ...(r.intyg ?? defaultIntyg()), clinic: v } }
-                        : r
-                    )
-                  )
-                }
-              />
-              <div className="grid grid-cols-[1fr_220px] gap-2">
-                <div />
-                <div className="grid grid-cols-[1fr_1fr] gap-2">
-                  <div className="w-full">
-                    <label className="mb-1 block text-sm text-slate-700">
-                      Start
-                    </label>
-                    <CalendarDatePicker
-                      value={row.intyg?.startISO || ""}
-                      onChange={(iso) =>
-                        setRows((all) =>
-                          all.map((r) =>
-                            r.id === row.id
-                              ? {
-                                  ...r,
-                                  intyg: { ...(r.intyg ?? defaultIntyg()), startISO: iso || null },
-                                }
-                              : r
-                          )
-                        )
-                      }
-                      align="right"
-                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
-                    />
-                  </div>
-                  <div className="w-full">
-                    <label className="mb-1 block text-sm text-slate-700">
-                      Slut
-                    </label>
-                    <CalendarDatePicker
-                      value={row.intyg?.endISO || ""}
-                      onChange={(iso) =>
-                        setRows((all) =>
-                          all.map((r) =>
-                            r.id === row.id
-                              ? {
-                                  ...r,
-                                  intyg: { ...(r.intyg ?? defaultIntyg()), endISO: iso || null },
-                                }
-                              : r
-                          )
-                        )
-                      }
-                      align="right"
-                      className="h-[40px] w-full rounded-lg border border-slate-300 px-3 text-[14px]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-[minmax(0,1fr)_140px] items-end gap-2">
-                <LabeledInputLocal
-                  label="Handledare"
-                  value={row.intyg?.supervisor || ""}
-                  onCommit={(v) =>
-                    setRows((all) =>
-                      all.map((r) =>
-                        r.id === row.id
-                          ? {
-                              ...r,
-                              intyg: { ...(r.intyg ?? defaultIntyg()), supervisor: v },
-                            }
-                          : r
-                      )
-                    )
-                  }
-                />
-                <div>
-                  <label className="mb-1 block text-sm text-slate-700">
-                    Syss.%
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={row.intyg?.percent ?? 100}
-                    onChange={(e) =>
-                      setRows((all) =>
-                        all.map((r) =>
-                          r.id === row.id
-                            ? {
-                                ...r,
-                                intyg: {
-                                  ...(r.intyg ?? defaultIntyg()),
-                                  percent: Math.max(
-                                    1,
-                                    Math.min(100, Number(e.target.value) || 0)
-                                  ),
-                                },
-                              }
-                            : r
-                        )
-                      )
-                    }
-                    className="h-[40px] w-[140px] rounded-lg border border-slate-300 bg-white px-3 text-[14px]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                <LabeledInputLocal
-                  label="Handledares specialitet"
-                  value={row.intyg?.supervisorSpec || ""}
-                  onCommit={(v) =>
-                    setRows((all) =>
-                      all.map((r) =>
-                        r.id === row.id
-                          ? {
-                              ...r,
-                              intyg: { ...(r.intyg ?? defaultIntyg()), supervisorSpec: v },
-                            }
-                          : r
-                      )
-                    )
-                  }
-                />
-                <LabeledInputLocal
-                  label="Handledares tjänsteställe"
-                  value={row.intyg?.supervisorWorkplace || ""}
-                  onCommit={(v) =>
-                    setRows((all) =>
-                      all.map((r) =>
-                        r.id === row.id
-                          ? {
-                              ...r,
-                              intyg: {
-                                ...(r.intyg ?? defaultIntyg()),
-                                supervisorWorkplace: v,
-                              },
-                            }
-                          : r
-                      )
-                    )
-                  }
-                />
-                <div className="self-end">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRows((all) =>
-                        all.map((r) =>
-                          r.id === row.id
-                            ? {
-                                ...r,
-                                intyg: { ...(r.intyg ?? defaultIntyg()), goals: r.intyg?.goals ?? [] },
-                              }
-                            : r
-                        )
-                      )
-                    }
-                    className="h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
-                    onClickCapture={() =>
-                      setIntygGoalsPicker({ open: true, mode, rowId: row.id })
-                    }
-                  >
-                    Delmål
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-slate-700">
-                  Hur det kontrollerats att delmålen uppnåtts
-                </label>
-                <textarea
-                  value={row.intyg?.controlHow || ""}
-                  onChange={(e) =>
-                    setRows((all) =>
-                      all.map((r) =>
-                        r.id === row.id
-                          ? {
-                              ...r,
-                              intyg: {
-                                ...(r.intyg ?? defaultIntyg()),
-                                controlHow: e.target.value,
-                              },
-                            }
-                          : r
-                      )
-                    )
-                  }
-                  rows={5}
-                  className="w-full rounded-lg border border-slate-300 p-3 text-[14px]"
-                />
-              </div>
-            </div>
-          </section>
-
-          <footer className="flex items-center justify-between border-t px-4 py-3">
-            <button
-              onClick={() => {
-                // Placeholder – här skulle vi öppna “Intyg om delmål …”/tredjeland
-                alert("Skriv ut intyg (kommer att generera PDF)");
-              }}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-            >
-              Skriv ut intyg
-            </button>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={!canSave}
-                onClick={() => {
-                  updateDirty();
-                  setIntygModalOpen({ mode: null });
-                }}
-                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
-              >
-                Spara
-              </button>
-              <button
-                onClick={() => setIntygModalOpen({ mode: null })}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              >
-                Stäng
-              </button>
-            </div>
-          </footer>
-        </div>
-      </div>
-    );
-  }
-
   function defaultIntyg(): NonNullable<ForeignOrPrelicenseRow["intyg"]> {
     return {
       clinic: "",
@@ -1843,10 +1110,89 @@ useEffect(() => {
           !/^Intyg tjänstgöring före legitimation\b/.test(String(x)) &&
           !String(x).startsWith("Tjänstgöring före legitimation:")
       );
-      if (!enabled) return normalizeAndSortAttachments(base as string[]) as AttachKey[];
+      if (!enabled) return normalizeAndSortAttachments(base as string[], btPlacements) as AttachKey[];
       const extras = Array.from({ length: Math.max(1, count) }, (_, i) => `Intyg tjänstgöring före legitimation ${i + 1}`);
-      return normalizeAndSortAttachments([...(base as string[]), ...extras]) as AttachKey[];
+      return normalizeAndSortAttachments([...(base as string[]), ...extras], btPlacements) as AttachKey[];
     });
+  }
+
+  async function handleSaveBtGoalsAsAttachment() {
+    const prefix = "Delmål i bastjänstgöringen: Intyg delmål i BT ";
+
+    const isEditingExisting =
+      !!editingSavedKey && Object.prototype.hasOwnProperty.call(btSavedCerts, editingSavedKey as string);
+
+    let key: AttachKey;
+    let title: string;
+
+    if (isEditingExisting) {
+      key = editingSavedKey as AttachKey;
+      title = String(editingSavedKey);
+    } else {
+      const existingNumbers = Object.keys(btSavedCerts)
+        .filter((k) => k.startsWith(prefix))
+        .map((k) => Number(k.slice(prefix.length)) || 0);
+      const nextNo = (existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1;
+      title = `Intyg delmål i BT ${nextNo}`;
+      key = `${prefix}${nextNo}` as AttachKey;
+    }
+
+    const updatedValue = {
+      goals: structuredClone(btGoals),
+      activities: structuredClone(btActivities),
+      controlHow: String(controlHow || ""),
+      signer: {
+        useOther: !!mainSupervisorPrints,
+        name: String(issuingSupervisor.name || ""),
+        specialty: String(issuingSupervisor.specialty || ""),
+        workplace: String(issuingSupervisor.workplace || ""),
+      },
+    };
+
+    const newMap = {
+      ...btSavedCerts,
+      [key]: updatedValue,
+    };
+
+    setBtSavedCerts(newMap);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id) {
+        await supabase.from("app_drafts").upsert(
+          {
+            user_id: user.id,
+            draft_key: "bt_saved_certs",
+            draft_data: newMap,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,draft_key" }
+        );
+      }
+    } catch (e) {
+      console.error("Kunde inte spara btSavedCerts:", e);
+    }
+
+    setAttachments((prev) =>
+      normalizeAndSortAttachments([
+        ...prev.filter((x) => String(x) !== String(key)),
+        key as AttachKey,
+      ], btPlacements)
+    );
+
+    alert(isEditingExisting ? `Uppdaterade "${title}"` : `Sparat som "${title}"`);
+    updateDirty();
+  }
+
+  function handleClearBtGoalsForm() {
+    setBtActivities([]);
+    setBtGoals([]);
+    setControlHow("");
+    setMainSupervisorPrints(false);
+    setIssuingSupervisor({ name: "", specialty: "", workplace: "" });
+    setEditingSavedKey(null);
+    if (readyRef.current) updateDirty();
   }
 
 
@@ -1935,1123 +1281,103 @@ useEffect(() => {
 
                     {/* 2) Delmål i BT */}
           {tab === "btgoals" && (
-            <div className="grid grid-cols-1 gap-4">
-              {/* Utbildningsaktiviteter överst */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">
-                  Utbildningsaktiviteter som genomförts för att uppnå delmål
-                </h3>
-
-                {/* Buttons (Välj bland registrerade först) */}
-                <div className="mb-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setChooserOpen(true)}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
-                    data-info="Öppnar en dialog där du kan välja bland redan registrerade utbildningsaktiviteter från tidslinjen. Dessa aktiviteter kan sedan inkluderas i intyget med sina kopplade BT-delmål."
-                  >
-                    Välj bland registrerade
-                  </button>
-                  <button
-                    type="button"
-                    onClick={addEmptyActivityRow}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
-                    data-info="Lägger till en ny tom rad där du kan manuellt ange en utbildningsaktivitet som inte är registrerad i tidslinjen. Du kan ange aktivitetens namn, startdatum och slutdatum."
-                  >
-                    + Lägg till aktivitet
-                  </button>
-                </div>
-
-                {/* Activities editor rows */}
-                <div className="grid gap-2">
-                  {btActivities.map((a) => {
-                    const isReg = a.source === "registered";
-                    const rowTitle = isReg ? "Ändras på huvudsidan" : undefined;
-
-                    return (
-                      <div
-                        key={a.id}
-                        title={rowTitle}
-                        className={`grid grid-cols-[minmax(0,1fr)_160px_160px_40px] items-end gap-2 ${isReg ? "opacity-80" : ""}`}
-                      >
-                        <input
-                          value={a.text}
-                          onChange={(e) =>
-                            setBtActivities((s) =>
-                              s.map((x) => (x.id === a.id ? { ...x, text: e.target.value } : x))
-                            )
-                          }
-                          disabled={isReg}
-                          readOnly={isReg}
-                          className={`h-[40px] w-full rounded-lg border px-3 text-[14px] ${
-                            isReg
-                              ? "border-slate-300 bg-slate-100 text-slate-700 cursor-not-allowed"
-                              : "border-slate-300 bg-white"
-                          }`}
-                        />
-
-                        <div className="w-[160px]">
-                          <label className="mb-1 block text-xs text-slate-600">Start</label>
-                          <div className={isReg ? "pointer-events-none" : ""} aria-disabled={isReg}>
-                            <CalendarDatePicker
-                              value={a.startISO || ""}
-                              onChange={(iso) =>
-                                setBtActivities((s) =>
-                                  s.map((x) => (x.id === a.id ? { ...x, startISO: iso || null } : x))
-                                )
-                              }
-                              align="right"
-                              className={`h-[40px] w-full rounded-lg border px-3 text-[14px] ${
-                                isReg ? "border-slate-300 bg-slate-100 text-slate-700" : "border-slate-300"
-                              }`}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="w-[160px]">
-                          <label className="mb-1 block text-xs text-slate-600">Slut</label>
-                          <div className={isReg ? "pointer-events-none" : ""} aria-disabled={isReg}>
-                            <CalendarDatePicker
-                              value={a.endISO || ""}
-                              onChange={(iso) =>
-                                setBtActivities((s) =>
-                                  s.map((x) => (x.id === a.id ? { ...x, endISO: iso || null } : x))
-                                )
-                              }
-                              align="right"
-                              className={`h-[40px] w-full rounded-lg border px-3 text-[14px] ${
-                                isReg ? "border-slate-300 bg-slate-100 text-slate-700" : "border-slate-300"
-                              }`}
-                            />
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBtActivities((s) => s.filter((x) => x.id !== a.id));
-                            if (isReg && a.refId) {
-                              setChooserChecked((st) => ({ ...st, [String(a.refId)]: false }));
-                              setChooserIncludeGoals((st) => ({ ...st, [String(a.refId)]: false }));
-                            }
-                          }}
-                          className="h-[40px] w-[40px] rounded-lg border border-slate-300 bg-white text-lg font-semibold leading-none hover:bg-slate-100"
-                          title="Ta bort"
-                          data-info="Tar bort denna utbildningsaktivitet från listan. Om aktiviteten är vald från registrerade aktiviteter kommer den också avmarkeras i urvalsdialogen."
-                        >
-                          –
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Delmål under aktiviteterna */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 className="mb-2 text-sm font-extrabold">Delmål</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
-                    data-info="Öppnar en dialog där du kan välja vilka BT-delmål (bastjänstgöring delmål) som intyget ska avse. Du kan välja flera delmål som ska bekräftas i intyget."
-                  >
-                    Delmål som intyget avser
-                  </button>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {[...btGoals]
-                      .sort((a, b) => {
-                        const na = Number(String(a.id).match(/\d+/)?.[0] ?? 0);
-                        const nb = Number(String(b.id).match(/\d+/)?.[0] ?? 0);
-                        if (na !== nb) return na - nb;
-                        return String(a.id).localeCompare(String(b.id));
-                      })
-                      .map((g) => (
-                        <ChipView
-                          key={g.id}
-                          chip={g}
-                          onRemove={() => setBtGoals((list) => list.filter((x) => x.id !== g.id))}
-                        />
-                      ))}
-                  </div>
-
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 
-                  className="mb-2 text-sm font-extrabold"
-                  data-info="Beskrivning av hur delmålen har kontrollerats. Denna text kommer att inkluderas i intyget och ska beskriva de metoder och processer som använts för att verifiera att delmålen har uppnåtts, t.ex. genom handledarsamtal, bedömningar, observationer eller andra metoder."
-                >
-                  Hur det kontrollerats att delmålen uppnåtts
-                </h3>
-                <textarea
-                  value={controlHow}
-                  onChange={(e) => setControlHow(e.target.value)}
-                  rows={6}
-                  className="w-full rounded-lg border border-slate-300 p-3 text-[14px]"
-                  data-info="Beskrivning av hur delmålen har kontrollerats. Denna text kommer att inkluderas i intyget och ska beskriva de metoder och processer som använts för att verifiera att delmålen har uppnåtts, t.ex. genom handledarsamtal, bedömningar, observationer eller andra metoder."
-                />
-              </div>
-
-              <div className="rounded-lg border border-slate-200 p-3">
-                <label className="inline-flex items-center gap-2 text:[13px] text-[13px]">
-                  <input
-                    type="checkbox"
-                    checked={mainSupervisorPrints}
-                    onChange={(e) => setMainSupervisorPrints(e.currentTarget.checked)}
-                    data-info="Kryssa i denna ruta om någon annan än huvudhandledaren ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet, specialiteten och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget."
-                  />
-                  <span data-info="Kryssa i denna ruta om någon annan än huvudhandledaren ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet, specialiteten och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget.">Någon annan än huvudhandledare utfärdar intyg</span>
-                </label>
-
-                {mainSupervisorPrints && (
-                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <LabeledInputLocal
-                      label="Intygsutfärdande handledare"
-                      value={issuingSupervisor.name}
-                      onCommit={(v) => setIssuingSupervisor((s) => ({ ...s, name: v }))}
-                    />
-                    <LabeledInputLocal
-                      label="Handledares specialitet"
-                      value={issuingSupervisor.specialty}
-                      onCommit={(v) => setIssuingSupervisor((s) => ({ ...s, specialty: v }))}
-                    />
-                    <LabeledInputLocal
-                      label="Handledares tjänsteställe"
-                      value={issuingSupervisor.workplace}
-                      onCommit={(v) => setIssuingSupervisor((s) => ({ ...s, workplace: v }))}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Footer med “Spara som bilaga” och “Rensa formulär” */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                                    <button
-  type="button"
-  onClick={async () => {
-    const prefix = "Delmål i bastjänstgöringen: Intyg delmål i BT ";
-
-    // Om vi kom hit via "Ändra": skriv över det befintliga nyckelvärdet.
-    const isEditingExisting =
-      !!editingSavedKey && Object.prototype.hasOwnProperty.call(btSavedCerts, editingSavedKey as string);
-
-    let key: AttachKey;
-    let title: string;
-
-    if (isEditingExisting) {
-      // Behåll samma nyckel/titel
-      key = editingSavedKey as AttachKey;
-      title = String(editingSavedKey);
-    } else {
-      // Skapa ny numrerad nyckel
-      const existingNumbers = Object.keys(btSavedCerts)
-        .filter((k) => k.startsWith(prefix))
-        .map((k) => Number(k.slice(prefix.length)) || 0);
-      const nextNo = (existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1;
-      title = `Intyg delmål i BT ${nextNo}`;
-      key = `${prefix}${nextNo}` as AttachKey;
-    }
-
-    // Bygg nytt värde som ska sparas
-    const updatedValue = {
-      goals: structuredClone(btGoals),
-      activities: structuredClone(btActivities),
-      controlHow: String(controlHow || ""),
-      signer: {
-        useOther: !!mainSupervisorPrints,
-        name: String(issuingSupervisor.name || ""),
-        specialty: String(issuingSupervisor.specialty || ""),
-        workplace: String(issuingSupervisor.workplace || ""),
-      },
-    };
-
-    // Uppdatera map: skriv över vid redigering, annars lägg till ny
-    const newMap = {
-      ...btSavedCerts,
-      [key]: updatedValue,
-    };
-
-    // Uppdatera state och persistera
-    setBtSavedCerts(newMap);
-    try {
-      await db.profile.update("default", { btSavedCerts: newMap });
-    } catch (e) {
-      console.error("Kunde inte spara btSavedCerts:", e);
-    }
-
-    // Säkerställ att bilagan finns i listan och hamnar enligt sorteringsregeln
-    setAttachments((prev) =>
-      normalizeAndSortAttachments([
-        ...prev.filter((x) => String(x) !== String(key)),
-        key as AttachKey,
-      ])
-    );
-
-    alert(isEditingExisting ? `Uppdaterade "${title}"` : `Sparat som "${title}"`);
-    updateDirty();
-
-  }}
-  className="rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
-  data-info={editingSavedKey ? "Sparar ändringarna i det befintliga intyget och uppdaterar det i listan över sparade intyg. Det uppdaterade intyget återfinns under fliken 'Ordna bilagor'." : "Sparar intyget som en bilaga som kan inkluderas i ansökan. Det sparade intyget återfinns under fliken 'Ordna bilagor' där det kan väljas för att inkluderas i ansökan. Intyget sparas med ett nummer och kan senare redigeras eller användas i andra intyg."}
->
-  {editingSavedKey ? "Spara ändringar" : "Spara som bilaga"}
-</button>
-
-
-
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBtActivities([]);
-                      setBtGoals([]);
-                      setControlHow("");
-                      setMainSupervisorPrints(false);
-                      setIssuingSupervisor({ name: "", specialty: "", workplace: "" });
-                      setEditingSavedKey(null); // lämna redigeringsläge
-                      if (readyRef.current) updateDirty();
-
-                    }}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
-                    data-info="Rensar alla fält i formuläret så att du kan börja om från början. Detta påverkar inte redan sparade intyg."
-                  >
-                    Rensa formulär
-                  </button>
-
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handlePreviewBtGoals}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-100"
-                    data-info="Genererar och visar en förhandsvisning av intyget som PDF. Intyget innehåller alla angivna utbildningsaktiviteter, valda delmål och information om hur delmålen har kontrollerats."
-                  >
-                    Intyg
-                  </button>
-                </div>
-              </div>
-            </div>
+            <BtGoalsTab
+              btActivities={btActivities}
+              setBtActivities={setBtActivities}
+              setChooserOpen={setChooserOpen}
+              addEmptyActivityRow={addEmptyActivityRow}
+              setChooserChecked={setChooserChecked}
+              setChooserIncludeGoals={setChooserIncludeGoals}
+              setPickerOpen={setPickerOpen}
+              btGoals={btGoals}
+              setBtGoals={setBtGoals}
+              controlHow={controlHow}
+              setControlHow={setControlHow}
+              mainSupervisorPrints={mainSupervisorPrints}
+              setMainSupervisorPrints={setMainSupervisorPrints}
+              issuingSupervisor={issuingSupervisor}
+              setIssuingSupervisor={setIssuingSupervisor}
+              editingSavedKey={editingSavedKey}
+              onSaveAsAttachment={handleSaveBtGoalsAsAttachment}
+              onClearForm={handleClearBtGoalsForm}
+              onPreview={handlePreviewBtGoals}
+            />
           )}
 
 
 
           {/* 3) Intyg om fullgjord BT */}
           {tab === "btfull" && (
-            <div className="grid grid-cols-1 gap-4">
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 
-                  className="mb-2 text-sm font-extrabold"
-                  data-info="Visar en tabell över alla kliniska tjänstgöringar som genomförts under bastjänstgöringen (BT). Tabellen innehåller tjänstgöringens namn, period, sysselsättningsprocent, månader i heltid samt om tjänstgöringen är inom primärvård eller akut sjukvård. Denna information kommer att inkluderas i intyget för fullgjord BT."
-                >
-                  Kliniska tjänstgöringar under BT
-                </h3>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-slate-50">
-                        <th className="border-b px-3 py-2 text-left">Tjänstgöring</th>
-                        <th className="border-b px-3 py-2 text-left">Period</th>
-                        <th className="border-b px-3 py-2 text-right">Syss.%</th>
-                        <th className="border-b px-3 py-2 text-right">Mån (heltid)</th>
-                        <th className="border-b px-3 py-2 text-center">Primärvård</th>
-                        <th className="border-b px-3 py-2 text-center">Akut sjukvård</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {btRows.map((r) => (
-                        <tr key={r.id} className="odd:bg-white even:bg-slate-50/40">
-                          <td className="border-b px-3 py-2">
-                            {(r.ref as any).clinic || (r.ref as any).note || "—"}
-                          </td>
-                          <td className="border-b px-3 py-2">
-                            {(r.ref.startDate || "").slice(0, 10)} –{" "}
-                            {(r.ref.endDate || r.ref.startDate || "").slice(0, 10)}
-                          </td>
-                          <td className="border-b px-3 py-2 text-right">{r.percent}</td>
-                          <td className="border-b px-3 py-2 text-right">{r.monthsFte}</td>
-                          <td className="border-b px-3 py-2 text-center">
-  <input
-    type="checkbox"
-    checked={r.primaryCare}
-    onChange={(e) => {
-      const checked = (e.currentTarget as HTMLInputElement).checked;
-      setBtRows((rows) =>
-        rows.map((x) => (x.id === r.id ? { ...x, primaryCare: checked } : x))
-      );
-      updateDirty();
-    }}
-  />
-</td>
-<td className="border-b px-3 py-2 text-center">
-  <input
-    type="checkbox"
-    checked={r.acuteCare}
-    onChange={(e) => {
-      const checked = (e.currentTarget as HTMLInputElement).checked;
-      setBtRows((rows) =>
-        rows.map((x) => (x.id === r.id ? { ...x, acuteCare: checked } : x))
-      );
-      updateDirty();
-    }}
-  />
-</td>
-
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 p-3">
-                <label className="inline-flex items-center gap-2 text-[13px]">
-                  <input
-                    type="checkbox"
-                    checked={otherThanManager}
-                    onChange={(e) => setOtherThanManager(e.currentTarget.checked)}
-                    data-info="Kryssa i denna ruta om någon annan än verksamhetschefen ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget för fullgjord BT."
-                  />
-                  <span data-info="Kryssa i denna ruta om någon annan än verksamhetschefen ska utfärda intyget. När rutan är ikryssad visas fält där du kan ange namnet och tjänstestället för den person som ska utfärda intyget. Denna information kommer att inkluderas i intyget för fullgjord BT.">Någon annan än verksamhetschef utfärdar intyg</span>
-                </label>
-
-                {otherThanManager && (
-                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <LabeledInputLocal
-                      label="Intygsutfärdande person motsvarande verksamhetschef"
-                      value={appointedSigner.name}
-                      onCommit={(v) =>
-                        setAppointedSigner((s) => ({ ...s, name: v }))
-                      }
-                    />
-                    <LabeledInputLocal
-                      label="Tjänsteställe"
-                      value={appointedSigner.workplace}
-                      onCommit={(v) =>
-                        setAppointedSigner((s) => ({ ...s, workplace: v }))
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
+            <BtFullTab
+              btRows={btRows}
+              setBtRows={setBtRows}
+              updateDirty={updateDirty}
+              otherThanManager={otherThanManager}
+              setOtherThanManager={setOtherThanManager}
+              appointedSigner={appointedSigner}
+              setAppointedSigner={setAppointedSigner}
+            />
           )}
 
                {/* 4) Uppnådd baskompetens */}
           {tab === "competence" && (
-            <div className="grid grid-cols-1 gap-4">
-              
-              {/* Huvudhandledare (gråmarkerade fält, från Profil) */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 
-                  className="mb-2 text-sm font-extrabold"
-                  data-info="Visar information om huvudhandledaren som är hämtad från din profil. Denna information är skrivskyddad här och kan ändras i profilinställningarna. Information om huvudhandledaren kommer att inkluderas i intyget för uppnådd baskompetens."
-                >
-                  Huvudhandledare
-                </h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <ReadonlyInput
-                    label="Namn"
-                    value={String((profile as any)?.supervisor ?? "")}
-                  />
-                  <ReadonlyInput
-                    label="Specialitet"
-                    value={String((profile as any)?.supervisorSpecialty ?? (profile as any)?.specialty ?? "")}
-                  />
-                  <ReadonlyInput
-                    label="Tjänsteställe"
-                    value={String((((profile as any)?.supervisorWorkplace || (profile as any)?.homeClinic)) ?? "")}
-                  />
-                </div>
-              </div>
-{/* Extern bedömare */}
-              <div className="rounded-lg border border-slate-200 p-3">
-                <h3 
-                  className="mb-2 text-sm font-extrabold"
-                  data-info="Här kan du ange information om en extern bedömare som har bedömt din baskompetens. Om en extern bedömare har använts kan du ange deras namn, specialitet och tjänsteställe. Denna information kommer att inkluderas i intyget för uppnådd baskompetens om den är ifylld."
-                >
-                  Extern bedömare
-                </h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <LabeledInputLocal
-                    label="Namn på extern bedömare"
-                    value={(profile as any)?.btExtAssessorName || ""}
-                    onCommit={(v) =>
-                      db.profile
-                        .update("default", { btExtAssessorName: v })
-                        .then(() => {
-                          setProfile((prev) =>
-                            prev ? { ...prev, btExtAssessorName: v } : prev
-                          );
-                          setDirty(true);
-                        })
-                    }
-                  />
-                  <LabeledInputLocal
-                    label="Specialitet"
-                    value={(profile as any)?.btExtAssessorSpec || ""}
-                    onCommit={(v) =>
-                      db.profile
-                        .update("default", { btExtAssessorSpec: v })
-                        .then(() => {
-                          setProfile((prev) =>
-                            prev ? { ...prev, btExtAssessorSpec: v } : prev
-                          );
-                          setDirty(true);
-                        })
-                    }
-                  />
-                  <LabeledInputLocal
-                    label="Tjänsteställe"
-                    value={(profile as any)?.btExtAssessorWorkplace || ""}
-                    onCommit={(v) =>
-                      db.profile
-                        .update("default", { btExtAssessorWorkplace: v })
-                        .then(() => {
-                          setProfile((prev) =>
-                            prev
-                              ? { ...prev, btExtAssessorWorkplace: v }
-                              : prev
-                          );
-                          setDirty(true);
-                        })
-                    }
-                  />
-
-                </div>
-              </div>
-
-
-            </div>
-          )}
-
-
-
-
-                    {/* 5) Ordna bilagor (drag & drop – identisk interaktion som PrepareApplicationModal) */}
-{tab === "attachments" && (
-  <div className="grid grid-cols-1 gap-4">
-    {/* Lista – identisk layout som i PrepareApplicationModal */}
-    <div className="rounded-lg border border-slate-200">
-      {/* Header med #-kolumn och grå bakgrund */}
-      <div className="grid grid-cols-[48px_1fr] items-center border-b bg-slate-50 px-3 py-2">
-        <div className="pl-1 text-sm font-extrabold text-slate-800">#</div>
-        <h3 className="m-0 text-sm font-extrabold">Bilagor – dra för att ändra ordning</h3>
-      </div>
-
-      <div
-  ref={listRef}
-  onPointerMove={onPointerMoveList}
-  onPointerUp={onPointerUpList}
-  className="p-2 bg-white"
->
-
-
-        {tempOrder.map((key, idx) => {
-          const raw = String(key);
-          const hasTitle = raw.includes(":");
-          const kind = hasTitle ? raw.split(":")[0].trim() as AttachKey : raw as AttachKey;
-          const title = hasTitle ? raw.split(":").slice(1).join(":").trim() : "";
-
-          return (
-            <div
-              key={`${key}-${idx}`}
-              ref={(el) => {
-                rowRefs.current[idx] = el;
-              }}
-              className="mb-1 grid grid-cols-[48px_1fr] gap-2"
-            >
-              {/* #-kolumn */}
-              <div className="flex items-center justify-center">
-                <div className="select-none rounded-md bg-slate-100 px-2 py-[1px] text-[11px] font-bold text-slate-700 tabular-nums">
-                  {idx + 1}.
-                </div>
-              </div>
-
-              {/* Själva kortet – drag-handle på hela raden */}
-              <div
-                role="button"
-                onPointerDown={(e) => onPointerDownCard(idx, e)}
-                className={`rounded-md border px-3 py-2 ${dragIndex === idx ? "ring-2 ring-sky-300" : ""}`}
-                data-info={`${kind} - ${title || kind}. Kan flyttas för att ändra ordning.`}
-                style={{
-                  cursor: (dragActive ? "grabbing" : "grab") as any,
-                  ...((
-                    () => {
-                      const { cardBg, cardBd } = colorsForBt(kind);
-                      return { backgroundColor: cardBg, borderColor: cardBd };
-                    }
-                  )()),
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="select-none text-slate-500 leading-none">≡</div>
-                  <span
-                    className="shrink-0 rounded-md border px-1.5 py-[1px] text-[11px] font-semibold text-slate-700 select-none"
-                    style={(() => {
-                      const { pillBg, pillBd } = colorsForBt(kind);
-                      return { backgroundColor: pillBg, borderColor: pillBd };
-                    })()}
-                  >
-                    {kind}
-                  </span>
-                  <span className="min-w-0 grow truncate text-[13px] font-medium text-slate-900 select-none">
-                    {title || kind}
-                  </span>
-                  <span className="ml-auto shrink-0 tabular-nums text-[12px] text-slate-700/80 select-none">—</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {tempOrder.length === 0 && !dragActive && (
-          <div className="rounded-xl border border-dashed p-6 text-center text-slate-500">Inga bilagor.</div>
-        )}
-      </div>
-    </div>
-
-    {/* Högersida – Lägg till bilaga */}
-    <div 
-      className="rounded-lg border border-slate-200 p-3"
-      data-info="Här kan du välja vilka bilagor som ska inkluderas i ansökan om intyg om godkänd BT. Du kan välja bland registrerade utbildningsmoment (kliniska tjänstgöringar) och sparade intyg från fliken 'Skapa intyg: Delmål i BT'. När du kryssar i en bilaga läggs den automatiskt till i listan här ovan där du kan ändra ordningen genom att dra och släppa. Bilagorna kommer att inkluderas i ansökan när du genererar 'Ansökan om intyg om godkänd BT'."
-    >
-      <div className="mb-2 text-sm font-extrabold">Inkludera bilagor</div>
-
-      {/* === Delmål i BT (NY) === */}
-      <div className="mb-4">
-        <div className="mb-1 text-[13px] font-semibold text-slate-800">Registrerade utbildningsmoment</div>
-        <div className="space-y-1">
-          {[...btPlacements]
-            .sort(
-              (a, b) =>
-                new Date((a as any).endDate || (a as any).startDate || 0).getTime() -
-                new Date((b as any).endDate || (b as any).startDate || 0).getTime()
-            )
-            .map((pl) => {
-              const label =
-                `Delmål i bastjänstgöringen: Klinisk tjänstgöring — ` +
-                String((pl as any).clinic || (pl as any).note || "Klinisk tjänstgöring");
-              const checked = !!btAttachChecked[pl.id];
-
-              return (
-                <div key={pl.id} className="flex items-center gap-2 text-[13px]">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e) => {
-                      const on = e.currentTarget.checked;
-                      setBtAttachChecked((st) => ({ ...st, [pl.id]: on }));
-                      setAttachments((list) => {
-                        const base = list.filter((x) => String(x) !== label);
-                        const next = on ? [...base, label as AttachKey] : (base as AttachKey[]);
-                        return normalizeAndSortAttachments(next);
-                      });
-                    }}
-                  />
-                  <span className="min-w-0 grow truncate">
-                    {(pl as any).clinic || (pl as any).note || "Klinisk tjänstgöring"}
-                    {pl.startDate || pl.endDate ? (
-                      <span className="text-slate-500">
-                        {" "}
-                        — {(pl.startDate || "").slice(0, 10)} – {(pl.endDate || pl.startDate || "").slice(0, 10)}
-                      </span>
-                    ) : null}
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
-                    title="Öppna förhandsvisning av intyg för detta moment"
-                    data-info="Genererar och visar en förhandsvisning av intyget för denna registrerade kliniska tjänstgöring. Intyget innehåller aktivitetens information och de BT-delmål som är kopplade till den."
-                    onClick={async () => {
-                      try {
-                        if (!profile) {
-                          alert("Profil saknas – kan inte skapa intyget.");
-                          return;
-                        }
-                        const { exportCertificate } = await import("@/lib/exporters");
-                        const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-                        const oneActivity = {
-                          text: (pl as any).clinic || (pl as any).note || "Klinisk tjänstgöring",
-                          startDate: (pl as any).startDate || null,
-                          endDate: (pl as any).endDate || (pl as any).startDate || null,
-                          source: "registered",
-                          refId: (pl as any).id || null,
-                        };
-
-                        // Hämta BT-delmål kopplade till just denna placering
-                        const goalsForThis = extractPlacementGoals(pl).map((g) => String(g));
-
-                        const activityPayload: any = {
-                          goals: goalsForThis, // visar intyg för detta moment
-                          activities: [oneActivity],
-                          controlHow: "", // tom här; detta är en snabbförhandsvisning
-                          useOtherSigner: false,
-                          signer: {
-                            name: (profile as any)?.supervisor || "",
-                            specialty: (profile as any)?.specialty || (profile as any)?.speciality || "",
-                            workplace:
-                              (profile as any)?.supervisorWorkplace ||
-                              (profile as any)?.homeClinic ||
-                              "",
-                            useOther: false,
-                          },
-
-                        };
-
-                        const blob = (await exportCertificate(
-                          {
-                            goalsVersion: gv,
-                            activityType: "BT_GOALS",
-                            profile: profile as any,
-                            activity: activityPayload,
-                            milestones: goalsForThis,
-                          },
-                          { output: "blob", filename: "bt-delmal-preview.pdf" }
-                        )) as Blob;
-
-                        openPreviewFromBlob(blob);
-                      } catch (e) {
-                        console.error(e);
-                        alert("Kunde inte skapa förhandsvisningen.");
-                      }
-                    }}
-                  >
-                    Intyg
-                  </button>
-                </div>
-              );
-            })}
-          {btPlacements.length === 0 && (
-            <div className="text-[13px] text-slate-500">Inga BT-tjänstgöringar hittades.</div>
-          )}
-        </div>
-      </div>
-
-
-      <hr className="my-3" />
-
-      {/* === Sparade “Intyg delmål i BT x” (NY) === */}
-      <div className="mb-4">
-        <div className="mb-1 text-[13px] font-semibold text-slate-800">Sparade intyg (från fliken "Delmål i ST")</div>
-        <div className="space-y-1">
-          {Object.keys(btSavedCerts).length === 0 && (
-            <div className="text-[13px] text-slate-500">Inga sparade intyg.</div>
-          )}
-
-          {Object.keys(btSavedCerts)
-            .sort((a, b) => {
-              const na = Number(String(a).split(" ").pop());
-              const nb = Number(String(b).split(" ").pop());
-              if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-              return String(a).localeCompare(String(b));
-            })
-            .map((key) => {
-              const isChecked = attachments.some((x) => String(x) === key);
-              return (
-                <div key={key} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => {
-  const on = e.currentTarget.checked;
-  setAttachments((list) => {
-    const base = list.filter((x) => String(x) !== key);
-    const next = on ? [...base, key as AttachKey] : base as AttachKey[];
-    return normalizeAndSortAttachments(next);
-  });
-}}
-
-                    title="Visa detta intyg som bilaga i listan ovan"
-                  />
-                  <span className="min-w-0 grow truncate text-[13px]">{key}</span>
-
-                  <div className="ml-auto flex items-center gap-1">
-                    {/* Ändra */}
-                    <button
-                      type="button"
-                      className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
-                      title="Öppna och fyll i fliken ”Delmål i BT” med intygets sparade uppgifter"
-                      data-info="Öppnar fliken 'Skapa intyg: Delmål i BT' och fyller i formuläret med detta sparade intygs uppgifter så att du kan redigera dem. När du sparar kommer ändringarna att uppdatera detta intyg."
-                      onClick={() => {
-                        const saved = btSavedCerts[key]!;
-                        setBtGoals(structuredClone(saved.goals));
-                        setBtActivities(structuredClone(saved.activities));
-                        setControlHow(saved.controlHow || "");
-                        setMainSupervisorPrints(!!saved.signer?.useOther);
-                        setIssuingSupervisor({
-                          name: saved.signer?.name || "",
-                          specialty: saved.signer?.specialty || "",
-                          workplace: saved.signer?.workplace || "",
-                        });
-                        setEditingSavedKey(key); // markera att vi redigerar detta intyg
-                        setTab("btgoals");
-                      }}
-                    >
-                      Ändra
-                    </button>
-
-
-                    {/* Öppna */}
-                    <button
-                      type="button"
-                      className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
-                      title="Öppna förhandsvisning av intyget"
-                      data-info="Genererar och öppnar en förhandsvisning av detta sparade intyg som PDF. Du kan granska intyget innan det används i ansökan."
-                      onClick={async () => {
-                        try {
-                          if (!profile) {
-                            alert("Profil saknas – kan inte skapa intyget.");
-                            return;
-                          }
-                          const { exportCertificate } = await import("@/lib/exporters");
-                          const gv = normalizeGoalsVersion((profile as any)?.goalsVersion);
-
-                          const saved = btSavedCerts[key]!;
-                          const activity: any = {
-                            goals: toMilestoneIds(saved.goals),
-                            activities: saved.activities.map((a) => ({
-                              text: a.text || "",
-                              startDate: a.startISO || null,
-                              endDate: a.endISO || null,
-                              source: a.source || "manual",
-                              refId: a.refId || null,
-                            })),
-                            controlHow: String(saved.controlHow || ""),
-                            useOtherSigner: !!saved.signer?.useOther,
-                            signer: saved.signer?.useOther
-                              ? {
-                                  name: saved.signer?.name || "",
-                                  specialty: saved.signer?.specialty || "",
-                                  workplace: saved.signer?.workplace || "",
-                                  useOther: true,
-                                }
-                              : {
-                                  name: (profile as any)?.supervisor || "",
-                                  specialty: (profile as any)?.specialty || (profile as any)?.speciality || "",
-                                  workplace:
-                                    (profile as any)?.supervisorWorkplace ||
-                                    (profile as any)?.homeClinic ||
-                                    "",
-                                  useOther: false,
-                                },
-
-                          };
-
-                          const blob = (await exportCertificate(
-                            {
-                              goalsVersion: gv,
-                              activityType: "BT_GOALS",
-                              profile: profile as any,
-                              activity,
-                              milestones: toMilestoneIds(saved.goals),
-                            },
-                            { output: "blob", filename: "bt-delmal-preview.pdf" }
-                          )) as Blob;
-
-                          openPreviewFromBlob(blob);
-                        } catch (e) {
-                          console.error(e);
-                          alert("Kunde inte skapa förhandsvisningen.");
-                        }
-                      }}
-                    >
-                      Intyg
-                    </button>
-
-                    {/* X */}
-                    <button
-                      type="button"
-                      className="rounded-md border px-2 py-1 text-[12px] hover:bg-slate-50"
-                      title="Ta bort intyget"
-                      onClick={async () => {
-                        const go = window.confirm('Vill du verkligen ta bort intyget?');
-                        if (!go) return;
-
-                        // ta bort i state
-                        const next = { ...btSavedCerts };
-                        delete next[key];
-                        setBtSavedCerts(next);
-
-                        // persistera i IndexedDB
-                        try {
-                          await db.profile.update("default", { btSavedCerts: next });
-                        } catch (e) {
-                          console.error("Kunde inte spara btSavedCerts:", e);
-                        }
-
-                        // ta bort ur bilagelistan
-                        setAttachments((list) => list.filter((x) => String(x) !== key));
-                      }}
-                    >
-                      X
-                    </button>
-
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
-
-      <hr className="my-3" />
-
-                  {/* === Övriga BT-specifika tillägg === */}
-      {/* Tjänstgöring före legitimation */}
-      <div 
-        className="mb-2"
-        data-info="Här kan du inkludera intyg för tjänstgöring som genomförts före legitimation. Kryssa i rutan för att aktivera funktionen. Ange sedan antal bilagor (intyg) som behövs i nummerfältet och klicka på OK för att bekräfta. Detta skapar motsvarande antal bilagor i listan här ovan som du kan redigera genom att klicka på dem. Varje bilaga kan innehålla information om tjänstgöringens plats, period, handledare och hur delmål har kontrollerats. Bilagorna kommer att inkluderas i ansökan om intyg om godkänd BT."
-      >
-        <div className="flex items-center gap-2">
-          <label className="inline-flex items-center gap-2 text-[13px]">
-            <input
-              type="checkbox"
-              checked={prelicenseEnabled}
-              onChange={(e) => {
-                const on = e.currentTarget.checked;
-                setPrelicenseEnabled(on);
-                // Håll draft i synk med nuvarande värde
-                setPrelicenseCountDraft((n) => Math.max(1, n || 1));
-
-                if (on) {
-                  // Säkerställ rader enligt nuvarande commit: prelicenseCount
-                  setPrelicenseRows((rows) => {
-                    if (rows.length >= prelicenseCount) return rows;
-                    const need = prelicenseCount - rows.length;
-                    const add = Array.from({ length: need }, () => ({
-                      id: makeId(),
-                      title: "",
-                      intyg: { clinic: "", startISO: null, endISO: null, percent: 100, supervisor: "", supervisorSpec: "", supervisorWorkplace: "", controlHow: "", goals: [] },
-                    }));
-                    return [...rows, ...add];
-                  });
-                } else {
-                  setPrelicenseRows([]);
-                }
-
-                // Synka bilagelistan utifrån commit-värdet (ej draft)
-                syncPrelicenseAttachments(prelicenseCount, on);
-              }}
+            <BtCompetenceTab
+              profile={profile}
+              setProfile={setProfile}
+              setDirty={setDirty}
             />
-            <span>Tjänstgöring före legitimation</span>
-          </label>
-
-          {/* Antal-fältet + OK (på samma rad) */}
-          <div className="ml-2 flex items-center gap-2">
-            <span className="text-[13px] leading-none">Antal:</span>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={prelicenseCountDraft}
-              onChange={(e) => {
-                // Endast draft uppdateras – ingen live-uppdatering
-                const n = Math.max(1, Number(e.currentTarget.value) || 1);
-                setPrelicenseCountDraft(n);
-              }}
-              className={`h-[28px] w-[56px] rounded-md border px-2 text-[13px] ${
-                prelicenseEnabled ? "border-slate-300 bg-white text-slate-900" : "border-slate-200 bg-slate-100 text-slate-400"
-              }`}
-              disabled={!prelicenseEnabled}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              title={prelicenseEnabled ? "" : "Aktivera rutan till vänster för att ändra antal"}
-            />
-
-            {/* OK-knapp som applicerar antalet och uppdaterar bilagor/rader */}
-            <button
-              type="button"
-              disabled={!prelicenseEnabled}
-              onClick={() => {
-                const n = Math.max(1, prelicenseCountDraft || 1);
-                setPrelicenseCount(n);
-
-                // Uppdatera rader för intyg så de matchar n
-                setPrelicenseRows((rows) => {
-                  if (!prelicenseEnabled) return rows;
-                  if (rows.length === n) return rows;
-                  if (rows.length < n) {
-                    const add = Array.from({ length: n - rows.length }, () => ({
-                      id: makeId(),
-                      title: "",
-                      intyg: { clinic: "", startISO: null, endISO: null, percent: 100, supervisor: "", supervisorSpec: "", supervisorWorkplace: "", controlHow: "", goals: [] },
-                    }));
-                    return [...rows, ...add];
-                  }
-                  return rows.slice(0, n);
-                });
-
-                // Synka bilagelistan först när användaren bekräftar
-                syncPrelicenseAttachments(n, prelicenseEnabled);
-              }}
-              className={`h-[28px] rounded-md border px-2 text-[12px] ${
-                !prelicenseEnabled
-                  ? "border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed"
-                  : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
-              }`}
-              title="Bekräfta antal"
-              data-info="Bekräftar antalet bilagor för tjänstgöring före legitimation. När du klickar på OK skapas motsvarande antal bilagor i listan till vänster som du kan redigera."
-            >
-              OK
-            </button>
-
-          </div>
-        </div>
-
-        {/* (Eventuella rader/knappar för tjänstgöring före legitimation kan ligga kvar här under) */}
-      </div>
-
-
-
-
-      {/* Utländsk tjänstgöring */}
-      <div className="mb-2">
-        <label className="inline-flex items-center gap-2 text-[13px]">
-          <input
-            type="checkbox"
-            checked={foreignEnabled}
-            onChange={(e) => {
-              const on = e.currentTarget.checked;
-              setForeignEnabled(on);
-              if (on) {
-                setForeignRows((rows) =>
-                  rows.length ? rows : [{ id: makeId(), title: "", intyg: { clinic: "", startISO: null, endISO: null, percent: 100, supervisor: "", supervisorSpec: "", supervisorWorkplace: "", controlHow: "", goals: [] } }]
-                );
-                setAttachments((list) => {
-  const rest = list.filter((x) => !String(x).startsWith("Utländsk tjänstgöring:"));
-  const next = ["Utländsk tjänstgöring: " as AttachKey, ...rest as AttachKey[]];
-  return normalizeAndSortAttachments(next);
-});
-
-              } else {
-                setAttachments((list) =>
-  normalizeAndSortAttachments(list.filter((x) => !String(x).startsWith("Utländsk tjänstgöring:")))
-);
-
-                setForeignRows([]);
-              }
-            }}
-          />
-          <span>Utländsk tjänstgöring</span>
-        </label>
-
-       
-
-  {foreignEnabled && (
-    <div className="mt-2 rounded-lg border border-slate-200 p-3">
-      {foreignRows.map((r, idx) => (
-        <div
-          key={r.id}
-          className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2"
-        >
-          {/* Titel */}
-          <LabeledInputLocal
-            label="Titel på utländsk tjänstgöring"
-            value={r.title || ""}
-            onCommit={(v) => {
-              setForeignRows((rows) =>
-                rows.map((x) => (x.id === r.id ? { ...x, title: v } : x))
-              );
-              // Uppdatera bilagelistan (ersätt alla av typen med nya titlar)
-              setAttachments((list) => {
-  const rest = list.filter((x) => !String(x).startsWith("Utländsk tjänstgöring:"));
-  const titles = foreignRows.map((x) => (x.id === r.id ? (v || "") : (x.title || "")));
-  const next = [...rest, ...titles.map((t) => `Utländsk tjänstgöring: ${t}` as AttachKey)];
-  return normalizeAndSortAttachments(next);
-});
-
-            }}
-          />
-
-          {/* Minusknapp – endast på rader efter första */}
-          {idx > 0 ? (
-            <button
-              className="h-[40px] w-[40px] rounded-lg border border-slate-300 bg-white text-lg leading-none hover:bg-slate-100"
-              onClick={() => {
-                setForeignRows((rows) => rows.filter((x) => x.id !== r.id));
-                setAttachments((list) => list.filter((x) => x !== `Utländsk tjänstgöring: ${r.title || ""}`));
-              }}
-              title="Ta bort"
-            >
-              –
-            </button>
-          ) : (
-            <div />
           )}
-        </div>
-      ))}
 
-      {/* Lägg till-knapp under fältet */}
-      <div className="mt-2">
-        <button
-  className="mt-1 h-[40px] rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold hover:bg-slate-100"
-  onClick={() => {
-  const newRow = { id: makeId(), title: "" };
-  setForeignRows((rows) => [...rows, newRow]);
-  setAttachments((list) => {
-    const rest = list.filter((x) => !String(x).startsWith("Utländsk tjänstgöring:"));
-    const next = [...rest, ...[...foreignRows, newRow].map((x) => `Utländsk tjänstgöring: ${x.title || ""}` as AttachKey)];
-    return normalizeAndSortAttachments(next);
-  });
-}}
 
->
-  Lägg till
-</button>
 
-      </div>
-    </div>
-  )}
-</div>
 
-    </div>
-  </div>
-)}
+                    {/* 5) Ordna bilagor */}
+                    {tab === "attachments" && (
+                      <AttachmentsTab
+                        tempOrder={tempOrder}
+                        dragActive={dragActive}
+                        dragIndex={dragIndex}
+                        listRef={listRef}
+                        rowRefs={rowRefs}
+                        onPointerMoveList={onPointerMoveList}
+                        onPointerUpList={onPointerUpList}
+                        onPointerDownCard={onPointerDownCard}
+                        btPlacements={btPlacements}
+                        btAttachChecked={btAttachChecked}
+                        setBtAttachChecked={setBtAttachChecked}
+                        attachments={attachments}
+                        setAttachments={setAttachments}
+                        btSavedCerts={btSavedCerts}
+                        onEditSavedCert={handleEditSavedBtCert}
+                        onPreviewSavedCert={handlePreviewSavedBtCert}
+                        onDeleteSavedCert={handleDeleteSavedBtCert}
+                        onPreviewPlacement={handlePreviewPlacementAttachment}
+                        prelicenseEnabled={prelicenseEnabled}
+                        setPrelicenseEnabled={setPrelicenseEnabled}
+                        prelicenseCount={prelicenseCount}
+                        prelicenseCountDraft={prelicenseCountDraft}
+                        setPrelicenseCountDraft={setPrelicenseCountDraft}
+                        setPrelicenseCount={setPrelicenseCount}
+                        setPrelicenseRows={setPrelicenseRows}
+                        syncPrelicenseAttachments={syncPrelicenseAttachments}
+                        foreignEnabled={foreignEnabled}
+                        setForeignEnabled={setForeignEnabled}
+                        foreignRows={foreignRows}
+                        setForeignRows={setForeignRows}
+                        makeId={makeId}
+                      />
+                    )}
 
 
 
         </section>
 
         {/* Undermeny för intyg – alltid synlig oavsett flik */}
-        <footer className="border-t bg-white">
-          <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3">
-            <button
-              type="button"
-              onClick={handlePreviewBtFull}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              title="Öppna förhandsvisning – Intyg fullgjord BT"
-              data-info="Genererar och visar en förhandsvisning av intyget för fullgjord bastjänstgöring (BT). Detta intyg bekräftar att hela bastjänstgöringen har genomförts enligt kraven, inklusive alla kliniska tjänstgöringar med deras perioder, sysselsättningsprocent och månader i heltid. Intyget kan användas i ansökan om specialistkompetens."
-            >
-              Intyg fullgjord BT
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePreviewBtCompetence}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              title="Öppna förhandsvisning – Intyg uppnådd baskompetens"
-              data-info="Genererar och visar en förhandsvisning av intyget för uppnådd baskompetens i bastjänstgöringen. Detta intyg bekräftar att de kompetenser som krävs för bastjänstgöringen har uppnåtts. Intyget innehåller information om huvudhandledare och extern bedömare om sådan finns angiven."
-            >
-              Intyg uppnådd BT
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePreviewBtApplication}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              title="Öppna förhandsvisning – Ansökan om intyg om godkänd BT"
-              data-info="Genererar och visar en förhandsvisning av ansökan om intyg om godkänd bastjänstgöring. Detta är en komplett ansökan som inkluderar alla bilagor som har valts i fliken 'Ordna bilagor', inklusive intyg för delmål, kliniska tjänstgöringar och andra dokument. Ansökan kan användas för att ansöka om intyg om godkänd BT."
-            >
-              Ansökan om intyg om godkänd BT
-            </button>
-          </div>
-        </footer>
+        <BtPreviewActionFooter
+          onPreviewBtFull={handlePreviewBtFull}
+          onPreviewBtCompetence={handlePreviewBtCompetence}
+          onPreviewBtApplication={handlePreviewBtApplication}
+        />
 
       </div>
 
@@ -3079,183 +1405,46 @@ useEffect(() => {
 )}
 
 
-         {chooserOpen && (
-        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/40 p-3">
-          <div className="w-full max-w-[780px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <header className="flex items-center justify-between border-b px-4 py-3">
-              <h3 className="m-0 text-base font-extrabold">
-                Välj bland registrerade
-              </h3>
-              <button
-                onClick={() => setChooserOpen(false)}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:border-slate-400 hover:bg-slate-100 active:translate-y-px"
-              >
-                Stäng
-              </button>
-            </header>
-            <section className="max-h-[70vh] overflow-auto p-4">
-              {(() => {
-                const all = [...btPlacements].sort(
-                  (a, b) =>
-                    new Date((a as any).endDate || (a as any).startDate || 0).getTime() -
-                    new Date((b as any).endDate || (b as any).startDate || 0).getTime()
-                );
-                const isCourse = (x: any) =>
-                  Boolean(
-                    (x as any)?.certificateDate ||
-                      (x as any)?.courseLeaderName ||
-                      (x as any)?.city
-                  );
-                const placements = all.filter((x) => !isCourse(x));
-                const courses = all.filter((x) => isCourse(x));
-
-                const renderItem = (pl: any) => {
-                  const goals: string[] =
-                    Array.isArray((pl as any).btGoals) && (pl as any).btGoals.length
-                      ? (pl as any).btGoals.map((g: any) => String(g))
-                      : extractPlacementGoals(pl);
-
-                  const chosen = !!chooserChecked[pl.id];
-                  const include = !!chooserIncludeGoals[pl.id];
-
-                  return (
-                    <div
-                      key={pl.id}
-                      className="rounded-lg border border-slate-300 bg-white p-2"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap text-[13px] font-semibold">
-                            <span className="truncate">
-                              {(pl as any).clinic || (pl as any).note || "Utbildningsaktivitet"}
-                            </span>
-                            {goals.map((gid) => (
-                              <span
-                                key={gid}
-                                className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[9px] leading-4"
-                              >
-                                {gid}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 flex items-center gap-4">
-                          <label className="inline-flex items-center gap-2 text-[12px]">
-                            <span>Välj aktivitet:</span>
-                            <input
-                              type="checkbox"
-                              checked={chosen}
-                              onChange={(e) => {
-                                const on = (e.currentTarget as HTMLInputElement).checked;
-                                setChooserChecked((st) => ({ ...st, [pl.id]: on }));
-                                setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on }));
-                              }}
-                            />
-                          </label>
-
-                          <label className="inline-flex items-center gap-2 text-[12px]">
-                            <span>Inkludera delmål i intyg</span>
-                            <input
-                              type="checkbox"
-                              checked={include}
-                              onChange={(e) => {
-                                const on = (e.currentTarget as HTMLInputElement).checked;
-                                setChooserIncludeGoals((st) => ({ ...st, [pl.id]: on }));
-                              }}
-                              disabled={!chosen}
-                            />
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="mt-1 text-[11px] text-slate-600">
-                        {(pl.startDate || "").slice(0, 10)} – {(pl.endDate || pl.startDate || "").slice(0, 10)}
-                      </div>
-                    </div>
-                  );
-                };
-
-                const renderSection = (title: string, items: any[]) => (
-                  <div className="grid gap-2">
-                    <div className="text-[16px] font-extrabold text-slate-900">{title}</div>
-                    {items.length === 0 ? (
-                      <div className="text-[13px] text-slate-500">Inga hittades.</div>
-                    ) : (
-                      items.map(renderItem)
-                    )}
-                  </div>
-                );
-
-                return (
-                  <div className="grid gap-4">
-                    {renderSection("Kliniska tjänstgöringar", placements)}
-                    {renderSection("Kurser", courses)}
-                  </div>
-                );
-              })()}
-
-            </section>
-
-            <footer className="flex items-center justify-end gap-2 border-t px-4 py-3">
-              <button
-                onClick={addRegisteredActivities}
-                className="inline-flex items-center justify-center rounded-lg border border-sky-600 bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:border-sky-700 hover:bg-sky-700 active:translate-y-px"
-              >
-                Inkludera valda utbildningsaktiviteter
-              </button>
-            </footer>
-
-          </div>
-        </div>
-      )}
+      <RegisteredActivitiesChooserModal
+        open={chooserOpen}
+        onClose={() => setChooserOpen(false)}
+        onConfirm={addRegisteredActivities}
+        btPlacements={btPlacements as any[]}
+        chooserChecked={chooserChecked}
+        chooserIncludeGoals={chooserIncludeGoals}
+        setChooserChecked={setChooserChecked}
+        setChooserIncludeGoals={setChooserIncludeGoals}
+        extractPlacementGoals={extractPlacementGoals}
+      />
 
 
 
 
-      {intygModalOpen.mode && renderIntygModal()}
+      <IntygDetailsModal
+        state={intygModalOpen}
+        prelicenseRows={prelicenseRows}
+        foreignRows={foreignRows}
+        setPrelicenseRows={setPrelicenseRows}
+        setForeignRows={setForeignRows}
+        defaultIntyg={defaultIntyg}
+        updateDirty={updateDirty}
+        onClose={() => setIntygModalOpen({ mode: null })}
+        setIntygGoalsPicker={setIntygGoalsPicker}
+      />
 
-      {intygGoalsPicker.open && intygGoalsPicker.mode && (
-  <BtMilestonePicker
-    open
-    title="Välj BT-delmål"
-    checked={new Set(
-      (
-        (intygGoalsPicker.mode === "prelicense" ? prelicenseRows : foreignRows)
-          .find((x) => x.id === intygGoalsPicker.rowId)?.intyg?.goals ?? []
-      ).map((g) => g.id)
-    )}
-    onToggle={(id: string) => {
-      const setRows =
-        intygGoalsPicker.mode === "prelicense" ? setPrelicenseRows : setForeignRows;
-
-      setRows((rows) =>
-        rows.map((x) => {
-          if (x.id !== intygGoalsPicker.rowId) return x;
-
-          const existing = (x.intyg?.goals ?? []).map((g) => ({ ...g }));
-          const has = existing.some((g) => g.id === id);
-          const nextGoals = has
-            ? existing.filter((g) => g.id !== id)
-            : [...existing, { id, label: id }];
-
-          return {
-            ...x,
-            intyg: {
-              ...(x.intyg ?? defaultIntyg()),
-              goals: nextGoals,
-            },
-          };
-        })
-      );
-    }}
-    onClose={() => setIntygGoalsPicker({ open: false, mode: null })}
-  />
-)}
+      <IntygGoalsPickerModal
+        picker={intygGoalsPicker}
+        prelicenseRows={prelicenseRows}
+        foreignRows={foreignRows}
+        setPrelicenseRows={setPrelicenseRows}
+        setForeignRows={setForeignRows}
+        defaultIntyg={defaultIntyg}
+        onClose={() => setIntygGoalsPicker({ open: false, mode: null })}
+      />
 
 
       {/* Förhandsvisning (PDF) */}
-      <CertificatePreview
+      <CertificatePreviewModal
         open={previewOpen}
         url={previewUrl}
         onClose={() => {

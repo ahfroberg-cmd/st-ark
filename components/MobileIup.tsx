@@ -2,30 +2,28 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import type { Profile } from "@/lib/types";
 import type { IupMeeting, IupAssessment, IupPlanning, ExtraPlanningSection } from "@/components/IupModal";
-
-const DEFAULT_INSTRUMENTS = [
-  "Medsittning/Sit-in",
-  "Mini-CEX",
-  "360 grader",
-  "Case-based discussion (CBD)",
-];
+import { supabase } from "@/lib/supabase";
+import { useMobileData } from "@/lib/hooks/useMobileData";
+import {
+  DEFAULT_PROGRESSION_INSTRUMENTS,
+  fetchClinicProgressionInstrumentsSynthesis,
+} from "@/lib/dashboard/iupProgressionInstruments";
 
 type TabKey = "planering" | "handledarsamtal" | "progressionsbedömningar";
 
 export default function MobileIup() {
+  const { profile, placements } = useMobileData();
   const [openTab, setOpenTab] = useState<TabKey | null>(null);
   const [meetings, setMeetings] = useState<IupMeeting[]>([]);
   const [assessments, setAssessments] = useState<IupAssessment[]>([]);
   const [planning, setPlanning] = useState<IupPlanning>(defaultPlanning());
   const [planningExtra, setPlanningExtra] = useState<ExtraPlanningSection[]>([]);
-  const [instruments, setInstruments] = useState<string[]>(DEFAULT_INSTRUMENTS);
+  const [instruments, setInstruments] = useState<string[]>([...DEFAULT_PROGRESSION_INSTRUMENTS]);
   const [loading, setLoading] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [showMeetingsOnTimeline, setShowMeetingsOnTimeline] = useState<boolean>(true);
   const [showAssessmentsOnTimeline, setShowAssessmentsOnTimeline] = useState<boolean>(true);
   const [planningHidden, setPlanningHidden] = useState<Set<string>>(new Set());
@@ -57,10 +55,28 @@ export default function MobileIup() {
 
     (async () => {
       try {
-        const p = await db.profile.get("default");
-        if (!cancelled) setProfile(p ?? null);
-
-        const row = (await (db as any).timeline?.get?.("iup")) as any;
+        // Ladda IUP-data från Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        let row: any = undefined;
+        if (user?.id) {
+          const { data: iupRow } = await supabase
+            .from("iup_settings")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (iupRow) {
+            row = {
+              meetings: iupRow.meetings || [],
+              assessments: iupRow.assessments || [],
+              planning: iupRow.planning || {},
+              planningExtra: iupRow.planning_extra || [],
+              instruments: iupRow.instruments || [],
+              showMeetingsOnTimeline: iupRow.show_meetings_on_timeline ?? true,
+              showAssessmentsOnTimeline: iupRow.show_assessments_on_timeline ?? true,
+              planningHidden: iupRow.planning_hidden || [],
+            };
+          }
+        }
         if (cancelled) return;
 
         const loadedMeetings = Array.isArray(row?.meetings) ? row.meetings.map(cloneMeeting) : [];
@@ -69,9 +85,11 @@ export default function MobileIup() {
         const loadedPlanningExtra: ExtraPlanningSection[] = Array.isArray(row?.planningExtra)
           ? row.planningExtra.map((s: any) => ({ id: s.id, title: s.title, content: s.content ?? "" }))
           : [];
-        const loadedInstruments = row?.instruments && Array.isArray(row.instruments) && row.instruments.length > 0
-          ? [...row.instruments]
-          : DEFAULT_INSTRUMENTS;
+        const clinicInstrumentDefault = await fetchClinicProgressionInstrumentsSynthesis(supabase);
+        const loadedInstruments =
+          row?.instruments && Array.isArray(row.instruments) && row.instruments.length > 0
+            ? [...row.instruments]
+            : clinicInstrumentDefault;
         const loadedShowMeetings = typeof row?.showMeetingsOnTimeline === "boolean" ? row.showMeetingsOnTimeline : true;
         const loadedShowAssessments = typeof row?.showAssessmentsOnTimeline === "boolean" ? row.showAssessmentsOnTimeline : true;
         const loadedPlanningHidden = Array.isArray(row?.planningHidden) 
@@ -103,24 +121,31 @@ export default function MobileIup() {
     };
   }, []);
 
-  // Save to DB
+  // Spara IUP-data till Supabase
   const saveAllToDb = useCallback(async () => {
     try {
-      const anyDb = db as any;
-      if (anyDb.timeline) {
-        await anyDb.timeline.put({
-          id: "iup",
-          meetings,
-          assessments,
-          planning,
-          planningExtra,
-          instruments,
-          showMeetingsOnTimeline,
-          showAssessmentsOnTimeline,
-          planningHidden: Array.from(planningHidden),
-        });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { error } = await supabase
+          .from("iup_settings")
+          .upsert({
+            user_id: user.id,
+            meetings,
+            assessments,
+            planning,
+            planning_extra: planningExtra,
+            instruments,
+            show_meetings_on_timeline: showMeetingsOnTimeline,
+            show_assessments_on_timeline: showAssessmentsOnTimeline,
+            planning_hidden: Array.from(planningHidden),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
+        if (error) {
+          console.error("Kunde inte spara IUP-data:", error);
+          throw error;
+        }
+        setDirty(false);
       }
-      setDirty(false);
     } catch (e) {
       console.error("Kunde inte spara IUP-data:", e);
       throw e;
@@ -382,6 +407,7 @@ export default function MobileIup() {
           }}
           instruments={instruments}
           profile={profile}
+          placements={placements as any[]}
           onSave={updateAssessment}
           onDelete={(id) => {
             removeAssessment(id);
@@ -487,6 +513,7 @@ function defaultPlanning(): IupPlanning {
     courses: "",
     supervisionMeetings: "",
     theoreticalStudies: "",
+    practicalMoments: "",
     researchWork: "",
     journalClub: "",
     congresses: "",

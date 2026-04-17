@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { aboutContent } from "@/lib/aboutContent";
 
-type TabId = "instruction" | "about" | "contact" | "privacy" | "license";
+type TabId = "instruction" | "contact" | "privacy" | "license";
 
 interface Props {
   open: boolean;
@@ -121,7 +121,6 @@ export default function AboutModal({ open, onClose }: Props) {
         <nav className="flex gap-1 border-b bg-slate-50 px-2 pt-2">
           {[
             { id: "instruction", label: "Instruktion", info: "Här hittar du instruktioner för hur du använder ST-ARK, inklusive grundläggande funktioner, kortkommandon och tips för att få ut mesta möjliga av verktyget." },
-            { id: "about", label: "Upphov och syfte", info: "Här kan du läsa om projektets syfte, bakgrund och vem som har utvecklat ST-ARK. Du får också information om projektets mål och vision." },
             { id: "privacy", label: "Integritet och dataskydd", info: "Här kan du läsa om hur ST-ARK hanterar dina personuppgifter och data. All data sparas lokalt i din webbläsare och ingen information skickas till servrar." },
             { id: "license", label: "Licensvillkor", info: "Här kan du läsa projektets licensvillkor. ST-ARK tillhandahålls under en proprietär licens under betaperioden." },
             { id: "contact", label: "Kontakt", info: "Här hittar du kontaktuppgifter för att komma i kontakt med projektets utvecklare om du har frågor, förslag eller behöver hjälp." },
@@ -167,6 +166,25 @@ export default function AboutModal({ open, onClose }: Props) {
                 </div>
               )}
 
+              {aboutContent.instruction.studierektorFeatures && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-extrabold text-slate-900">
+                    {aboutContent.instruction.studierektorFeatures.title}
+                  </h3>
+                  <p className="text-slate-700">
+                    {aboutContent.instruction.studierektorFeatures.description}
+                  </p>
+                  <div className="space-y-3">
+                    {aboutContent.instruction.studierektorFeatures.features.map((feature, index) => (
+                      <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <h4 className="font-semibold text-slate-900 mb-1">{feature.name}</h4>
+                        <p className="text-sm text-slate-700">{feature.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {aboutContent.instruction.shortcuts && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-extrabold text-slate-900">
@@ -184,16 +202,6 @@ export default function AboutModal({ open, onClose }: Props) {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {tab === "about" && (
-            <div className="space-y-4 text-slate-700">
-              {aboutContent.about.paragraphs.map((paragraph, index) => (
-                <p key={index}>
-                  {paragraph}
-                </p>
-              ))}
             </div>
           )}
 

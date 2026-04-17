@@ -3,8 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
-import { db } from "@/lib/db";
-
 /**
  * Trim av rubriker utan flimmer – identisk med MilestonePicker.
  */

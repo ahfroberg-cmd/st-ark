@@ -2,9 +2,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
+import { getSessionUser } from "@/lib/supabase";
+import {
+  fetchFirstClinicMembershipWithClinicForUser,
+  fetchProfileForEditor,
+  fetchSupervisorIdForStAtClinic,
+  getClinicFormRow,
+  listClinicMembershipsByClinicId,
+  listProfilesByIds,
+  upsertProfilePayload,
+} from "@/lib/repositories/starkRepository";
 import UnsavedChangesDialog from "@/components/UnsavedChangesDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { registerModal, unregisterModal } from "@/lib/modalEscHandler";
@@ -100,6 +109,8 @@ export default function ProfileModal({ open, onClose }: Props) {
     // Person
     name: "", personalNumber: "", address: "", postalCode: "", city: "", email: "",
     mobile: "", phoneHome: "", phoneWork: "",
+    shareColleagueEducation: true,
+    shareColleagueContact: true,
     // ST
     homeClinic: "",
     supervisor: "", supervisorWorkplace: "",
@@ -125,7 +136,16 @@ export default function ProfileModal({ open, onClose }: Props) {
 
   const [orig, setOrig] = useState<Profile | any>(empty);
   const [form, setForm] = useState<any>(empty);
-  const [tab, setTab] = useState<"person" | "st">("person");
+  const [tab, setTab] = useState<"person" | "st" | "klinik">("person");
+  const [clinicLoading, setClinicLoading] = useState(false);
+  const [clinicData, setClinicData] = useState<{
+    clinicName: string;
+    stChief: string;
+    verksamhetschef: string;
+    orgHome: string;
+    huvudhandledare: string;
+    studierektor: string[];
+  } | null>(null);
   const [supervisorHasOtherSite, setSupervisorHasOtherSite] = useState(false);
   const [studyDirectorHasOtherSite, setStudyDirectorHasOtherSite] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -137,15 +157,156 @@ export default function ProfileModal({ open, onClose }: Props) {
       setShowCloseConfirm(false);
       return;
     }
+    setClinicData(null);
+    setClinicLoading(false);
     (async () => {
-      const p = (await db.profile.get("default")) as any;
-      const base = p ? { ...empty, ...p } : empty;
-      setOrig(base);
-      setForm(base);
-      setSupervisorHasOtherSite(Boolean(base.supervisorWorkplace));
-      setStudyDirectorHasOtherSite(Boolean(base.studyDirectorWorkplace));
+      try {
+        const user = await getSessionUser();
+        if (!user) {
+          setOrig(empty);
+          setForm(empty);
+          return;
+        }
+        const { data: d, error } = await fetchProfileForEditor(user.id);
+        if (error || !d) {
+          setOrig(empty);
+          setForm(empty);
+          return;
+        }
+        const mapped: any = {
+          id: "default",
+          name: d.name || "",
+          personalNumber: d.personal_number || "",
+          address: d.address || "",
+          postalCode: d.postal_code || "",
+          city: d.city || "",
+          email: d.email || "",
+          mobile: d.mobile || "",
+          phoneHome: d.phone_home || "",
+          phoneWork: d.phone_work || "",
+          shareColleagueEducation: d.share_colleague_education ?? true,
+          shareColleagueContact: d.share_colleague_contact ?? true,
+          homeClinic: d.home_clinic || "",
+          supervisor: d.supervisor || "",
+          supervisorWorkplace: d.supervisor_workplace || "",
+          studyDirector: d.study_director || "",
+          studyDirectorWorkplace: d.study_director_workplace || "",
+          manager: d.manager || "",
+          verksamhetschef: d.verksamhetschef || "",
+          specialty: d.specialty || "",
+          goalsVersion: d.goals_version || "2021",
+          stStartDate: d.st_start_date || "",
+          stTotalMonths: d.st_total_months ?? 66,
+          medDegreeCountry: d.med_degree_country || "",
+          medDegreeDate: d.med_degree_date || "",
+          licenseCountry: d.license_country || "",
+          licenseDate: d.license_date || "",
+          hasForeignLicense: d.has_foreign_license ?? false,
+          foreignLicenses: d.foreign_licenses || [],
+          hasPriorSpecialist: d.has_prior_specialist ?? false,
+          priorSpecialties: d.prior_specialties || [],
+          isThirdCountrySpecialist: d.is_third_country_specialist ?? false,
+          btMode: d.bt_mode || "fristående",
+          btStartDate: d.bt_start_date || "",
+          locked: d.locked ?? false,
+          role: d.role || "st_lakare",
+        };
+        setOrig(mapped);
+        setForm(mapped);
+        setSupervisorHasOtherSite(Boolean(mapped.supervisorWorkplace));
+        setStudyDirectorHasOtherSite(Boolean(mapped.studyDirectorWorkplace));
+      } catch (err) {
+        console.error("ProfileModal: failed to load profile", err);
+        setOrig(empty);
+        setForm(empty);
+      }
     })();
   }, [open]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!open || tab !== "klinik" || clinicData) return;
+    let cancelled = false;
+    (async () => {
+      setClinicLoading(true);
+      try {
+        const user = await getSessionUser();
+        if (!user?.id || cancelled) return;
+
+        const { data: myMembership } = await fetchFirstClinicMembershipWithClinicForUser(user.id);
+
+        if (!myMembership || cancelled) {
+          setClinicData({
+            clinicName: "",
+            stChief: "",
+            verksamhetschef: "",
+            orgHome: "",
+            huvudhandledare: "",
+            studierektor: [],
+          });
+          return;
+        }
+
+        const clinicRow = (myMembership as any).clinics || {};
+        const clinicId = String((myMembership as any).clinic_id || "");
+        const clinicName = String(clinicRow?.name || "");
+        let clinicMeta: any = { ...clinicRow };
+        try {
+          const { data: cRow } = await getClinicFormRow(clinicId);
+          if (cRow) clinicMeta = { ...clinicMeta, ...(cRow as any) };
+        } catch {
+          // fallback to joined clinic row above
+        }
+
+        const { data: memberRows } = await listClinicMembershipsByClinicId(clinicId);
+        const userIds = Array.from(new Set((memberRows || []).map((r: any) => r.user_id).filter(Boolean)));
+        const { data: profiles } = userIds.length
+          ? await listProfilesByIds(userIds, "id,name")
+          : { data: [] as any[] };
+        const nameMap = new Map((profiles || []).map((p: any) => [String(p.id), String(p.name || "Okänd")]));
+
+        const srNames = (memberRows || [])
+          .filter((r: any) => String(r.role || "") === "studierektor")
+          .map((r: any) => String(nameMap.get(String(r.user_id)) || "Okänd"));
+        const srNamesUnique = Array.from(new Set(srNames.filter((n) => String(n || "").trim().length > 0)));
+
+        let assignedSupervisorName = "";
+        try {
+          const { data: assignment } = await fetchSupervisorIdForStAtClinic(user.id, clinicId);
+          const sid = String((assignment as any)?.supervisor_id || "");
+          if (sid) assignedSupervisorName = String(nameMap.get(sid) || "");
+        } catch {
+          assignedSupervisorName = "";
+        }
+
+        if (!cancelled) {
+          setClinicData({
+            clinicName,
+            stChief: String(clinicMeta?.st_chief || ""),
+            verksamhetschef: String(clinicMeta?.verksamhetschef || ""),
+            orgHome: String(clinicMeta?.org_home || clinicName || ""),
+            huvudhandledare: assignedSupervisorName,
+            studierektor: srNamesUnique.length > 0 ? srNamesUnique : (form.studyDirector ? [String(form.studyDirector)] : []),
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setClinicData({
+            clinicName: "",
+            stChief: "",
+            verksamhetschef: "",
+            orgHome: "",
+            huvudhandledare: "",
+            studierektor: [],
+          });
+        }
+      } finally {
+        if (!cancelled) setClinicLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tab, clinicData, form.studyDirector]);
 
     // Dirty-detektering – direkt via form vs orig
   const dirty = useMemo(
@@ -274,18 +435,71 @@ export default function ProfileModal({ open, onClose }: Props) {
     const lastName = parts.slice(1).join(" ") ?? "";
     const toSave = { ...form, firstName, lastName, locked: true };
 
-    await db.profile.put(toSave);
+    const user = await getSessionUser();
+    if (!user) {
+      alert("Du är inte inloggad. Logga in och försök igen.");
+      return;
+    }
+
+    const payload = {
+      id: user.id,
+      name: toSave.name || "",
+      specialty: toSave.specialty || "",
+      goals_version: toSave.goalsVersion || "2021",
+      bt_start_date: toSave.btStartDate || null,
+      bt_end_date: toSave.btEndDate || null,
+      st_start_date: toSave.stStartDate || null,
+      home_clinic: toSave.homeClinic || null,
+      personal_number: toSave.personalNumber || "",
+      address: toSave.address || "",
+      postal_code: toSave.postalCode || "",
+      city: toSave.city || "",
+      email: toSave.email || "",
+      mobile: toSave.mobile || "",
+      phone_home: toSave.phoneHome || "",
+      phone_work: toSave.phoneWork || "",
+      share_colleague_education: toSave.shareColleagueEducation ?? true,
+      share_colleague_contact: toSave.shareColleagueContact ?? true,
+      supervisor: toSave.supervisor || "",
+      supervisor_workplace: toSave.supervisorWorkplace || "",
+      study_director: toSave.studyDirector || "",
+      study_director_workplace: toSave.studyDirectorWorkplace || "",
+      manager: toSave.manager || "",
+      verksamhetschef: toSave.verksamhetschef || "",
+      st_total_months: toSave.stTotalMonths ?? 66,
+      med_degree_country: toSave.medDegreeCountry || "",
+      med_degree_date: toSave.medDegreeDate || "",
+      license_country: toSave.licenseCountry || "",
+      license_date: toSave.licenseDate || "",
+      has_foreign_license: toSave.hasForeignLicense ?? false,
+      foreign_licenses: toSave.foreignLicenses || [],
+      has_prior_specialist: toSave.hasPriorSpecialist ?? false,
+      prior_specialties: toSave.priorSpecialties || [],
+      is_third_country_specialist: toSave.isThirdCountrySpecialist ?? false,
+      bt_mode: toSave.btMode || "fristående",
+      locked: toSave.locked ?? false,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: upsertError } = await upsertProfilePayload(payload);
+    if (upsertError) {
+      console.error("ProfileModal: save failed", upsertError);
+      alert(`Kunde inte spara profil: ${upsertError.message}`);
+      return;
+    }
+
     setOrig(toSave);
     setForm(toSave);
-    // Spara utan att stänga - användaren kan stänga via Stäng-knappen eller ESC
-
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("profile_saved"));
+    }
   }
 
 
   async function handleReset() {
     // 1) Radera hela IndexedDB-databasen
     try {
-      await db.delete();
+      /* Supabase handles data deletion */;
     } catch {
       // ignorera ev. fel vid radering av DB
     }
@@ -349,11 +563,28 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
       </div>
 
-      {/* Lagringsinfo */}
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        <strong>Lagring:</strong> Allt sparas endast lokalt i din webbläsare. Ingen server används.
-        För att flytta eller säkerhetskopiera: Exportera/Importera som JSON-fil.
-      </p>
+      <div className="rounded-lg border border-slate-200 p-3">
+        <div className="text-sm font-semibold text-slate-900">Dela uppgifter med ST-kollegor</div>
+        <div className="mt-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              checked={!!form.shareColleagueEducation}
+              onChange={(e) => setForm({ ...form, shareColleagueEducation: e.currentTarget.checked })}
+            />
+            <span>Kliniska tjänstgöringar och kurser</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm select-none">
+            <input
+              type="checkbox"
+              checked={!!form.shareColleagueContact}
+              onChange={(e) => setForm({ ...form, shareColleagueContact: e.currentTarget.checked })}
+            />
+            <span>Kontaktuppgifter</span>
+          </label>
+        </div>
+      </div>
+
     </div>
   );
 
@@ -505,68 +736,72 @@ export default function ProfileModal({ open, onClose }: Props) {
         </div>
       )}
 
-      {/* Hemklinik */}
-      <div>
-        <Labeled info="Din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet.">Hemklinik</Labeled>
-        <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} info="Ange din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet. Detta används i intyg och ansökningar." />
-      </div>
+      {String(form.role || "").includes("st_lakare") ? null : (
+        <>
+          {/* Hemklinik */}
+          <div>
+            <Labeled info="Din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet.">Hemklinik</Labeled>
+            <Input value={form.homeClinic} onChange={(v) => setForm({ ...form, homeClinic: v })} info="Ange din hemklinik - den klinik där du är anställd eller har din huvudsakliga verksamhet. Detta används i intyg och ansökningar." />
+          </div>
 
-      {/* Huvudhandledare och Studierektor – bredvid varandra */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-          <Labeled info="Namn på din huvudhandledare - den som har huvudansvaret för din ST-utbildning.">Huvudhandledare</Labeled>
-          <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} info="Ange namn på din huvudhandledare. Detta används i intyg och ansökningar." />
-          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om huvudhandledaren har ett annat tjänsteställe än din hemklinik.">
-            <input
-              type="checkbox"
-              checked={supervisorHasOtherSite}
-              onChange={(e) => {
-                const checked = e.currentTarget.checked;
-                setSupervisorHasOtherSite(checked);
-                if (!checked) {
-                  setForm((prev: any) => ({ ...prev, supervisorWorkplace: "" }));
-                }
-              }}
-            />
-            Har annat tjänsteställe
-          </label>
-          {supervisorHasOtherSite && (
-            <div className="mt-3">
-              <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} info="Ange huvudhandledarens tjänsteställe om det skiljer sig från din hemklinik." />
+          {/* Huvudhandledare och Studierektor – bredvid varandra */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <Labeled info="Namn på din huvudhandledare - den som har huvudansvaret för din ST-utbildning.">Huvudhandledare</Labeled>
+              <Input value={form.supervisor} onChange={(v) => setForm({ ...form, supervisor: v })} info="Ange namn på din huvudhandledare. Detta används i intyg och ansökningar." />
+              <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om huvudhandledaren har ett annat tjänsteställe än din hemklinik.">
+                <input
+                  type="checkbox"
+                  checked={supervisorHasOtherSite}
+                  onChange={(e) => {
+                    const checked = e.currentTarget.checked;
+                    setSupervisorHasOtherSite(checked);
+                    if (!checked) {
+                      setForm((prev: any) => ({ ...prev, supervisorWorkplace: "" }));
+                    }
+                  }}
+                />
+                Har annat tjänsteställe
+              </label>
+              {supervisorHasOtherSite && (
+                <div className="mt-3">
+                  <Input value={form.supervisorWorkplace} onChange={(v) => setForm({ ...form, supervisorWorkplace: v })} info="Ange huvudhandledarens tjänsteställe om det skiljer sig från din hemklinik." />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div>
-          <Labeled info="Namn på studierektorn - den som har ansvar för ST-utbildningen på din institution.">Studierektor</Labeled>
-          <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} info="Ange namn på studierektorn. Detta används i intyg och ansökningar." />
-          <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om studierektorn har ett annat tjänsteställe än din hemklinik.">
-            <input
-              type="checkbox"
-              checked={studyDirectorHasOtherSite}
-              onChange={(e) => setStudyDirectorHasOtherSite(e.currentTarget.checked)}
-            />
-            Har annat tjänsteställe
-          </label>
-          {studyDirectorHasOtherSite && (
-            <div className="mt-3">
-              <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} info="Ange studierektorns tjänsteställe om det skiljer sig från din hemklinik." />
+            <div>
+              <Labeled info="Namn på studierektorn - den som har ansvar för ST-utbildningen på din institution.">Studierektor</Labeled>
+              <Input value={form.studyDirector} onChange={(v) => setForm({ ...form, studyDirector: v })} info="Ange namn på studierektorn. Detta används i intyg och ansökningar." />
+              <label className="mt-2 inline-flex items-center gap-2 text-sm select-none" data-info="Kryssa i om studierektorn har ett annat tjänsteställe än din hemklinik.">
+                <input
+                  type="checkbox"
+                  checked={studyDirectorHasOtherSite}
+                  onChange={(e) => setStudyDirectorHasOtherSite(e.currentTarget.checked)}
+                />
+                Har annat tjänsteställe
+              </label>
+              {studyDirectorHasOtherSite && (
+                <div className="mt-3">
+                  <Input value={form.studyDirectorWorkplace} onChange={(v) => setForm({ ...form, studyDirectorWorkplace: v })} info="Ange studierektorns tjänsteställe om det skiljer sig från din hemklinik." />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Chef + Verksamhetschef */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div>
-          <Labeled info="Namn på din chef - den som har personalansvar för dig.">Chef</Labeled>
-          <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} info="Ange namn på din chef. Detta används i intyg och ansökningar." />
-        </div>
-        <div>
-          <Labeled info="Namn på verksamhetschefen - den som har ansvar för verksamheten där du arbetar.">Verksamhetschef</Labeled>
-          <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} info="Ange namn på verksamhetschefen. Detta används i intyg och ansökningar." />
-        </div>
-      </div>
+          {/* Chef + Verksamhetschef */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <Labeled info="Namn på din chef - den som har personalansvar för dig.">Chef</Labeled>
+              <Input value={form.manager} onChange={(v) => setForm({ ...form, manager: v })} info="Ange namn på din chef. Detta används i intyg och ansökningar." />
+            </div>
+            <div>
+              <Labeled info="Namn på verksamhetschefen - den som har ansvar för verksamheten där du arbetar.">Verksamhetschef</Labeled>
+              <Input value={form.verksamhetschef} onChange={(v) => setForm({ ...form, verksamhetschef: v })} info="Ange namn på verksamhetschefen. Detta används i intyg och ansökningar." />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Land + datum läkarexamen */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -799,6 +1034,47 @@ export default function ProfileModal({ open, onClose }: Props) {
     </div>
   );
 
+  const klinikView = (
+    <div className="space-y-4">
+      {clinicLoading ? (
+        <p className="text-sm text-slate-400">Laddar klinikuppgifter...</p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Labeled>Hemklinik</Labeled>
+            <div className="h-[40px] w-full rounded-lg border border-slate-200 bg-slate-100 px-3 text-[14px] leading-[40px] text-slate-700">
+              {clinicData?.clinicName || form.homeClinic || "—"}
+            </div>
+          </div>
+          <div>
+            <Labeled>Huvudhandledare</Labeled>
+            <div className="h-[40px] w-full rounded-lg border border-slate-200 bg-slate-100 px-3 text-[14px] leading-[40px] text-slate-700">
+              {clinicData?.huvudhandledare || "Ej tilldelad"}
+            </div>
+          </div>
+          <div>
+            <Labeled>Studierektor</Labeled>
+            <div className="min-h-[40px] w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-[14px] text-slate-700">
+              {(clinicData?.studierektor || []).length > 0 ? clinicData!.studierektor.join(", ") : "—"}
+            </div>
+          </div>
+          <div>
+            <Labeled>ST-chef</Labeled>
+            <div className="h-[40px] w-full rounded-lg border border-slate-200 bg-slate-100 px-3 text-[14px] leading-[40px] text-slate-700">
+              {clinicData?.stChief || "—"}
+            </div>
+          </div>
+          <div>
+            <Labeled>Verksamhetschef</Labeled>
+            <div className="h-[40px] w-full rounded-lg border border-slate-200 bg-slate-100 px-3 text-[14px] leading-[40px] text-slate-700">
+              {clinicData?.verksamhetschef || "—"}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
 
 
   if (!open) return null;
@@ -851,13 +1127,14 @@ export default function ProfileModal({ open, onClose }: Props) {
           {[
             { id: "person", label: "Personuppgifter", info: "Här kan du redigera dina personuppgifter som namn, personnummer, adress, kontaktuppgifter och utbildningsbakgrund." },
             { id: "st", label: "Uppgifter om ST", info: "Här kan du redigera uppgifter om din ST-utbildning som specialitet, målversion (2015 eller 2021), startdatum, handledare, studierektor och verksamhetschef." },
+            { id: "klinik", label: "Klinik", info: "Visar klinikens uppgifter från studierektorns data: huvudhandledare, studierektor och chefer." },
           ].map((t) => (
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id as "person" | "st")}
+              onClick={() => setTab(t.id as "person" | "st" | "klinik")}
               className={`rounded-t-lg px-3 py-2 text-sm font-semibold focus:outline-none focus-visible:outline-none ${
-                tab === (t.id as "person" | "st")
+                tab === (t.id as "person" | "st" | "klinik")
                   ? "bg-white text-slate-900 border-x border-t border-slate-200 -mb-px"
                   : "text-slate-700 hover:text-slate-900 hover:bg-slate-100"
               }`}
@@ -871,7 +1148,7 @@ export default function ProfileModal({ open, onClose }: Props) {
 
         {/* Innehåll */}
         <div className="max-h-[75dvh] overflow-auto p-5">
-          {tab === "person" ? personuppgifterView : stView}
+          {tab === "person" ? personuppgifterView : tab === "st" ? stView : klinikView}
 
         </div>
 

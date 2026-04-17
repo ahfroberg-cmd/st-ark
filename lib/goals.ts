@@ -36,6 +36,44 @@ export function normalizeGoalCode(code: string): string {
   return (code ?? "").toString().trim().replace(/\s+/g, "").toLowerCase();
 }
 
+function dedupeMilestonesWithSpecialtyPriority(
+  commonMilestones: GoalsMilestone[],
+  specialtyMilestones: GoalsMilestone[]
+): GoalsMilestone[] {
+  const byPrimaryKey = new Map<string, GoalsMilestone>();
+  const byAltKey = new Map<string, string>();
+
+  const upsert = (milestone: GoalsMilestone) => {
+    const idKey = normalizeGoalCode(String(milestone.id || ""));
+    const codeKey = normalizeGoalCode(String(milestone.code || ""));
+    const primary = codeKey || idKey;
+    if (!primary) return;
+    byPrimaryKey.set(primary, milestone);
+    if (idKey) byAltKey.set(idKey, primary);
+    if (codeKey) byAltKey.set(codeKey, primary);
+  };
+
+  // Common först, specialitet sist (specialitet får skriva över vid krock).
+  for (const m of commonMilestones) upsert(m);
+  for (const m of specialtyMilestones) upsert(m);
+
+  const ordered: GoalsMilestone[] = [];
+  const seenPrimary = new Set<string>();
+  const visit = (milestone: GoalsMilestone) => {
+    const idKey = normalizeGoalCode(String(milestone.id || ""));
+    const codeKey = normalizeGoalCode(String(milestone.code || ""));
+    const primary = byAltKey.get(codeKey) || byAltKey.get(idKey) || codeKey || idKey;
+    if (!primary || seenPrimary.has(primary)) return;
+    const resolved = byPrimaryKey.get(primary);
+    if (!resolved) return;
+    seenPrimary.add(primary);
+    ordered.push(resolved);
+  };
+  for (const m of commonMilestones) visit(m);
+  for (const m of specialtyMilestones) visit(m);
+  return ordered;
+}
+
 /** Gissa grupp A/B/C från kod om saknas i rådata. */
 function guessGroup(code: string): "A" | "B" | "C" {
   const raw = (code ?? "").toString();
@@ -204,8 +242,13 @@ export async function loadGoals(
   const cacheKey = `${version}|${specialty}`;
   if (_cache[cacheKey]) return _cache[cacheKey];
 
-  const raw = await tryLoadRawJsonAsync(version, specialty);
-  const milestones = toMilestoneArray(raw, version, specialty);
+  const [commonRaw, specialtyRawJson] = await Promise.all([
+    tryLoadRawJsonAsync(version, "common"),
+    tryLoadRawJsonAsync(version, specialty),
+  ]);
+  const commonMilestones = toMilestoneArray(commonRaw, version, "common");
+  const specialtyMilestones = toMilestoneArray(specialtyRawJson, version, specialty);
+  const milestones = dedupeMilestonesWithSpecialtyPriority(commonMilestones, specialtyMilestones);
 
   // Bygg index via både id och normaliserad kod
   const index: Record<string, GoalsMilestone> = {};

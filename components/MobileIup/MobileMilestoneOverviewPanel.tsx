@@ -2,13 +2,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile, Achievement, Placement, Course } from "@/lib/types";
 import { loadGoals, type GoalsCatalog, type GoalsMilestone } from "@/lib/goals";
 import { btMilestones, type BtMilestone } from "@/lib/goals-bt";
 import { mergeWithCommon, COMMON_AB_MILESTONES } from "@/lib/goals-common";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
 import { milestoneRequires } from "@/lib/milestoneRequirements";
+import { supabase } from "@/lib/supabase";
+import { useMobileData } from "@/lib/hooks/useMobileData";
 
 
 /** Trim av rubriker utan flimmer */
@@ -32,7 +33,12 @@ type TabKey = "st" | "bt";
 
 /** Panel för delmål – mobilversion med gammal design */
 export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab, title }: Props) {
-  console.log("[MobileMilestoneOverviewPanel] Rendered with initialTab:", initialTab, "open:", open);
+  const {
+    profile: dbProfile,
+    achievements: dbAchievements,
+    placements: dbPlacements,
+    courses: dbCourses,
+  } = useMobileData();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goals, setGoals] = useState<GoalsCatalog | null>(null);
@@ -43,10 +49,6 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [showDone, setShowDone] = useState(true);
   
-  // Always sync tab with initialTab when it changes
-  useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
   const [showOngoing, setShowOngoing] = useState(true);
   const [showPlanned, setShowPlanned] = useState(true);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -93,13 +95,13 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const p = await db.profile.get("default");
+      const p = dbProfile ?? null;
       setProfile(p ?? null);
 
-      const spec = p?.specialty ?? (p as any)?.speciality ?? "";
-      if (p?.goalsVersion && spec) {
+      const spec = (p as any)?.specialty ?? (p as any)?.speciality ?? "";
+      if ((p as any)?.goalsVersion && spec) {
         try {
-          const g = await loadGoals(p.goalsVersion, spec);
+          const g = await loadGoals((p as any).goalsVersion, spec);
           setGoals(g);
         } catch {
           setGoals(null);
@@ -108,36 +110,23 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
         setGoals(null);
       }
 
-      try {
-        const [aAll, placs, crs] = await Promise.all([
-          db.achievements.toArray(),
-          db.placements.toArray(),
-          db.courses.toArray(),
-        ]);
-        setAchAll(aAll);
-        setPlacements(placs);
-        setCourses(crs);
-      } catch {
-        setAchAll([]);
-        setPlacements([]);
-        setCourses([]);
-      }
+      setAchAll((dbAchievements || []) as Achievement[]);
+      setPlacements((dbPlacements || []) as Placement[]);
+      setCourses((dbCourses || []) as Course[]);
 
-      // Försök läsa in tidigare sparade planer för delmål (om tabell finns)
+      // Ladda milestone plans från Supabase
       try {
-        const anyDb = db as any;
-        const table =
-          anyDb.iupMilestonePlans ??
-          anyDb.milestonePlans ??
-          (typeof anyDb.table === "function" ? anyDb.table("iupMilestonePlans") : null);
-        if (table && typeof table.toArray === "function") {
-          const rows = await table.toArray();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data: rows } = await supabase
+            .from("milestone_plans")
+            .select("*")
+            .eq("user_id", user.id);
           const map: Record<string, string> = {};
-          for (const row of rows as any[]) {
-            const mid = String((row as any).milestoneId ?? (row as any).id ?? "");
+          for (const row of (rows || []) as any[]) {
+            const mid = String(row.milestone_id ?? "");
             if (!mid) continue;
-            const text = String((row as any).planText ?? (row as any).text ?? "");
-            map[mid] = text;
+            map[mid] = String(row.plan_text ?? "");
           }
           setPlanByMilestone(map);
         } else {
@@ -147,7 +136,6 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
         setPlanByMilestone({});
       }
 
-      setTab("st");
       setQ("");
       setDetailId(null);
       setDetailPlanText("");
@@ -160,7 +148,7 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
       setListItems([]);
       setListKind("intyg");
     })();
-  }, [open]);
+  }, [open, dbProfile, dbAchievements, dbPlacements, dbCourses]);
 
 
   const is2021 = (profile?.goalsVersion ?? "") === "2021";
@@ -609,20 +597,21 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
   const savePlanForMilestone = async (mid: string, text: string) => {
     try {
       setDetailSaving(true);
-      const anyDb = db as any;
-      const table =
-        anyDb.iupMilestonePlans ??
-        anyDb.milestonePlans ??
-        (typeof anyDb.table === "function" ? anyDb.table("iupMilestonePlans") : null);
-      if (table && typeof table.put === "function") {
-        const row: any = {
-          id: `${(profile as any)?.id ?? "default"}::${mid}`,
-          profileId: (profile as any)?.id ?? "default",
-          milestoneId: mid,
-          planText: text,
-          updatedAt: new Date().toISOString(),
-        };
-        await table.put(row);
+      // Spara milestone plan till Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { error } = await supabase
+          .from("milestone_plans")
+          .upsert({
+            id: `${user.id}::${mid}`,
+            user_id: user.id,
+            milestone_id: mid,
+            plan_text: text,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id,milestone_id" });
+        if (error) {
+          console.error("Kunde inte spara delmålsplan:", error);
+        }
       }
       setPlanByMilestone((prev) => ({ ...prev, [mid]: text }));
       setDetailDirty(false);
@@ -954,13 +943,6 @@ export default function MobileMilestoneOverviewPanel({ open, onClose, initialTab
   // Use initialTab directly for BT check - this is the source of truth
   const isBtTab = initialTab === "bt";
   
-  // Debug logging
-  useEffect(() => {
-    if (open) {
-      console.log("[MobileMilestoneOverviewPanel] open:", open, "tab:", tab, "initialTab:", initialTab, "isBtTab:", isBtTab);
-    }
-  }, [open, tab, initialTab, isBtTab]);
-
       return (
         <div className="w-full max-w-[980px] max-h-[85vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
 

@@ -4,18 +4,40 @@
 
 export const aboutContent = {
   instruction: {
-    text: "Instruktionsvideo kommer inom kort.",
+    text: "ST-ARK är ett verktyg för att planera och dokumentera din specialiseringstjänstgöring. Systemet stödjer både ST-läkare och studierektorer med olika funktioner anpassade för respektive roll.",
     gettingStarted: {
       title: "Kom igång",
-      description: "För att börja planera din ST-tjänstgöring, klicka i något av spåren i tidslinjen:",
+      description: "För ST-läkare: Börja planera din ST-tjänstgöring genom att klicka i något av spåren i tidslinjen:",
       tracks: [
         {
-          name: "Placeringar (bredare spår)",
+          name: "Kliniska tjänstgöringar (bredare spår)",
           description: "Det övre, bredare spåret i varje årsrad används för att lägga till kliniska tjänstgöringar, auskultationer, arbeten och ledighet. Klicka var som helst i detta spår för att börja lägga till en aktivitet.",
         },
         {
-          name: "Kurser (smalare spår)",
-          description: "Det nedre, smalare spåret i varje årsrad används för att lägga till kurser. Klicka var som helst i detta spår för att börja lägga till en kurs.",
+          name: "Utbildningsaktiviteter (smalare spår)",
+          description: "Det nedre, smalare spåret i varje årsrad används för att lägga till kurser och andra utbildningsaktiviteter. Klicka var som helst i detta spår för att börja lägga till en kurs.",
+        },
+      ],
+    },
+    studierektorFeatures: {
+      title: "För studierektorer",
+      description: "Studierektorer har tillgång till ett dashboard med utökade funktioner:",
+      features: [
+        {
+          name: "ST-läkare",
+          description: "Översikt över alla ST-läkare i kliniken med information om fas (BT/ST), progress, pågående och kommande placeringar samt senaste uppdatering. Klicka på en ST-läkare för att se detaljerad tidslinje och milestoneöversikt.",
+        },
+        {
+          name: "Kommunikation",
+          description: "Skicka meddelanden och föreslå aktiviteter till ST-läkare. För progressionsbedömningar identifieras automatiskt aktuell placering baserat på valt datum.",
+        },
+        {
+          name: "Utbildningsaktiviteter",
+          description: "Skapa mallar för kliniska tjänstgöringar, kurser och andra utbildningsaktiviteter med förslag på delmål och beskrivningar. METIS-kurser kan prefillas med standarddelmål för både 2015 och 2021 års målbeskrivningar.",
+        },
+        {
+          name: "Övergripande tidslinje",
+          description: "Visualisera alla ST-läkares tidslinjer samtidigt med två vyer: Översikt (månad för månad) och Slutdatum (beräknade slutdatum för alla ST-läkare).",
         },
       ],
     },
@@ -69,9 +91,9 @@ export const aboutContent = {
 
   privacy: {
     paragraphs: [
-      "Applikationen lagrar inga personuppgifter på externa servrar. All information hanteras lokalt i användarens webbläsare eller i filer som användaren själv sparar och förvaltar.",
+      "Applikationen lagrar personuppgifter och utbildningsdata i en säker databas (Supabase). All data krypteras vid överföring och lagring. Endast användaren själv och eventuella studierektorer med behörighet kan komma åt användarens data.",
       "Vid användning av funktioner för dokumenttolkning skickas uppladdade dokument till en extern OCR-tjänst (ocr.space) för textigenkänning. Denna överföring sker på användarens initiativ och enbart för att möjliggöra den efterfrågade funktionen. Applikationen sparar inte de dokument eller uppgifter som behandlas av OCR-tjänsten.",
-      "Användaren ansvarar själv för vilken information som laddas upp, hur resultatet används samt för lagring och informationssäkerhet i sin egen miljö.",
+      "Användaren kan när som helst exportera sin data som JSON-filer och har full kontroll över vilken information som delas med studierektorer och andra användare i systemet.",
     ],
   },
   

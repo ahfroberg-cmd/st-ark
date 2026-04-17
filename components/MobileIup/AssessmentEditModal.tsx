@@ -3,7 +3,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
-import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import type { IupAssessment, IupAssessmentPhase } from "@/components/IupModal";
 import type { Profile } from "@/lib/types";
@@ -13,6 +12,7 @@ type Props = {
   assessment: IupAssessment | null;
   instruments: string[];
   profile: Profile | null;
+  placements?: any[];
   onSave: (assessment: IupAssessment) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
@@ -34,6 +34,7 @@ export default function AssessmentEditModal({
   assessment,
   instruments,
   profile,
+  placements = [],
   onSave,
   onDelete,
   onClose,
@@ -62,7 +63,7 @@ export default function AssessmentEditModal({
 
     (async () => {
       try {
-        const allPlacements = await db.placements.toArray();
+        const allPlacements: any[] = Array.isArray(placements) ? placements : [];
         const date = draft.dateISO;
         const match = allPlacements.find(
           (p: any) => p.startDate <= date && p.endDate >= date
@@ -88,7 +89,7 @@ export default function AssessmentEditModal({
     return () => {
       cancelled = true;
     };
-  }, [open, draft?.dateISO]);
+  }, [open, draft?.dateISO, placements]);
 
   const handleRequestClose = useCallback(() => {
     if (dirty) {

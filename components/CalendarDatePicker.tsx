@@ -1,7 +1,8 @@
 // components/CalendarDatePicker.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   value: string;                 // ISO: "YYYY-MM-DD"
@@ -41,8 +42,7 @@ export default function CalendarDatePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<"down" | "up">(forceDirection || "down");
-  const [horizontalAlign, setHorizontalAlign] = useState<"left" | "right" | "center">(align);
-  const [calculatedPosition, setCalculatedPosition] = useState<React.CSSProperties | null>(null);
+  const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
   
   // Använd forceDirection direkt om det är satt, annars använd direction state
   // Detta säkerställer att forceDirection alltid prioriteras omedelbart
@@ -61,122 +61,60 @@ export default function CalendarDatePicker({
     [viewYear, viewMonth, weekStartsOn]
   );
   
-  // Beräkna kalenderns position relativt viewport och se till att den alltid är inom ramen
+  // Beräkna position som fixed koordinater (undviker klippning av overflow:hidden-föräldrar)
+  const computePortalStyle = useCallback(() => {
+    if (!rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const calW = 320;
+    // Alltid 6 rader × 36px + header (~90px) + weekdays (~32px) + footer (~44px) ≈ 382px
+    const calH = 6 * 36 + 166;
+
+    // Vertikal: öppna nedåt om plats finns, annars uppåt
+    const spaceBelow = vh - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    let top: number;
+    if (forceDirection === "up" || (effectiveDirection !== "down" && spaceBelow < calH && spaceAbove >= calH)) {
+      top = Math.max(8, rect.top - calH - 4);
+    } else {
+      // Alltid nedåt – expandera nedanför utan maxHeight-klippning
+      top = rect.bottom + 4;
+      if (top + calH > vh - 8) top = Math.max(8, vh - calH - 8);
+    }
+
+    // Horisontell: justera så kalendern inte klipps
+    let left = rect.left;
+    if (align === "right") left = rect.right - calW;
+    left = Math.max(8, Math.min(left, vw - calW - 8));
+
+    setPortalStyle({
+      position: "fixed",
+      top,
+      left,
+      width: calW,
+      zIndex: 9999,
+    });
+  }, [align, effectiveDirection, forceDirection]);
+
+  // Positionera en gång när popupen öppnas — top låses då, kalendern förlängs nedåt vid fler veckorader
   useLayoutEffect(() => {
-    if (!open || !rootRef.current || !calendarRef.current) {
-      setCalculatedPosition(null);
-      return;
-    }
-    
-    const rootRect = rootRef.current.getBoundingClientRect();
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    
-    // Beräkna antal veckor i aktuell månad
-    const numWeeks = weeks.length;
-    const calendarWidth = 320;
-    // Grov uppskattning: ~40px per veckorad + 140px för header/knappar
-    const estimatedHeight = numWeeks * 40 + 140;
-    
-    const styles: React.CSSProperties = {};
-    
-    // Bestäm vertikal position
-    if (effectiveDirection === "up") {
-      // När forceDirection är satt ska kalendern ALDRIG auto-flippa riktning
-      // (t.ex. vid månader med 6 veckorader). Den ska alltid öppnas uppåt.
-      const spaceAbove = rootRect.top;
+    if (!open) return;
+    computePortalStyle();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]); // avsiktligt exkludera computePortalStyle från deps för att låsa positionen vid öppning
 
-      styles.bottom = `calc(100% + 4px)`;
-      styles.top = "auto";
-
-      // Se till att den inte går utanför övre kanten
-      const maxHeightFromTop = spaceAbove - 8;
-      if (maxHeightFromTop < estimatedHeight) {
-        styles.maxHeight = `${Math.max(200, maxHeightFromTop)}px`;
-        styles.overflowY = "auto";
-      }
-    } else {
-      // Öppnas nedåt
-      const spaceBelow = viewportHeight - rootRect.bottom;
-      const spaceAbove = rootRect.top;
-      
-      // Om det inte finns plats nedåt, öppna uppåt
-      if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
-        const triggerHeight = rootRect.height || 38;
-        styles.bottom = `calc(100% + 4px)`;
-        styles.top = "auto";
-        const maxHeightFromTop = spaceAbove - 8;
-        if (maxHeightFromTop < estimatedHeight) {
-          styles.maxHeight = `${Math.max(200, maxHeightFromTop)}px`;
-          styles.overflowY = "auto";
-        }
-      } else {
-        styles.top = "calc(100% + 4px)";
-        styles.bottom = "auto";
-        const maxHeightFromBottom = spaceBelow - 8;
-        if (maxHeightFromBottom < estimatedHeight) {
-          styles.maxHeight = `${Math.max(200, maxHeightFromBottom)}px`;
-          styles.overflowY = "auto";
-        }
-      }
-    }
-    
-    // Bestäm horisontell position - se till att kalendern alltid är inom viewport
-    const spaceLeft = rootRect.left;
-    const spaceRight = viewportWidth - rootRect.right;
-    
-    if (align === "right") {
-      // Försök placera till höger om trigger
-      if (spaceRight >= calendarWidth) {
-        styles.right = "0";
-        styles.left = "auto";
-      } else if (spaceLeft >= calendarWidth) {
-        // Finns plats till vänster, flytta dit
-        styles.right = "auto";
-        styles.left = "0";
-      } else {
-        // Centrera om det inte finns plats på någon sida
-        const centerOffset = (calendarWidth - rootRect.width) / 2;
-        const leftPos = rootRect.left - centerOffset;
-        if (leftPos < 8) {
-          styles.left = "8px";
-          styles.right = "auto";
-        } else if (leftPos + calendarWidth > viewportWidth - 8) {
-          styles.right = "8px";
-          styles.left = "auto";
-        } else {
-          styles.left = `${-centerOffset}px`;
-          styles.right = "auto";
-        }
-      }
-    } else {
-      // Försök placera till vänster om trigger (default)
-      if (spaceLeft >= calendarWidth) {
-        styles.left = "0";
-        styles.right = "auto";
-      } else if (spaceRight >= calendarWidth) {
-        // Finns plats till höger, flytta dit
-        styles.left = "auto";
-        styles.right = "0";
-      } else {
-        // Centrera om det inte finns plats på någon sida
-        const centerOffset = (calendarWidth - rootRect.width) / 2;
-        const leftPos = rootRect.left - centerOffset;
-        if (leftPos < 8) {
-          styles.left = "8px";
-          styles.right = "auto";
-        } else if (leftPos + calendarWidth > viewportWidth - 8) {
-          styles.right = "8px";
-          styles.left = "auto";
-        } else {
-          styles.left = `${-centerOffset}px`;
-          styles.right = "auto";
-        }
-      }
-    }
-    
-    setCalculatedPosition(styles);
-  }, [open, effectiveDirection, align, weeks.length, viewYear, viewMonth]);
+  // Re-beräkna vid scroll/resize (stödjer scroll inuti modal)
+  useEffect(() => {
+    if (!open) return;
+    const handler = () => computePortalStyle();
+    window.addEventListener("scroll", handler, true);
+    window.addEventListener("resize", handler);
+    return () => {
+      window.removeEventListener("scroll", handler, true);
+      window.removeEventListener("resize", handler);
+    };
+  }, [open, computePortalStyle]);
 
 
   const thisYear = new Date().getFullYear();
@@ -291,39 +229,19 @@ export default function CalendarDatePicker({
         <span className="ml-auto opacity-70">📅</span>
       </button>
 
-      {open && (
-        <>
-          {/* Backdrop för visuell feedback (hanteringen sker nu via global event listener) */}
-          <div
-            className="fixed inset-0 z-[998]"
-            style={{ pointerEvents: "none" }}
-          />
-
-          {/* Själva kalendern (ligger ovanför backdropen) */}
-          <div
-            ref={calendarRef}
-            role="dialog"
-            aria-modal="true"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onMouseDownCapture={(e) => {
-              e.stopPropagation();
-              // Förhindra att backdrop stänger kalendern när man klickar på kalendern
-            }}
-            onClick={(e) => {
-              // Förhindra att klicket bubblar upp till backdrop
-              e.stopPropagation();
-            }}
-            onTouchStart={(e) => {
-              e.stopPropagation();
-            }}
-            onTouchEnd={(e) => {
-              e.stopPropagation();
-            }}
-            style={calculatedPosition || undefined}
-            className="absolute z-[999] w-[320px] max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-xl"
-          >
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={calendarRef}
+          role="dialog"
+          aria-modal="true"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          style={portalStyle}
+          className="rounded-xl border border-slate-200 bg-white shadow-2xl"
+        >
 
             {/* Header: månad + år, med navigering */}
             <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
@@ -413,6 +331,7 @@ export default function CalendarDatePicker({
             <div className="flex items-center justify-between border-t border-slate-200 bg-white px-2 py-1.5">
               <button
                 type="button"
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => {
                   const t = todayISO();
                   const td = new Date(t + "T00:00:00");
@@ -427,14 +346,15 @@ export default function CalendarDatePicker({
               </button>
               <button
                 type="button"
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => setOpen(false)}
                 className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 hover:bg-slate-50 hover:border-slate-400 select-none"
               >
                 Stäng
               </button>
             </div>
-          </div>
-        </>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -493,7 +413,7 @@ function isTodayDate(y: number, m0: number, d: number) {
   return t.getFullYear() === y && t.getMonth() === m0 && t.getDate() === d;
 }
 
-/** Bygg veckogrid för en månad. Returnerar 4–6 veckor beroende på behov. */
+/** Bygg veckogrid för en månad. Returnerar ALLTID exakt 6 veckor för stabil höjd. */
 function buildMonthGrid(year: number, month0: number, weekStartsOn: 0 | 1) {
   const daysInMonth = new Date(year, month0 + 1, 0).getDate();
   const firstDay = new Date(year, month0, 1).getDay();

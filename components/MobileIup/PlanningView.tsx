@@ -12,11 +12,12 @@ type Props = {
   setDirty: (dirty: boolean) => void;
 };
 
-const PLANNING_FIELDS: [keyof IupPlanning, string][] = [
+const PLANNING_FIELDS: [string, string][] = [
   ["clinicalService", "Kliniska tjänstgöringar"],
   ["courses", "Kurser"],
   ["supervisionMeetings", "Handledarsamtal"],
   ["theoreticalStudies", "Teoretiska studier"],
+  ["practicalMoments", "Praktiska moment"],
   ["researchWork", "Vetenskapligt arbete"],
   ["journalClub", "Journal club"],
   ["congresses", "Kongresser"],
@@ -93,8 +94,8 @@ export default function PlanningView({
               </label>
               <textarea
                 rows={4}
-                value={planning[key]}
-                onChange={(e) => updatePlanning(key, e.target.value)}
+                value={String((planning as unknown as Record<string, string>)[key] || "")}
+                onChange={(e) => updatePlanning(key as keyof IupPlanning, e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>

@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { db } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import dynamic from "next/dynamic";
+import { useProfile } from "@/lib/hooks/useSupabaseData";
 
 // Dynamiska imports för de två versionerna
 const PrepareApplicationModal2015 = dynamic(
@@ -24,24 +24,16 @@ interface Props {
 
 export default function PrepareApplicationModalWrapper({ open, onClose }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const { profile: hookProfile } = useProfile();
 
   useEffect(() => {
     if (open) {
-      // Hämta profil från databasen
-      (async () => {
-        try {
-          const p = await (db as any).profile?.get?.("default");
-          setProfile(p || null);
-        } catch (err) {
-          console.error("Kunde inte hämta profil:", err);
-          setProfile(null);
-        }
-      })();
+      setProfile((hookProfile as any) || null);
     }
-  }, [open]);
+  }, [open, hookProfile]);
 
   // Bestäm vilken version som ska användas baserat på profilens goalsVersion
-  const goalsVersion = profile?.goalsVersion?.toString() || "";
+  const goalsVersion = ((profile as any)?.goalsVersion ?? (profile as any)?.goals_version ?? "").toString();
   const is2021 = goalsVersion.includes("2021");
 
   if (is2021) {

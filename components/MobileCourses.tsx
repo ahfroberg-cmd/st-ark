@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import { db } from "@/lib/db";
 import CalendarDatePicker from "@/components/CalendarDatePicker";
 import MilestonePicker from "@/components/MilestonePicker";
 import BtMilestonePicker from "@/components/BtMilestonePicker";
 import { loadGoals, type GoalsCatalog } from "@/lib/goals";
 import type { Profile } from "@/lib/types";
+import { useCourses } from "@/lib/hooks/useSupabaseData";
+import { useMobileProfile } from "@/lib/hooks/useMobileData";
 import { displayMilestoneCode } from "@/lib/milestoneDisplay";
+import { sortMilestoneIds as sortMilestoneIdsBySequence } from "@/lib/milestoneSequence";
 
 type CourseRow = {
   id: any;
   title?: string;
+  courseTitle?: string;
   courseName?: string;
   kind?: string;
   provider?: string;
@@ -49,44 +52,29 @@ function fmtPeriod(c: CourseRow): string {
 }
 
 export default function MobileCourses() {
-  const [rows, setRows] = useState<CourseRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { courses, loading, saveCourse, deleteCourse } = useCourses();
+  const { profile: dbProfile } = useMobileProfile();
   const [selectedId, setSelectedId] = useState<any | null>(null);
   const [editing, setEditing] = useState<CourseRow | null>(null);
   const [originalEditing, setOriginalEditing] = useState<CourseRow | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const anyDb: any = db as any;
-        const list =
-          ((await anyDb.courses?.toArray?.()) as CourseRow[] | undefined) ??
-          [];
-        if (!cancelled) {
-          const sorted = [...list].sort((a, b) =>
-            fmtDate(
-              a.certificateDate || a.endDate || a.startDate
-            ).localeCompare(
-              fmtDate(b.certificateDate || b.endDate || b.startDate)
-            )
-          );
-          setRows(sorted);
-        }
-      } catch (e) {
-        console.error("Kunde inte läsa kurser:", e);
-        if (!cancelled) setRows([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const rows = useMemo(() => {
+    return courses.map(c => ({
+      id: c.id,
+      title: c.title,
+      courseTitle: c.course_title,
+      site: c.site,
+      startDate: c.start_date,
+      endDate: c.end_date,
+      certificateDate: c.certificate_date,
+      milestones: c.milestones || [],
+      note: c.note,
+      showOnTimeline: c.show_on_timeline,
+      showAsInterval: c.show_as_interval,
+      btAssessment: c.bt_assessment,
+    } as CourseRow));
+  }, [courses]);
 
   function label(c: CourseRow): string {
     return c.title || c.courseName || "Kurs";
@@ -156,7 +144,7 @@ export default function MobileCourses() {
     if (!editing || !isDirty) return;
     setSaving(true);
     try {
-      const anyDb: any = db as any;
+      
       const isExisting = rows.some((r) => r.id === editing.id);
 
       const patch: CourseRow = {
@@ -182,14 +170,20 @@ export default function MobileCourses() {
 
       if (isExisting) {
         const id = editing.id;
-        const updatePatch = { ...patch };
-        delete (updatePatch as any).id;
-        await anyDb.courses?.update?.(id, updatePatch);
-        setRows((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
-        );
-        // Uppdatera både editing och originalEditing så att isDirty blir false
-        // patch har redan formaterade datum, så använd dem direkt
+        await saveCourse({
+          id,
+          title: patch.title,
+          course_title: patch.courseTitle,
+          site: patch.site,
+          start_date: patch.startDate,
+          end_date: patch.endDate,
+          certificate_date: patch.certificateDate,
+          milestones: patch.milestones,
+          note: patch.note,
+          show_on_timeline: patch.showOnTimeline,
+          show_as_interval: patch.showAsInterval,
+          bt_assessment: patch.btAssessment,
+        });
         const updatedEditing = {
           ...editing,
           ...patch,
@@ -197,20 +191,29 @@ export default function MobileCourses() {
         setEditing(updatedEditing);
         setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
       } else {
-        // Ny rad: behåll id och skicka in hela patch (med id) till add
         const insertPatch: CourseRow = { ...patch };
-        await anyDb.courses?.add?.(insertPatch);
-        setRows((prev) => [...prev, insertPatch]);
-        setSelectedId(insertPatch.id);
-        // Formatera datum för editing (samma format som när man väljer en rad)
+        await saveCourse({
+          title: insertPatch.title,
+          course_title: insertPatch.courseTitle,
+          site: insertPatch.site,
+          start_date: insertPatch.startDate,
+          end_date: insertPatch.endDate,
+          certificate_date: insertPatch.certificateDate,
+          milestones: insertPatch.milestones,
+          note: insertPatch.note,
+          show_on_timeline: insertPatch.showOnTimeline,
+          show_as_interval: insertPatch.showAsInterval,
+          bt_assessment: insertPatch.btAssessment,
+        });
+        setSelectedId(null);
         const updatedEditing = {
           ...insertPatch,
           startDate: fmtDate(insertPatch.startDate),
           endDate: fmtDate(insertPatch.endDate),
           certificateDate: fmtDate(insertPatch.certificateDate),
         };
-        setEditing(updatedEditing);
-        setOriginalEditing(JSON.parse(JSON.stringify(updatedEditing)));
+        setEditing(null);
+        setOriginalEditing(null);
       }
     } catch (e) {
       console.error("Kunde inte spara kurs:", e);
@@ -233,9 +236,7 @@ export default function MobileCourses() {
     if (!window.confirm("Vill du ta bort denna aktivitet?")) return;
     
     try {
-      const anyDb: any = db as any;
-      await anyDb.courses?.delete?.(editing.id);
-      setRows((prev) => prev.filter((c) => c.id !== editing.id));
+      await deleteCourse(editing.id);
       setEditing(null);
       setSelectedId(null);
     } catch (e) {
@@ -305,6 +306,7 @@ export default function MobileCourses() {
       {editing && (
         <CourseEditPopup
           course={editing}
+          baseProfile={dbProfile}
           onSave={handleSave}
           onClose={() => {
             setEditing(null);
@@ -325,6 +327,7 @@ export default function MobileCourses() {
 // Course edit popup component
 function CourseEditPopup({
   course,
+  baseProfile,
   onSave,
   onClose,
   onDelete,
@@ -334,6 +337,7 @@ function CourseEditPopup({
   allCourses,
 }: {
   course: CourseRow;
+  baseProfile: Profile | null;
   onSave: () => void;
   onClose: () => void;
   onDelete: () => void;
@@ -401,22 +405,20 @@ function CourseEditPopup({
   const currentPhase = course.phase || calculatedPhase;
 
   useEffect(() => {
-    (async () => {
-      const p = await db.profile.get("default");
-      setProfile(p ?? null);
-      if (p?.goalsVersion && (p.specialty || (p as any).speciality)) {
-        try {
-          const g = await loadGoals(
-            p.goalsVersion,
-            p.specialty || (p as any).speciality || ""
-          );
-          setGoals(g);
-        } catch (e) {
+    setProfile(baseProfile ?? null);
+    if ((baseProfile as any)?.goalsVersion && ((baseProfile as any)?.specialty || (baseProfile as any)?.speciality)) {
+      loadGoals(
+        (baseProfile as any).goalsVersion,
+        (baseProfile as any).specialty || (baseProfile as any).speciality || ""
+      )
+        .then(setGoals)
+        .catch((e) => {
           console.error("Kunde inte ladda mål:", e);
-        }
-      }
-    })();
-  }, []);
+        });
+    } else {
+      setGoals(null);
+    }
+  }, [baseProfile]);
 
   function handleToggleMilestone(milestoneId: string) {
     const current = course.milestones || [];
@@ -430,11 +432,8 @@ function CourseEditPopup({
   }
 
   function sortMilestoneIds(ids: string[]): string[] {
-    return [...ids].sort((a, b) => {
-      const aNorm = String(a).toLowerCase().replace(/^st/, "");
-      const bNorm = String(b).toLowerCase().replace(/^st/, "");
-      return aNorm.localeCompare(bNorm);
-    });
+    // Use shared ordering so pills/text match across the app.
+    return sortMilestoneIdsBySequence(ids);
   }
 
   return (
@@ -658,7 +657,7 @@ function CourseEditPopup({
                             key={m}
                             className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900"
                           >
-                            {String(m).trim().split(/\s|–|-|:|\u2013/)[0].toLowerCase()}
+                            {displayMilestoneCode(String(m).trim(), profile?.goalsVersion)}
                           </span>
                         ))
                       ) : (

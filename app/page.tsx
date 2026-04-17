@@ -4,85 +4,61 @@
 
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/db";
+import { fetchProfileById, getAuthenticatedUserId } from "@/lib/repositories/starkRepository";
 import dynamic from "next/dynamic";
-import { validateJsonFile, safeJsonParse } from "@/lib/validation";
+import { getDefaultRouteForRole } from "@/lib/routing/roleRoutes";
 
 const AboutModal = dynamic(() => import("@/components/AboutModal"), { ssr: false });
 
 export default function HomePage() {
   const router = useRouter();
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(true);
 
-  function pickFile() {
-    fileRef.current?.click();
-  }
-
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    
-    // Validera fil innan bearbetning
-    const fileValidation = validateJsonFile(f);
-    if (!fileValidation.valid) {
-      alert(fileValidation.error || "Ogiltig fil.");
-      return;
-    }
-
-    setImporting(true);
-    
-    try {
-      // Dexie öppnar databasen automatiskt vid första query
-      const txt = await f.text();
-      
-      // Säker JSON-parsing med validering
-      const parseResult = safeJsonParse(txt);
-      if (!parseResult.success || !parseResult.data) {
-        alert(parseResult.error || "Kunde inte läsa JSON-filen.");
+  useEffect(() => {
+    let mounted = true;
+    getAuthenticatedUserId().then(async (userId) => {
+      if (!mounted) return;
+      if (!userId) {
+        router.replace("/auth");
         return;
       }
+      const { data: profile } = await fetchProfileById(userId);
+      if (!mounted) return;
       
-      const data = parseResult.data;
-
-      const p = data.profile ?? data?.Profile ?? data?.prof ?? null;
-      const placements = data.placements ?? data?.Placements ?? [];
-      const courses = data.courses ?? data?.Courses ?? [];
-      const achievements = data.achievements ?? data?.Achievements ?? [];
-
-      // Rensa timeline-tabellen och localStorage INNAN import för att undvika konflikter med gammal data
-      try {
-        await (db as any).timeline?.clear?.();
-      } catch {
-        // Ignorera om tabellen inte finns
-      }
-      try {
-        localStorage.removeItem("pdst_v1");
-      } catch {
-        // Ignorera localStorage-fel
+      if (!profile) {
+        router.replace("/profile?setup=1");
+        return;
       }
 
-      if (p) await (db as any).profile?.put?.({ id: "default", ...(p.id ? p : { ...p, id: "default" }) });
-      if (Array.isArray(placements)) for (const pl of placements) { try { await (db as any).placements?.put?.(pl); } catch {} }
-      if (Array.isArray(courses))    for (const c of courses)    { try { await (db as any).courses?.put?.(c); } catch {} }
-      if (Array.isArray(achievements))for (const a of achievements){ try { await (db as any).achievements?.put?.(a); } catch {} }
+      const studierektorNeedsSetup =
+        profile.role === "studierektor" &&
+        !String((profile as any).name || "").trim();
 
-      // Markera välkomstmeddelandet som sett när man laddar in JSON
-      if (typeof window !== "undefined") {
-        localStorage.setItem("st-ark-welcome-seen", "true");
+      if (studierektorNeedsSetup) {
+        router.replace("/studierektor-profile?setup=1");
+        return;
       }
 
-      router.replace("/planera-st");
-    } catch (err) {
-      console.error(err);
-      alert("Kunde inte läsa JSON-filen.");
-    } finally {
-      setImporting(false);
-    }
+      // Redirecta baserat på roll
+      router.replace(getDefaultRouteForRole(String(profile.role || "st_lakare")));
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  if (isRedirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-sky-600 border-r-transparent"></div>
+          <p className="text-sm text-slate-600">Laddar...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -105,32 +81,18 @@ export default function HomePage() {
       </button>
 
       <p className="mb-8 max-w-[640px] text-center text-slate-600">
-        Välj att starta en ny arbetsyta eller fortsätta på tidigare arbete genom att ladda upp en JSON-fil.
+        Logga in eller skapa konto för att börja. All data sparas i ditt konto.
       </p>
 
-      <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-3">
-        {/* 1) Ny arbetsyta (tidigare "session") */}
+      <div className="grid w-full max-w-[720px] grid-cols-1 gap-4 md:grid-cols-2">
         <button
-          onClick={() => router.push("/profile?setup=1")}
+          onClick={() => router.push("/auth")}
           className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg flex flex-col"
         >
-          <div className="text-lg font-extrabold">Ny arbetsyta</div>
-          <p className="mt-1 text-slate-600">Fyll i profil och börja planera din ST.</p>
+          <div className="text-lg font-extrabold">Logga in / Skapa konto</div>
+          <p className="mt-1 text-slate-600">Skapa användare och spara allt direkt i Supabase.</p>
         </button>
 
-        {/* 2) Fortsätt tidigare arbete */}
-        <button
-          onClick={pickFile}
-          className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg disabled:opacity-60 flex flex-col"
-          disabled={importing}
-          data-info="Låter dig ladda upp en tidigare sparad JSON-fil med din data (profil, aktiviteter, kurser, IUP) för att fortsätta ditt arbete där du slutade."
-        >
-          <div className="text-lg font-extrabold">Fortsätt tidigare arbete</div>
-          <p className="mt-1 text-slate-600">Ladda upp din JSON-fil och fortsätt i tidslinjen.</p>
-          {importing && <div className="mt-3 text-sm text-slate-500">Laddar…</div>}
-        </button>
-
-        {/* 3) Studierektor/huvudhandledare */}
         <button
           onClick={() => router.push("/studierektor")}
           className="min-h-[140px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-[1px] hover:shadow-lg flex flex-col"
@@ -139,8 +101,6 @@ export default function HomePage() {
           <p className="mt-1 text-slate-600">Följ flera ST-läkare samtidigt.</p>
         </button>
       </div>
-
-      <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} />
 
       {/* About modal */}
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />

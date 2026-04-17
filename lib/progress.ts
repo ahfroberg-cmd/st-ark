@@ -33,12 +33,12 @@ export function computeMilestoneProgress(
   milestone: GoalsMilestone,
   allAchievements: MinimalAch[]
 ): MilestoneProgress {
-  const requiredIds = milestone.subpoints
-    .filter(sp => sp.required !== false) // default = required
-    .map(sp => sp.id);
+  const requiredIds = ((milestone as any).subpoints || [])
+    .filter((sp: any) => sp.required !== false) // default = required
+    .map((sp: any) => sp.id);
 
   const doneSet = achievementsByMilestone(allAchievements, milestone.id);
-  const completed = requiredIds.reduce((acc, id) => acc + (doneSet.has(id) ? 1 : 0), 0);
+  const completed = requiredIds.reduce((acc: number, id: string) => acc + (doneSet.has(id) ? 1 : 0), 0);
   const required = requiredIds.length;
 
   let status: DerivedStatus = "Ej";

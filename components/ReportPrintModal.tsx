@@ -8,8 +8,8 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { db } from "@/lib/db";
 import type { Profile, Placement, Course } from "@/lib/types";
+import { useCourses, usePlacements, useProfile } from "@/lib/hooks/useSupabaseData";
 
 type Status = "done" | "ongoing" | "planned" | null;
 
@@ -441,6 +441,9 @@ function ReportPreview(props: ReportPreviewProps) {
 export function ReportPanel() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [rows, setRows] = useState<ActivityRow[]>([]);
+  const { profile: hookProfile } = useProfile();
+  const { placements } = usePlacements();
+  const { courses } = useCourses();
 
   const [showDone, setShowDone] = useState(true);
   const [showOngoing, setShowOngoing] = useState(true);
@@ -461,21 +464,19 @@ export function ReportPanel() {
   const previewContentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let live = true;
+    try {
+      setProfile((hookProfile as any) ?? null);
 
-    (async () => {
-      try {
-        const p = await db.profile.get("default");
-        const placementsRaw = ((await db.placements.toArray()) ?? []) as Placement[];
-        const coursesRaw = ((await db.courses.toArray()) ?? []) as Course[];
+      const today = todayISO();
+      const placementsRaw = (placements || []) as unknown as Placement[];
+      const coursesRaw = (courses || []) as unknown as Course[];
 
-        if (!live) return;
+      const getStartDate = (x: any) =>
+        x?.startDate || x?.start_date || x?.startISO || "";
+      const getEndDate = (x: any) =>
+        x?.endDate || x?.end_date || x?.endISO || "";
 
-        setProfile((p as any) ?? null);
-
-        const today = todayISO();
-
-        const placementRows: ActivityRow[] = placementsRaw.map((pl: any) => {
+      const placementRows: ActivityRow[] = placementsRaw.map((pl: any) => {
           const id = String(pl.id ?? "");
 
           const label =
@@ -485,8 +486,10 @@ export function ReportPanel() {
             (pl.type && String(pl.type)) ||
             "Klinisk tjänstgöring";
 
-          const start = normalizeISO(pl.startDate);
-          const end = normalizeISO(pl.endDate);
+          const startRaw = getStartDate(pl);
+          const endRaw = getEndDate(pl);
+          const start = normalizeISO(startRaw);
+          const end = normalizeISO(endRaw);
           const period =
             start && end
               ? `${start} – ${end}`
@@ -497,7 +500,7 @@ export function ReportPanel() {
               : "—";
 
           const description = String(pl.note ?? "").trim();
-          const status = classifyActivity(pl.startDate, pl.endDate);
+          const status = classifyActivity(startRaw, endRaw);
 
           const supervisor =
             pl.supervisorName ??
@@ -525,23 +528,25 @@ export function ReportPanel() {
 
         });
 
-        const courseRows: ActivityRow[] = coursesRaw.map((c: any) => {
+      const courseRows: ActivityRow[] = coursesRaw.map((c: any) => {
           const id = String(c.id ?? "");
-          const label = c.title || c.name || "Kurs";
+          const label = c.title || c.course_title || c.name || "Kurs";
 
-          const start = normalizeISO(c.startDate || c.certificateDate);
-          const end = normalizeISO(c.endDate || c.certificateDate);
+          const startRaw = c.startDate || c.start_date || c.certificateDate || c.certificate_date;
+          const endRaw = c.endDate || c.end_date || c.certificateDate || c.certificate_date;
+          const start = normalizeISO(startRaw);
+          const end = normalizeISO(endRaw);
 
           let status: Status = null;
-          if (c.startDate || c.endDate) {
-            status = classifyActivity(c.startDate, c.endDate);
-          } else if (c.certificateDate) {
-            const cert = normalizeISO(c.certificateDate);
+          if (startRaw || endRaw) {
+            status = classifyActivity(startRaw, endRaw);
+          } else if (c.certificateDate || c.certificate_date) {
+            const cert = normalizeISO(c.certificateDate || c.certificate_date);
             status = cert && cert < today ? "done" : "planned";
           }
 
           const baseDate = normalizeISO(
-            c.certificateDate || c.endDate || c.startDate
+            c.certificateDate || c.certificate_date || c.endDate || c.end_date || c.startDate || c.start_date
           );
           const period = baseDate || "—";
 
@@ -572,41 +577,35 @@ export function ReportPanel() {
           };
 
         });
-        const allRows = [...placementRows, ...courseRows];
-        allRows.sort((a, b) => a.period.localeCompare(b.period));
+      const allRows = [...placementRows, ...courseRows];
+      allRows.sort((a, b) => a.period.localeCompare(b.period));
 
-        setRows(allRows);
+      setRows(allRows);
 
-        const inc: Record<string, boolean> = {};
-        const hide: Record<string, boolean> = {};
-        const incMil: Record<string, boolean> = {};
-        const incSup: Record<string, boolean> = {};
-        for (const r of allRows) {
-          inc[r.id] = true;
-          hide[r.id] = false;
-          incMil[r.id] = true;
-          incSup[r.id] = true;
-        }
-        setIncludeDesc(inc);
-        setHideInReport(hide);
-        setIncludeMilestones(incMil);
-        setIncludeSupervisor(incSup);
-      } catch {
-        if (!live) return;
-        setProfile(null);
-        setRows([]);
-        setIncludeDesc({});
-        setHideInReport({});
-        setIncludeMilestones({});
-        setIncludeSupervisor({});
+      const inc: Record<string, boolean> = {};
+      const hide: Record<string, boolean> = {};
+      const incMil: Record<string, boolean> = {};
+      const incSup: Record<string, boolean> = {};
+      for (const r of allRows) {
+        inc[r.id] = true;
+        hide[r.id] = false;
+        incMil[r.id] = true;
+        incSup[r.id] = true;
       }
+      setIncludeDesc(inc);
+      setHideInReport(hide);
+      setIncludeMilestones(incMil);
+      setIncludeSupervisor(incSup);
+    } catch {
+      setProfile(null);
+      setRows([]);
+      setIncludeDesc({});
+      setHideInReport({});
+      setIncludeMilestones({});
+      setIncludeSupervisor({});
+    }
+  }, [hookProfile, placements, courses]);
 
-    })();
-
-    return () => {
-      live = false;
-    };
-  }, []);
 
   const filteredRows = useMemo(
     () =>
@@ -1154,7 +1153,7 @@ export function ReportPanel() {
 
           window.print();
         }}
-        contentRef={previewContentRef}
+        contentRef={previewContentRef as React.RefObject<HTMLDivElement>}
         profileName={
           (profile as any)?.name ?? (profile as any)?.fullName ?? ""
         }
@@ -1164,7 +1163,7 @@ export function ReportPanel() {
           ""
         }
         profileGoalsVersion={
-          (profile as any)?.goalsVersion ?? ""
+          (profile as any)?.goalsVersion ?? (profile as any)?.goals_version ?? ""
         }
         profileMainSupervisor={
           (profile as any)?.mainSupervisorName ??

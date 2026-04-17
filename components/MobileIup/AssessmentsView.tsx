@@ -4,8 +4,6 @@
 import React, { useState, useEffect } from "react";
 import type { IupAssessment } from "@/components/IupModal";
 import type { Profile } from "@/lib/types";
-import { db } from "@/lib/db";
-
 type Props = {
   assessments: IupAssessment[];
   editingId: string | null;
@@ -43,7 +41,7 @@ export default function AssessmentsView({
   useEffect(() => {
     (async () => {
       try {
-        const pls = await db.placements.toArray();
+        const pls: any[] = [];
         setPlacements(pls || []);
       } catch {
         setPlacements([]);
